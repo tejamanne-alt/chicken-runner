@@ -4,26 +4,39 @@ Image prompts for ChatGPT, written for the Blender pipeline: every image has an 
 
 ## How to use it
 
-1. Make **A1** first, in a new ChatGPT chat, attaching your kid reference art and rooster photo.
-2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach*.
+1. Make **A0** first, in a new ChatGPT chat, attaching your four kid turnaround images. Then make **A1**, attaching A0 and your rooster photo.
+2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach* (A0 is the kid reference from now on).
 3. Save each image with the file name shown.
-4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 22 marked *first batch*.
+4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 23 marked *first batch*.
 
 Regenerate an image when words or labels appear in it, when a model sheet is not side-on and orthographic, or when the background is not plain.
 
 ## A. Style anchors
 
-Make these first. A1 sets the look; every later prompt asks ChatGPT to match it.
+Make these first, in order. A0 fixes the kid's design in the pattu frock, A1 sets the look, and every later prompt matches both.
+
+### A0 · Kid in a pattu frock
+
+Save as `A0_kid_pattu_frock_sheet.png` · Landscape 3:2 · first batch · Attach: your four kid turnaround images  
+Used for: The kid's design for every later image, and the sheet I model and rig the kid from in Blender.
+
+```text
+Landscape 3:2 image.
+
+Character model sheet for 3D modelling of the game's toddler hero, based on the four attached reference images (front, back and both side views). Keep the face, skin tone, shoulder-length wavy black hair, leopard-print hairband and chubby toddler proportions exactly as in the references, but change the outfit: replace the T-shirt, shorts, socks and sneakers with a vintage South Indian pattu frock, like one from a 1980s family photo. It is a knee-length silk frock in peacock blue with a wide contrasting border at the hem in magenta and gold zari, woven with a small temple-tower pattern; a fitted bodice with a gold zari neckline; short puffed sleeves edged in gold; and a gently gathered, flared skirt with a soft silk sheen. Bare feet with silver anklets with tiny bells. Show four views side by side at exactly the same scale and height: front, left side, right side and back, standing in a relaxed A-pose with the arms a little away from the body. Orthographic, no perspective. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
 
 ### A1 · Key art
 
-Save as `A1_key_art.png` · Landscape 3:2 · first batch · Attach: your kid reference art, your rooster reference photo  
+Save as `A1_key_art.png` · Landscape 3:2 · first batch · Attach: A0, your rooster reference photo  
 Used for: Sets the look every other image matches, and my reference for materials and lighting in Blender.
 
 ```text
 Landscape 3:2 image.
 
-Key art for the game. Side-on view of a narrow South Indian village lane in late-afternoon golden light. A small, determined toddler (big head, short legs, sports kit, leopard-print hairband, drawn exactly like the attached kid reference) sprints from left to right after a smug country rooster (red comb, orange neck feathers, glossy black tail, like the attached rooster photo) who glances back over his shoulder mid-stride. Around them: flat-roofed houses washed in lime-white, indigo and turmeric, white kolam patterns at the doorsteps, a stack of clay pots, a hand pump with a puddle, a rope cot where a sleepy neighbour is just waking up, a tulsi planter, coconut palms and a distant temple tower in warm haze. Dust kicked up by little feet, a few loose feathers in the air, long soft shadows. The kid is on the left third, the rooster on the right.
+Key art for the game. Side-on view of a narrow South Indian village lane in late-afternoon golden light. A small, determined toddler (drawn exactly like the attached A0 model sheet: wavy black hair, a leopard-print hairband, a peacock-blue silk pattu frock with a magenta-and-gold border swishing as they run, silver anklets) sprints from left to right after a smug country rooster (red comb, orange neck feathers, glossy black tail, like the attached rooster photo) who glances back over his shoulder mid-stride. Around them: flat-roofed houses washed in lime-white, indigo and turmeric, white kolam patterns at the doorsteps, a stack of clay pots, a hand pump with a puddle, a rope cot where a sleepy neighbour is just waking up, a tulsi planter, coconut palms and a distant temple tower in warm haze. Dust kicked up by little feet, a few loose feathers in the air, long soft shadows. The kid is on the left third, the rooster on the right.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
@@ -38,7 +51,7 @@ Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-A colour script for the whole game: nine small painted panels in a 3 by 3 grid, read left to right and top to bottom, all side-on views of one chase through a South Indian village as the day goes by. Panels 1 to 3: a village lane in warm late afternoon. Panels 4 to 6: paddy fields, an irrigation canal and mango trees at golden hour, the light turning orange. Panel 7: flat rooftops with drying red chillies at sunset. Panel 8: a weekly market at dusk with marigold garlands and glowing lanterns. Panel 9: temple steps at blue dusk lit by rows of small oil lamps. Simple shapes, all about light and colour, with tiny silhouettes of a toddler chasing a rooster in every panel.
+A colour script for the whole game: nine small painted panels in a 3 by 3 grid, read left to right and top to bottom, all side-on views of one chase through a South Indian village as the day goes by. Panels 1 to 3: a village lane in warm late afternoon. Panels 4 to 6: paddy fields, an irrigation canal and mango trees at golden hour, the light turning orange. Panel 7: flat rooftops with drying red chillies at sunset. Panel 8: a weekly market at dusk with marigold garlands and glowing lanterns. Panel 9: temple steps at blue dusk lit by rows of small oil lamps. Simple shapes, all about light and colour, with tiny silhouettes of a toddler in a swishing blue silk frock chasing a rooster in every panel.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
@@ -79,7 +92,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B3 · Kid gameplay poses
 
-Save as `B3_kid_poses_gameplay.png` · Landscape 3:2 · first batch · Attach: A1, your kid reference art  
+Save as `B3_kid_poses_gameplay.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: Key poses for the nine first-prototype animations on your kid model.
 
 ```text
@@ -87,14 +100,14 @@ Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Pose sheet for the toddler hero, keeping the design exactly as in the attached reference art (big head, short legs, sports kit, leopard-print hairband). All side view facing right, same scale, plain flat light-grey background: 1) running, contact pose; 2) running, passing pose; 3) jumping up with arms raised; 4) falling with arms flailing; 5) landing in a squat; 6) sliding feet first on their back; 7) vaulting a low wall with both hands on top; 8) stumbling forward, off balance; 9) diving flat out with arms stretched to grab.
+Pose sheet for the toddler hero, keeping the design exactly as in the attached A0 model sheet (wavy black hair, leopard-print hairband, peacock-blue pattu frock with a magenta-and-gold border, silver anklets). All side view facing right, same scale, plain flat light-grey background: 1) running, contact pose; 2) running, passing pose; 3) jumping up with arms raised; 4) falling with arms flailing; 5) landing in a squat; 6) sliding feet first on their back; 7) vaulting a low wall with both hands on top; 8) stumbling forward, off balance; 9) diving flat out with arms stretched to grab. Let the frock's skirt flare and trail with each motion.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ### B4 · Kid story poses and faces
 
-Save as `B4_kid_story_and_faces.png` · Landscape 3:2 · first batch · Attach: A1, your kid reference art  
+Save as `B4_kid_story_and_faces.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: The four face expressions and the story-animation poses.
 
 ```text
@@ -102,7 +115,7 @@ Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Second pose sheet for the same toddler, exactly as in the attached reference art. Top row, four face close-ups: neutral, big cheeky grin, shocked with mouth open, straining with cheeks puffed. Bottom row, full body side views facing right: tiptoeing with exaggerated sneaky steps; lifting a big bamboo basket with both hands, straining; a startled jump; carrying a rooster proudly in both arms; cheering with fists up; sulking with arms crossed. Plain flat light-grey background, even lighting.
+Second pose sheet for the same toddler, exactly as in the attached A0 model sheet. Top row, four face close-ups: neutral, big cheeky grin, shocked with mouth open, straining with cheeks puffed. Bottom row, full body side views facing right: tiptoeing with exaggerated sneaky steps; lifting a big bamboo basket with both hands, straining; a startled jump; carrying a rooster proudly in both arms; cheering with fists up; sulking with arms crossed. Plain flat light-grey background, even lighting.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
@@ -410,7 +423,7 @@ The opening story, the wriggle-free gag, the loss screen and Amma's kitchen.
 
 ### F1 · Title screen
 
-Save as `F1_title_screen.png` · Landscape 3:2 · second batch · Attach: A1, your kid reference art  
+Save as `F1_title_screen.png` · Landscape 3:2 · second batch · Attach: A1, A0  
 Used for: Staged in Blender as the title screen, with room for the logo.
 
 ```text
@@ -418,14 +431,14 @@ Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Title screen illustration with empty space at the top centre for a logo: the toddler hero (as in the attached reference art) peeks mischievously from behind a low wall at an upturned bamboo basket in a neighbour's yard, and a rooster's beady eye looks back through the gaps in the weave. Late afternoon, warm light, kolam on the ground.
+Title screen illustration with empty space at the top centre for a logo: the toddler hero (as in the attached A0 model sheet, in the peacock-blue pattu frock) peeks mischievously from behind a low wall at an upturned bamboo basket in a neighbour's yard, and a rooster's beady eye looks back through the gaps in the weave. Late afternoon, warm light, kolam on the ground.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ### F2 · Story 1: the craving
 
-Save as `F2_story_craving.png` · Landscape 3:2 · first batch · Attach: A1, your kid reference art  
+Save as `F2_story_craving.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: Storyboard for the opening shot of the intro cutscene.
 
 ```text
@@ -440,7 +453,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F3 · Story 2: the plan
 
-Save as `F3_story_plan.png` · Landscape 3:2 · first batch · Attach: A1, your kid reference art, B5  
+Save as `F3_story_plan.png` · Landscape 3:2 · first batch · Attach: A1, A0, B5  
 Used for: Storyboard and layout for the yard where the basket intro is played.
 
 ```text
@@ -455,7 +468,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F4 · Story 3: the basket
 
-Save as `F4_story_basket.png` · Landscape 3:2 · first batch · Attach: A1, your kid reference art  
+Save as `F4_story_basket.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: Storyboard for the hold-to-lift moment.
 
 ```text
@@ -470,7 +483,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F5 · Story 4: the escape
 
-Save as `F5_story_escape.png` · Landscape 3:2 · first batch · Attach: A1, your kid reference art, B5  
+Save as `F5_story_escape.png` · Landscape 3:2 · first batch · Attach: A1, A0, B5  
 Used for: Storyboard for the moment the chase begins.
 
 ```text
@@ -485,7 +498,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F6 · Wriggle-free gag
 
-Save as `F6_story_wriggle_free.png` · Landscape 3:2 · second batch · Attach: A1, your kid reference art  
+Save as `F6_story_wriggle_free.png` · Landscape 3:2 · second batch · Attach: A1, A0  
 Used for: Storyboard for the gag at the end of levels 1 to 8.
 
 ```text
@@ -515,7 +528,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F8 · Story 6: Amma's kitchen
 
-Save as `F8_story_amma_kitchen.png` · Landscape 3:2 · second batch · Attach: A1, your kid reference art, B6  
+Save as `F8_story_amma_kitchen.png` · Landscape 3:2 · second batch · Attach: A1, A0, B6  
 Used for: Storyboard for the final scene. It stops at the handover, as the design doc's risk table asks.
 
 ```text
@@ -639,16 +652,16 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ## What happens in Blender
 
-1. **Model.** Props, buildings, the rooster and the side characters are modelled in Blender over the model sheets, at the game's scale (1 unit = 1 m), with the side view getting the most care because the camera is side-on.
+1. **Model.** Props, buildings, the rooster, the side characters and (unless you have a model) the kid are modelled in Blender over the model sheets, at the game's scale (1 unit = 1 m), with the side view getting the most care because the camera is side-on.
 2. **Paint.** The textures become hand-painted materials. Characters and props get a toon shader with an outline, so they match the Unity toon look; backgrounds stay painterly.
 3. **Layer.** The far and middle layers become painted cards behind the 3D lane, which gives each zone its parallax depth.
 4. **Light.** Each zone gets the time of day from the colour script, with haze, light shafts and dust.
-5. **Animate.** The rooster's run, flutter, taunt, panic and wriggle come from his pose sheet. The kid's clips go on your model's rig, and the story frames become the intro and ending cutscenes.
+5. **Animate.** The rooster's run, flutter, taunt, panic and wriggle come from his pose sheet. The kid's clips go on the kid's rig, and the story frames become the intro and ending cutscenes.
 6. **Export.** Models and animations go to Unity as FBX (Humanoid-ready for the kid), and the cutscenes render as video or Timeline animation.
 
 ## What I need from you
 
-- Your kid model files (FBX or .blend), with the rig if it has one.
-- The kid reference art and the rooster reference photo from the design doc.
+- The rooster reference photo from the design doc. (Your four kid images are in ArtSource/supplied.)
+- Your kid model files (FBX or .blend, with the rig) if you have them in the pattu frock. Otherwise I'll model the kid from A0.
 - The images from this sheet, saved with the file names shown. Upload them here in batches.
 - A yes or no on South India. The prompts use kolam, a gopuram-style temple tower and Amma; tell me if you want another region.
