@@ -7,7 +7,7 @@ Image prompts for ChatGPT, written for the Blender pipeline: every image has an 
 1. Make **A1** first, in a new ChatGPT chat, attaching your kid reference art and rooster photo.
 2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach*.
 3. Save each image with the file name shown.
-4. Upload the images in batches, starting with the 22 marked *first batch*.
+4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 22 marked *first batch*.
 
 Regenerate an image when words or labels appear in it, when a model sheet is not side-on and orthographic, or when the background is not plain.
 

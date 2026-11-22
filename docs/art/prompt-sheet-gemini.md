@@ -7,7 +7,7 @@ The same images as [the ChatGPT sheet](prompt-sheet.md), with the same IDs and f
 1. Make **A1** first, in a new Gemini chat, uploading your kid art and rooster photo.
 2. Stay in that chat. Each copied prompt says what every uploaded image is for. Upload the files under *Attach* with each prompt, A1 included: re-uploading it keeps the style closest.
 3. If the shape comes out wrong, reply: *Make this same image in a 21:9 ultra-wide shape* (or the shape shown).
-4. Save each image with its file name and upload them here in batches.
+4. Save each image with its file name, then put them in the repo at `ArtSource/references/` or upload them here, in batches.
 
 Start with the 22 marked *first batch*. Gemini is good at small edits, so ask for just the change: *Using the image you just made, remove the labels and keep everything else the same.* A small sparkle mark in a corner is Gemini's watermark; leave it and I'll paint it out.
 
