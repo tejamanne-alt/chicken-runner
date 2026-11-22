@@ -92,7 +92,9 @@ def card_material(name, img, emission=0.55, shadeless=False):
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = img
     tex.interpolation = "Cubic"
-    tex.extension = "CLIP"
+    # Cut-outs clip to transparent past their edges; the opaque far painting extends its edge pixels instead, so its
+    # mirrored copies meet without a see-through seam.
+    tex.extension = "EXTEND" if shadeless else "CLIP"
     if shadeless:
         emit = nt.nodes.new("ShaderNodeEmission")
         transp = nt.nodes.new("ShaderNodeBsdfTransparent")
