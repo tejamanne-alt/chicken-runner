@@ -419,7 +419,7 @@ while x < STREET_END:
 bx = -26.0
 while bx < STREET_END + 8:
     bx += rng.uniform(6.0, 12.0)
-    mango(f"tree_back_{bx:.0f}", bx, rng.uniform(10.0, 14.0), rng.uniform(6.5, 8.5), col="Backdrop")
+    mango(f"tree_back_{bx:.0f}", bx, rng.uniform(9.2, 11.0), rng.uniform(6.5, 8.5), col="Backdrop")
 
 # Pebbles in loose drifts over the lane and verges, and grass along walls, fences and the lane's edges.
 GROUND.pebbles(COL["Ground"], rng, ((-24, 86), (-7, 4.2)), 900)
@@ -434,14 +434,18 @@ for i, (name, px) in enumerate([("pot_stack", 6), ("dung", 11.5), ("dog_sleeping
     card(f"lane_{name}_{i}", folder / f"{name}.png", px, 0.0, size=SIZES[name], mirror=(name == "pot_stack" and i > 2))
 card("bullocks", A / "bullocks.png", 44.5, 2.2, size=SIZES["bullocks"], col="Props")
 
-# ------------------------------------------------------------------ distance: palm clumps reshuffled, then the far layer
+# ------------------------------------------------------------------ distance: the middle layer close behind, then far
+# The C3 middle layer (palms, banana plants, tiled roofs, bushes) stands just behind the houses, 12-15 m back, so the
+# village carries straight on behind them; its bushy foot sinks into the ground. Clumps are reshuffled, mirrored and
+# set at slightly different depths so they part a little as the camera moves.
 palms = Pool([f"mid_palms_slice_{i}" for i in range(1, 4)], 1)
 px = -70.0
 while px < 170:
-    obj, w, h = card(f"palms_{px:.0f}", L / f"{palms.pick()}.png", 0, rng.choice([30.0, 36.0, 42.0]), z=-1.0,
-                     size=("h", rng.uniform(9.0, 12.5)), mirror=rng.random() < 0.5, col="Backdrop", emission=0.85)
+    obj, w, h = card(f"palms_{px:.0f}", L / f"{palms.pick()}.png", 0, rng.choice([12.0, 13.5, 15.0]),
+                     z=-rng.uniform(0.35, 1.0),  # sunk by different amounts, so their feet don't line up
+                     size=("h", rng.uniform(8.5, 10.5)), mirror=rng.random() < 0.5, col="Backdrop", emission=0.75)
     obj.location.x = px + w / 2
-    px += w * rng.uniform(0.55, 0.85)
+    px += w * rng.uniform(0.6, 0.85)
 far, fw, fh = card("far_sky_temple", REF / "C2_lane_far_layer.png", 25, 95.0, size=("w", 190.0), col="Backdrop",
                    shadeless=True)
 far.location.z = -fh * 0.36  # puts the painted hills a little above the rooftops in view

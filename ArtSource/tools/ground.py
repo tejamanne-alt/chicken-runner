@@ -86,7 +86,11 @@ class Graph:
         return c.outputs["Vector"]
 
 
-def earth_material(grain_image, ruts=(-0.5, 0.75)):
+# The colour of the haze at the foot of the C2 far layer, which the ground fades into with distance.
+HAZE = (0.98, 0.765, 0.545)
+
+
+def earth_material(grain_image, ruts=(-0.5, 0.75), haze_from=9.0, haze_to=40.0):
     mat = bpy.data.materials.new("M_ground_earth")
     mat.use_nodes = True
     g = Graph(mat)
@@ -174,6 +178,17 @@ def earth_material(grain_image, ruts=(-0.5, 0.75)):
 
     g.link(col, bsdf.inputs["Base Color"])
     g.link(col, bsdf.inputs["Emission Color"])
+
+    # Atmospheric haze: from just behind the houses the earth fades into the painted haze at the foot of the far
+    # layer, reaching it exactly where the ground ends, so there's no horizon line between them.
+    fog = g.node("ShaderNodeEmission")
+    fog.inputs["Color"].default_value = lin(HAZE)
+    fog.inputs["Strength"].default_value = 1.0
+    blend = g.node("ShaderNodeMixShader")
+    g.link(g.math("POWER", g.remap(g.y, haze_from, haze_to, smooth=False), 0.8), blend.inputs["Fac"])
+    g.link(bsdf.outputs["BSDF"], blend.inputs[1])
+    g.link(fog.outputs["Emission"], blend.inputs[2])
+    g.link(blend.outputs["Shader"], g.nt.nodes["Material Output"].inputs["Surface"])
     return mat
 
 

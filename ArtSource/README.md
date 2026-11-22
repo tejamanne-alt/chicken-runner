@@ -44,6 +44,9 @@ breathe. Everything in it that stands for a house or a tree comes from the refer
   or a yard with hens. Setbacks run from 4.3 to 6.8 m.
 - **Compounds**: some of the huts and mud houses (G1-G4; for now only G4) sit back in a yard fenced with woven dried coconut leaves (or
   split-bamboo matting), with an opening at the door; never two side by side.
+- **Distance**: the C3 middle layer (palms, banana plants, tiled roofs, bushes) stands 12-15 m back, right behind the
+  houses, reshuffled in clumps at slightly different depths with their bushy feet sunk into the ground. The ground fades
+  into the haze painted at the foot of the C2 far layer, reaching it where the ground ends, so there's no horizon line.
 - **Trees** are the two D4 mango trees, at least 30 m apart, and the painted palm groves of the C3 middle layer.
   Coconut palms, neem and other trees go in when H1 and H4 arrive.
 - **The ground** is built in the shader (`tools/ground.py`), not tiled from T1, whose footprints and tyre track
