@@ -10,6 +10,7 @@ ChaseCamera.cs: 30° vertical field of view, the kid on the left third, the grou
 import json
 import math
 import pathlib
+import random
 import sys
 
 import bpy
@@ -26,6 +27,7 @@ ARGS = sys.argv[1:]
 SAMPLES = int(ARGS[ARGS.index("--samples") + 1]) if "--samples" in ARGS else 48
 RENDER = "--no-render" not in ARGS
 EEVEE = "--eevee" in ARGS  # Cycles by default: reliable soft shadows through the cut-outs
+SEED = int(ARGS[ARGS.index("--seed") + 1]) if "--seed" in ARGS else 11  # a different seed builds a different street
 
 HOUSE_PX_PER_M = json.loads((CUT / "lane" / "manifest.json").read_text())["_house_px_per_m"]
 
@@ -65,7 +67,8 @@ def collection(name):
     return c
 
 
-COL = {n: collection(n) for n in ["Ground", "Houses", "Props", "Decals", "Backdrop", "Characters", "Lights_Camera"]}
+COL = {n: collection(n) for n in ["Ground", "Houses", "BuiltHouses", "Props", "Decals", "Backdrop", "Characters",
+                                   "Lights_Camera"]}
 
 
 def load_image(path):
@@ -147,6 +150,14 @@ def sample_wall_colour(img_path):
     band = a[int(h * 0.45):int(h * 0.6), int(w * 0.05):int(w * 0.25)]
     solid = band[band[..., 3] > 0.9][:, :3]
     return tuple(np.median(solid, axis=0)) if len(solid) else (0.8, 0.8, 0.75)
+
+
+def wall_span(img_path):
+    """Left and right edges of the painted wall, as fractions of the image width (where the lower half is solid)."""
+    a = np.asarray(Image.open(img_path).convert("RGBA"))[..., 3]
+    lower = a[int(a.shape[0] * 0.5):int(a.shape[0] * 0.9)]
+    cols = np.where((lower > 200).mean(axis=0) > 0.6)[0]
+    return (cols[0] / a.shape[1], (cols[-1] + 1) / a.shape[1]) if len(cols) else (0.1, 0.9)
 
 
 def flat_material(name, rgb, tex_path=None, scale=1.0):
@@ -247,60 +258,190 @@ for c in ground.users_collection:
     c.objects.unlink(ground)
 COL["Ground"].objects.link(ground)
 
-# ------------------------------------------------------------------ houses: painted fronts with a 3D body behind
-HOUSE_FRONT_Y = 4.5
-HOUSE_DEPTH = 3.4
-LIME, INDIGO, TURMERIC, PINK = "house_limewash", "house_indigo_veranda", "house_turmeric_ladder", "house_pink"
-row = [LIME, INDIGO, TURMERIC, PINK, None, TURMERIC, LIME, PINK, INDIGO, None, INDIGO, PINK, LIME, TURMERIC]
-wall_mat = flat_material("M_compound_wall", (0.93, 0.9, 0.82), REF / "T2_tex_limewash_wall.png", 0.6)
-x = -12.0
-for i, name in enumerate(row):
-    if name is None:
-        # A low lime-washed compound wall closes the gap between blocks of houses.
-        box(f"compound_wall_{i}", x + 0.9, HOUSE_FRONT_Y + 0.3, 0, 1.8, 0.3, 1.5, wall_mat)
-        x += 1.8
+# ------------------------------------------------------------------ the street: never the same thing twice in view
+# Placement rules (the game's chunk builder will follow the same ones):
+#   * A painted house front from the reference art appears at most once in any 45 m (about two screens).
+#   * Six kinds of built house (hut, mud-and-tin, tiled, parapet, shop, the village head's house). No kind
+#     comes back within three houses, a shop at most every 20 m, the head's house once per street; no house
+#     takes either of the previous two houses' wall colours.
+#   * Every 3 to 5 houses the row breaks: a compound wall, a gateway or an open yard.
+#   * Trees stand at least 30 m apart, counting the front and back rows together.
+#   * Houses step forward and back: no two neighbours share a setback.
+#   * Trees, palms, animals, kolam and props come from pools that skip the last few picks, and are mirrored
+#     and scaled a little, so even the same picture never sits twice in view the same way.
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+from village_kit import KINDS, Kit  # noqa: E402
+
+rng = random.Random(SEED)
+kit = Kit(CUT / "textures", COL["BuiltHouses"], load_image, rng)
+L, A, K = CUT / "lane", CUT / "animals", CUT / "kid"
+# Where the door sits across each painted front, as a fraction of its width.
+PAINTED = {"house_limewash": 0.42, "house_indigo_veranda": 0.67, "house_turmeric_ladder": 0.56, "house_pink": 0.5}
+
+
+class Pool:
+    """Picks from a list without repeating any of the last `memory` picks."""
+
+    def __init__(self, items, memory):
+        self.items, self.recent, self.memory = list(items), [], memory
+
+    def pick(self):
+        options = [i for i in self.items if i not in self.recent] or self.items
+        choice = rng.choice(options)
+        self.recent = (self.recent + [choice])[-self.memory:]
+        return choice
+
+
+trees = Pool(["tree_mango_1", "tree_mango_2"], 1)
+tree_xs = []
+
+
+def tree_room(tx, spacing=30.0):
+    """True if no tree, front or back row, stands within `spacing` metres of tx (only two tree pictures yet)."""
+    return all(abs(tx - t) >= spacing for t in tree_xs)
+kolams = Pool([f"kolam_{i}" for i in range(1, 7)], 4)
+dressing = Pool(["water_pot_stand", "chicken_basket", "brass_pots", "tulsi_planter", "bicycle", "jute_sacks",
+                 "shrine_stone", "hand_pump"], 5)
+hens = Pool(["hen_1", "hen_2", "hen_3"], 2)
+setbacks = Pool([4.3, 4.65, 5.05, 5.5], 1)
+class KindPicker:
+    def __init__(self):
+        self.recent, self.last_at = [], {}
+
+    def pick(self, x):
+        if "head" not in self.last_at and x >= 3.0:
+            choice = "head"  # the head's house stands near where the chase starts: a landmark
+        else:
+            spacing = {"shop": 20.0, "head": 1e9}
+            options = [k for k in KINDS if k not in self.recent[-2:] and x - self.last_at.get(k, -1e9) > spacing.get(k, 0)]
+            choice = rng.choice(options or ["hut"])
+        self.recent.append(choice)
+        self.last_at[choice] = x
+        return choice
+
+
+kinds = KindPicker()
+SIZES.update({"dog_sleeping": ("w", 0.9), "bullocks": ("h", 1.55), "hen": ("h", 0.42)})
+
+last_painted, prev_rgbs = {}, []
+x, since_break, n = -16.0, 0, 0
+STREET_END = 74.0
+while x < STREET_END:
+    n += 1
+    if since_break >= rng.randint(3, 5):
+        gap = rng.uniform(1.8, 3.2)
+        style = rng.choice(["wall", "wall", "gate", "yard"])
+        if style in ("wall", "gate"):
+            prev_rgbs.append(kit.compound(f"compound_{n}", x, x + gap, 4.75, rng.uniform(1.3, 1.7), tuple(prev_rgbs[-2:])))
+            if style == "gate":
+                card(f"gate_{n}", L / "doorway_garland.png", x + gap / 2, 4.7, size=SIZES["doorway_garland"], col="Houses")
+        else:
+            for i in range(rng.randint(1, 2)):
+                card(f"hen_{n}_{i}", A / f"{hens.pick()}.png", x + rng.uniform(0.3, gap - 0.3), rng.uniform(3.6, 4.6),
+                     size=SIZES["hen"], mirror=rng.random() < 0.5, col="Props")
+        if tree_room(x + gap / 2):
+            tree_xs.append(x + gap / 2)
+            card(f"tree_{n}", L / f"{trees.pick()}.png", x + gap / 2, rng.uniform(6.5, 8.5),
+                 size=("h", rng.uniform(5.0, 6.5)), mirror=rng.random() < 0.5, col="Houses", emission=0.55)
+        x += gap
+        since_break = 0
         continue
-    path = CUT / "lane" / f"{name}.png"
-    mirror = i > 4 and i % 2 == 0
-    obj, w, h = card(f"{name}_{i}", path, 0, HOUSE_FRONT_Y, 0, px_per_m=HOUSE_PX_PER_M, mirror=mirror, col="Houses",
-                     emission=0.6)
-    obj.location.x = x + w / 2
-    wall = sample_wall_colour(path)
-    tex = REF / ("T2_tex_limewash_wall.png" if "limewash" in name else "T3_tex_coloured_walls.png")
-    body = box(f"{name}_{i}_body", x + w / 2, HOUSE_FRONT_Y + 0.02, 0, w * 0.92, HOUSE_DEPTH, h * 0.72,
-               flat_material(f"M_{name}_{i}_wall", wall, tex, 0.5))
-    x += w
 
-# ------------------------------------------------------------------ props: lane obstacles at depth 0, dressing by the houses
-L = CUT / "lane"
-lane_props = [("pot_stack", 6), ("dung", 11.5), ("rope_cot", 17), ("clothesline", 25), ("pot_stack", 31),
-              ("bullock_cart", 38)]
-for n, (name, px) in enumerate(lane_props):
-    card(f"lane_{name}_{n}", L / f"{name}.png", px, 0.0, size=SIZES[name])
-dressing = [("water_pot_stand", -9.5, 3.9), ("chicken_basket", -6.5, 3.4), ("brass_pots", -2.6, 4.1),
-            ("tulsi_planter", 1.6, 3.7), ("bicycle", 9.2, 4.0), ("jute_sacks", 14.6, 3.8), ("hand_pump", 20.5, 2.6),
-            ("shrine_stone", 28.2, 3.9), ("water_pot_stand", 33.8, 3.9), ("brass_pots", 36.0, 4.1),
-            ("tulsi_planter", 43.0, 3.7), ("chicken_basket", 46.0, 3.3)]
-for n, (name, px, py) in enumerate(dressing):
-    card(f"dress_{name}_{n}", L / f"{name}.png", px, py, size=SIZES[name], mirror=(n % 3 == 1))
-card("gate_doorway", L / "doorway_garland.png", 4.3, 4.6, size=SIZES["doorway_garland"])
+    y0 = setbacks.pick()
+    doorstep_y, after = y0 - 0.95, 0.0
+    free = [name for name in PAINTED if x - last_painted.get(name, -1e9) > 45]
+    if free and rng.random() < 0.35:
+        name = rng.choice(free)
+        path = L / f"{name}.png"
+        mirror = rng.random() < 0.5
+        obj, w, h = card(f"{name}_{n}", path, 0, y0, 0, px_per_m=HOUSE_PX_PER_M, mirror=mirror, col="Houses",
+                         emission=0.6)
+        obj.location.x = x + w / 2
+        tex = REF / ("T2_tex_limewash_wall.png" if "limewash" in name else "T3_tex_coloured_walls.png")
+        # A body behind the painted front, for shadows and depth, kept inside the painted wall's outline.
+        left, right = wall_span(path)
+        if mirror:
+            left, right = 1 - right, 1 - left
+        body_w = (right - left) * w * 0.94
+        # Shallow, so its plain side wall shows only as a sliver from the side-on camera.
+        box(f"{name}_{n}_body", x + w * (left + right) / 2, y0 + 0.02, 0, body_w, 1.2, h * 0.72,
+            flat_material(f"M_{name}_{n}_wall", sample_wall_colour(path), tex, 0.5))
+        door_x = x + w * (1 - PAINTED[name] if mirror else PAINTED[name])
+        last_painted[name] = x
+        prev_rgbs.append(sample_wall_colour(path))
+    else:
+        kind = kinds.pick(x)
+        if kind == "head":
+            y0 += 1.4  # its raised veranda and steps come forward of the wall
+            x += 0.9  # and it stands a little apart from its neighbours
+            after = 0.9
+        w, door_x, rgb = kit.build(kind, x, y0, avoid_colours=tuple(prev_rgbs[-2:]))
+        prev_rgbs.append(rgb)
+        doorstep_y = kit.doorstep_y
+    card(f"kolam_{n}", L / f"{kolams.pick()}.png", door_x, doorstep_y, z=0.004, size=SIZES["kolam"], flat=True,
+         col="Decals", emission=0.5)
+    if rng.random() < 0.55:
+        prop = dressing.pick()
+        side = rng.choice([0.15, 0.85])
+        card(f"dress_{prop}_{n}", L / f"{prop}.png", x + w * side, y0 - rng.uniform(0.45, 0.9), size=SIZES[prop],
+             mirror=rng.random() < 0.5)
+    x += w + rng.uniform(0.0, 0.35) + after
+    since_break += 1
 
-# Kolam on the ground in front of doorways.
-for n, px in enumerate([-10.9, -6.0, -1.3, 3.0, 12.6, 18.4, 23.0, 29.7, 35.2, 41.0]):
-    card(f"kolam_{n}", L / f"kolam_{n % 6 + 1}.png", px, 3.4, z=0.004, size=SIZES["kolam"], flat=True, col="Decals",
-         emission=0.5)
+# Trees further back, peeking over the roofs.
+tx = -20.0
+while tx < STREET_END:
+    tx += rng.uniform(8, 14)
+    if not tree_room(tx):
+        continue
+    tree_xs.append(tx)
+    card(f"tree_back_{tx:.0f}", L / f"{trees.pick()}.png", tx, rng.uniform(10, 13.5), size=("h", rng.uniform(6.5, 8.5)),
+         mirror=rng.random() < 0.5, col="Backdrop", emission=0.6)
 
-# ------------------------------------------------------------------ backdrop layers
-for n, px in enumerate([-40, 22, 84, 146]):
-    card(f"mid_palms_{n}", L / "mid_palms.png", px, 34.0, z=-1.0, size=("w", 62.0), mirror=n % 2 == 1, col="Backdrop",
-         emission=0.85)
+# ------------------------------------------------------------------ the lane: obstacles at depth 0 (as in the grey-box)
+for i, (name, px) in enumerate([("pot_stack", 6), ("dung", 11.5), ("dog_sleeping", 15.5), ("rope_cot", 19.5),
+                                ("clothesline", 26), ("pot_stack", 32), ("bullock_cart", 39)]):
+    folder = A if name == "dog_sleeping" else L
+    card(f"lane_{name}_{i}", folder / f"{name}.png", px, 0.0, size=SIZES[name], mirror=(name == "pot_stack" and i > 2))
+card("bullocks", A / "bullocks.png", 44.5, 2.2, size=SIZES["bullocks"], col="Props")
+
+# ------------------------------------------------------------------ distance: palm clumps reshuffled, then the far layer
+palms = Pool([f"mid_palms_slice_{i}" for i in range(1, 4)], 1)
+px = -70.0
+while px < 170:
+    obj, w, h = card(f"palms_{px:.0f}", L / f"{palms.pick()}.png", 0, rng.choice([30.0, 36.0, 42.0]), z=-1.0,
+                     size=("h", rng.uniform(9.0, 12.5)), mirror=rng.random() < 0.5, col="Backdrop", emission=0.85)
+    obj.location.x = px + w / 2
+    px += w * rng.uniform(0.55, 0.85)
 far, fw, fh = card("far_sky_temple", REF / "C2_lane_far_layer.png", 25, 95.0, size=("w", 190.0), col="Backdrop",
                    shadeless=True)
 far.location.z = -fh * 0.36  # puts the painted hills a little above the rooftops in view
 
 # ------------------------------------------------------------------ the kid, for scale
-K = CUT / "kid"
 kid, _, _ = card("kid_run", K / "run_contact.png", 0.0, 0.0, size=SIZES["run_contact"], col="Characters", emission=0.6)
+
+# ------------------------------------------------------------------ ink outlines on the built houses
+# The painted fronts have outlines in the art; the built houses get theirs from Freestyle, limited to their
+# collection so the cut-out cards are not boxed in.
+scene.render.use_freestyle = True
+scene.render.line_thickness_mode = "ABSOLUTE"
+scene.render.line_thickness = 1.3
+view_layer = scene.view_layers[0]
+view_layer.use_freestyle = True
+fs = view_layer.freestyle_settings
+fs.crease_angle = math.radians(140)
+lineset = fs.linesets[0] if len(fs.linesets) else fs.linesets.new("Outlines")
+lineset.select_by_collection = True
+lineset.collection = COL["BuiltHouses"]
+lineset.select_by_visibility = True
+lineset.select_by_edge_types = True
+lineset.select_silhouette = True
+lineset.select_border = True
+lineset.select_crease = True
+if lineset.linestyle is None:
+    lineset.linestyle = bpy.data.linestyles.new("Ink")
+lineset.linestyle.color = (0.16, 0.09, 0.06)
+lineset.linestyle.thickness = 1.6
 
 # ------------------------------------------------------------------ light and world
 world = bpy.data.worlds.new("World")

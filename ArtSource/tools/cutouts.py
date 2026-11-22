@@ -175,5 +175,59 @@ tex = make_tileable(load("T1_tex_earth_lane.png"))
 Image.fromarray(tex.clip(0, 255).astype(np.uint8)).save(OUT / "ground_earth_lane.png")
 manifest["ground_earth_lane"] = {"px": [1024, 1024]}
 
+# ---------------------------------------------------------------- texture tiles (T2-T5), each made seamless
+TEX = OUT.parent / "textures"
+TEX.mkdir(exist_ok=True)
+
+
+def save_tile(name, img):
+    Image.fromarray(make_tileable(img, 512).clip(0, 255).astype(np.uint8)).save(TEX / f"{name}.png")
+
+
+save_tile("limewash_wall", load("T2_tex_limewash_wall.png"))
+for sheet, names in {"T3_tex_coloured_walls.png": ["indigo_wall", "turmeric_wall", "pink_wall", "seagreen_wall"],
+                     "T4_tex_wood_weave.png": ["wood_planks", "rope_weave", "bamboo_weave", "jute"],
+                     "T5_tex_roof_floor_stone.png": ["thatch", "roof_tiles", "mud_floor", "granite"]}.items():
+    t = load(sheet)
+    h, w = t.shape[:2]
+    m = 6  # trim the seams between the four squares
+    for i, name in enumerate(names):
+        y, x = divmod(i, 2)
+        save_tile(name, t[y * h // 2 + m:(y + 1) * h // 2 - m, x * w // 2 + m:(x + 1) * w // 2 - m])
+
+# ---------------------------------------------------------------- trees (D4) and animals (B7)
+rgb = load("D4_mango_tree.png")
+trgb, ta = grey_alpha(rgb, background(rgb))
+split_components(trgb, ta, ["tree_mango_1", "tree_mango_2"])
+ANIMALS = OUT.parent / "animals"
+ANIMALS.mkdir(exist_ok=True)
+_out = OUT
+OUT = ANIMALS
+rgb = load("B7_animals_sheet.png")
+argb, aa = grey_alpha(rgb, background(rgb))
+split_components(argb, aa, ["dog_sleeping", "dog_barking", "hen_1", "hen_2", "hen_3", "buffalo_mud", "bullocks"],
+                 min_area=2500)
+OUT = _out
+
+# ---------------------------------------------------------------- the palm band, sliced into clumps to reshuffle
+band = np.asarray(Image.open(OUT / "mid_palms.png")).astype(np.float32)
+ba = band[..., 3] / 255.0
+crowns = ba[: int(ba.shape[0] * 0.55)].mean(axis=0)  # palm crowns live in the upper part of the band
+smooth = np.convolve(crowns, np.ones(25) / 25, mode="same")
+cuts, last = [0], 0
+for x in range(1, len(smooth) - 1):
+    # Cut at quiet columns between crowns, keeping clumps at least 180 px wide.
+    if smooth[x] < 0.08 and smooth[x] <= smooth[x - 1] and smooth[x] <= smooth[x + 1] and x - last > 180:
+        cuts.append(x)
+        last = x
+cuts.append(band.shape[1])
+n_slices = 0
+for x0, x1 in zip(cuts[:-1], cuts[1:]):
+    if x1 - x0 < 120:
+        continue
+    n_slices += 1
+    save(f"mid_palms_slice_{n_slices}", band[..., :3], ba, (x0, 0, x1, band.shape[0]), pad=0)
+print("palm band slices:", n_slices)
+
 (OUT / "manifest.json").write_text(json.dumps(manifest, indent=1))
 print(f"{len(manifest) - 1} pieces in {OUT.relative_to(ROOT)}")
