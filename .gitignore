@@ -44,3 +44,7 @@ Tools/**/obj/
 # OS
 .DS_Store
 Thumbs.db
+
+# Blender autosave backups
+*.blend1
+*.blend2
