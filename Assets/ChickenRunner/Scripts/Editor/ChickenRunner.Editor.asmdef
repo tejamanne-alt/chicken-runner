@@ -1,0 +1,19 @@
+{
+    "name": "ChickenRunner.Editor",
+    "rootNamespace": "ChickenRunner.EditorTools",
+    "references": [
+        "ChickenRunner.Core",
+        "ChickenRunner.Gameplay"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
