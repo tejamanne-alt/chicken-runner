@@ -2,6 +2,8 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
+**Progress:** 39 of 75 images are in `ArtSource/references/` (checked 22 Nov 2026); 23 of the 46 first-batch images. First batch still to make: B8, B9, C8, G1, G2, G3, G4, G5, G6, G7, G8, G9, G12, G13, G15, H1, H4, H6, H7, K1, K2, T8, T9.
+
 ## How to use it
 
 1. Make **A0** first, in a new ChatGPT chat, attaching your four kid turnaround images. Then make **A1**, attaching A0 and your rooster photo.
@@ -17,7 +19,7 @@ Make these first, in order. A0 fixes the kid's design in the pattu frock, A1 set
 
 ### A0 · Kid in a pattu frock
 
-Save as `A0_kid_pattu_frock_sheet.png` · Landscape 3:2 · first batch · Attach: your four kid turnaround images  
+✅ in the repo · Save as `A0_kid_pattu_frock_sheet.png` · Landscape 3:2 · first batch · Attach: your four kid turnaround images  
 Used for: The kid's design for every later image, and the sheet I model and rig the kid from in Blender.
 
 ```text
@@ -30,7 +32,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### A1 · Key art
 
-Save as `A1_key_art.png` · Landscape 3:2 · first batch · Attach: A0, your rooster reference photo  
+✅ in the repo · Save as `A1_key_art.png` · Landscape 3:2 · first batch · Attach: A0, your rooster reference photo  
 Used for: Sets the look every other image matches, and my reference for materials and lighting in Blender.
 
 ```text
@@ -43,7 +45,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### A2 · Colour script
 
-Save as `A2_colour_script.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `A2_colour_script.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: The lighting plan across the nine levels: one Blender lighting setup per zone.
 
 ```text
@@ -62,7 +64,7 @@ Model sheets and pose sheets. Attach your kid reference art and rooster photo wh
 
 ### B1 · Rooster model sheet
 
-Save as `B1_rooster_model_sheet.png` · Landscape 3:2 · first batch · Attach: A1, your rooster reference photo  
+✅ in the repo · Save as `B1_rooster_model_sheet.png` · Landscape 3:2 · first batch · Attach: A1, your rooster reference photo  
 Used for: Traced in Blender to model the rooster at the right proportions.
 
 ```text
@@ -77,7 +79,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B2 · Rooster pose sheet
 
-Save as `B2_rooster_poses.png` · Landscape 3:2 · first batch · Attach: A1, B1  
+✅ in the repo · Save as `B2_rooster_poses.png` · Landscape 3:2 · first batch · Attach: A1, B1  
 Used for: Key poses for the rooster's run, flutter, taunt, panic and wriggle animations.
 
 ```text
@@ -92,7 +94,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B3 · Kid gameplay poses
 
-Save as `B3_kid_poses_gameplay.png` · Landscape 3:2 · first batch · Attach: A1, A0  
+✅ in the repo · Save as `B3_kid_poses_gameplay.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: Key poses for the nine first-prototype animations on your kid model.
 
 ```text
@@ -107,7 +109,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B4 · Kid story poses and faces
 
-Save as `B4_kid_story_and_faces.png` · Landscape 3:2 · first batch · Attach: A1, A0  
+✅ in the repo · Save as `B4_kid_story_and_faces.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: The four face expressions and the story-animation poses.
 
 ```text
@@ -122,7 +124,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B5 · Neighbour
 
-Save as `B5_neighbour_sheet.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `B5_neighbour_sheet.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: Modelled for the basket intro: asleep on the cot, then waking with a shout.
 
 ```text
@@ -137,7 +139,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B6 · Amma
 
-Save as `B6_amma_sheet.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `B6_amma_sheet.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: Modelled for the final kitchen scene.
 
 ```text
@@ -152,7 +154,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B7 · Village animals
 
-Save as `B7_animals_sheet.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `B7_animals_sheet.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: The sleeping dog, hens, buffalo and bullocks that become obstacles and scenery.
 
 ```text
@@ -167,7 +169,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B8 · Cows and goats
 
-Save as `B8_cows_goats.png` · Landscape 3:2 · first batch · **new** · Attach: A1, B7  
+⬜ to make · Save as `B8_cows_goats.png` · Landscape 3:2 · first batch · **new** · Attach: A1, B7  
 Used for: More animals, so the same one never appears twice in view.
 
 ```text
@@ -182,7 +184,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B9 · Small animals and birds
 
-Save as `B9_small_animals.png` · Landscape 3:2 · first batch · **new** · Attach: A1, B7  
+⬜ to make · Save as `B9_small_animals.png` · Landscape 3:2 · first batch · **new** · Attach: A1, B7  
 Used for: Life on walls and rooftops: cats, crows, parrots, hens with chicks.
 
 ```text
@@ -197,7 +199,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B10 · Villagers in the background
 
-Save as `B10_villagers.png` · Landscape 3:2 · second batch · **new** · Attach: A1  
+⬜ to make · Save as `B10_villagers.png` · Landscape 3:2 · second batch · **new** · Attach: A1  
 Used for: People going about their day behind the chase.
 
 ```text
@@ -216,7 +218,7 @@ Levels 1 to 3. Painted houses, verandas, kolam, pots, cots and clotheslines.
 
 ### C1 · Lane mood painting
 
-Save as `C1_lane_mood.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `C1_lane_mood.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: The target for the zone 1 Blender scene: layout, lighting and atmosphere.
 
 ```text
@@ -231,7 +233,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C2 · Lane far layer
 
-Save as `C2_lane_far_layer.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `C2_lane_far_layer.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: A painted card at the back of the scene, scrolling slowest.
 
 ```text
@@ -246,7 +248,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C3 · Lane middle layer
 
-Save as `C3_lane_mid_layer.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `C3_lane_mid_layer.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: A cut-out card between the far layer and the play lane. Magenta is keyed out.
 
 ```text
@@ -261,7 +263,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C4 · House kit elevations
 
-Save as `C4_house_kit_elevations.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `C4_house_kit_elevations.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: Traced to build the modular house kit: walls, verandas, parapets, doors and ladder.
 
 ```text
@@ -276,7 +278,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C5 · Lane props, sheet 1
 
-Save as `C5_lane_props_a.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `C5_lane_props_a.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: Modelled as the zone 1 obstacles and set dressing.
 
 ```text
@@ -291,7 +293,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C6 · Lane props, sheet 2
 
-Save as `C6_lane_props_b.png` · Landscape 3:2 · first batch · Attach: A1  
+✅ in the repo · Save as `C6_lane_props_b.png` · Landscape 3:2 · first batch · Attach: A1  
 Used for: The bullock cart, clothesline and the bamboo basket from the intro.
 
 ```text
@@ -306,7 +308,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C7 · Kolam decals
 
-Save as `C7_kolam_decals.png` · Square 1:1 · first batch · Attach: A1  
+✅ in the repo · Save as `C7_kolam_decals.png` · Square 1:1 · first batch · Attach: A1  
 Used for: Cut out as decals for doorsteps and the lane.
 
 ```text
@@ -321,7 +323,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C8 · Lane middle layer 2
 
-Save as `C8_lane_mid_layer_2.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C3  
+⬜ to make · Save as `C8_lane_mid_layer_2.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C3  
 Used for: A second distance layer, so the palm band does not repeat.
 
 ```text
@@ -336,7 +338,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### C9 · Lane middle layer 3
 
-Save as `C9_lane_mid_layer_3.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C3  
+⬜ to make · Save as `C9_lane_mid_layer_3.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C3  
 Used for: A third distance layer.
 
 ```text
@@ -355,7 +357,7 @@ Levels 4 to 6. Paddy fields, bunds, the canal, haystacks and mango trees.
 
 ### D1 · Fields mood painting
 
-Save as `D1_fields_mood.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `D1_fields_mood.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: The target for the zone 2 Blender scene.
 
 ```text
@@ -370,7 +372,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### D2 · Fields far layer
 
-Save as `D2_fields_far_layer.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `D2_fields_far_layer.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: The back card for zone 2.
 
 ```text
@@ -385,7 +387,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### D3 · Fields props
 
-Save as `D3_fields_props.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `D3_fields_props.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: Modelled as the zone 2 obstacles: haystack, canal and plank bridge, well.
 
 ```text
@@ -400,7 +402,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### D4 · Mango tree
 
-Save as `D4_mango_tree.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `D4_mango_tree.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: Modelled with the branch route the kid climbs for mangoes.
 
 ```text
@@ -419,7 +421,7 @@ Levels 7 to 9. Rooftops at sunset, the market at dusk and the lamp-lit temple st
 
 ### E1 · Rooftops mood painting
 
-Save as `E1_rooftops_mood.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `E1_rooftops_mood.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: The target for levels 7 and the rooftop stretches.
 
 ```text
@@ -434,7 +436,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### E2 · Market mood painting
 
-Save as `E2_market_mood.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `E2_market_mood.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: The target for level 8, the market day.
 
 ```text
@@ -449,7 +451,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### E3 · Temple steps
 
-Save as `E3_temple_steps_mood.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `E3_temple_steps_mood.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: The target for level 9, the final catch.
 
 ```text
@@ -464,7 +466,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### E4 · Rooftop props
 
-Save as `E4_rooftop_props.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `E4_rooftop_props.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: Modelled as the zone 3 rooftop obstacles and dressing.
 
 ```text
@@ -479,7 +481,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### E5 · Market and temple props
 
-Save as `E5_market_props.png` · Landscape 3:2 · second batch · Attach: A1  
+✅ in the repo · Save as `E5_market_props.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: Modelled as the bouncy awnings, stalls and lamp-lit steps.
 
 ```text
@@ -498,7 +500,7 @@ The opening story, the wriggle-free gag, the loss screen and Amma's kitchen.
 
 ### F1 · Title screen
 
-Save as `F1_title_screen.png` · Landscape 3:2 · second batch · Attach: A1, A0  
+✅ in the repo · Save as `F1_title_screen.png` · Landscape 3:2 · second batch · Attach: A1, A0  
 Used for: Staged in Blender as the title screen, with room for the logo.
 
 ```text
@@ -513,7 +515,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F2 · Story 1: the craving
 
-Save as `F2_story_craving.png` · Landscape 3:2 · first batch · Attach: A1, A0  
+✅ in the repo · Save as `F2_story_craving.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: Storyboard for the opening shot of the intro cutscene.
 
 ```text
@@ -528,7 +530,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F3 · Story 2: the plan
 
-Save as `F3_story_plan.png` · Landscape 3:2 · first batch · Attach: A1, A0, B5  
+✅ in the repo · Save as `F3_story_plan.png` · Landscape 3:2 · first batch · Attach: A1, A0, B5  
 Used for: Storyboard and layout for the yard where the basket intro is played.
 
 ```text
@@ -543,7 +545,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F4 · Story 3: the basket
 
-Save as `F4_story_basket.png` · Landscape 3:2 · first batch · Attach: A1, A0  
+✅ in the repo · Save as `F4_story_basket.png` · Landscape 3:2 · first batch · Attach: A1, A0  
 Used for: Storyboard for the hold-to-lift moment.
 
 ```text
@@ -558,7 +560,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F5 · Story 4: the escape
 
-Save as `F5_story_escape.png` · Landscape 3:2 · first batch · Attach: A1, A0, B5  
+✅ in the repo · Save as `F5_story_escape.png` · Landscape 3:2 · first batch · Attach: A1, A0, B5  
 Used for: Storyboard for the moment the chase begins.
 
 ```text
@@ -573,7 +575,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F6 · Wriggle-free gag
 
-Save as `F6_story_wriggle_free.png` · Landscape 3:2 · second batch · Attach: A1, A0  
+✅ in the repo · Save as `F6_story_wriggle_free.png` · Landscape 3:2 · second batch · Attach: A1, A0  
 Used for: Storyboard for the gag at the end of levels 1 to 8.
 
 ```text
@@ -588,7 +590,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F7 · Rooster escaped
 
-Save as `F7_rooster_escaped.png` · Landscape 3:2 · second batch · Attach: A1  
+⬜ to make · Save as `F7_rooster_escaped.png` · Landscape 3:2 · second batch · Attach: A1  
 Used for: Staged in Blender as the loss screen.
 
 ```text
@@ -603,7 +605,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### F8 · Story 6: Amma's kitchen
 
-Save as `F8_story_amma_kitchen.png` · Landscape 3:2 · second batch · Attach: A1, A0, B6  
+⬜ to make · Save as `F8_story_amma_kitchen.png` · Landscape 3:2 · second batch · Attach: A1, A0, B6  
 Used for: Storyboard for the final scene. It stops at the handover, as the design doc's risk table asks.
 
 ```text
@@ -622,7 +624,7 @@ One building per image, so every house on a street can be different. Huts, mud a
 
 ### G1 · Thatched hut
 
-Save as `G1_thatched_hut.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G1_thatched_hut.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house, and the model for huts built in Blender.
 
 ```text
@@ -637,7 +639,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G2 · Hut with a bamboo porch
 
-Save as `G2_hut_bamboo_porch.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G2_hut_bamboo_porch.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house with a porch the kid can run under.
 
 ```text
@@ -652,7 +654,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G3 · Orange mud house, tin roof
 
-Save as `G3_mud_house_tin_roof.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G3_mud_house_tin_roof.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house; also the model for tin-roof houses built in Blender.
 
 ```text
@@ -667,7 +669,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G4 · Plank and sheet house
 
-Save as `G4_plank_sheet_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G4_plank_sheet_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house that breaks up the painted rows.
 
 ```text
@@ -682,7 +684,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G5 · Village head's house
 
-Save as `G5_village_head_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G5_village_head_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: The grandest house on the lane: a landmark in level 2 or 3.
 
 ```text
@@ -697,7 +699,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G6 · Tiled house with courtyard gate
 
-Save as `G6_tiled_house_gate.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G6_tiled_house_gate.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house with a gate and a tree behind its wall.
 
 ```text
@@ -712,7 +714,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G7 · Provisions shop
 
-Save as `G7_provisions_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G7_provisions_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A shopfront on the lane, with a bench and awning.
 
 ```text
@@ -727,7 +729,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G8 · Tea stall
 
-Save as `G8_tea_stall.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G8_tea_stall.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A tiny stall: steam, glasses and a bench, full of life.
 
 ```text
@@ -742,7 +744,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G9 · Tailor and cycle repair
 
-Save as `G9_tailor_cycle_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G9_tailor_cycle_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: Two tiny shops under one awning.
 
 ```text
@@ -757,7 +759,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G10 · Potter's house
 
-Save as `G10_potters_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G10_potters_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: Ties in with the clay-pot obstacles: the pots come from here.
 
 ```text
@@ -772,7 +774,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G11 · Weaver's house
 
-Save as `G11_weavers_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G11_weavers_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: A nod to the kid's pattu frock: silk being woven.
 
 ```text
@@ -787,7 +789,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G12 · Half-built two-storey house
 
-Save as `G12_half_built_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G12_half_built_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: Every real village has one; it adds height and humour.
 
 ```text
@@ -802,7 +804,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G13 · Cattle shed
 
-Save as `G13_cattle_shed.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G13_cattle_shed.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: An open shed: hay, a trough and a calf.
 
 ```text
@@ -817,7 +819,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G14 · Panchayat office
 
-Save as `G14_panchayat_office.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G14_panchayat_office.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: A civic building for the lane's end or the market.
 
 ```text
@@ -832,7 +834,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G15 · Village shrine
 
-Save as `G15_village_shrine.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G15_village_shrine.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A small roadside shrine under a tree, with bell and lamps.
 
 ```text
@@ -847,7 +849,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G16 · Overhead water tank
 
-Save as `G16_water_tank_tower.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `G16_water_tank_tower.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: A landmark on the skyline behind the houses.
 
 ```text
@@ -866,7 +868,7 @@ Several different trees or plants per image, so no two in view are the same, plu
 
 ### H1 · Neem trees
 
-Save as `H1_neem_trees.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
+⬜ to make · Save as `H1_neem_trees.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
 Used for: Shade trees between houses; three different ones so they never repeat side by side.
 
 ```text
@@ -881,7 +883,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H2 · Tamarind and drumstick trees
 
-Save as `H2_tamarind_drumstick.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+⬜ to make · Save as `H2_tamarind_drumstick.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: More shade-tree variety.
 
 ```text
@@ -896,7 +898,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H3 · Meeting tree with platform
 
-Save as `H3_peepal_platform.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+⬜ to make · Save as `H3_peepal_platform.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: The village gathering spot: a one-off landmark.
 
 ```text
@@ -911,7 +913,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H4 · Coconut palms
 
-Save as `H4_coconut_palms.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
+⬜ to make · Save as `H4_coconut_palms.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
 Used for: Five different palms, so palms never look stamped.
 
 ```text
@@ -926,7 +928,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H5 · Banana, papaya and curry-leaf plants
 
-Save as `H5_garden_plants.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+⬜ to make · Save as `H5_garden_plants.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: Small backyard plants for between houses.
 
 ```text
@@ -941,7 +943,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H6 · Flowering bushes
 
-Save as `H6_flowering_bushes.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
+⬜ to make · Save as `H6_flowering_bushes.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
 Used for: Colour by doors and walls; each bush different.
 
 ```text
@@ -956,7 +958,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H7 · Foreground framing plants
 
-Save as `H7_foreground_plants.png` · Landscape 3:2 · first batch · **new** · Attach: A1  
+⬜ to make · Save as `H7_foreground_plants.png` · Landscape 3:2 · first batch · **new** · Attach: A1  
 Used for: Big plants in front of the lane, at the screen's bottom corners, like your story frames.
 
 ```text
@@ -975,7 +977,7 @@ Doors, windows, roof edges and doorstep details. Blender builds endless house va
 
 ### K1 · Doors and windows
 
-Save as `K1_doors_windows.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `K1_doors_windows.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: Fitted to houses Blender builds, so no two front doors match.
 
 ```text
@@ -990,7 +992,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### K2 · Roof edges and awnings
 
-Save as `K2_roof_edges.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `K2_roof_edges.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: The front edges of roofs Blender builds: thatch, tiles, tin and awnings.
 
 ```text
@@ -1005,7 +1007,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### K3 · Doorstep and wall details
 
-Save as `K3_wall_details.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+⬜ to make · Save as `K3_wall_details.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: Small details that make every built house its own.
 
 ```text
@@ -1024,7 +1026,7 @@ Seamless hand-painted textures for Blender materials. These use the texture rule
 
 ### T1 · Red-earth lane
 
-Save as `T1_tex_earth_lane.png` · Square 1:1 · first batch · Attach: A1  
+✅ in the repo · Save as `T1_tex_earth_lane.png` · Square 1:1 · first batch · Attach: A1  
 Used for: The lane material for zone 1.
 
 ```text
@@ -1039,7 +1041,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T2 · Lime-washed wall
 
-Save as `T2_tex_limewash_wall.png` · Square 1:1 · first batch · Attach: A1  
+✅ in the repo · Save as `T2_tex_limewash_wall.png` · Square 1:1 · first batch · Attach: A1  
 Used for: The base wall material for the house kit.
 
 ```text
@@ -1054,7 +1056,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T3 · Coloured walls
 
-Save as `T3_tex_coloured_walls.png` · Square 1:1 · first batch · Attach: A1  
+✅ in the repo · Save as `T3_tex_coloured_walls.png` · Square 1:1 · first batch · Attach: A1  
 Used for: Wall variants for the house kit. I split the four squares and make each one tile.
 
 ```text
@@ -1069,7 +1071,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T4 · Wood, rope and bamboo
 
-Save as `T4_tex_wood_weave.png` · Square 1:1 · first batch · Attach: A1  
+✅ in the repo · Save as `T4_tex_wood_weave.png` · Square 1:1 · first batch · Attach: A1  
 Used for: Doors, the cot, the basket and the sacks.
 
 ```text
@@ -1084,7 +1086,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T5 · Roofs, floors and stone
 
-Save as `T5_tex_roof_floor_stone.png` · Square 1:1 · second batch · Attach: A1  
+✅ in the repo · Save as `T5_tex_roof_floor_stone.png` · Square 1:1 · second batch · Attach: A1  
 Used for: Thatch, roof tiles, the courtyard floor and the temple steps.
 
 ```text
@@ -1099,7 +1101,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T6 · Paddy and canal water
 
-Save as `T6_tex_water.png` · Square 1:1 · second batch · Attach: A1  
+✅ in the repo · Save as `T6_tex_water.png` · Square 1:1 · second batch · Attach: A1  
 Used for: The paddy and canal surfaces for zone 2.
 
 ```text
@@ -1114,7 +1116,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T7 · Saree and awning fabrics
 
-Save as `T7_tex_fabrics.png` · Square 1:1 · second batch · Attach: A1  
+✅ in the repo · Save as `T7_tex_fabrics.png` · Square 1:1 · second batch · Attach: A1  
 Used for: Sarees on the clotheslines and the market awnings.
 
 ```text
@@ -1129,7 +1131,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T8 · Corrugated tin sheet
 
-Save as `T8_tex_tin_sheet.png` · Square 1:1 · first batch · **new** · Attach: A1  
+⬜ to make · Save as `T8_tex_tin_sheet.png` · Square 1:1 · first batch · **new** · Attach: A1  
 Used for: Roofs of the tin-roof houses Blender builds.
 
 ```text
@@ -1144,7 +1146,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T9 · Orange mud plaster
 
-Save as `T9_tex_orange_mud.png` · Square 1:1 · first batch · **new** · Attach: A1  
+⬜ to make · Save as `T9_tex_orange_mud.png` · Square 1:1 · first batch · **new** · Attach: A1  
 Used for: Walls of the orange mud houses Blender builds.
 
 ```text
@@ -1159,7 +1161,7 @@ Texture rules: seamless and tileable for a 3D game, seen straight on (straight d
 
 ### T10 · Bare brick
 
-Save as `T10_tex_bare_brick.png` · Square 1:1 · second batch · **new** · Attach: A1  
+⬜ to make · Save as `T10_tex_bare_brick.png` · Square 1:1 · second batch · **new** · Attach: A1  
 Used for: Unfinished upper floors and back walls.
 
 ```text
