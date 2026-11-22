@@ -9,9 +9,9 @@ The same images as [the ChatGPT sheet](prompt-sheet.md), with the same IDs and f
 3. If the shape comes out wrong, reply: *Make this same image in a 21:9 ultra-wide shape* (or the shape shown).
 4. Save each image with its file name, then put them in the repo at `ArtSource/references/` or upload them here, in batches.
 
-Start with the 46 marked *first batch*. Gemini is good at small edits, so ask for just the change: *Using the image you just made, remove the labels and keep everything else the same.* A small sparkle mark in a corner is Gemini's watermark; leave it and I'll paint it out.
+Start with the 45 marked *first batch*. Gemini is good at small edits, so ask for just the change: *Using the image you just made, remove the labels and keep everything else the same.* A small sparkle mark in a corner is Gemini's watermark; leave it and I'll paint it out.
 
-**Progress:** 39 of 75 images are in `ArtSource/references/` (checked 22 Nov 2026); first batch still to make: B8, B9, C8, G1, G2, G3, G4, G5, G6, G7, G8, G9, G12, G13, G15, H1, H4, H6, H7, K1, K2, T8, T9.
+**Progress:** 45 of 78 images are in `ArtSource/references/` (checked 22 Nov 2026); first batch still to make: B8, B9, C8, C10, G7, G8, G9, G12, G13, G15, H1, H4, H6, H7, T11, T12.
 
 ## A. Style anchors
 
@@ -367,6 +367,21 @@ Middle parallax layer, side-on, different again from the uploaded C3 layer: big 
 Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village, like a painted toy diorama. Characters and props have clean dark outlines, flat saturated colours and soft two-tone cel shading. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. The palette is terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls and paddy green, under warm golden light. The mood is warm, gentle, funny and immersive. The image is clean artwork only: unlabeled, unsigned and borderless.
 ```
 
+### C10 · Ground details to scatter
+
+⬜ to make · Save as `C10_ground_details.png` · 16:9 landscape · first batch · **new** · Upload: A1, T1  
+Used for: Scattered one by one over the lane, each at a random turn and size, so the ground never repeats.
+
+```text
+Create a 16:9 landscape image.
+
+Use the images I've uploaded: the A1 key art, as the style to match closely (painting style, outlines, palette and light); the T1 earth texture, to match the colour of the red earth.
+
+A sheet of separate ground details for a red-earth village lane, each one seen straight down and drawn in the game's painted style: a few pebbles of different sizes, a small cluster of pebbles, three dry mango leaves, a broken piece of dry coconut frond, a coconut husk, a few twigs, four small grass tufts, two weeds with tiny yellow flowers, a short stretch of bullock-cart wheel rut, a trail of bare child footprints, cow hoof prints, hen footprints, and a patch of dried, cracked mud. Spaced apart so none touch. Even lighting on a plain light-grey background; the sheet holds only the drawings, unlabeled.
+
+Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village, like a painted toy diorama. Characters and props have clean dark outlines, flat saturated colours and soft two-tone cel shading. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. The palette is terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls and paddy green, under warm golden light. The mood is warm, gentle, funny and immersive. The image is clean artwork only: unlabeled, unsigned and borderless.
+```
+
 ## D. Zone 2: fields and canal
 
 Levels 4 to 6. Paddy fields, bunds, the canal, haystacks and mango trees.
@@ -650,7 +665,7 @@ One building per image, so every house on a street can be different. Huts, mud a
 
 ### G1 · Thatched hut
 
-⬜ to make · Save as `G1_thatched_hut.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
+✅ in the repo · Save as `G1_thatched_hut.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
 Used for: A lane house, and the model for huts built in Blender.
 
 ```text
@@ -665,7 +680,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### G2 · Hut with a bamboo porch
 
-⬜ to make · Save as `G2_hut_bamboo_porch.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
+✅ in the repo · Save as `G2_hut_bamboo_porch.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
 Used for: A lane house with a porch the kid can run under.
 
 ```text
@@ -680,7 +695,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### G3 · Orange mud house, tin roof
 
-⬜ to make · Save as `G3_mud_house_tin_roof.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
+✅ in the repo · Save as `G3_mud_house_tin_roof.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
 Used for: A lane house; also the model for tin-roof houses built in Blender.
 
 ```text
@@ -695,7 +710,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### G4 · Plank and sheet house
 
-⬜ to make · Save as `G4_plank_sheet_house.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
+✅ in the repo · Save as `G4_plank_sheet_house.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
 Used for: A lane house that breaks up the painted rows.
 
 ```text
@@ -710,7 +725,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### G5 · Village head's house
 
-⬜ to make · Save as `G5_village_head_house.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
+✅ in the repo · Save as `G5_village_head_house.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
 Used for: The grandest house on the lane: a landmark in level 2 or 3.
 
 ```text
@@ -725,7 +740,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### G6 · Tiled house with courtyard gate
 
-⬜ to make · Save as `G6_tiled_house_gate.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
+✅ in the repo · Save as `G6_tiled_house_gate.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
 Used for: A lane house with a gate and a tree behind its wall.
 
 ```text
@@ -1003,8 +1018,8 @@ Doors, windows, roof edges and doorstep details. Blender builds endless house va
 
 ### K1 · Doors and windows
 
-⬜ to make · Save as `K1_doors_windows.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
-Used for: Fitted to houses Blender builds, so no two front doors match.
+⬜ to make · Save as `K1_doors_windows.png` · 16:9 landscape · second batch · **new** · Upload: A1, C4  
+Used for: Fitted to houses Blender builds, so no two front doors match. Only needed if houses are built in 3D again; the street uses painted houses for now.
 
 ```text
 Create a 16:9 landscape image.
@@ -1018,8 +1033,8 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### K2 · Roof edges and awnings
 
-⬜ to make · Save as `K2_roof_edges.png` · 16:9 landscape · first batch · **new** · Upload: A1, C4  
-Used for: The front edges of roofs Blender builds: thatch, tiles, tin and awnings.
+⬜ to make · Save as `K2_roof_edges.png` · 16:9 landscape · second batch · **new** · Upload: A1, C4  
+Used for: The front edges of roofs Blender builds: thatch, tiles, tin and awnings. Only needed if houses are built in 3D again; the street uses painted houses for now.
 
 ```text
 Create a 16:9 landscape image.
@@ -1157,8 +1172,8 @@ Make it a seamless, tileable texture for a 3D game, seen perfectly straight on (
 
 ### T8 · Corrugated tin sheet
 
-⬜ to make · Save as `T8_tex_tin_sheet.png` · 1:1 square · first batch · **new** · Upload: A1  
-Used for: Roofs of the tin-roof houses Blender builds.
+⬜ to make · Save as `T8_tex_tin_sheet.png` · 1:1 square · second batch · **new** · Upload: A1  
+Used for: Roofs of the tin-roof houses Blender builds. Only needed if houses are built in 3D again; the street uses painted houses for now.
 
 ```text
 Create a 1:1 square image.
@@ -1172,8 +1187,8 @@ Make it a seamless, tileable texture for a 3D game, seen perfectly straight on (
 
 ### T9 · Orange mud plaster
 
-⬜ to make · Save as `T9_tex_orange_mud.png` · 1:1 square · first batch · **new** · Upload: A1  
-Used for: Walls of the orange mud houses Blender builds.
+⬜ to make · Save as `T9_tex_orange_mud.png` · 1:1 square · second batch · **new** · Upload: A1  
+Used for: Walls of the orange mud houses Blender builds. Only needed if houses are built in 3D again; the street uses painted houses for now.
 
 ```text
 Create a 1:1 square image.
@@ -1196,6 +1211,36 @@ Create a 1:1 square image.
 Use the images I've uploaded: the A1 key art, as the style to match closely (painting style, outlines, palette and light).
 
 A front-on texture of an unplastered red brick wall with uneven grey mortar lines and a few chipped bricks.
+
+Make it a seamless, tileable texture for a 3D game, seen perfectly straight on (straight down for floors) and lit evenly and flatly, so the surface shows no cast shadows, perspective or vignette. Hand-paint it with visible brush strokes and simplified shapes that still read at small size, in a palette of terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white and paddy green. The texture fills the square edge to edge and the image holds nothing else.
+```
+
+### T11 · Woven coconut-leaf fence
+
+⬜ to make · Save as `T11_tex_coconut_leaf_fence.png` · 1:1 square · first batch · **new** · Upload: A1  
+Used for: The fences around house compounds, built in Blender: so they look woven by hand, not tiled.
+
+```text
+Create a 1:1 square image.
+
+Use the images I've uploaded: the A1 key art, as the style to match closely (painting style, outlines, palette and light).
+
+A front-on texture of a village compound fence made of dried coconut palm leaves woven in overlapping rows: tan, straw and grey-brown leaflets folded over thin horizontal sticks, a few frayed ends and small gaps.
+
+Make it a seamless, tileable texture for a 3D game, seen perfectly straight on (straight down for floors) and lit evenly and flatly, so the surface shows no cast shadows, perspective or vignette. Hand-paint it with visible brush strokes and simplified shapes that still read at small size, in a palette of terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white and paddy green. The texture fills the square edge to edge and the image holds nothing else.
+```
+
+### T12 · Plain red earth
+
+⬜ to make · Save as `T12_tex_plain_red_earth.png` · 1:1 square · first batch · **new** · Upload: A1, T1  
+Used for: The grain of the lane's ground, which Blender builds without repeating: it needs earth with no marks in it.
+
+```text
+Create a 1:1 square image.
+
+Use the images I've uploaded: the A1 key art, as the style to match closely (painting style, outlines, palette and light); the T1 earth texture, to match the colour of the red earth.
+
+A texture of bare red laterite earth seen straight down, in the colours of the uploaded T1 texture: fine dust, crumbs and grit, soft brush-stroke variation between deep red, red-orange and dusty orange. Only the earth itself: no footprints, tracks, leaves, plants or stones.
 
 Make it a seamless, tileable texture for a 3D game, seen perfectly straight on (straight down for floors) and lit evenly and flatly, so the surface shows no cast shadows, perspective or vignette. Hand-paint it with visible brush strokes and simplified shapes that still read at small size, in a palette of terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white and paddy green. The texture fills the square edge to edge and the image holds nothing else.
 ```

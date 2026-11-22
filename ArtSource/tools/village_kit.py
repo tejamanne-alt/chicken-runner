@@ -586,3 +586,185 @@ class Kit:
                 cx = x0 + 0.4 + (x1 - x0 - 0.8) * (i + 0.5) / n
                 self.box(f"{tag}_hole{i}", cx - 0.08, y - 0.01, h - 0.42, cx + 0.08, y + 0.02, h - 0.22, dark)
         return rgb
+
+    # ------------------------------------------------------------------ coconut palms and palm-leaf fences
+    def _palm_materials(self):
+        """Shared by every palm: two trunk barks, three frond colours (green, sunlit, dry), two coconut colours."""
+        if getattr(self, "_palm_mats", None):
+            return self._palm_mats
+        trunks = []
+        for rgb in ((0.58, 0.50, 0.42), (0.50, 0.44, 0.38)):
+            mat, nt, bsdf = self._material(f"M_palm_trunk_{len(trunks)}", 0.1)
+            geo = nt.nodes.new("ShaderNodeNewGeometry")
+            rings = nt.nodes.new("ShaderNodeTexWave")
+            rings.wave_type = "BANDS"
+            rings.bands_direction = "Z"
+            rings.inputs["Scale"].default_value = 0.314 / 0.13  # a ring every 13 cm
+            rings.inputs["Distortion"].default_value = 1.5
+            nt.links.new(geo.outputs["Position"], rings.inputs["Vector"])
+            shade = nt.nodes.new("ShaderNodeMapRange")
+            shade.inputs["To Min"].default_value, shade.inputs["To Max"].default_value = 0.72, 1.08
+            nt.links.new(rings.outputs["Fac"], shade.inputs["Value"])
+            out = self._multiply(nt, srgb_to_linear(rgb), shade.outputs["Result"])
+            nt.links.new(out, bsdf.inputs["Base Color"])
+            nt.links.new(out, bsdf.inputs["Emission Color"])
+            trunks.append(mat)
+        fronds = [self._frond_material(n, a, b) for n, a, b in (
+            ("green", (0.16, 0.34, 0.10), (0.40, 0.56, 0.16)),
+            ("sunlit", (0.28, 0.48, 0.13), (0.62, 0.70, 0.24)),
+            ("dry", (0.55, 0.42, 0.22), (0.80, 0.66, 0.36)))]
+        nuts = [self.flat((0.45, 0.56, 0.18)), self.flat((0.55, 0.36, 0.18))]
+        self._palm_mats = trunks, fronds, nuts
+        return self._palm_mats
+
+    def _frond_material(self, name, base, tip):
+        """Leaflets cut out of a ribbon by alpha: slanted strips, a solid midrib, a few leaflets missing."""
+        mat, nt, bsdf = self._material(f"M_frond_{name}", 0.16)
+        N, L = nt.nodes, nt.links
+        uvn = N.new("ShaderNodeTexCoord")
+        sep = N.new("ShaderNodeSeparateXYZ")
+        L.new(uvn.outputs["UV"], sep.inputs[0])
+        u, v = sep.outputs["X"], sep.outputs["Y"]
+
+        def m(op, a, b=0.0):
+            n = N.new("ShaderNodeMath")
+            n.operation = op
+            for i, val in enumerate((a, b)):
+                if isinstance(val, bpy.types.NodeSocket):
+                    L.new(val, n.inputs[i])
+                else:
+                    n.inputs[i].default_value = val
+            return n.outputs[0]
+
+        phase = m("SUBTRACT", m("MULTIPLY", u, 28.0), m("MULTIPLY", v, 1.8))  # leaflets slant toward the tip
+        duty = m("SUBTRACT", 0.86, m("MULTIPLY", v, 0.42))                    # and taper to points
+        leaf = m("LESS_THAN", m("FRACT", phase), duty)
+        hole = N.new("ShaderNodeTexWhiteNoise")
+        hole.noise_dimensions = "1D"
+        L.new(m("FLOOR", phase), hole.inputs["W"])
+        leaf = m("MULTIPLY", leaf, m("GREATER_THAN", hole.outputs["Value"], 0.1))
+        alpha = m("MAXIMUM", leaf, m("LESS_THAN", v, 0.05))                   # the midrib
+        L.new(alpha, bsdf.inputs["Alpha"])
+        mix = N.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        s = {x.identifier: x for x in mix.inputs}
+        L.new(m("ADD", m("MULTIPLY", u, 0.6), m("MULTIPLY", v, 0.4)), s["Factor_Float"])
+        s["A_Color"].default_value = (*srgb_to_linear(base), 1)
+        s["B_Color"].default_value = (*srgb_to_linear(tip), 1)
+        out = next(x for x in mix.outputs if x.identifier == "Result_Color")
+        L.new(out, bsdf.inputs["Base Color"])
+        L.new(out, bsdf.inputs["Emission Color"])
+        mat.surface_render_method = "DITHERED"
+        return mat
+
+    def coconut_palm(self, tag, x, y, height=None, collection=None):
+        """A coconut palm: a curved, ringed trunk, a crown of 12-18 fronds (one or two dry), a bunch of coconuts.
+        Every palm differs in height, lean, curve, frond count, frond angles and colours."""
+        r = self.rng
+        trunks, fronds, nuts = self._palm_materials()
+        H = height or r.uniform(6.0, 10.5)
+        lx, ly = r.uniform(-1, 1) * H * 0.16, r.uniform(-0.2, 0.5)
+
+        def centre(t):
+            bend = 1 - (1 - t) ** 2  # most of the curve near the base, as palms reach for light
+            return x + lx * bend, y + ly * bend, H * t
+
+        verts, faces, seg, rings = [], [], 9, 18
+        for i in range(rings + 1):
+            t = i / rings
+            cx, cy, cz = centre(t)
+            rad = 0.17 - 0.06 * t + (0.07 if i == 0 else 0.0)
+            for k in range(seg):
+                a = 2 * math.pi * k / seg
+                verts.append((cx + rad * math.cos(a), cy + rad * math.sin(a), cz))
+        for i in range(rings):
+            for k in range(seg):
+                a, b = i * seg + k, i * seg + (k + 1) % seg
+                faces.append((a, b, b + seg, a + seg))
+        col, self.col = self.col, collection or self.col
+        trunk = self.mesh(f"{tag}_trunk", verts, faces, r.choice(trunks))
+        for poly in trunk.data.polygons:
+            poly.use_smooth = True
+
+        top = centre(1.0)
+        fv, ff, fuv, fmat = [], [], [], []
+        n = r.randint(17, 24)
+        dry = set(r.sample(range(n), r.choice([0, 1, 1, 2])))
+        for j in range(n):
+            az = 2 * math.pi * j / n + r.uniform(-0.25, 0.25)
+            # Young fronds stand up in the middle, older ones arch out and hang; dry ones hang straight down.
+            elev = math.radians(r.uniform(-20, 70)) if j not in dry else math.radians(r.uniform(-80, -60))
+            length = r.uniform(2.8, 4.0) * (H / 8.5) ** 0.3
+            sag = r.uniform(0.14, 0.26) * (1.4 if elev < 0.3 else 1.0)
+            d = (math.cos(az), math.sin(az))
+            perp = (-d[1], d[0])
+            steps = 10
+            for side in (-1, 1):
+                base = len(fv)
+                for i in range(steps + 1):
+                    s = i / steps
+                    run = length * s
+                    px = top[0] + d[0] * run * math.cos(elev)
+                    py = top[1] + d[1] * run * math.cos(elev)
+                    pz = top[2] + run * math.sin(elev) - sag * run * run
+                    w = 0.7 * math.sin(math.pi * min(1.0, 0.12 + s * 0.95)) ** 0.6
+                    droop = math.radians(r.uniform(45, 65))
+                    ex = px + side * perp[0] * w * math.cos(droop)
+                    ey = py + side * perp[1] * w * math.cos(droop)
+                    ez = pz - w * math.sin(droop)
+                    fv += [(px, py, pz), (ex, ey, ez)]
+                    fuv += [(s, 0.0), (s, 1.0)]
+                for i in range(steps):
+                    a = base + 2 * i
+                    ff.append((a, a + 2, a + 3, a + 1))
+                    fmat.append(2 if j in dry else (1 if r.random() < 0.35 else 0))
+        me = bpy.data.meshes.new(f"{tag}_crown")
+        me.from_pydata(fv, [], ff)
+        uv = me.uv_layers.new()
+        for poly in me.polygons:
+            for li in poly.loop_indices:
+                uv.data[li].uv = fuv[me.loops[li].vertex_index]
+        for mat in fronds:
+            me.materials.append(mat)
+        for poly, k in zip(me.polygons, fmat):
+            poly.material_index = k
+        crown = bpy.data.objects.new(f"{tag}_crown", me)
+        self.col.objects.link(crown)
+        # A bunch of coconuts under the crown.
+        nut = r.choice(nuts)
+        for k in range(r.randint(3, 8)):
+            a = r.uniform(0, 6.28)
+            self.blob(f"{tag}_nut{k}", top[0] + 0.16 * math.cos(a), top[1] + 0.16 * math.sin(a),
+                      top[2] - r.uniform(0.15, 0.4), (0.1, 0.1, 0.11), nut)
+        self.col = col
+        return trunk
+
+    def fence(self, tag, x0, x1, y0, y1, height, style="palm", gap=None):
+        """A fence of woven dried coconut leaves ("palm") or split-bamboo matting ("bamboo") along a straight line,
+        on thin posts, with a ragged top. gap=(a, b): leave an opening between those fractions of its length."""
+        r = self.rng
+        if style == "palm":
+            panel = self.textured("thatch", (r.uniform(0.74, 0.84), r.uniform(0.62, 0.70), 0.50), scale=1.3)
+        else:
+            panel = self.textured("bamboo_weave", (1.0, 0.86, 0.66), scale=1.6)
+        post = self.flat((0.45, 0.33, 0.22))
+        length = math.hypot(x1 - x0, y1 - y0)
+        dx, dy = (x1 - x0) / length, (y1 - y0) / length
+        spans = [(0.0, gap[0]), (gap[1], 1.0)] if gap else [(0.0, 1.0)]
+        for si, (a, b) in enumerate(spans):
+            cols = max(2, int(length * (b - a) / 0.18))
+            verts, faces = [], []
+            for i in range(cols + 1):
+                f = a + (b - a) * i / cols
+                px, py = x0 + dx * length * f, y0 + dy * length * f
+                top = height + (r.uniform(-0.14, 0.06) if style == "palm" else r.uniform(-0.03, 0.03))
+                verts += [(px, py, 0.02), (px, py, top)]
+            for i in range(cols):
+                k = 2 * i
+                faces.append((k, k + 2, k + 3, k + 1))
+            self.mesh(f"{tag}_panel{si}", verts, faces, panel)
+            run = length * (b - a)
+            for p in range(int(run / 1.6) + 2):
+                f = a + (b - a) * min(1.0, p * 1.6 / run)
+                self.cylinder(f"{tag}_post{si}_{p}", x0 + dx * length * f, y0 + dy * length * f - 0.04, 0,
+                              height + 0.12, 0.035, post, 6)

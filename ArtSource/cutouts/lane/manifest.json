@@ -305,5 +305,59 @@
    856,
    515
   ]
+ },
+ "house_thatched_hut": {
+  "px": [
+   1837,
+   1164
+  ],
+  "px_per_m": 234.7,
+  "door": 0.389,
+  "below_ground_px": 8
+ },
+ "house_hut_porch": {
+  "px": [
+   2076,
+   1175
+  ],
+  "px_per_m": 223.4,
+  "door": 0.439,
+  "below_ground_px": 7
+ },
+ "house_mud_tin": {
+  "px": [
+   1623,
+   1103
+  ],
+  "px_per_m": 261.5,
+  "door": 0.723,
+  "below_ground_px": 8
+ },
+ "house_plank_sheet": {
+  "px": [
+   1533,
+   1169
+  ],
+  "px_per_m": 323.5,
+  "door": 0.365,
+  "below_ground_px": 0
+ },
+ "house_village_head": {
+  "px": [
+   2325,
+   1377
+  ],
+  "px_per_m": 172.0,
+  "door": 0.5,
+  "below_ground_px": 113
+ },
+ "house_tiled_gate": {
+  "px": [
+   2094,
+   1145
+  ],
+  "px_per_m": 209.5,
+  "door": 0.359,
+  "below_ground_px": 8
  }
 }

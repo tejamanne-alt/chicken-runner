@@ -229,5 +229,117 @@ for x0, x1 in zip(cuts[:-1], cuts[1:]):
     save(f"mid_palms_slice_{n_slices}", band[..., :3], ba, (x0, 0, x1, band.shape[0]), pad=0)
 print("palm band slices:", n_slices)
 
+# ---------------------------------------------------------------- house fronts G1-G6, one house per image
+# These came from Gemini, mostly on grey but two with a blurred painted backdrop (G1's haze, G4's whole scene), and
+# all with a drawn ground line and a corner watermark. The house is found by its sharp ink outlines: blur has none.
+# Each front is scaled by its door, so every house matches the kid: (door centre x, door top y, door bottom y) in
+# source pixels, and the door's real height in metres.
+G_HOUSES = {
+    "G1_thatched_hut": ("house_thatched_hut", (1161, 977, 1376), 1.7),
+    "G2_hut_bamboo_porch": ("house_hut_porch", (1244, 912, 1303), 1.75),
+    "G3_mud_house_tin_roof": ("house_mud_tin", (1739, 810, 1333), 2.0),
+    "G4_plank_sheet_house": ("house_plank_sheet", (1186, 561, 1208), 2.0),
+    "G5_village_head_house": ("house_village_head", (1376, 915, 1259), 2.0),
+    "G6_tiled_house_gate": ("house_tiled_gate", (1107, 859, 1299), 2.1),
+}
+
+
+def sharp_region(rgb):
+    """Pixels inside the sharply drawn object: ink edges, closed up and filled."""
+    lum = rgb.mean(axis=2)
+    edges = ndimage.gaussian_filter(np.hypot(ndimage.sobel(lum, 1), ndimage.sobel(lum, 0)), 2) > 40
+    region = ndimage.binary_fill_holes(ndimage.binary_closing(edges, iterations=12))
+    return ndimage.binary_opening(region, iterations=6)
+
+
+def grounded_parts(mask, keep_ratio=0.005):
+    """The largest connected part, plus any other part standing on the same ground (a bucket, a planter); drops
+    watermarks, specks and pieces of backdrop floating above."""
+    lab, n = ndimage.label(mask)
+    if n == 0:
+        return mask
+    sizes = ndimage.sum(mask, lab, range(1, n + 1))
+    boxes = ndimage.find_objects(lab)
+    main = int(np.argmax(sizes))
+    bottom, height = boxes[main][0].stop, boxes[main][0].stop - boxes[main][0].start
+    left, right = boxes[main][1].start, boxes[main][1].stop
+    keep = [i + 1 for i in range(n) if i == main or (sizes[i] >= sizes[main] * keep_ratio
+                                                    and boxes[i][0].stop >= bottom - 0.12 * height
+                                                    and boxes[i][1].start >= left and boxes[i][1].stop <= right)]
+    return np.isin(lab, keep)
+
+
+def ground_line(rgb):
+    """Row of the drawn ground line: the low row with the longest run of dark pixels."""
+    dark = rgb.mean(axis=2) < 90
+    h = rgb.shape[0]
+    rows = range(int(h * 0.55), h - 10)
+    return max(rows, key=lambda y: dark[y].sum())
+
+
+for src, (name, (door_x, door_top, door_bottom), door_m) in G_HOUSES.items():
+    rgb = load(f"{src}.png")
+    region = sharp_region(rgb)
+    bg = background(rgb)
+    grey_bg = np.linalg.norm(bg - np.array([bg.mean()] * 3)) < 12 and src not in ("G4_plank_sheet_house",)
+    if grey_bg:
+        _, keyed = grey_alpha(rgb, bg, tol=10, shadow=False)
+        # The grey key gives the soft outer edge. Well inside the outline everything is solid, so grey tin and
+        # white walls are not keyed out with the sheet, except where the sheet shows through an opening (under
+        # a porch): large patches that are both sheet-grey and flat.
+        lum = rgb.mean(axis=2)
+        flat = ndimage.gaussian_filter(np.hypot(ndimage.sobel(lum, 1), ndimage.sobel(lum, 0)), 3) < 8
+        sheet = flat & (np.linalg.norm(rgb - bg, axis=2) < 18)
+        lab, n = ndimage.label(sheet)
+        sizes = ndimage.sum(sheet, lab, range(1, n + 1))
+        openings = ndimage.binary_dilation(np.isin(lab, [i + 1 for i, a in enumerate(sizes) if a > 3000]), iterations=2)
+        solid = ndimage.binary_erosion(region, iterations=8) & ~openings
+        alpha = np.maximum(keyed, solid.astype(np.float32)) * ndimage.binary_dilation(region, iterations=4)
+    else:
+        alpha = ndimage.binary_erosion(region, iterations=3).astype(np.float32)
+        alpha = ndimage.gaussian_filter(alpha, 0.8)
+    if src == "G1_thatched_hut":
+        # Haze is painted over the roof's top: keep any golden thatch next to the house, not the pale haze.
+        mx, mn = rgb.max(axis=2), rgb.min(axis=2)
+        golden = ((mx - mn) / np.maximum(mx, 1) > 0.3) & (rgb[..., 0] > rgb[..., 2] + 40)
+        roof = ndimage.binary_dilation(region, iterations=60) & golden & (np.arange(rgb.shape[0])[:, None] < door_top)
+        alpha = np.maximum(alpha, ndimage.binary_closing(roof, iterations=3).astype(np.float32))
+        # The roof is one convex shape: fill its hull above the eaves, so the haze doesn't leave it ragged.
+        from scipy.spatial import ConvexHull
+        from PIL import ImageDraw
+        eave = door_top - 40
+        ys, xs = np.nonzero((region | roof)[:eave])  # sharp or golden: never the pale haze
+        pts = np.column_stack([xs, ys])
+        hull = pts[ConvexHull(pts).vertices]
+        poly = Image.new("L", (alpha.shape[1], alpha.shape[0]), 0)
+        ImageDraw.Draw(poly).polygon([tuple(p) for p in hull], fill=255)
+        filled = np.asarray(poly) > 0
+        filled[eave:] = False
+        alpha = np.maximum(alpha, ndimage.gaussian_filter(filled.astype(np.float32), 1.0))
+        # Inside that outline, re-colour the pale hazed thatch toward the clear thatch, keeping its light and shade.
+        sat = (mx - mn) / np.maximum(mx, 1)
+        thatch = rgb[roof & filled]
+        lum = rgb.mean(axis=2, keepdims=True)
+        rethatched = np.median(thatch, axis=0) * lum / np.median(thatch.mean(axis=1))
+        w = (np.clip((0.32 - sat) / 0.16, 0, 1) * filled)[..., None]
+        rgb = rgb * (1 - w) + np.clip(rethatched * 0.9, 0, 255) * w
+    # The drawn ground line: clear it where nothing of the house stands above it, then everything below it.
+    gy = ground_line(rgb)
+    above = alpha[gy - 14] > 0.5
+    for y in range(gy - 5, gy + 6):
+        alpha[y, ~above] = 0
+    below = alpha[gy + 6:].copy()
+    alpha[gy + 6:] = 0
+    if src == "G5_village_head_house":
+        alpha[gy + 6:, 900:1110] = below[:, 900:1110]  # the tulsi planter stands in front, below the line
+    alpha = alpha * grounded_parts(alpha > 0.5)
+    box = save(name, rgb, alpha)
+    px_per_m = (door_bottom - door_top) / door_m
+    # Anything drawn below the ground line (G5's tulsi planter stands in front of the house) sinks under the ground,
+    # so the house itself stands on it.
+    manifest[name].update({"px_per_m": round(px_per_m, 1), "door": round((door_x - box[0]) / (box[2] - box[0]), 3),
+                           "below_ground_px": int(max(0, box[3] - (gy + 4)))})
+    print(name, manifest[name])
+
 (OUT / "manifest.json").write_text(json.dumps(manifest, indent=1))
 print(f"{len(manifest) - 1} pieces in {OUT.relative_to(ROOT)}")
