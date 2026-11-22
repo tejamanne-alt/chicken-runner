@@ -98,6 +98,7 @@ namespace ChickenRunner
         void Update()
         {
             if (!_ready) return;
+            input.ReservePauseButton = State == FlowState.Chase;
             input.Sample();
             StateTime += Time.deltaTime;
             WorldBarks.Tick(Time.deltaTime);
@@ -137,7 +138,9 @@ namespace ChickenRunner
             }
 
             Simulate(Time.deltaTime);
-            streamer.Refresh(kid.X, rooster.X);
+            // Once the chase is over, stream around the kid only, so the fleeing rooster does not load the rest of the course.
+            bool chasing = State == FlowState.Ready || State == FlowState.Chase;
+            streamer.Refresh(kid.X, chasing ? rooster.X : kid.X);
 
             float alpha = _accumulator * simulationRate;
             kid.ApplyVisual(alpha);

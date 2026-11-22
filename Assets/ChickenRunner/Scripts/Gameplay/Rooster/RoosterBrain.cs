@@ -23,6 +23,7 @@ namespace ChickenRunner
     public sealed class RoosterBrain : MonoBehaviour
     {
         const float WriggleGravity = 16f;
+        const float HopEntryWindow = 0.5f;
 
         [SerializeField] internal float groundFollowSpeed = 8f;
         [SerializeField] internal float wriggleUpSpeed = 7.5f;
@@ -121,7 +122,7 @@ namespace ChickenRunner
 
         void TickChase(float dt, float gap, float kidX)
         {
-            Speed = _mind.Tick(dt, gap);
+            Speed = _mind.Tick(dt, gap, canStartTaunt: _hop == null);
             if (_mind.MoodChangedThisTick) AnnounceMood();
 
             float fromX = _position.x;
@@ -178,7 +179,9 @@ namespace ChickenRunner
             if (_hop != null && _position.x >= _hop.EndX) _hop = null;
             if (_hop == null)
             {
+                // Only start a hop at its beginning; landing inside one (after the wriggle) must not snap him up.
                 _hop = RoosterHop.Find(_position.x);
+                if (_hop != null && _position.x - _hop.StartX > HopEntryWindow) _hop = null;
                 if (_hop != null)
                 {
                     _hopStartY = _position.y;

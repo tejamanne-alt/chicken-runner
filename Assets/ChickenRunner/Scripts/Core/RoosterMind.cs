@@ -59,7 +59,8 @@ namespace ChickenRunner.Core
         }
 
         /// <summary>Advances the mood by dt for the current gap and returns this tick's speed in m/s.</summary>
-        public float Tick(float dt, float gap)
+        /// <param name="canStartTaunt">False while he is mid-flutter, so he never stops to crow in mid-air.</param>
+        public float Tick(float dt, float gap, bool canStartTaunt = true)
         {
             MoodChangedThisTick = false;
             _tauntCooldown = Math.Max(0f, _tauntCooldown - dt);
@@ -68,7 +69,7 @@ namespace ChickenRunner.Core
             switch (Mood)
             {
                 case RoosterMood.Running:
-                    if (gap > _tuning.tauntDistance && _tauntCooldown <= 0f)
+                    if (gap > _tuning.tauntDistance && _tauntCooldown <= 0f && canStartTaunt)
                     {
                         Enter(RoosterMood.Taunting, _tuning.tauntDuration);
                         Taunts++;

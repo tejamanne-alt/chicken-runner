@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 
 namespace ChickenRunner.Core
 {
@@ -22,6 +23,8 @@ namespace ChickenRunner.Core
 
         // Win and loss
         public float grabDistance = 0.8f;
+        /// <summary>The dive only counts when kid and rooster are this close in height (no grabs mid-bounce).</summary>
+        public float grabHeightTolerance = 1.0f;
         public float escapeDistance = 25f;
 
         // Rooster behaviours
@@ -100,6 +103,18 @@ namespace ChickenRunner.Core
                     break;
             }
             return t;
+        }
+
+        /// <summary>
+        /// Overwrites every value with <paramref name="source"/>'s, keeping this instance, so systems that hold
+        /// a reference to it keep reading live values.
+        /// </summary>
+        public void CopyFrom(ChaseTuning source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            foreach (var field in typeof(ChaseTuning).GetFields(BindingFlags.Public | BindingFlags.Instance))
+                field.SetValue(this, field.GetValue(source));
+            canalWidths = source.canalWidths == null ? null : (float[])source.canalWidths.Clone();
         }
 
         public ChaseTuning Clone()

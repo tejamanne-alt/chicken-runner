@@ -49,6 +49,17 @@ namespace ChickenRunner.Tests
         }
 
         [Test]
+        public void NeverStartsATauntMidFlutter()
+        {
+            var t = ChaseTuning.ForZone(1);
+            var mind = NewMind(t);
+            Assert.That(mind.Tick(Step, 20f, canStartTaunt: false), Is.EqualTo(t.roosterRunSpeed));
+            Assert.That(mind.Mood, Is.EqualTo(RoosterMood.Running));
+            mind.Tick(Step, 20f, canStartTaunt: true);
+            Assert.That(mind.Mood, Is.EqualTo(RoosterMood.Taunting), "taunts once he has landed");
+        }
+
+        [Test]
         public void PanicsWhenTheKidGetsClose()
         {
             var t = ChaseTuning.ForZone(1);

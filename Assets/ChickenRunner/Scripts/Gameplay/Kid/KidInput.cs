@@ -34,6 +34,9 @@ namespace ChickenRunner
         /// <summary>A jump is being held by touch or key, for the higher jump.</summary>
         public bool JumpHeld => _gestures.IsHolding || _keyboardJumpHeld;
 
+        /// <summary>Whether touches on the HUD's pause button are kept away from the kid. Only while the button is shown.</summary>
+        public bool ReservePauseButton { get; set; }
+
         /// <summary>Any new press this frame: used to start a level or dismiss a screen.</summary>
         public bool AnyPress { get; private set; }
 
@@ -52,7 +55,7 @@ namespace ChickenRunner
 
             ReadPointer(out bool down, out Vector2 position);
             bool pressedNow = down && !_pointerWasDown;
-            if (pressedNow) _ignoringPointer = HudLayout.IsReserved(position);
+            if (pressedNow) _ignoringPointer = ReservePauseButton && HudLayout.IsReserved(position);
             if (down) _pointerPosition = position;
 
             if (!_ignoringPointer)

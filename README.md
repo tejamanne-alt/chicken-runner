@@ -30,7 +30,7 @@ A touch waits 60 ms before it becomes a jump, so a swipe down never starts with 
 
 ## What's in the grey-box
 
-- **The chase.** The kid auto-runs at 6 m/s and the rooster at 5.5 m/s, starting 12 m ahead. The gap bar shows the metres. Inside 0.8 m the kid dives and the rooster wriggles free; past 25 m, or at the 500 m course end, he escapes.
+- **The chase.** The kid auto-runs at 6 m/s and the rooster at 5.5 m/s, starting 12 m ahead. The gap bar shows the metres. Inside 0.8 m (and roughly level with him) the kid dives and the rooster wriggles free; past 25 m, or at the 500 m course end, he escapes.
 - **Rooster behaviours, built before any art as the doc's risk table asks.** Gap-driven run speed, the taunt (stops, turns round and crows beyond 18 m), the panic burst under 2 m (sprints and sheds feathers, twice per chase), fluttering over obstacles along routes authored in each chunk, mischief (knocks a pot stack into the lane behind him, but only when the kid is at least 7 m back) and the wriggle-free gag.
 - **Kid moves.** Variable-height jump, double jump, slide, fast drop, the slow wall vault (about 2.4 m lost), the rope-cot bounce, stumbles (2.3 to 2.7 m lost depending on the obstacle), chilli boost (+4.6 m) and the automatic dive.
 - **Six chunks plus a runway**, looped into the 500 m zone-1 course: pot stacks; dung and a sleeping dog; clotheslines; the rope cot; the bullock cart; and the mischief lane. Mango lines trace the clean route.
@@ -82,7 +82,7 @@ The architecture follows the doc. GameFlow owns the level state machine and a fi
 dotnet test Tools/CoreTests
 ```
 
-This runs 52 tests on the Core rules with the .NET 8 SDK and no Unity install. The same test files run in Unity's Test Runner once you add the **Test Framework** package from the Package Manager.
+This runs 57 tests on the Core rules with the .NET 8 SDK and no Unity install. The same test files run in Unity's Test Runner once you add the **Test Framework** package from the Package Manager.
 
 ## Render pipeline
 

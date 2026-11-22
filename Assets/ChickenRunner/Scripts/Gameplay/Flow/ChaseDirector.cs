@@ -84,7 +84,7 @@ namespace ChickenRunner
         {
             if (Outcome != ChaseOutcome.Ongoing) return Outcome;
             Elapsed += dt;
-            Outcome = ChaseRules.Evaluate(_t, Gap, _rooster.X, CourseLength);
+            Outcome = ChaseRules.Evaluate(_t, Gap, _rooster.X, CourseLength, _kid.Position.y - _rooster.Position.y);
             return Outcome;
         }
 

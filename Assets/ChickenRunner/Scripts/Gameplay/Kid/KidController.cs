@@ -26,6 +26,7 @@ namespace ChickenRunner
         const int MaxOverlaps = 16;
         const float Skin = 0.02f;
         const float FallbackGroundY = 0f;
+        const float GroundRayInset = 0.7f;
 
         [Header("Body, metres")]
         [SerializeField] internal float radius = 0.175f;
@@ -46,6 +47,7 @@ namespace ChickenRunner
         Vector2 _position;
         Vector2 _previousPosition;
         float _verticalSpeed;
+        float _verticalStep;
         bool _grounded;
         float _timeSinceGrounded;
         bool _jumpedSinceGrounded;
@@ -101,6 +103,7 @@ namespace ChickenRunner
             float groundY = CastGround(x, 3f, 6f, out float y) ? y : FallbackGroundY;
             _position = _previousPosition = new Vector2(x, groundY);
             _verticalSpeed = 0f;
+            _verticalStep = 0f;
             _grounded = true;
             _timeSinceGrounded = 0f;
             _jumpedSinceGrounded = false;
@@ -133,7 +136,8 @@ namespace ChickenRunner
             Pose = KidPose.Dive;
             _diveTimer = 0f;
             _diveFrom = _position;
-            _diveGroundY = CastGround(_position.x + diveLength, _position.y + stepHeight, 10f, out float y) ? y : _position.y;
+            float probeTop = _position.y + _t.maxVaultHeight + 0.5f;
+            _diveGroundY = CastGround(_position.x + diveLength, probeTop, probeTop + 10f, out float y) ? y : _position.y;
         }
 
         public void Tick(float dt)
@@ -149,6 +153,9 @@ namespace ChickenRunner
             }
             if (Pose == KidPose.Vault)
             {
+                // Input keeps its normal 0.1 s buffer during the climb; slides are not possible mid-vault.
+                _jumpBufferTimer = Mathf.Max(0f, _jumpBufferTimer - dt);
+                _slideRequested = false;
                 TickVault(dt);
                 TouchTriggers(pickupsOnly: true);
                 return;
@@ -166,8 +173,13 @@ namespace ChickenRunner
                 float rise = topY - _position.y;
                 if (rise <= stepHeight)
                 {
+                    // Pop up onto a low ledge (or one met just below its top while falling) and far enough onto it
+                    // that the front ground ray lands on it.
                     _position.y = topY;
                     _verticalSpeed = Mathf.Max(0f, _verticalSpeed);
+                    _verticalStep = 0f;
+                    _position.x = Mathf.Max(_position.x + dx, wallX - radius * GroundRayInset + Skin);
+                    dx = 0f;
                 }
                 else if (rise <= _t.maxVaultHeight)
                 {
@@ -181,7 +193,7 @@ namespace ChickenRunner
             }
 
             _position.x += dx;
-            _position.y += _verticalSpeed * dt;
+            _position.y += _verticalStep;
             UpdateGround();
             TouchTriggers(pickupsOnly: false);
 
@@ -264,9 +276,15 @@ namespace ChickenRunner
             SlideStarted?.Invoke();
         }
 
+        /// <summary>Updates vertical speed and works out this tick's vertical move, exactly for constant gravity.</summary>
         void ApplyGravity(float dt)
         {
-            if (_grounded) return;
+            float startSpeed = _verticalSpeed;
+            if (_grounded)
+            {
+                _verticalStep = startSpeed * dt;
+                return;
+            }
             float gravity = JumpMath.Gravity(_t);
             if (_verticalSpeed > 0f && _groundJumpRising)
             {
@@ -279,6 +297,8 @@ namespace ChickenRunner
                 gravity *= _t.fallGravityMultiplier;
             }
             _verticalSpeed = Mathf.Max(_verticalSpeed - gravity * dt, -_t.maxFallSpeed);
+            // Averaging the start and end speeds makes jump heights match the tuning at any tick rate.
+            _verticalStep = (startSpeed + _verticalSpeed) * 0.5f * dt;
             if (_verticalSpeed <= 0f) _groundJumpRising = false;
         }
 
@@ -320,7 +340,7 @@ namespace ChickenRunner
         {
             groundY = float.NegativeInfinity;
             bool found = false;
-            float inset = radius * 0.7f;
+            float inset = radius * GroundRayInset;
             for (int i = 0; i < 2; i++)
             {
                 var origin = new Vector3(x + (i == 0 ? inset : -inset), originY, 0f);
@@ -339,7 +359,9 @@ namespace ChickenRunner
         {
             wallX = float.PositiveInfinity;
             topY = float.PositiveInfinity;
-            float bottom = _position.y + stepHeight + Skin;
+            // The lowest ray sits just above the feet, so a ledge met while falling is still seen as a wall
+            // (and stepped onto if it is low enough) rather than fallen into.
+            float bottom = _position.y + Skin;
             float top = _position.y + Height - 0.05f;
             float originX = _position.x + radius - Skin;
             float distance = dx + Skin * 2f;
@@ -447,8 +469,9 @@ namespace ChickenRunner
 
         void TryBounce(Bouncer bouncer)
         {
-            // Bounce when landing on the cot or running into it, not while already flying up past it.
-            if (_verticalSpeed > 0.5f || _position.y > bouncer.TopY + 0.2f) return;
+            // Bounce when landing on the cot or running into it, not while already flying up past it,
+            // and not once the chase is over (a kid stopped on a cot would bounce for ever).
+            if (_stopping || _verticalSpeed > 0.5f || _position.y > bouncer.TopY + 0.2f) return;
             _verticalSpeed = JumpMath.BounceVelocity(_t);
             _grounded = false;
             _jumpedSinceGrounded = true;

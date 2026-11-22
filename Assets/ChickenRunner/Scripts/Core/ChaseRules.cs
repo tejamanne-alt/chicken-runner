@@ -1,3 +1,5 @@
+using System;
+
 namespace ChickenRunner.Core
 {
     public enum ChaseOutcome
@@ -23,9 +25,11 @@ namespace ChickenRunner.Core
     /// <summary>Win, loss and stars. Positions are metres along the course; the kid starts at 0.</summary>
     public static class ChaseRules
     {
-        public static ChaseOutcome Evaluate(ChaseTuning t, float gap, float roosterPosition, float courseLength)
+        /// <param name="heightDifference">Kid's height minus the rooster's; the grab waits until they are level.</param>
+        public static ChaseOutcome Evaluate(ChaseTuning t, float gap, float roosterPosition, float courseLength,
+            float heightDifference = 0f)
         {
-            if (gap <= t.grabDistance) return ChaseOutcome.Caught;
+            if (gap <= t.grabDistance && Math.Abs(heightDifference) <= t.grabHeightTolerance) return ChaseOutcome.Caught;
             if (gap > t.escapeDistance) return ChaseOutcome.EscapedTooFar;
             if (roosterPosition >= courseLength) return ChaseOutcome.EscapedCourseEnd;
             return ChaseOutcome.Ongoing;

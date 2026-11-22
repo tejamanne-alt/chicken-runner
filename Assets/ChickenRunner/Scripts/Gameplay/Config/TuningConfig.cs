@@ -16,8 +16,15 @@ namespace ChickenRunner
         public int Zone => zone;
         public ChaseTuning Values => values ??= ChaseTuning.ForZone(zone);
 
-        /// <summary>Puts every number back to the design doc's starting values for this zone.</summary>
-        public void ResetToDesignValues() => values = ChaseTuning.ForZone(zone);
+        /// <summary>
+        /// Puts every number back to the design doc's starting values for this zone. Copies into the existing
+        /// instance, so a reset during Play mode keeps live tuning connected.
+        /// </summary>
+        public void ResetToDesignValues()
+        {
+            if (values == null) values = ChaseTuning.ForZone(zone);
+            else values.CopyFrom(ChaseTuning.ForZone(zone));
+        }
 
         void Reset() => ResetToDesignValues();
     }
