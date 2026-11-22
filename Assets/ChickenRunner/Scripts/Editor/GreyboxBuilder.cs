@@ -438,6 +438,9 @@ namespace ChickenRunner.EditorTools
                 Prim(PrimitiveType.Cube, "Ground", _root, new Vector3(length * 0.5f, -0.25f, 1.5f),
                     new Vector3(length, 0.5f, 6f), Color.Lerp(Palette.Earth, Palette.EarthDark, (float)_random.NextDouble() * 0.5f), material,
                     keepCollider: true);
+                // Dusty verge between the lane and the camera, so no sky shows under the lane.
+                Prim(PrimitiveType.Cube, "Verge", _root, new Vector3(length * 0.5f, -0.27f, -7.75f), new Vector3(length, 0.5f, 12.5f),
+                    Palette.Verge, material);
 
                 var decor = new GameObject("Decor").transform;
                 decor.SetParent(_root, false);
@@ -695,6 +698,7 @@ namespace ChickenRunner.EditorTools
             public static readonly Color Earth = new Color(0.74f, 0.43f, 0.26f);
             public static readonly Color EarthDark = new Color(0.62f, 0.34f, 0.2f);
             public static readonly Color Kolam = new Color(0.97f, 0.95f, 0.9f);
+            public static readonly Color Verge = new Color(0.66f, 0.55f, 0.33f);
             public static readonly Color[] Walls =
             {
                 new Color(0.94f, 0.93f, 0.86f), // lime-wash

@@ -21,7 +21,8 @@ namespace ChickenRunner
         [SerializeField] internal float minVisibleWidth = 13f;
 
         [Header("Height")]
-        [SerializeField] internal float lookHeight = 1.0f;
+        [Tooltip("Where the ground under the kid sits on screen, as a fraction of screen height from the bottom.")]
+        [SerializeField, Range(0.1f, 0.5f)] internal float groundScreenY = 0.28f;
         [SerializeField] internal float cameraRaise = 0.8f;
         [Tooltip("How much of the kid's height above the ground the camera follows (roofs, bounces).")]
         [SerializeField, Range(0f, 1f)] internal float verticalFollow = 0.45f;
@@ -56,7 +57,7 @@ namespace ChickenRunner
             float gap = director != null ? director.FramedGap : 0f;
             float width = Mathf.Max(minVisibleWidth, (gap + 0.8f) / Mathf.Max(0.05f, roosterScreenX - kidScreenX));
             float targetDistance = width / (2f * Mathf.Tan(HorizontalFov(cam) * 0.5f));
-            float targetHeight = lookHeight + kid.transform.position.y * verticalFollow;
+            float targetHeight = kid.transform.position.y * verticalFollow;
 
             if (snap || _distance <= 0f)
             {
@@ -73,9 +74,12 @@ namespace ChickenRunner
             }
 
             float visibleWidth = 2f * _distance * Mathf.Tan(HorizontalFov(cam) * 0.5f);
+            float visibleHeight = 2f * _distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
             float centreX = kid.transform.position.x + (0.5f - kidScreenX) * visibleWidth;
-            var position = new Vector3(centreX, _height + cameraRaise, -_distance);
-            transform.SetPositionAndRotation(position, Quaternion.LookRotation(new Vector3(centreX, _height, 0f) - position));
+            // Aim above the ground so it sits low on screen at every zoom, leaving the upper part for jumps and roofs.
+            float lookY = _height + (0.5f - groundScreenY) * visibleHeight;
+            var position = new Vector3(centreX, lookY + cameraRaise, -_distance);
+            transform.SetPositionAndRotation(position, Quaternion.LookRotation(new Vector3(centreX, lookY, 0f) - position));
         }
 
         static float HorizontalFov(Camera cam) =>

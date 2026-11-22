@@ -81,7 +81,7 @@ namespace ChickenRunner
                     DrawResult(director, width, height);
                     break;
             }
-            if (flow.Paused) DrawCentred(width, height, "Paused", "Tap to carry on");
+            if (flow.Paused) DrawCentred(width, height * 0.34f, "Paused", "Tap to carry on");
             if (flow.ShowDebug) DrawDebug(director);
         }
 
@@ -155,7 +155,8 @@ namespace ChickenRunner
 
         void DrawReady(float width, float height)
         {
-            DrawCentred(width, height, "Tap to chase!",
+            // Above the kid and rooster, so the player sees who is chasing whom before the first tap.
+            DrawCentred(width, height * 0.34f, "Tap to chase!",
                 "Tap: jump (hold for higher)   Tap in the air: double jump   Swipe down: slide, or drop in the air\n"
                 + "Keyboard: Space or Up to jump, Down or S to slide, R to retry, Esc to pause, F1 for debug");
         }
@@ -168,7 +169,8 @@ namespace ChickenRunner
             if (caught)
             {
                 detail = "...and he wriggled free. " + director.Elapsed.ToString("0.0", CultureInfo.InvariantCulture) + " s, "
-                    + director.Mangoes + " of " + director.MangoesPassed + " mangoes, " + director.Stumbles + " stumbles";
+                    + director.Mangoes + " of " + director.MangoesPassed + " mangoes, "
+                    + director.Stumbles + (director.Stumbles == 1 ? " stumble" : " stumbles");
             }
             else
             {
@@ -197,9 +199,9 @@ namespace ChickenRunner
             Shadowed(rect, label, _label, TextAnchor.MiddleCenter, earned ? Color.white : new Color(1f, 1f, 1f, 0.5f));
         }
 
-        void DrawCentred(float width, float height, string title, string detail)
+        void DrawCentred(float width, float centreY, string title, string detail)
         {
-            var panel = new Rect(width * 0.5f - 420f, height * 0.5f - 90f, 840f, 180f);
+            var panel = new Rect(width * 0.5f - 420f, centreY - 90f, 840f, 180f);
             Fill(panel, s_panel);
             Shadowed(new Rect(panel.x, panel.y + 16f, panel.width, 80f), title, _big);
             Shadowed(new Rect(panel.x + 20f, panel.y + 96f, panel.width - 40f, 70f), detail, _small);
