@@ -35,13 +35,14 @@ for a different street).
 The street is generated, not laid out by hand, so it never shows the same thing twice in view, and it has room to
 breathe. Everything in it that stands for a house or a tree comes from the reference art:
 
-- **Houses** are the painted fronts cut from the references: the four from the C4 kit and G1-G6, each scaled by its
-  door so it matches the kid. The village head's house (G5) stands once per street, near where the chase starts. The
+- **Houses** are the painted fronts cut from the references, all facing the street square on: the four from the C4
+  kit, G4, G5 and G6, each scaled by its door so it matches the kid. G1-G3 came out three-quarter on and wait until
+  they're drawn again front-on. The village head's house (G5) stands once per street, near where the chase starts. The
   others are dealt like cards: each comes up once before any comes back, the G houses first, and none appears twice in
   any 45 m. More houses (G7 onwards) join the deck as they arrive.
 - **Spacing**: 0.8-2.4 m of open ground between houses, and every 2-4 houses a wider break: a compound wall, a gateway
   or a yard with hens. Setbacks run from 4.3 to 6.8 m.
-- **Compounds**: some of the huts and mud houses (G1-G4) sit back in a yard fenced with woven dried coconut leaves (or
+- **Compounds**: some of the huts and mud houses (G1-G4; for now only G4) sit back in a yard fenced with woven dried coconut leaves (or
   split-bamboo matting), with an opening at the door; never two side by side.
 - **Trees** are the two D4 mango trees, at least 30 m apart, and the painted palm groves of the C3 middle layer.
   Coconut palms, neem and other trees go in when H1 and H4 arrive.

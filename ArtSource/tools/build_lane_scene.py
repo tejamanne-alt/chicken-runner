@@ -156,8 +156,18 @@ def wall_span(img_path):
     """Left and right edges of the painted wall, as fractions of the image width (where the lower half is solid)."""
     a = np.asarray(Image.open(img_path).convert("RGBA"))[..., 3]
     lower = a[int(a.shape[0] * 0.5):int(a.shape[0] * 0.9)]
-    cols = np.where((lower > 200).mean(axis=0) > 0.6)[0]
-    return (cols[0] / a.shape[1], (cols[-1] + 1) / a.shape[1]) if len(cols) else (0.1, 0.9)
+    solid = (lower > 200).mean(axis=0) > 0.6
+    # The longest unbroken run of solid columns (small gaps closed), so a lone porch post isn't taken for wall.
+    gap = max(2, a.shape[1] // 50)
+    solid = np.convolve(solid.astype(float), np.ones(gap), mode="same") > 0
+    best, start = (0, 0), None
+    for i, v in enumerate(np.append(solid, False)):
+        if v and start is None:
+            start = i
+        elif not v and start is not None:
+            best = max(best, (start, i), key=lambda r: r[1] - r[0])
+            start = None
+    return (best[0] / a.shape[1], best[1] / a.shape[1]) if best[1] > best[0] else (0.1, 0.9)
 
 
 def flat_material(name, rgb, tex_path=None, scale=1.0):
@@ -223,13 +233,13 @@ COL["Ground"].objects.link(ground)
 
 # ------------------------------------------------------------------ the street: room to breathe, never the same thing twice
 # Placement rules (the game's chunk builder will follow the same ones):
-#   * Every house is one of the painted fronts made from the reference art: the four from the C4 kit and G1-G6.
-#     None is built from scratch. The village head's house (G5) stands once per street, near where the chase starts.
+#   * Every house is one of the painted fronts made from the reference art, facing the street square on: the four
+#     from the C4 kit, G4, G5 and G6 (G1-G3 wait until they're drawn front-on). None is built from scratch. The village head's house (G5) stands once per street, near where the chase starts.
 #   * The other fronts are dealt like cards: each comes up once before any comes back, the G houses first, and
 #     none appears twice in any 45 m (about two screens). When none is free, the street breaks instead.
 #   * Houses stand apart: 0.8 to 2.4 m of open ground between neighbours, and every 2 to 4 houses a wider break
 #     of 2.5 to 5 m: a compound wall, a gateway, or an open yard with hens.
-#   * Some of the huts and mud houses (G1-G4) sit back in their own compound, fenced along the front with woven
+#   * Some of the huts and mud houses (G1-G4, once front-on) sit back in their own compound, fenced along the front with woven
 #     dried coconut leaves (or split-bamboo matting), with an opening at the door; never two side by side.
 #   * Setbacks run from 4.3 to 6.8 m, and no house repeats either of the last two.
 #   * Trees only from the reference art: the two D4 mango trees, at least 30 m apart; the palm groves are the painted
@@ -246,9 +256,12 @@ L, A, K = CUT / "lane", CUT / "animals", CUT / "kid"
 MANIFEST = json.loads((CUT / "lane" / "manifest.json").read_text())
 C4_FRONTS = {"house_limewash": 0.42, "house_indigo_veranda": 0.67, "house_turmeric_ladder": 0.56, "house_pink": 0.5}
 PAINTED = {name: (door, HOUSE_PX_PER_M) for name, door in C4_FRONTS.items()}
+# G1-G3 came out three-quarter on, showing a side wall, so they wait out of the street until they're drawn again
+# facing it: every house on the lane faces the street square on.
+THREE_QUARTER = {"house_thatched_hut", "house_hut_porch", "house_mud_tin"}
 PAINTED.update({name: (MANIFEST[name]["door"], MANIFEST[name]["px_per_m"]) for name in [
     "house_thatched_hut", "house_hut_porch", "house_mud_tin", "house_plank_sheet", "house_tiled_gate"]
-    if name in MANIFEST})
+    if name in MANIFEST and name not in THREE_QUARTER})
 LANDMARK = "house_village_head"  # G5: the village head's house, once per street, near where the chase starts
 COMPOUND_OK = {"house_thatched_hut", "house_hut_porch", "house_mud_tin", "house_plank_sheet"}  # huts and mud houses
 
