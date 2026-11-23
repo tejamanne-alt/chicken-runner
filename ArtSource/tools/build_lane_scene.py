@@ -234,38 +234,52 @@ for c in ground.users_collection:
 COL["Ground"].objects.link(ground)
 
 # ------------------------------------------------------------------ the street: room to breathe, never the same thing twice
-# Placement rules (the game's chunk builder will follow the same ones):
-#   * Every house is one of the painted fronts made from the reference art, facing the street square on: the four
-#     from the C4 kit, G4, G5 and G6 (G1-G3 wait until they're drawn front-on). None is built from scratch. The village head's house (G5) stands once per street, near where the chase starts.
-#   * The other fronts are dealt like cards: each comes up once before any comes back, the G houses first, and
-#     none appears twice in any 45 m (about two screens). When none is free, the street breaks instead.
-#   * Houses stand apart: 0.8 to 2.4 m of open ground between neighbours, and every 2 to 4 houses a wider break
-#     of 2.5 to 5 m: a compound wall, a gateway, or an open yard with hens.
-#   * Some of the huts and mud houses (G1-G4, once front-on) sit back in their own compound, fenced along the front with woven
-#     dried coconut leaves (or split-bamboo matting), with an opening at the door; never two side by side.
-#   * Setbacks run from 4.3 to 6.8 m, and no house repeats either of the last two.
-#   * Trees only from the reference art: the two D4 mango trees, at least 30 m apart; the palm groves are the painted
-#     middle layer (C3). Coconut palms go into the compounds once the H4 palm pictures arrive.
-#   * Kolam, animals and props come from pools that skip the last few picks, and are mirrored and scaled.
-#   * The ground gets real pebbles in loose drifts and grass tufts along walls, fences and the lane's edges.
+# Placement rules (the game's chunk builder will follow the same ones). Everything comes from the reference art:
+#   * Buildings are the painted fronts, all facing the street square on: the four from the C4 kit and G1-G16.
+#     Landmarks stand once per street: the village head's house (G5) near the start, the panchayat office (G14)
+#     further on, the shrine under its tree (G15) and the peepal on its platform (H3) in breaks, and the water
+#     tank (G16) behind the houses.
+#   * The rest are dealt like cards: each comes up once before any comes back, none twice in any 45 m, and never two
+#     of a kind side by side (huts, mud houses, tiled houses, shops, sheds).
+#   * Houses stand apart: 0.8 to 2.4 m of open ground between neighbours, and every 2 to 4 houses a wider break of
+#     2.5 to 5 m: a compound wall, a gateway, a yard with hens, or a grove, each with a tree.
+#   * Some huts and mud houses sit back in a compound fenced with woven coconut leaves or bamboo matting, with an
+#     opening at the door and coconut palms and garden plants in the yard; never two side by side.
+#   * Trees (H1 neem, H2 tamarind and drumstick, H4 coconut palms, the D4 mangoes) and plants (H5 garden plants,
+#     H6 flowering bushes) come from pools that skip their last few picks, mirrored and scaled a little.
+#   * A few low plants and stones (H7) stand in front of the lane, at the screen's bottom edge, away from obstacles.
+#   * Right behind the houses: a row of trees and palms, then the C3 middle layer; the ground fades into the haze.
 from village_kit import Kit  # noqa: E402
 
 rng = random.Random(SEED)
-kit = Kit(CUT / "textures", COL["BuiltHouses"], load_image, rng)  # walls, fences and palms; no houses
-L, A, K = CUT / "lane", CUT / "animals", CUT / "kid"
-# Painted house fronts: where the door sits across each, as a fraction of its width, and its pixels per metre.
-# The four from the C4 kit share one scale; G1-G6 are scaled by their doors (see cutouts.py).
+kit = Kit(CUT / "textures", COL["BuiltHouses"], load_image, rng)  # compound walls and fences only
+L, A, K, P = CUT / "lane", CUT / "animals", CUT / "kid", CUT / "plants"
 MANIFEST = json.loads((CUT / "lane" / "manifest.json").read_text())
 C4_FRONTS = {"house_limewash": 0.42, "house_indigo_veranda": 0.67, "house_turmeric_ladder": 0.56, "house_pink": 0.5}
+# Kind of each building, so two of a kind never stand side by side.
+KIND = {"house_thatched_hut": "hut", "house_hut_porch": "hut", "house_potter": "hut", "house_weaver": "hut",
+        "house_mud_tin": "mud", "house_plank_sheet": "mud", "house_half_built": "mud",
+        "house_tiled_gate": "tiled", "shop_provisions": "shop", "shop_tea_stall": "shop", "shop_tailor_cycle": "shop",
+        "cattle_shed": "shed", **{name: "tiled" for name in C4_FRONTS}}
 PAINTED = {name: (door, HOUSE_PX_PER_M) for name, door in C4_FRONTS.items()}
-# G1-G3 came out three-quarter on, showing a side wall, so they wait out of the street until they're drawn again
-# facing it: every house on the lane faces the street square on.
-THREE_QUARTER = {"house_thatched_hut", "house_hut_porch", "house_mud_tin"}
-PAINTED.update({name: (MANIFEST[name]["door"], MANIFEST[name]["px_per_m"]) for name in [
-    "house_thatched_hut", "house_hut_porch", "house_mud_tin", "house_plank_sheet", "house_tiled_gate"]
-    if name in MANIFEST and name not in THREE_QUARTER})
-LANDMARK = "house_village_head"  # G5: the village head's house, once per street, near where the chase starts
-COMPOUND_OK = {"house_thatched_hut", "house_hut_porch", "house_mud_tin", "house_plank_sheet"}  # huts and mud houses
+PAINTED.update({name: (MANIFEST[name]["door"], MANIFEST[name]["px_per_m"]) for name in KIND
+                if name not in C4_FRONTS and name in MANIFEST})
+COMPOUND_OK = {"house_thatched_hut", "house_hut_porch", "house_mud_tin", "house_plank_sheet", "house_potter",
+               "house_half_built"}
+
+# Trees and plants: picture -> height range in metres.
+BIG_TREES = {"h1_1": (7.5, 9.0), "h1_3": (6.0, 7.0), "h2_1": (7.0, 8.5), "h2_3": (4.5, 5.5),
+             "tree_mango_1": (5.5, 6.5), "tree_mango_2": (5.5, 6.5)}
+SMALL_TREES = {"h1_2": (3.6, 4.4), "h2_2": (5.0, 6.0), "h2_4": (5.0, 6.0), "h4_4": (2.4, 3.2)}
+PALMS = {"h4_1": (9.0, 11.0), "h4_2": (8.0, 10.0), "h4_3": (9.0, 11.0), "h4_5": (9.0, 11.0)}
+GARDEN = {"h5_1": (3.4, 4.0), "h5_2": (2.8, 3.4), "h5_3": (3.4, 4.2), "h5_4": (1.9, 2.4), "h5_5": (2.4, 2.9),
+          "h5_6": (1.7, 2.0), "h6_1": (1.5, 1.9), "h6_3": (0.6, 0.75), "h6_4": (1.7, 1.9), "h6_5": (0.9, 1.1),
+          "h6_6": (1.7, 2.1), "h6_7": (0.5, 0.65)}
+FOREGROUND = {"h7_1": (0.8, 1.0), "h7_2": (0.9, 1.2), "h7_5": (0.6, 0.8)}
+
+
+def plant_path(name):
+    return (P if name.startswith("h") else L) / f"{name}.png"
 
 
 class Pool:
@@ -281,22 +295,15 @@ class Pool:
         return choice
 
 
-trees = Pool(["tree_mango_1", "tree_mango_2"], 1)
-tree_xs = []
-
-
-def tree_room(tx, spacing=30.0):
-    """True if no mango tree, front or back row, stands within `spacing` metres of tx (only two pictures yet)."""
-    return all(abs(tx - t) >= spacing for t in tree_xs)
-
-
+big_trees, small_trees = Pool(BIG_TREES, 4), Pool(SMALL_TREES, 2)
+palm_pool, garden, foreground = Pool(PALMS, 2), Pool(GARDEN, 6), Pool(FOREGROUND, 2)
 kolams = Pool([f"kolam_{i}" for i in range(1, 7)], 4)
 dressing = Pool(["water_pot_stand", "chicken_basket", "brass_pots", "tulsi_planter", "bicycle", "jute_sacks",
                  "shrine_stone", "hand_pump"], 5)
 hens = Pool(["hen_1", "hen_2", "hen_3"], 2)
 setbacks = Pool([4.3, 4.8, 5.4, 6.0, 6.8], 2)
 SIZES.update({"dog_sleeping": ("w", 0.9), "bullocks": ("h", 1.55), "hen": ("h", 0.42)})
-grass_spots = []
+grass_spots, plant_n = [], [0]
 
 
 def tufts_along(x0, x1, y, density=0.8):
@@ -304,39 +311,45 @@ def tufts_along(x0, x1, y, density=0.8):
         grass_spots.append((rng.uniform(x0, x1), y + rng.uniform(-0.3, 0.05), rng.uniform(0.2, 1.0)))
 
 
-def mango(name, x, y, height, col="Houses"):
-    """One of the two D4 mango trees, if no other stands within 30 m."""
-    if not tree_room(x):
-        return
-    tree_xs.append(x)
-    card(name, L / f"{trees.pick()}.png", x, y, size=("h", height), mirror=rng.random() < 0.5, col=col,
-         emission=0.55 if col == "Houses" else 0.6)
+def plant(pool, table, x, y, col="Houses", scale=1.0):
+    """One tree or plant from a pool, standing at (x, y), its height drawn from its range."""
+    name = pool.pick()
+    plant_n[0] += 1
+    obj, w, h = card(f"{name}_{plant_n[0]}", plant_path(name), x, y, size=("h", rng.uniform(*table[name]) * scale),
+                     mirror=rng.random() < 0.5, col=col, emission=0.55 if col != "Backdrop" else 0.6)
+    grass_spots.append((x, y - 0.1, rng.uniform(0.3, 0.9)))
+    return w
 
 
-def painted_front(name, n, x, y0, door, px_per_m, mirror):
-    """A painted house front from the reference art, with a shallow body behind it. Returns (width, door_x)."""
+def painted_front(name, n, x, y0, door, px_per_m, mirror, body=True):
+    """A painted building front from the reference art, with a shallow body behind it. Returns (width, door_x)."""
     path = L / f"{name}.png"
     sink = MANIFEST.get(name, {}).get("below_ground_px", 0) / px_per_m
     obj, w, h = card(f"{name}_{n}", path, 0, y0, -sink, px_per_m=px_per_m, mirror=mirror, col="Houses", emission=0.6)
     obj.location.x = x + w / 2
     h -= sink
-    tex = REF / ("T2_tex_limewash_wall.png" if "limewash" in name else "T3_tex_coloured_walls.png")
-    # A body behind the painted front, for shadows and depth, kept inside the painted wall's outline,
-    # and shallow, so its plain side wall shows only as a sliver from the side-on camera.
-    left, right = wall_span(path)
-    if mirror:
-        left, right = 1 - right, 1 - left
     rgb = sample_wall_colour(path)
-    box(f"{name}_{n}_body", x + w * (left + right) / 2, y0 + 0.02, 0, (right - left) * w * 0.94, 1.2, h * 0.6,
-        flat_material(f"M_{name}_{n}_wall", rgb, tex, 0.5))
+    if body:
+        tex = REF / ("T2_tex_limewash_wall.png" if "limewash" in name else "T3_tex_coloured_walls.png")
+        # A body behind the painted front, for shadows and depth, kept inside the painted wall's outline,
+        # and shallow, so its plain side wall shows only as a sliver from the side-on camera.
+        left, right = wall_span(path)
+        if mirror:
+            left, right = 1 - right, 1 - left
+        box(f"{name}_{n}_body", x + w * (left + right) / 2, y0 + 0.02, 0, (right - left) * w * 0.94, 1.2, h * 0.6,
+            flat_material(f"M_{name}_{n}_wall", rgb, tex, 0.5))
     prev_rgbs.append(rgb)
     return w, x + w * (1 - door if mirror else door)
 
 
+def landmark_front(name, n, x, y0, body=True):
+    return painted_front(name, n, x, y0, MANIFEST[name]["door"], MANIFEST[name]["px_per_m"], mirror=False, body=body)
+
+
 def painted_compound(n, x, name, mirror):
-    """A painted hut or mud house set back in a yard fenced with woven coconut leaves.
-    Returns (width, door_x, doorstep_y)."""
-    side_l, side_r = rng.uniform(1.1, 2.3), rng.uniform(1.1, 2.3)
+    """A painted hut or mud house set back in a yard fenced with woven coconut leaves, with coconut palms and a
+    garden plant inside. Returns (width, door_x, doorstep_y)."""
+    side_l, side_r = rng.uniform(1.4, 2.6), rng.uniform(1.4, 2.6)
     y_fence, y0 = rng.uniform(3.7, 4.2), rng.uniform(6.0, 7.0)
     w, door_x = painted_front(name, n, x + side_l, y0, *PAINTED[name], mirror)
     x1 = x + side_l + w + side_r
@@ -348,7 +361,11 @@ def painted_compound(n, x, name, mirror):
     back = y0 + rng.uniform(1.0, 2.0)
     kit.fence(f"fence_{n}_left", x, x, y_fence, back, height, style)
     kit.fence(f"fence_{n}_right", x1, x1, y_fence, back, height, style)
-    mango(f"tree_yard_{n}", x + rng.uniform(0.25, 0.75) * length, y0 + rng.uniform(1.5, 3.0), rng.uniform(5.0, 6.5))
+    # Palms in the side yards, a garden plant by the house.
+    for px in rng.sample([x + side_l * 0.5, x1 - side_r * 0.5], rng.randint(1, 2)):
+        plant(palm_pool, PALMS, px, rng.uniform(y0 - 0.8, y0 + 1.2), scale=0.9)
+    gx = x + side_l * 0.5 if rng.random() < 0.5 else x1 - side_r * 0.5
+    plant(garden, GARDEN, gx + rng.uniform(-0.3, 0.3), y_fence + rng.uniform(0.6, 1.2))
     tufts_along(x, x1, y_fence - 0.02, 1.4)
     return length, door_x, y_fence - 0.75
 
@@ -363,43 +380,68 @@ def street_break(n, x, gap, style):
         for i in range(rng.randint(1, 2)):
             card(f"hen_{n}_{i}", A / f"{hens.pick()}.png", x + rng.uniform(0.3, gap - 0.3), rng.uniform(3.4, 4.6),
                  size=SIZES["hen"], mirror=rng.random() < 0.5, col="Props")
-    mango(f"tree_{n}", x + gap / 2, rng.uniform(6.5, 8.5), rng.uniform(5.0, 6.5))
+    # Every break has a tree: a big shade tree, or a stand of palms with a small tree.
+    if style == "grove":
+        for i in range(rng.randint(2, 3)):
+            plant(palm_pool, PALMS, x + rng.uniform(0.4, gap - 0.4), rng.uniform(5.0, 8.5))
+        plant(small_trees, SMALL_TREES, x + rng.uniform(0.3, gap - 0.3), rng.uniform(4.6, 6.0))
+    else:
+        plant(big_trees, BIG_TREES, x + gap / 2, rng.uniform(6.2, 8.2))
     tufts_along(x, x + gap, rng.uniform(3.2, 4.7), 1.2)
 
 
-last_painted, prev_rgbs, compounds, landmark = {}, [], [], []
+last_painted, prev_rgbs, compounds, landmarks = {}, [], [], {}
 g_fronts = [name for name in PAINTED if name not in C4_FRONTS]
 deck = rng.sample(g_fronts, len(g_fronts)) + rng.sample(list(C4_FRONTS), len(C4_FRONTS))
+last_kind = None
 x, since_break, n = -16.0, 0, 0
 STREET_END = 80.0
 while x < STREET_END:
     n += 1
-    free = [name for name in PAINTED if x - last_painted.get(name, -1e9) > 45]
-    need_landmark = x >= 3.0 and not landmark and LANDMARK in MANIFEST
-    if since_break >= rng.randint(2, 4) or not (free or need_landmark):
-        gap = rng.uniform(2.5, 5.0)
-        street_break(n, x, gap, rng.choice(["wall", "gate", "yard", "yard"]))
-        x += gap
+    free = [name for name in deck if x - last_painted.get(name, -1e9) > 45 and KIND[name] != last_kind]
+    need_head = x >= 3.0 and "head" not in landmarks
+    need_office = x >= 40.0 and "office" not in landmarks and "panchayat_office" in MANIFEST
+    if since_break >= rng.randint(2, 4) or not (free or need_head or need_office):
+        if x >= 28.0 and "shrine" not in landmarks and "shrine_tree" in MANIFEST:
+            # The shrine under its tree stands in a break of its own, set back a little.
+            x += 1.0
+            w, door_x = landmark_front("shrine_tree", n, x, 5.2, body=False)
+            card(f"kolam_{n}", L / f"{kolams.pick()}.png", door_x, 4.3, z=0.004, size=SIZES["kolam"], flat=True,
+                 col="Decals", emission=0.5)
+            landmarks["shrine"] = x
+            tufts_along(x, x + w, 5.0, 1.0)
+            x += w + 1.2
+        elif x >= -12.0 and "peepal" not in landmarks:
+            # The peepal on its platform, where people sit in the evening.
+            landmarks["peepal"] = x
+            w = plant(Pool(["h3_1"], 1), {"h3_1": (7.0, 7.5)}, x + 4.0, 5.6)
+            x += w + 1.0
+        else:
+            gap = rng.uniform(2.5, 5.0)
+            street_break(n, x, gap, rng.choice(["wall", "gate", "yard", "grove", "grove"]))
+            x += gap
         since_break = 0
         continue
 
     y0 = setbacks.pick()
     doorstep_y, after, fenced = y0 - 0.95, 0.0, False
-    if need_landmark:
+    if need_head or need_office:
+        name = "house_village_head" if need_head else "panchayat_office"
         y0 += 0.8
         x += 0.9  # it stands a little apart from its neighbours
-        w, door_x = painted_front(LANDMARK, n, x, y0, MANIFEST[LANDMARK]["door"], MANIFEST[LANDMARK]["px_per_m"],
-                                  mirror=False)
-        landmark.append(x)
+        w, door_x = landmark_front(name, n, x, y0)
+        landmarks["head" if need_head else "office"] = x
+        last_kind = "landmark"
         after = 0.9
     else:
-        # Dealt like cards: every painting comes up once before any comes back, the G houses first.
-        name = next(name for name in deck if name in free)
+        # Dealt like cards: every painting comes up once before any comes back, the G buildings first.
+        name = free[0]
         deck.remove(name)
         deck.append(name)
         last_painted[name] = x
-        mirror = rng.random() < 0.5
-        if name in COMPOUND_OK and n - (compounds[-1] if compounds else -9) > 2 and rng.random() < 0.5:
+        last_kind = KIND[name]
+        mirror = rng.random() < 0.5 and not name.startswith("shop")  # shop goods read left to right
+        if name in COMPOUND_OK and n - (compounds[-1] if compounds else -9) > 2 and rng.random() < 0.45:
             compounds.append(n)
             w, door_x, doorstep_y = painted_compound(n, x, name, mirror)
             fenced = True
@@ -409,19 +451,36 @@ while x < STREET_END:
          col="Decals", emission=0.5)
     if not fenced:
         tufts_along(x, x + w, y0 - 0.05, 0.7)
-        if rng.random() < 0.4:
+        # A garden plant or flowering bush at one corner, and sometimes a doorstep prop at the other.
+        corner = rng.choice([0.06, 0.94])
+        if rng.random() < 0.6:
+            plant(garden, GARDEN, x + w * corner, y0 - rng.uniform(0.1, 0.4))
+        if rng.random() < 0.35:
             prop = dressing.pick()
-            side = rng.choice([0.15, 0.85])
-            card(f"dress_{prop}_{n}", L / f"{prop}.png", x + w * side, y0 - rng.uniform(0.45, 0.9), size=SIZES[prop],
-                 mirror=rng.random() < 0.5)
+            card(f"dress_{prop}_{n}", L / f"{prop}.png", x + w * (1 - corner), y0 - rng.uniform(0.45, 0.9),
+                 size=SIZES[prop], mirror=rng.random() < 0.5)
     x += w + rng.uniform(0.8, 2.4) + after
     since_break += 1
 
-# Behind the houses: the odd mango tree, still 30 m from any other; beyond them, the painted palm groves.
+# Behind the houses: the water tank once, and a row of shade trees and palms in front of the middle layer.
+if "water_tank" in MANIFEST:
+    tank_x = rng.uniform(22.0, 34.0)
+    landmark_front("water_tank", n + 1, tank_x, 16.0, body=False)
 bx = -26.0
 while bx < STREET_END + 8:
-    bx += rng.uniform(6.0, 12.0)
-    mango(f"tree_back_{bx:.0f}", bx, rng.uniform(9.2, 11.0), rng.uniform(6.5, 8.5), col="Backdrop")
+    bx += rng.uniform(4.0, 8.0)
+    if rng.random() < 0.55:
+        plant(palm_pool, PALMS, bx, rng.uniform(8.5, 11.0), col="Backdrop")
+    else:
+        plant(big_trees, BIG_TREES, bx, rng.uniform(9.0, 11.5), col="Backdrop")
+
+# In front of the lane: a few low plants and stones at the screen's bottom edge, clear of the obstacles.
+OBSTACLE_XS = [6, 11.5, 15.5, 19.5, 26, 32, 39]
+fx = -14.0
+while fx < STREET_END:
+    fx += rng.uniform(14.0, 26.0)
+    if all(abs(fx - ox) > 2.5 for ox in OBSTACLE_XS):
+        plant(foreground, FOREGROUND, fx, rng.uniform(-5.5, -3.5), col="Props")
 
 # Pebbles in loose drifts over the lane and verges, and grass along walls, fences and the lane's edges.
 GROUND.pebbles(COL["Ground"], rng, ((-24, 86), (-7, 4.2)), 900)
