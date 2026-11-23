@@ -133,14 +133,17 @@ namespace ChickenRunner.EditorTools
             else
                 pivot.transform.localPosition = bottomCentre + new Vector3(0f, size.y * 0.5f, 0f);
 
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, pivot.transform);
-            instance.name = "Model";
-            instance.transform.localRotation = facing;
-            instance.transform.localScale = new Vector3(mirror ? -sx : sx, sy, sz);
+            // Facing and size go on a holder, so the model keeps the transform its import gave it (an FBX root may carry
+            // an axis correction of its own).
+            var holder = new GameObject("Model").transform;
+            holder.SetParent(pivot.transform, false);
+            holder.localRotation = facing;
+            holder.localScale = new Vector3(mirror ? -sx : sx, sy, sz);
             // The model stands on its own origin: drop it from the pivot to the card's bottom edge (or, lying flat, back
             // to the near edge, so it is centred where the card would be).
             var up = facing * Vector3.up;
-            instance.transform.localPosition = -up * size.y * 0.5f;
+            holder.localPosition = -up * size.y * 0.5f;
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, holder);
 
             float outline = Mathf.Clamp(0.0025f * Mathf.Max(size.x, size.y), 0.003f, 0.012f);
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))

@@ -99,10 +99,11 @@ namespace ChickenRunner.EditorTools
         /// <summary>Puts the model under <paramref name="root"/>, facing the run, toon-shaded and animated by its controller.</summary>
         static Animator PlaceModel(GameObject root, GameObject model, string controllerName, string defaultState)
         {
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
-            instance.name = "Model";
-            instance.transform.localPosition = Vector3.zero;
-            instance.transform.localRotation = s_facing;
+            // The turn goes on a holder, so the model keeps the transform its import gave it.
+            var holder = new GameObject("Model").transform;
+            holder.SetParent(root.transform, false);
+            holder.localRotation = s_facing;
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, holder);
             ToonUp(instance, 0.004f);
             var animator = instance.GetComponent<Animator>() ?? instance.AddComponent<Animator>();
             animator.runtimeAnimatorController = Controller(controllerName, defaultState);
@@ -161,10 +162,10 @@ namespace ChickenRunner.EditorTools
         {
             var model = Model(name);
             if (model == null) return false;
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, visual);
-            instance.name = name;
-            instance.transform.localPosition = Vector3.zero;
-            instance.transform.localRotation = tilt;
+            var holder = new GameObject(name).transform;
+            holder.SetParent(visual, false);
+            holder.localRotation = tilt;
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, holder);
             ToonUp(instance, 0.003f);
             return true;
         }
