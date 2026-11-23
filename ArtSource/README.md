@@ -35,6 +35,15 @@ and render its previews (Cycles; add `--samples 16` for a quick look, `--only ga
 only build, `--seed 4` for a different street). What the scene builders share (cards, haze, middle layers, light,
 camera, rendering) is in `tools/stage.py`.
 
+## The era
+
+The game is set in a South Indian village of the 1970s and 1980s, like a vintage storybook. Every prompt says so, and
+nothing modern goes into the scenes: no plastic (buckets, chairs, sheets, black water tanks), no concrete or half-built
+multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights or printed posters. So the
+half-built concrete house (the old G12) and the overhead water tank (the old G16) are no longer used; their prompts now
+ask for a house being built with mud bricks and a bamboo scaffold, and a stone lamp pillar. The black plastic water
+tanks in E1 and E4 are left out too.
+
 ## Into Unity
 
 Each scene builder also writes its painted cards to `Assets/ChickenRunner/Art/Layouts/<zone>.json` (position, size,
@@ -61,6 +70,7 @@ and the prompt sheet keeps it marked "make again".
 | D7 fields middle layer | the fields scene's middle distance |
 | H3 peepal on its platform | a landmark in a break on the lane |
 | E6, E7 rooftop houses | the houses behind the market |
+| G12 house being built, G16 stone lamp pillar | the lane (G12 in the deck of houses, G16 seen over the rooftops) |
 | E8, E9 market stalls | the market row |
 | E10 temple street | the end of the market, before the temple steps |
 | T10, T11, T12 textures | not used: the scenes keep their own stand-ins (the woven fence, the shader-made ground) until the real textures arrive |
@@ -96,7 +106,7 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 - **Buildings** are the painted fronts cut from the references (`cutouts/lane/`), all facing the street square on:
   the four from the C4 kit and G1-G16, each scaled to match the kid (mostly by its door). Landmarks stand once per
   street: the village head's house (G5) near the start, the panchayat office (G14) further on, the shrine under its
-  tree (G15) in a break, and the water tank (G16) behind the houses. The peepal on its platform (H3) joins them once
+  tree (G15) in a break, and the stone lamp pillar (G16) seen over the rooftops. The peepal on its platform (H3) joins them once
   it's drawn front-on.
 - The rest are dealt like cards: each comes up once before any comes back, none twice in any 45 m, and never two of a
   kind side by side (huts, mud houses, tiled houses, shops, sheds).
@@ -109,8 +119,8 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
   lane, which in the game view rise into the bottom of the screen and stay below the kid's feet. Each pool skips its last few picks, and pieces are mirrored and scaled a little.
 - **Distance**: three painted middle layers stand behind the houses, each further back: C3 palm clumps scattered at
   12-13 m, clusters of the C8 village (tiled roofs and banana groves) at 15 m, and the C9 band (big shade trees, small
-  houses, a hillock with a shrine) at 29 m, repeated mirrored. C8 is used as two slices without its water tower, so
-  G16 is the street's only tower. Every layer's foot, and each C8 cluster's ends, fade out instead of ending in a line.
+  houses, a hillock with a shrine) at 29 m, repeated mirrored. C8 is used as two slices without its water tower,
+  which is too modern for the 1970s. Every layer's foot, and each C8 cluster's ends, fade out instead of ending in a line.
 - **Haze**: everything fades into the warm haze painted at the foot of the C2 far layer by the same amount as the ground
   under it (none in front of the houses, all of it where the ground ends at 40 m), so nothing looks pasted on and
   there's no horizon line.

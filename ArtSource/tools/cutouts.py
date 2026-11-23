@@ -282,17 +282,17 @@ G_BUILDINGS = {
     "G9_tailor_cycle_shop": ("shop_tailor_cycle", 1374, 310),    # awning 3.4 m
     "G10_potters_house": ("house_potter", 1378, 251),            # door 1.8 m
     "G11_weavers_house": ("house_weaver", 1374, 255),            # walls 2.6 m
-    "G12_half_built_house": ("house_half_built", 1374, 226),     # door 2.0 m
+    "G12_house_being_built": ("house_being_built", None, ("h", 3.4)),  # scaffold 3.4 m
     "G13_cattle_shed": ("cattle_shed", 1382, 260),               # calf 1.0 m
     "G14_panchayat_office": ("panchayat_office", 1374, 220),     # door 2.1 m
     "G15_village_shrine": ("shrine_tree", 1387, 257),            # shrine opening 1.5 m
-    "G16_water_tank_tower": ("water_tank", 1376, 92),            # tower 12 m
+    "G16_stone_lamp_pillar": ("lamp_pillar", None, ("h", 9.0)),  # pillar 9 m
     "H3_peepal_platform": ("peepal_platform", None, ("h", 12.0)),  # tree 12 m tall: the platform's centre is the door
 }
 GROUND_ROW = {"G13_cattle_shed": 1173,  # no drawn ground line: the shed's posts stand here
-              "G16_water_tank_tower": "foot"}  # the fence is wider than the line: stand on the drawing's lowest row
-KEY_ABOVE = {"G12_half_built_house": 600}  # above the roof slab, sky shows between the rebar: key it, don't fill it
-SEE_THROUGH = {"G16_water_tank_tower"}  # the sheet shows between the fence's pickets
+              }
+KEY_ABOVE = {}  # sheet rows to key rather than fill (sky seen between thin things), by source
+SEE_THROUGH = {"G12_house_being_built"}  # the sheet shows between the scaffold's poles
 
 
 def sharp_region(rgb):

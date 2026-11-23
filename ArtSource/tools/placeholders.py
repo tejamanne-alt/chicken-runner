@@ -90,8 +90,10 @@ def flat_roof_house(d, x0, ground, w_m, kind):
             sx = x0 + w * 0.08 + i * (w * 0.84 / 12)
             sy = ground - 0.5 * M * (i + 1)
             box(d, sx, sy, sx + w * 0.84 / 12 + 2, sy + 0.5 * M, (200, 196, 188), 3)
-    elif kind == "tank":  # a black water tank and a clothesline
-        box(d, x0 + w * 0.6, top - 1.6 * M, x0 + w * 0.85, top - 0.5 * M, (30, 30, 34))
+    elif kind == "pots":  # big clay water pots on the roof and a sari on the line
+        for i in range(3):
+            px = x0 + w * (0.6 + 0.11 * i)
+            d.ellipse((px, top - 1.25 * M, px + 0.6 * M, top - 0.45 * M), fill=(176, 92, 52), outline=INK, width=3)
         d.line((x0 + w * 0.08, top - 1.3 * M, x0 + w * 0.55, top - 1.3 * M), fill=INK, width=3)
         for i, c in enumerate([(220, 60, 60), (240, 200, 60), (80, 120, 200)]):
             cx = x0 + w * (0.15 + 0.13 * i)
@@ -114,30 +116,45 @@ def flat_roof_house(d, x0, ground, w_m, kind):
         for i in range(3):
             mx = x0 + w * (0.08 + 0.3 * i)
             box(d, mx, top - 0.75 * M, mx + w * 0.26, top - 0.5 * M, (200, 40, 30), 3)
-    elif kind == "dish":  # half-plastered, bricks above, a dish on the roof
-        box(d, x0, top, x0 + w, ground - 3.1 * M, (178, 92, 62))
-        for y in range(int(top) + 30, int(ground - 3.1 * M), 30):
-            d.line((x0, y, x0 + w, y), fill=(140, 70, 46), width=2)
-        d.ellipse((x0 + w * 0.7, top - 1.4 * M, x0 + w * 0.9, top - 0.8 * M), fill=(230, 230, 230), outline=INK, width=4)
+    elif kind == "old":  # an old house, lime wash flaking off the brick, a bamboo ladder to the roof
+        for i in range(6):
+            fx, fy = x0 + rng.uniform(0.1, 0.8) * w, ground - rng.uniform(1.0, 5.6) * M
+            d.rectangle((fx, fy, fx + rng.uniform(40, 110), fy + rng.uniform(25, 60)), fill=(178, 92, 62))
+        lx = x0 + w * 0.86
+        d.line((lx, ground, lx + 60, top - 0.4 * M), fill=(200, 170, 100), width=8)
+        d.line((lx + 50, ground, lx + 110, top - 0.4 * M), fill=(200, 170, 100), width=8)
+    if kind == "stairs":  # and a carved wooden balcony upstairs
+        box(d, x0 + w * 0.5, ground - 3.6 * M, x0 + w * 0.95, ground - 3.1 * M, WOOD)
     return w
 
 
 def stall(d, x0, ground, w_m, colours, goods):
-    """A market stall: a table of goods under a striped awning on poles."""
+    """A 1970s shandy stall: goods heaped on jute sacks on the ground, under a faded cotton awning or a woven
+    palm-leaf mat on bamboo poles."""
     w = w_m * M
     a, b = colours
-    awning_y = ground - rng.uniform(2.3, 2.9) * M
+    awning_y = ground - rng.uniform(2.1, 2.7) * M
     for px in (x0 + 10, x0 + w - 10):
-        d.line((px, awning_y, px, ground), fill=WOOD, width=10)
-    stripes = 8
-    for i in range(stripes):
-        sx = x0 - 30 + (w + 60) * i / stripes
-        d.polygon([(sx, awning_y - 0.6 * M), (sx + (w + 60) / stripes, awning_y - 0.6 * M),
-                   (sx + (w + 60) / stripes, awning_y), (sx, awning_y)], fill=a if i % 2 else b, outline=INK)
-    box(d, x0 + 30, ground - 0.9 * M, x0 + w - 30, ground, (160, 110, 70))
-    for i in range(int(w / 70)):
-        gx = x0 + 60 + i * 70
-        d.ellipse((gx, ground - 1.3 * M, gx + 60, ground - 0.9 * M), fill=rng.choice(goods), outline=INK, width=3)
+        d.line((px, awning_y, px, ground), fill=(196, 168, 104), width=10)  # bamboo
+    if rng.random() < 0.5:  # a woven palm-leaf mat
+        d.polygon([(x0 - 30, awning_y - 0.5 * M), (x0 + w + 30, awning_y - 0.5 * M), (x0 + w + 30, awning_y),
+                   (x0 - 30, awning_y)], fill=(176, 146, 92), outline=INK)
+        for i in range(0, int(w) + 60, 24):
+            d.line((x0 - 30 + i, awning_y - 0.5 * M, x0 - 30 + i + 12, awning_y), fill=(140, 112, 70), width=3)
+    else:  # faded striped cotton
+        stripes = 8
+        for i in range(stripes):
+            sx = x0 - 30 + (w + 60) * i / stripes
+            d.polygon([(sx, awning_y - 0.5 * M), (sx + (w + 60) / stripes, awning_y - 0.5 * M),
+                       (sx + (w + 60) / stripes, awning_y), (sx, awning_y)], fill=a if i % 2 else b, outline=INK)
+    d.rectangle((x0, ground - 0.12 * M, x0 + w, ground), fill=(170, 136, 84), outline=INK, width=3)  # a mat
+    for k in range(3):  # jute sacks with heaps of goods
+        sx = x0 + 40 + k * (w - 80) / 3
+        sw = (w - 80) / 3 - 20
+        d.rounded_rectangle((sx, ground - 0.55 * M, sx + sw, ground), 14, fill=(186, 150, 96), outline=INK, width=3)
+        for i in range(int(sw / 50)):
+            gx = sx + 10 + i * 50
+            d.ellipse((gx, ground - 0.9 * M, gx + 44, ground - 0.55 * M), fill=rng.choice(goods), outline=INK, width=2)
     return w
 
 
@@ -181,6 +198,50 @@ def buildings(name, items, ident, title):
         label(d, x + w / 2, ground - 0.6 * M if "stall" in title else ground - 3.6 * M, f"{ident} placeholder", 30)
         x += w + 140
     ground_line(d, 80, x - 60, ground)
+    im.save(OUT / name)
+
+
+# ---------------------------------------------------------------- G12 and G16's new subjects
+def being_built(name):
+    """A house going up the 1970s way: mud-brick walls halfway, a bamboo scaffold, tiles and mud waiting."""
+    im, d = sheet()
+    ground, x0, w = 1380, 900, 5 * M
+    box(d, x0, ground - 1.6 * M, x0 + w, ground, (168, 104, 66))
+    for y in range(int(ground - 1.6 * M) + 30, ground, 30):
+        d.line((x0, y, x0 + w, y), fill=(130, 80, 50), width=3)
+    box(d, x0 + w * 0.4, ground - 2.1 * M, x0 + w * 0.6, ground, None)  # the door frame standing
+    for i in range(4):
+        px = x0 - 40 + i * (w + 80) / 3
+        d.line((px, ground, px, ground - 3.2 * M), fill=(200, 170, 100), width=10)
+    for y in (ground - 1.2 * M, ground - 2.4 * M):
+        d.line((x0 - 60, y, x0 + w + 60, y), fill=(200, 170, 100), width=8)
+    d.chord((x0 + w + 120, ground - 0.8 * M, x0 + w + 520, ground + 0.8 * M), 180, 360, fill=(150, 96, 60), outline=INK)
+    for i in range(5):
+        box(d, x0 - 520, ground - (i + 1) * 0.18 * M, x0 - 200, ground - i * 0.18 * M, ROOF, 3)
+    label(d, x0 + w / 2, ground - 0.8 * M, "G12 placeholder")
+    ground_line(d, x0 - 600, x0 + w + 600, ground)
+    im.save(OUT / name)
+
+
+def lamp_pillar(name):
+    """A tall stone lamp pillar on a stepped base."""
+    im, d = sheet()
+    ground, cx = 1440, 1376
+    for i in range(3):
+        box(d, cx - (1.6 - 0.4 * i) * M, ground - (i + 1) * 0.35 * M, cx + (1.6 - 0.4 * i) * M, ground - i * 0.35 * M,
+            (186, 178, 160), 3)
+    top = ground - 9 * M
+    d.polygon([(cx - 0.45 * M, ground - 1.05 * M), (cx + 0.45 * M, ground - 1.05 * M), (cx + 0.3 * M, top),
+               (cx - 0.3 * M, top)], fill=(196, 188, 170), outline=INK)
+    for k in range(12):
+        y = ground - 1.6 * M - k * 0.6 * M
+        hw = 0.45 * M - k * 0.012 * M
+        d.line((cx - hw - 30, y, cx + hw + 30, y), fill=(150, 140, 120), width=8)
+        d.ellipse((cx - hw - 34, y - 16, cx - hw - 10, y), fill=(250, 200, 80))
+        d.ellipse((cx + hw + 10, y - 16, cx + hw + 34, y), fill=(250, 200, 80))
+    d.polygon([(cx - 0.35 * M, top), (cx + 0.35 * M, top), (cx, top - 0.6 * M)], fill=(170, 160, 140), outline=INK)
+    label(d, cx, ground - 0.5 * M, "G16 placeholder", 28)
+    ground_line(d, cx - 400, cx + 400, ground)
     im.save(OUT / name)
 
 
@@ -282,11 +343,13 @@ def story(name, ident, title, sky, ground_col):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     buildings("E6_rooftop_houses_1.png", [lambda d, x, g: flat_roof_house(d, x, g, 5.2, "stairs"),
-                                          lambda d, x, g: flat_roof_house(d, x, g, 4.6, "tank"),
+                                          lambda d, x, g: flat_roof_house(d, x, g, 4.6, "pots"),
                                           lambda d, x, g: flat_roof_house(d, x, g, 4.8, "room")], "E6", "houses")
     buildings("E7_rooftop_houses_2.png", [lambda d, x, g: flat_roof_house(d, x, g, 4.8, "pergola"),
                                           lambda d, x, g: flat_roof_house(d, x, g, 5.0, "chillies"),
-                                          lambda d, x, g: flat_roof_house(d, x, g, 4.6, "dish")], "E7", "houses")
+                                          lambda d, x, g: flat_roof_house(d, x, g, 4.6, "old")], "E7", "houses")
+    being_built("G12_house_being_built.png")
+    lamp_pillar("G16_stone_lamp_pillar.png")
     goods_veg = [(220, 50, 40), (120, 60, 140), (90, 160, 60), (230, 150, 50)]
     buildings("E8_market_stalls_1.png", [
         lambda d, x, g: stall(d, x, g, 3.4, ((220, 60, 50), (250, 240, 220)), goods_veg),

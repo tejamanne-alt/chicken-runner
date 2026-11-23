@@ -53,14 +53,14 @@ MANIFEST = json.loads((CUT / "lane" / "manifest.json").read_text())
 C4_FRONTS = {"house_limewash": 0.42, "house_indigo_veranda": 0.67, "house_turmeric_ladder": 0.56, "house_pink": 0.5}
 # Kind of each building, so two of a kind never stand side by side.
 KIND = {"house_thatched_hut": "hut", "house_hut_porch": "hut", "house_potter": "hut", "house_weaver": "hut",
-        "house_mud_tin": "mud", "house_plank_sheet": "mud", "house_half_built": "mud",
+        "house_mud_tin": "mud", "house_plank_sheet": "mud", "house_being_built": "mud",
         "house_tiled_gate": "tiled", "shop_provisions": "shop", "shop_tea_stall": "shop", "shop_tailor_cycle": "shop",
         "cattle_shed": "shed", **{name: "tiled" for name in C4_FRONTS}}
 PAINTED = {name: (door, HOUSE_PX_PER_M) for name, door in C4_FRONTS.items()}
 PAINTED.update({name: (MANIFEST[name]["door"], MANIFEST[name]["px_per_m"]) for name in KIND
                 if name not in C4_FRONTS and name in MANIFEST})
 COMPOUND_OK = {"house_thatched_hut", "house_hut_porch", "house_mud_tin", "house_plank_sheet", "house_potter",
-               "house_half_built"}
+               "house_being_built"}
 
 # Trees and plants: picture -> height range in metres.
 BIG_TREES = {"h1_1": (7.5, 9.0), "h1_3": (6.0, 7.0), "h2_1": (7.0, 8.5), "h2_3": (4.5, 5.5),
@@ -348,8 +348,8 @@ card("bullocks", A / "bullocks.png", 44.5, 2.2, size=SIZES["bullocks"], col="Pro
 #   29 m     C9: big shade trees, small houses and a hillock with a shrine, repeated mirrored behind everything
 band(["mid_trees_band"], 29.0, 16.0, 1.6)
 band(["mid_village_a", "mid_village_b"], 15.0, 9.5, 0.9, gaps=(6.0, 16.0), fade_sides=0.1)
-if "water_tank" in MANIFEST:
-    landmark_front("water_tank", n + 1, rng.uniform(15.0, 40.0), 16.0, body=False)
+if "lamp_pillar" in MANIFEST:  # the stone lamp pillar, seen over the rooftops (a placeholder until G16 is remade)
+    landmark_front("lamp_pillar", n + 1, rng.uniform(15.0, 40.0), 11.0, body=False)
 palms = Pool([f"mid_palms_slice_{i}" for i in range(1, 4)], 1)
 px = -70.0
 while px < 170:

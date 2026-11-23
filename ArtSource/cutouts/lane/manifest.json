@@ -436,14 +436,15 @@
   "door": 0.448,
   "below_ground_px": 55
  },
- "house_half_built": {
+ "house_being_built": {
   "px": [
-   1293,
-   1182
+   883,
+   496
   ],
-  "px_per_m": 226,
-  "door": 0.498,
-  "below_ground_px": 49
+  "placeholder": true,
+  "px_per_m": 142.4,
+  "door": 0.5,
+  "below_ground_px": 12
  },
  "cattle_shed": {
   "px": [
@@ -472,22 +473,23 @@
   "door": 0.506,
   "below_ground_px": 14
  },
- "water_tank": {
+ "lamp_pillar": {
   "px": [
-   1233,
-   1133
+   511,
+   1448
   ],
-  "px_per_m": 92,
-  "door": 0.501,
-  "below_ground_px": 10
+  "placeholder": true,
+  "px_per_m": 159.6,
+  "door": 0.5,
+  "below_ground_px": 12
  },
  "peepal_platform": {
   "px": [
    1306,
-   1380
+   1387
   ],
   "placeholder": true,
-  "px_per_m": 114.0,
+  "px_per_m": 114.6,
   "door": 0.5,
   "below_ground_px": 12
  },
@@ -1200,7 +1202,7 @@
  "mid_fields_band": {
   "px": [
    3168,
-   900
+   863
   ],
   "placeholder": true
  },
@@ -1221,12 +1223,12 @@
  "roof_house_a_2": {
   "px": [
    723,
-   1186
+   1134
   ],
   "placeholder": true,
   "src_box": [
    1064,
-   204,
+   256,
    1787,
    1390
   ],
@@ -1276,129 +1278,129 @@
  },
  "roof_house_b_3": {
   "px": [
-   723,
+   729,
    1021
   ],
   "placeholder": true,
   "src_box": [
    1894,
    369,
-   2617,
+   2623,
    1390
   ],
   "px_per_m": 161.4
  },
  "stall_a_1": {
   "px": [
-   583,
-   525
+   584,
+   468
   ],
   "placeholder": true,
   "src_box": [
-   124,
-   865,
+   123,
+   922,
    707,
    1390
   ],
-  "px_per_m": 164.1
+  "px_per_m": 149.4
  },
  "stall_a_2": {
   "px": [
    523,
-   489
+   451
   ],
   "placeholder": true,
   "src_box": [
    774,
-   901,
+   939,
    1297,
    1390
   ],
-  "px_per_m": 164.1
+  "px_per_m": 149.4
  },
  "stall_a_3": {
   "px": [
    523,
-   508
-  ],
-  "placeholder": true,
-  "src_box": [
-   1364,
-   882,
-   1887,
-   1390
-  ],
-  "px_per_m": 164.1
- },
- "stall_a_4": {
-  "px": [
-   553,
    478
   ],
   "placeholder": true,
   "src_box": [
-   1954,
+   1364,
    912,
+   1887,
+   1390
+  ],
+  "px_per_m": 149.4
+ },
+ "stall_a_4": {
+  "px": [
+   553,
+   432
+  ],
+  "placeholder": true,
+  "src_box": [
+   1954,
+   958,
    2507,
    1390
   ],
-  "px_per_m": 164.1
+  "px_per_m": 149.4
  },
  "stall_b_1": {
   "px": [
-   513,
-   485
+   493,
+   444
   ],
   "placeholder": true,
   "src_box": [
    124,
-   905,
-   637,
+   946,
+   617,
    1390
   ],
-  "px_per_m": 154.1
+  "px_per_m": 146.6
  },
  "stall_b_2": {
   "px": [
    553,
-   493
+   469
   ],
   "placeholder": true,
   "src_box": [
    684,
-   897,
+   921,
    1237,
    1390
   ],
-  "px_per_m": 154.1
+  "px_per_m": 146.6
  },
  "stall_b_3": {
   "px": [
    553,
-   459
+   412
   ],
   "placeholder": true,
   "src_box": [
    1304,
-   931,
+   978,
    1857,
    1390
   ],
-  "px_per_m": 154.1
+  "px_per_m": 146.6
  },
  "stall_b_4": {
   "px": [
    523,
-   462
+   438
   ],
   "placeholder": true,
   "src_box": [
    1924,
-   928,
+   952,
    2447,
    1390
   ],
-  "px_per_m": 154.1
+  "px_per_m": 146.6
  },
  "temple_street_1": {
   "px": [
@@ -1456,27 +1458,6 @@
   ],
   "px_per_m": 129.2
  },
- "black_tank": {
-  "px": [
-   237,
-   291
-  ],
-  "height_m": 2.0
- },
- "parapet_gap": {
-  "px": [
-   354,
-   203
-  ],
-  "height_m": 1.2
- },
- "chilli_mat": {
-  "px": [
-   247,
-   142
-  ],
-  "height_m": 0.25
- },
  "stall_high": {
   "px": [
    316,
@@ -1532,6 +1513,27 @@
    272
   ],
   "height_m": 1.9
+ },
+ "black_tank": {
+  "px": [
+   237,
+   291
+  ],
+  "height_m": 2.0
+ },
+ "parapet_gap": {
+  "px": [
+   354,
+   203
+  ],
+  "height_m": 1.2
+ },
+ "chilli_mat": {
+  "px": [
+   247,
+   142
+  ],
+  "height_m": 0.25
  },
  "papad_mat": {
   "px": [

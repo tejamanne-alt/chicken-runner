@@ -6,8 +6,8 @@ Writes ArtSource/blender/market_zone3.blend and ArtSource/blender/renders/market
 
 The kid runs down the market street. On the lane (depth 0): stalls whose striped awnings are the zone's bounce pads
 (design doc: "Market stall awning, bounce across awnings"), and baskets of hens. Behind: a row of stalls of every kind
-(E8, E9, E5), then two-storey houses with flat roofs (E6, E7) dressed with water tanks, drying chillies and papads,
-bunting between them and kites in the sky. Near the end the street turns into the temple street (E10) with lamp-lit
+(E8, E9, E5), then two-storey houses with flat Madras-terrace roofs (E6, E7), bunting between the stalls and kites
+in the sky. All of it in a 1970s-80s village: nothing plastic, concrete or modern. Near the end the street turns into the temple street (E10) with lamp-lit
 steps, the temple tower in the far layer (C2). E6-E10 are placeholders until their images arrive: re-running
 cutouts.py and this script swaps them in.
 """
@@ -72,7 +72,6 @@ while sx < TEMPLE_FROM - 4:
 
 # ------------------------------------------------------------------ behind: two-storey houses with flat roofs
 houses = Pool(names("roof_house_"), 2)
-roof_dressing = Pool(["black_tank", "chilli_mat", "papad_mat", "black_tank"], 2)
 hx = START - 4
 while hx < TEMPLE_FROM:
     name = houses.pick()
