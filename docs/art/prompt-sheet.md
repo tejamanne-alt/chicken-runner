@@ -2,7 +2,7 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 86 of 90 images are in `ArtSource/references/` (checked 23 Nov 2026); 45 of the 49 first-batch images. First batch still to make: B11, B12, B13, B14.
+**Progress:** 88 of 90 images are in `ArtSource/references/` (checked 23 Nov 2026); 47 of the 49 first-batch images. First batch still to make: B13, B14.
 
 ## How to use it
 
@@ -266,7 +266,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### B11 · Rooster turnaround: front
 
-⬜ to make · prompt updated · Save as `B11_rooster_front.png` · Square 1:1 · first batch · **new** · Attach: A1, B1  
+✅ in the repo · Save as `B11_rooster_front.png` · Square 1:1 · first batch · **new** · Attach: A1, B1  
 Used for: The front view for modelling the rooster in 3D, lined up with B12-B14.
 
 ```text
@@ -276,16 +276,12 @@ Use the attached A1 key art as the style reference and match it closely.
 
 Turnaround view for 3D modelling: the game's rooster seen exactly from the front, facing the viewer, exactly as designed in the attached B1 model sheet: the same big red comb and wattles, orange-gold neck feathers, rust-red body, dark wings, glossy black curved tail and yellow legs, in the same proportions and colours. Its beak is closed: no open mouth, no grin and no crowing, a calm, neutral face with the eyes open. It stands in a neutral pose, wings folded against its body, both feet flat on the ground a little apart, tail held up naturally. One rooster only, the whole body in frame with nothing cropped. Frame it exactly the same way as the other three views of this set, so they line up when stacked: feet standing on a thin ground line 10% up from the bottom edge, the top of the comb 12% down from the top edge, the body centred. Orthographic, no perspective, as in an animation model sheet. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels and no text.
 
-The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
-
-Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
-
-Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Colours exactly as in the attached model sheet. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ### B12 · Rooster turnaround: back
 
-⬜ to make · prompt updated · Save as `B12_rooster_back.png` · Square 1:1 · first batch · **new** · Attach: A1, B1  
+✅ in the repo · Save as `B12_rooster_back.png` · Square 1:1 · first batch · **new** · Attach: A1, B1  
 Used for: The back view for modelling the rooster in 3D, lined up with B11, B13 and B14.
 
 ```text
@@ -295,16 +291,12 @@ Use the attached A1 key art as the style reference and match it closely.
 
 Turnaround view for 3D modelling: the game's rooster seen exactly from behind, its tail toward the viewer and its head facing away, exactly as designed in the attached B1 model sheet: the same big red comb and wattles, orange-gold neck feathers, rust-red body, dark wings, glossy black curved tail and yellow legs, in the same proportions and colours. The beak is closed and hidden behind the head. It stands in a neutral pose, wings folded against its body, both feet flat on the ground a little apart, tail held up naturally. One rooster only, the whole body in frame with nothing cropped. Frame it exactly the same way as the other three views of this set, so they line up when stacked: feet standing on a thin ground line 10% up from the bottom edge, the top of the comb 12% down from the top edge, the body centred. Orthographic, no perspective, as in an animation model sheet. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels and no text.
 
-The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
-
-Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
-
-Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Colours exactly as in the attached model sheet. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ### B13 · Rooster turnaround: left side
 
-⬜ to make · prompt updated · Save as `B13_rooster_left.png` · Square 1:1 · first batch · **new** · Attach: A1, B1  
+🔁 make again: Came out with a painted ground and haze, the legs fading away and the comb blurred: make it again with the updated prompt, attaching B11. · prompt updated · Save as `B13_rooster_left.png` · Square 1:1 · first batch · **new** · Attach: A1, B1, B11  
 Used for: The left side view for modelling the rooster in 3D, lined up with B11, B12 and B14.
 
 ```text
@@ -312,18 +304,14 @@ Square 1:1 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Turnaround view for 3D modelling: the game's rooster seen exactly from its left side, in profile, facing left: its beak points to the left edge of the image and its tail to the right, exactly as designed in the attached B1 model sheet: the same big red comb and wattles, orange-gold neck feathers, rust-red body, dark wings, glossy black curved tail and yellow legs, in the same proportions and colours. Its beak is closed: no open mouth, no grin and no crowing, a calm, neutral face with the eyes open. It stands in a neutral pose, wings folded against its body, both feet flat on the ground a little apart, tail held up naturally. One rooster only, the whole body in frame with nothing cropped. Frame it exactly the same way as the other three views of this set, so they line up when stacked: feet standing on a thin ground line 10% up from the bottom edge, the top of the comb 12% down from the top edge, the body centred. Orthographic, no perspective, as in an animation model sheet. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels and no text.
+Turnaround view for 3D modelling: the game's rooster seen exactly from its left side, in profile, facing left: its beak points to the left edge of the image and its tail to the right, exactly as designed in the attached B1 model sheet: the same big red comb and wattles, orange-gold neck feathers, rust-red body, dark wings, glossy black curved tail and yellow legs, in the same proportions and colours. Its beak is closed: no open mouth, no grin and no crowing, a calm, neutral face with the eyes open. It stands in a neutral pose, wings folded against its body, both feet flat on the ground a little apart, tail held up naturally. Everything is drawn sharp and complete, with clean outlines: both yellow legs and all the toes in full, standing on the line, nothing blurred, faded or in motion, the comb crisp. There is no scenery at all: no ground, earth, grass, sky, clouds, mist or haze, only the flat light-grey background and the thin ground line, framed like the attached B11 front view. One rooster only, the whole body in frame with nothing cropped. Frame it exactly the same way as the other three views of this set, so they line up when stacked: feet standing on a thin ground line 10% up from the bottom edge, the top of the comb 12% down from the top edge, the body centred. Orthographic, no perspective, as in an animation model sheet. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels and no text.
 
-The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
-
-Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
-
-Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Colours exactly as in the attached model sheet. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ### B14 · Rooster turnaround: right side
 
-⬜ to make · prompt updated · Save as `B14_rooster_right.png` · Square 1:1 · first batch · **new** · Attach: A1, B1  
+🔁 make again: Came out with a painted ground and haze, the legs fading away and the comb blurred: make it again with the updated prompt, attaching B11. · prompt updated · Save as `B14_rooster_right.png` · Square 1:1 · first batch · **new** · Attach: A1, B1, B11  
 Used for: The right side view for modelling the rooster in 3D, and the way it faces as it runs in the game.
 
 ```text
@@ -331,13 +319,9 @@ Square 1:1 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Turnaround view for 3D modelling: the game's rooster seen exactly from its right side, in profile, facing right: its beak points to the right edge of the image and its tail to the left, exactly as designed in the attached B1 model sheet: the same big red comb and wattles, orange-gold neck feathers, rust-red body, dark wings, glossy black curved tail and yellow legs, in the same proportions and colours. This is its own right side, not a mirrored copy of the left view. Its beak is closed: no open mouth, no grin and no crowing, a calm, neutral face with the eyes open. It stands in a neutral pose, wings folded against its body, both feet flat on the ground a little apart, tail held up naturally. One rooster only, the whole body in frame with nothing cropped. Frame it exactly the same way as the other three views of this set, so they line up when stacked: feet standing on a thin ground line 10% up from the bottom edge, the top of the comb 12% down from the top edge, the body centred. Orthographic, no perspective, as in an animation model sheet. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels and no text.
+Turnaround view for 3D modelling: the game's rooster seen exactly from its right side, in profile, facing right: its beak points to the right edge of the image and its tail to the left, exactly as designed in the attached B1 model sheet: the same big red comb and wattles, orange-gold neck feathers, rust-red body, dark wings, glossy black curved tail and yellow legs, in the same proportions and colours. This is its own right side, not a mirrored copy of the left view. Its beak is closed: no open mouth, no grin and no crowing, a calm, neutral face with the eyes open. It stands in a neutral pose, wings folded against its body, both feet flat on the ground a little apart, tail held up naturally. Everything is drawn sharp and complete, with clean outlines: both yellow legs and all the toes in full, standing on the line, nothing blurred, faded or in motion, the comb crisp. There is no scenery at all: no ground, earth, grass, sky, clouds, mist or haze, only the flat light-grey background and the thin ground line, framed like the attached B11 front view. One rooster only, the whole body in frame with nothing cropped. Frame it exactly the same way as the other three views of this set, so they line up when stacked: feet standing on a thin ground line 10% up from the bottom edge, the top of the comb 12% down from the top edge, the body centred. Orthographic, no perspective, as in an animation model sheet. Even, flat lighting with no cast shadows. Plain flat light-grey background. No labels and no text.
 
-The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
-
-Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
-
-Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Colours exactly as in the attached model sheet. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ## C. Zone 1: the lane
