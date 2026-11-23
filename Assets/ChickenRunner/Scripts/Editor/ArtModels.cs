@@ -145,7 +145,8 @@ namespace ChickenRunner.EditorTools
             holder.localPosition = -up * size.y * 0.5f;
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, holder);
 
-            float outline = Mathf.Clamp(0.0025f * Mathf.Max(size.x, size.y), 0.003f, 0.012f);
+            // In 2 mm steps, so pieces of a size share their materials.
+            float outline = Mathf.Round(Mathf.Clamp(0.0025f * Mathf.Max(size.x, size.y), 0.003f, 0.012f) * 500f) / 500f;
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = renderer.sharedMaterials;
