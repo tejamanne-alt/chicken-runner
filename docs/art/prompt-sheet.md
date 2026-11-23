@@ -2,7 +2,7 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 42 of 78 images are in `ArtSource/references/` (checked 22 Nov 2026); 26 of the 45 first-batch images. First batch still to make: B8, B9, C8, C10, G1, G2, G3, G7, G8, G9, G12, G13, G15, H1, H4, H6, H7, T11, T12.
+**Progress:** 64 of 86 images are in `ArtSource/references/` (checked 23 Nov 2026); 39 of the 45 first-batch images. First batch still to make: B8, B9, C8, C10, T11, T12.
 
 ## How to use it
 
@@ -430,6 +430,51 @@ Model sheet of a big old mango tree for a platform game: side view on the left, 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
+### D5 · Field buildings
+
+⬜ to make · Save as `D5_field_buildings.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4, D1  
+Used for: The buildings along the zone 2 fields, so no two in view are the same.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Four buildings that stand at the edge of paddy fields, in the look of the attached D1 painting: a small brick pump house with a pipe pouring water into a channel; a farmer's thatched mud hut with a bamboo cattle pen beside it; a little tiled granary raised on stone stilts; and a tiny fieldside shrine of whitewashed stone with a red flag. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D6 · Crops and field edges
+
+⬜ to make · Save as `D6_crops_field_edges.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D1  
+Used for: Pieces the fields are built from: crop rows, bunds and canal banks, never the same twice.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Separate pieces for building paddy fields, in the look of the attached D1 painting: a strip of young green paddy in water, a strip of tall paddy, a strip of golden ripe paddy, a short stretch of raised earthen bund with grass on top, a canal bank with reeds and lotus leaves, a sugarcane patch, a small haystack, and a row of three palmyra palms. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D7 · Fields middle layer
+
+⬜ to make · Save as `D7_fields_mid_layer.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D1, D2  
+Used for: The band of fields and palms right behind zone 2, between the play area and the D2 far layer.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Middle parallax layer for the fields, side-on: a band of paddy fields stepping away in terraces, lines of palmyra palms, a few distant farmhouses with tiled roofs and a white egret or two, in the light of the attached D1 painting and a little hazy like the D2 far layer. Isolated on a solid flat magenta (#FF00FF) background so it can be cut out. No sky and no ground.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
 ## E. Zone 3: terraces and market
 
 Levels 7 to 9. Rooftops at sunset, the market at dusk and the lamp-lit temple steps.
@@ -505,6 +550,81 @@ Landscape 3:2 image.
 Use the attached A1 key art as the style reference and match it closely.
 
 Prop sheet, side view, same scale, plain flat light-grey background, even lighting: a market stall with a striped cloth awning in two versions, one high and one low; a flower stall with marigold garlands; a woven basket of vegetables; a stack of brass vessels; a woven basket with two hens; a hanging lantern; a stone temple step segment with three clay oil lamps.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E6 · Rooftop houses 1
+
+⬜ to make · Save as `E6_rooftop_houses_1.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4, E1  
+Used for: The houses whose flat roofs the kid runs across in zone 3.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three two-storey village houses with flat roofs you could walk on, in the look of the attached E1 painting: one with an outside staircase climbing its side wall to the roof; one with a black water tank and a clothesline on its roof; and one with a small room on the roof and a creeper hanging over the parapet. Their roofs are at slightly different heights. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E7 · Rooftop houses 2
+
+⬜ to make · Save as `E7_rooftop_houses_2.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4, E1  
+Used for: More rooftop houses, so no two neighbours match.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three more two-storey village houses with flat walkable roofs, different from each other, in the look of the attached E1 painting: one painted turquoise with a pergola of bougainvillea on the roof; one in yellow with mats of red chillies drying on the roof; and one half-plastered with a satellite dish and a parked bicycle below. Their roofs are at slightly different heights. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E8 · Market stalls 1
+
+⬜ to make · Save as `E8_market_stalls_1.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4, E2  
+Used for: Stall fronts for the zone 3 market, so the row never repeats.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Four weekly-market stalls in the look of the attached E2 painting, each under a striped cloth awning of a different colour and height: a vegetable stall with heaps of tomatoes, brinjals and greens; a flower stall hung with marigold and jasmine garlands; a bangle and toy stall; and a stall of stacked steel and brass vessels. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E9 · Market stalls 2
+
+⬜ to make · Save as `E9_market_stalls_2.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4, E2  
+Used for: More market stalls and carts.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Four more market stalls and carts in the look of the attached E2 painting: a tender-coconut cart with a sickle and a pile of green coconuts; a sweets and snacks stall with a big iron kadai; a fruit stall with bananas and mangoes; and a seller of woven baskets and mats under a tarpaulin. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E10 · Temple street
+
+⬜ to make · Save as `E10_temple_street.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4, E3  
+Used for: The buildings along the way to the temple steps in level 9.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Four buildings on the street leading to the temple steps, in the look of the attached E3 painting at dusk with lamps lit: a stone mandapam with carved pillars; a flower shop selling garlands for the temple; a shop of brass lamps and pooja items; and a stretch of the temple tank's wall with steps and a small arched gateway. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
@@ -639,7 +759,7 @@ One building per image, so every house on a street can be different. Huts, mud a
 
 ### G1 · Thatched hut
 
-🔁 make again: Came out three-quarter on, showing a side wall: make it again as a straight front view. · Save as `G1_thatched_hut.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G1_thatched_hut.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house, and the model for huts built in Blender.
 
 ```text
@@ -654,7 +774,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G2 · Hut with a bamboo porch
 
-🔁 make again: Came out three-quarter on, showing a side wall: make it again as a straight front view. · Save as `G2_hut_bamboo_porch.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G2_hut_bamboo_porch.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house with a porch the kid can run under.
 
 ```text
@@ -669,7 +789,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G3 · Orange mud house, tin roof
 
-🔁 make again: Came out three-quarter on, showing a side wall: make it again as a straight front view. · Save as `G3_mud_house_tin_roof.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G3_mud_house_tin_roof.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A lane house; also the model for tin-roof houses built in Blender.
 
 ```text
@@ -729,7 +849,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G7 · Provisions shop
 
-⬜ to make · Save as `G7_provisions_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G7_provisions_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A shopfront on the lane, with a bench and awning.
 
 ```text
@@ -744,7 +864,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G8 · Tea stall
 
-⬜ to make · Save as `G8_tea_stall.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G8_tea_stall.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A tiny stall: steam, glasses and a bench, full of life.
 
 ```text
@@ -759,7 +879,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G9 · Tailor and cycle repair
 
-⬜ to make · Save as `G9_tailor_cycle_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G9_tailor_cycle_shop.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: Two tiny shops under one awning.
 
 ```text
@@ -774,7 +894,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G10 · Potter's house
 
-⬜ to make · Save as `G10_potters_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G10_potters_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: Ties in with the clay-pot obstacles: the pots come from here.
 
 ```text
@@ -789,7 +909,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G11 · Weaver's house
 
-⬜ to make · Save as `G11_weavers_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G11_weavers_house.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: A nod to the kid's pattu frock: silk being woven.
 
 ```text
@@ -804,7 +924,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G12 · Half-built two-storey house
 
-⬜ to make · Save as `G12_half_built_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G12_half_built_house.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: Every real village has one; it adds height and humour.
 
 ```text
@@ -819,7 +939,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G13 · Cattle shed
 
-⬜ to make · Save as `G13_cattle_shed.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G13_cattle_shed.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: An open shed: hay, a trough and a calf.
 
 ```text
@@ -834,7 +954,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G14 · Panchayat office
 
-⬜ to make · Save as `G14_panchayat_office.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G14_panchayat_office.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: A civic building for the lane's end or the market.
 
 ```text
@@ -849,7 +969,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G15 · Village shrine
 
-⬜ to make · Save as `G15_village_shrine.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G15_village_shrine.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4  
 Used for: A small roadside shrine under a tree, with bell and lamps.
 
 ```text
@@ -864,7 +984,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### G16 · Overhead water tank
 
-⬜ to make · Save as `G16_water_tank_tower.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `G16_water_tank_tower.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: A landmark on the skyline behind the houses.
 
 ```text
@@ -883,7 +1003,7 @@ Several different trees or plants per image, so no two in view are the same, plu
 
 ### H1 · Neem trees
 
-⬜ to make · Save as `H1_neem_trees.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
+✅ in the repo · Save as `H1_neem_trees.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
 Used for: Shade trees between houses; three different ones so they never repeat side by side.
 
 ```text
@@ -898,7 +1018,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H2 · Tamarind and drumstick trees
 
-⬜ to make · Save as `H2_tamarind_drumstick.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+✅ in the repo · Save as `H2_tamarind_drumstick.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: More shade-tree variety.
 
 ```text
@@ -913,7 +1033,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H3 · Meeting tree with platform
 
-⬜ to make · Save as `H3_peepal_platform.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+🔁 make again: Came out seen from above, with the platform at an angle: make it again side-on, the platform's front face square to the viewer and its top barely showing, like the G buildings. · Save as `H3_peepal_platform.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: The village gathering spot: a one-off landmark.
 
 ```text
@@ -921,14 +1041,14 @@ Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-A huge peepal tree with heart-shaped leaves growing from a raised square stone platform where villagers sit, a few small stone idols and lamps at its base, and red threads tied round the trunk. Drawn like the attached D4 mango tree sheet. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels.
+A huge peepal tree with heart-shaped leaves growing from a raised square stone platform where villagers sit, a few small stone idols and lamps at its base, and red threads tied round the trunk. Drawn like the attached D4 mango tree sheet, side-on: the platform's front face square to the viewer and its top barely showing, not seen from above. Show only this one building, as a flat front elevation for a side-scrolling game: its front wall faces the viewer squarely, parallel to the picture, so neither side wall shows and the roof is seen only from the front, with no corner or gable end turned toward the viewer (no three-quarter view, no perspective). Standing on a thin ground line, drawn at the same scale and in the same painted style as the attached C4 house kit (its doors are about 2 m tall). Even lighting, plain flat light-grey background, no labels.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ### H4 · Coconut palms
 
-⬜ to make · Save as `H4_coconut_palms.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
+✅ in the repo · Save as `H4_coconut_palms.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
 Used for: Five different palms, so palms never look stamped.
 
 ```text
@@ -943,7 +1063,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H5 · Banana, papaya and curry-leaf plants
 
-⬜ to make · Save as `H5_garden_plants.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+✅ in the repo · Save as `H5_garden_plants.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: Small backyard plants for between houses.
 
 ```text
@@ -958,7 +1078,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H6 · Flowering bushes
 
-⬜ to make · Save as `H6_flowering_bushes.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
+✅ in the repo · Save as `H6_flowering_bushes.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4  
 Used for: Colour by doors and walls; each bush different.
 
 ```text
@@ -973,7 +1093,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H7 · Foreground framing plants
 
-⬜ to make · Save as `H7_foreground_plants.png` · Landscape 3:2 · first batch · **new** · Attach: A1  
+✅ in the repo · Save as `H7_foreground_plants.png` · Landscape 3:2 · first batch · **new** · Attach: A1  
 Used for: Big plants in front of the lane, at the screen's bottom corners, like your story frames.
 
 ```text
@@ -992,7 +1112,7 @@ Doors, windows, roof edges and doorstep details. Blender builds endless house va
 
 ### K1 · Doors and windows
 
-⬜ to make · Save as `K1_doors_windows.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `K1_doors_windows.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: Fitted to houses Blender builds, so no two front doors match. Only needed if houses are built in 3D again; the street uses painted houses for now.
 
 ```text
@@ -1007,7 +1127,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### K2 · Roof edges and awnings
 
-⬜ to make · Save as `K2_roof_edges.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `K2_roof_edges.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: The front edges of roofs Blender builds: thatch, tiles, tin and awnings. Only needed if houses are built in 3D again; the street uses painted houses for now.
 
 ```text
@@ -1022,7 +1142,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### K3 · Doorstep and wall details
 
-⬜ to make · Save as `K3_wall_details.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
+✅ in the repo · Save as `K3_wall_details.png` · Landscape 3:2 · second batch · **new** · Attach: A1, C4  
 Used for: Small details that make every built house its own.
 
 ```text

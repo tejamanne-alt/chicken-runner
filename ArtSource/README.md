@@ -33,22 +33,25 @@ for a different street).
 ## Keeping the street natural and from repeating
 
 The street is generated, not laid out by hand, so it never shows the same thing twice in view, and it has room to
-breathe. Everything in it that stands for a house or a tree comes from the reference art:
+breathe. Everything in it that stands for a building, a tree or a plant comes from the reference art:
 
-- **Houses** are the painted fronts cut from the references, all facing the street square on: the four from the C4
-  kit, G4, G5 and G6, each scaled by its door so it matches the kid. G1-G3 came out three-quarter on and wait until
-  they're drawn again front-on. The village head's house (G5) stands once per street, near where the chase starts. The
-  others are dealt like cards: each comes up once before any comes back, the G houses first, and none appears twice in
-  any 45 m. More houses (G7 onwards) join the deck as they arrive.
-- **Spacing**: 0.8-2.4 m of open ground between houses, and every 2-4 houses a wider break: a compound wall, a gateway
-  or a yard with hens. Setbacks run from 4.3 to 6.8 m.
-- **Compounds**: some of the huts and mud houses (G1-G4; for now only G4) sit back in a yard fenced with woven dried coconut leaves (or
-  split-bamboo matting), with an opening at the door; never two side by side.
-- **Distance**: the C3 middle layer (palms, banana plants, tiled roofs, bushes) stands 12-15 m back, right behind the
-  houses, reshuffled in clumps at slightly different depths with their bushy feet sunk into the ground. The ground fades
-  into the haze painted at the foot of the C2 far layer, reaching it where the ground ends, so there's no horizon line.
-- **Trees** are the two D4 mango trees, at least 30 m apart, and the painted palm groves of the C3 middle layer.
-  Coconut palms, neem and other trees go in when H1 and H4 arrive.
+- **Buildings** are the painted fronts cut from the references (`cutouts/lane/`), all facing the street square on:
+  the four from the C4 kit and G1-G16, each scaled to match the kid (mostly by its door). Landmarks stand once per
+  street: the village head's house (G5) near the start, the panchayat office (G14) further on, the shrine under its
+  tree (G15) in a break, and the water tank (G16) behind the houses. The peepal on its platform (H3) joins them once
+  it's drawn front-on.
+- The rest are dealt like cards: each comes up once before any comes back, none twice in any 45 m, and never two of a
+  kind side by side (huts, mud houses, tiled houses, shops, sheds).
+- **Spacing**: 0.8-2.4 m of open ground between buildings, and every 2-4 a wider break: a compound wall, a gateway,
+  a yard with hens, or a grove, each with a tree. Setbacks run from 4.3 to 6.8 m.
+- **Compounds**: some huts and mud houses sit back in a yard fenced with woven dried coconut leaves (or split-bamboo
+  matting), with an opening at the door, coconut palms and a garden plant inside; never two side by side.
+- **Trees and plants** (`cutouts/plants/`): H1 neem, H2 tamarind and drumstick, H4 coconut palms and the D4 mangoes;
+  H5 garden plants and H6 flowering bushes at house corners; a few H7 low plants and stones 6-7 m in front of the
+  lane, which in the game view rise into the bottom of the screen and stay below the kid's feet. Each pool skips its last few picks, and pieces are mirrored and scaled a little.
+- **Distance**: a row of trees and palms right behind the houses, then the C3 middle layer 12-15 m back, reshuffled in
+  clumps with their bushy feet sunk into the ground. The ground fades into the haze painted at the foot of the C2 far
+  layer, reaching it where the ground ends, so there's no horizon line.
 - **The ground** is built in the shader (`tools/ground.py`), not tiled from T1, whose footprints and tyre track
   repeated every 3 m: earth tones in patches 10-20 m across, dusty and compacted patches, the painted mud tile's
   brush grain at two scales and angles, pebble specks, two cart ruts that wander along the lane, a worn path and grassy
@@ -56,4 +59,4 @@ breathe. Everything in it that stands for a house or a tree comes from the refer
 - Kolam, hens and doorstep props come from pools that skip their last few picks, and are mirrored and scaled.
 
 `tools/village_kit.py` builds the compound walls and palm-leaf fences. It can also build houses and coconut palms in 3D
-(see `tools/build_house_catalog.py`), but the street doesn't use them: houses and trees come only from the art.
+(see `tools/build_house_catalog.py`), but the street doesn't use them: buildings and trees come only from the art.
