@@ -222,7 +222,7 @@
    "kind": "volume",
    "width": 8.248,
    "height": 0.703,
-   "depth": 2.062,
+   "depth": 0.45,
    "faces": 12000
   },
   {
@@ -231,7 +231,7 @@
    "kind": "volume",
    "width": 8.538,
    "height": 1.055,
-   "depth": 2.134,
+   "depth": 0.45,
    "faces": 12000
   },
   {
@@ -240,7 +240,7 @@
    "kind": "volume",
    "width": 8.352,
    "height": 2.6,
-   "depth": 2.088,
+   "depth": 0.45,
    "faces": 12000
   },
   {
@@ -249,7 +249,7 @@
    "kind": "volume",
    "width": 8.248,
    "height": 0.738,
-   "depth": 2.062,
+   "depth": 0.45,
    "faces": 12000
   },
   {
@@ -258,7 +258,7 @@
    "kind": "volume",
    "width": 8.324,
    "height": 1.428,
-   "depth": 2.081,
+   "depth": 0.45,
    "faces": 12000
   },
   {
@@ -267,7 +267,7 @@
    "kind": "volume",
    "width": 8.262,
    "height": 2.255,
-   "depth": 2.066,
+   "depth": 0.45,
    "faces": 12000
   },
   {
@@ -456,7 +456,7 @@
    "kind": "volume",
    "width": 2.622,
    "height": 1.0,
-   "depth": 0.655,
+   "depth": 0.45,
    "faces": 6000
   },
   {
@@ -465,7 +465,7 @@
    "kind": "volume",
    "width": 2.406,
    "height": 1.0,
-   "depth": 0.601,
+   "depth": 0.45,
    "faces": 6000
   },
   {
@@ -474,7 +474,7 @@
    "kind": "volume",
    "width": 1.654,
    "height": 0.55,
-   "depth": 0.414,
+   "depth": 0.45,
    "faces": 6000
   },
   {
@@ -537,7 +537,7 @@
    "kind": "volume",
    "width": 5.624,
    "height": 2.8,
-   "depth": 1.406,
+   "depth": 0.45,
    "faces": 12000
   },
   {

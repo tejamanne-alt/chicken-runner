@@ -79,7 +79,7 @@ def recipe(folder, name):
     if n in slabs:
         return ("slab", slabs[n])
     if n.startswith(("crop_strip", "paddy_", "sugarcane")):
-        return ("volume", ("w", 0.25))
+        return ("volume", 0.45)     # a row of crop, not a loaf: the same depth however long the strip
     # Body widths, side to side, in metres.
     animals = {"cow": 0.6, "calf": 0.42, "buffalo_mud": 0.72, "bullocks": 1.3, "goat_eating": 0.3, "goat_kid": 0.24,
                "goat_on_wall": 0.32, "dog_sleeping": 0.3, "dog_barking": 0.24, "cat_on_wall": 0.16, "hen_1": 0.18,
@@ -418,8 +418,13 @@ def main():
         built.append(ob)
         ob.hide_render = True
         print(f"built {folder}/{name}: {kind} {w:.2f} x {h:.2f} x {d:.2f} m, {len(ob.data.polygons)} faces")
-    if not ONLY:     # a list under "models", as Unity's JsonUtility reads it (ArtModels.cs)
-        (OUT / "models.json").write_text(json.dumps({"models": list(index.values())}, indent=1))
+    if "--no-fbx" not in ARGS:     # a list under "models", as Unity's JsonUtility reads it (ArtModels.cs)
+        listing = OUT / "models.json"
+        if ONLY and listing.exists():   # a partial run updates its pieces' entries and keeps the rest
+            kept = {m["name"]: m for m in json.loads(listing.read_text()).get("models", [])}
+            kept.update(index)
+            index = kept
+        listing.write_text(json.dumps({"models": sorted(index.values(), key=lambda m: (m["folder"], m["name"]))}, indent=1))
     if SHEET:
         contact_sheet(built, index)
 
