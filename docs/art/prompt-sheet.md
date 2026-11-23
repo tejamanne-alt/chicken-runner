@@ -2,14 +2,14 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 90 of 98 images are in `ArtSource/references/` (checked 23 Nov 2026); 49 of the 57 first-batch images. First batch still to make: E11, E12, E13, E14, E15, E16, E17, E18.
+**Progress:** 90 of 104 images are in `ArtSource/references/` (checked 23 Nov 2026); 49 of the 63 first-batch images. First batch still to make: D8, D9, D10, D11, D12, D13, E11, E12, E13, E14, E15, E16, E17, E18.
 
 ## How to use it
 
 1. Make **A0** first, in a new ChatGPT chat, attaching your four kid turnaround images. Then make **A1**, attaching A0 and your rooster photo.
 2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach* (A0 is the kid reference from now on).
 3. Save each image with the file name shown.
-4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 57 marked *first batch*.
+4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 63 marked *first batch*.
 
 Regenerate an image when words or labels appear in it, when a model sheet is not side-on and orthographic, or when the background is not plain.
 
@@ -647,6 +647,120 @@ Landscape 3:2 image.
 Use the attached A1 key art as the style reference and match it closely.
 
 Middle parallax layer for the fields: in front, a long low earthen bund with grass along the bottom; behind it, a row of paddy at different heights and greens, a line of palmyra palms, two or three small farmhouses with tiled roofs half hidden by banana plants, and a white egret standing in the paddy, in the light of the attached D1 painting and a little paler than the foreground, as if a few hundred metres away. Lay it out exactly like the attached C8 layer: a side-on strip of scenery, like a flat stage backdrop, with everything standing along one straight, level ground strip near the bottom. Nothing recedes into the distance: no perspective, no fields or roads seen from above, no horizon. The strip runs off the left and right edges so it can repeat sideways. Pure flat magenta (#FF00FF) fills everything above the strip and below its ground, right up to the drawing's edges, with no haze, glow, mist or light rays over the magenta.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D8 · Field buildings 2
+
+⬜ to make · prompt updated · Save as `D8_field_buildings_2.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, D1, D5  
+Used for: More buildings along the far edge of the fields, so none repeats in view.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three more structures that stand at the edge of paddy fields, in the look of the attached D1 painting, a 1970s South Indian farming village, drawn like the attached D5 buildings: a kavalai well, a stone well with a sloping earth ramp where a pair of bullocks draws up a big leather water bag on a rope over a wooden pulley frame; a farmer's watch platform (paran), a small thatched hut raised high on four bamboo poles with a bamboo ladder; and a round threshing floor of beaten earth with a stone roller, heaps of paddy straw and a winnowing basket, beside a small thatched shed for the plough and tools. Each piece complete on its own, with a clear gap between them. Each building as a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All standing on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall), evenly spaced and not touching. Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D9 · Canal pieces
+
+⬜ to make · prompt updated · Save as `D9_canal_pieces.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D1, D3  
+Used for: Things along the canals: water lifts, a stone bridge, a bathing ghat, so every canal crossing differs.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Four separate pieces for the irrigation canals, in the look of the attached D1 painting, a 1970s South Indian farming village, drawn side-on like the attached D3 props, each standing on its own short stretch of canal bank: a picottah (etram), a long wooden counterpoise pole on a forked post with a clay pot on one end and a stone weight on the other, for lifting water from the canal; a narrow bridge of two long granite slabs on stone piers; a few stone steps (a ghat) going down into the water, with a flat washing stone and a brass pot; and a small wooden shutter sluice set in a brick wall across a channel. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D10 · Life in the fields
+
+⬜ to make · prompt updated · Save as `D10_field_life.png` · Landscape 3:2 · first batch · **new** · Attach: A1, B7, B10  
+Used for: People and animals working the fields in the background, so the fields feel lived in.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Separate figures for the fields, in the look of the attached D1 painting, a 1970s South Indian farming village, drawn like the attached B7 animals and B10 villagers, side view: a farmer ploughing with two white bullocks and a wooden plough; three women in saris bent over transplanting paddy seedlings in a row; a herd boy with a stick and four goats; a water buffalo wallowing in mud up to its back with an egret on it; a duck herder with a long bamboo stick and a flock of ducks; and a farmer carrying a bundle of paddy sheaves on his head. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D11 · Field trees and plants
+
+⬜ to make · prompt updated · Save as `D11_field_trees.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D4, H1  
+Used for: Trees and bushes that grow along field bunds and canals, so the far edge of the fields never repeats.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Separate trees and plants that grow along field bunds and canals, in the look of the attached D1 painting, a 1970s South Indian farming village, drawn like the attached D4 and H1 trees, side view: a lone banyan with hanging aerial roots; a thorny babul (karuvelam) tree; a tall clump of bamboo; a screwpine (thazhai) bush with long spiky leaves at the water's edge; a row of young casuarina trees; and a hedge of agave and cactus. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D12 · More crops
+
+⬜ to make · prompt updated · Save as `D12_more_crops.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D1, D6  
+Used for: More crops to plant field by field, so each field looks different.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Separate horizontal strips of crops for building fields, in the look of the attached D1 painting, a 1970s South Indian farming village, drawn like the attached D6 strips, each a long low strip seen from the side: a seedbed of dense, bright green paddy seedlings in water; a harvested field with stubble and sheaves of paddy stacked in small heaps; tall sorghum (cholam) with heavy seed heads; low groundnut plants in rows; cotton plants with white bolls; and a strip of banana plants. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### D13 · Fields middle layer 2
+
+⬜ to make · prompt updated · Save as `D13_fields_mid_layer_2.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C8, D1, D7  
+Used for: A second band of distant fields, so the one behind the fields doesn't repeat.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Middle parallax layer for the fields, different from the attached D7 band: in front, a long low earthen bund with grass; behind it, golden ripe paddy, a few haystacks, a small hamlet of thatched huts under coconut palms, a canal with a granite slab bridge, a herd of grazing cattle and a line of palmyra palms, in the light of the attached D1 painting and a little paler than the foreground, as if a few hundred metres away. Lay it out exactly like the attached C8 layer: a side-on strip of scenery, like a flat stage backdrop, with everything standing along one straight, level ground strip near the bottom. Nothing recedes into the distance: no perspective, no fields or roads seen from above, no horizon. The strip runs off the left and right edges so it can repeat sideways. Pure flat magenta (#FF00FF) fills everything above the strip and below its ground, right up to the drawing's edges, with no haze, glow, mist or light rays over the magenta.
 
 The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
 

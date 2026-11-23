@@ -34,11 +34,21 @@ def piece(folder, name, x, y, z=0.0, col="Props", scale=1.0, mirror=None, flat=F
     if meta is None or not (folder / f"{name}.png").exists():
         return None, 0.0
     s = scale * rng.uniform(0.92, 1.08)
-    size = ("h", meta["height_m"] * s) if "height_m" in meta and not flat else ("w", meta["width_m"] * s)
+    if "px_per_m" in meta and not flat:  # pieces from a sheet scaled by its tallest piece
+        size = ("h", meta["px"][1] / meta["px_per_m"] * s)
+    elif "height_m" in meta and not flat:
+        size = ("h", meta["height_m"] * s)
+    else:
+        size = ("w", meta["width_m"] * s)
     obj, w, h = card(f"{name}_{x:.1f}_{y:.1f}", folder / f"{name}.png", x, y, z=z, size=size, flat=flat, col=col,
                      mirror=rng.random() < 0.5 if mirror is None else mirror, emission=0.55, **kw)
     obj.rotation_euler[2] = turn
     return obj, w
+
+
+def more(prefix):
+    """Pieces cut from the newer field sheets (D8-D12), whichever have arrived."""
+    return sorted(n for n in MANIFEST if n.startswith(prefix) and (F / f"{n}.png").exists())
 
 
 def in_canal(x, margin=0.0):
@@ -86,7 +96,8 @@ GROUND.pebbles(COL["Ground"], rng, ((START, END), (-BUND_HALF + 0.1, BUND_HALF -
 # sugarcane) or left flooded. Rows every 1.2-2.2 m in depth; each row's plants are cards end to end. In front of the
 # bund only young paddy grows, low enough to stay below the kid's feet in the game view: a plant d metres in front of
 # the lane must stay under about 0.19 d metres above the bund's top.
-crops = Pool(["paddy_young", "paddy_tall", "paddy_ripe", "paddy_tall", "paddy_young", "flooded"], 3)
+crops = Pool(["paddy_young", "paddy_tall", "paddy_ripe", "paddy_tall", "paddy_young", "flooded"]
+             + more("crop_strip"), 3)
 SLAB = {"paddy_young": 0.24}  # the young paddy's drawing stands on a slab of water: sink it under the real water
 
 
@@ -118,9 +129,9 @@ while fx < END:
     fx += flen + rng.uniform(0.6, 1.4)  # a narrow bund between fields
 
 # ------------------------------------------------------------------ the far edge of the fields, 10-16 m back
-buildings = Pool(["pump_house", "hut_with_pen", "granary", "field_shrine"], 3)
+buildings = Pool(["pump_house", "hut_with_pen", "granary", "field_shrine"] + more("field_bldg"), 3)
 edge_props = Pool(["haystack", "haystack_small", "well", "scarecrow"], 2)
-trees = Pool(["h1_1", "h1_3", "h2_1", "tree_mango_1", "tree_mango_2"], 3)
+trees = Pool(["h1_1", "h1_3", "h2_1", "tree_mango_1", "tree_mango_2"] + more("field_tree"), 3)
 palms = Pool(["palmyra_1", "palmyra_2", "palmyra_3"], 1)
 coconut = Pool(["h4_1", "h4_2", "h4_3", "h4_5"], 2)
 TREE_H = {"h1_1": 8.0, "h1_3": 6.5, "h2_1": 7.5, "tree_mango_1": 6.0, "tree_mango_2": 6.0,
@@ -136,9 +147,16 @@ while ex < END + 6:
         ex += rng.uniform(3, 6)
     else:
         name = trees.pick()
-        card(f"{name}_{ex:.0f}", (P if name.startswith("h") else L) / f"{name}.png", ex + 2, rng.uniform(12.0, 15.0),
-             size=("h", TREE_H[name] * rng.uniform(0.9, 1.1)), mirror=rng.random() < 0.5, col="Plants", emission=0.55)
+        if name.startswith("field_tree"):
+            piece(F, name, ex + 2, rng.uniform(12.0, 15.0), col="Plants")
+        else:
+            card(f"{name}_{ex:.0f}", (P if name.startswith("h") else L) / f"{name}.png", ex + 2,
+                 rng.uniform(12.0, 15.0), size=("h", TREE_H[name] * rng.uniform(0.9, 1.1)), mirror=rng.random() < 0.5,
+                 col="Plants", emission=0.55)
         ex += rng.uniform(5, 9)
+# People and animals working the fields (D10), one of each, out on the far bunds.
+for k, name in enumerate(more("field_life")):
+    piece(F, name, START + 10 + k * 17 + rng.uniform(0, 8), rng.uniform(6.5, 10.0))
 # Lines of palmyra and coconut palms along the far bunds.
 for row_y, step in [(16.0, (3.0, 7.0)), (21.0, (2.5, 6.0))]:
     px = START - 6
@@ -158,6 +176,12 @@ for cx, w, kind in CANALS:
         obj, bw = piece(F, "canal_bridge", cx, -0.1, z=WATER_Z - 0.05, mirror=False, scale=(w + 1.6) / 3.6)
     elif kind == "sluice":  # a sluice gate just upstream
         piece(F, "sluice_gate", cx, 2.2, z=WATER_Z - 0.1)
+# Along the canals upstream, the D9 pieces in turn (a water lift, a slab bridge, a ghat, a shutter), one per canal.
+canal_pieces = more("canal_piece")
+for k, (cx, w, kind) in enumerate(CANALS):
+    if canal_pieces and kind != "sluice":
+        piece(F, canal_pieces[k % len(canal_pieces)], cx + rng.uniform(-0.5, 0.5), rng.uniform(4.5, 6.0),
+              z=WATER_Z - 0.1)
 for name, x in [("haystack_small", 16.0), ("buffalo_mud", 33.5), ("haystack", 54.0), ("scarecrow", 74.5)]:
     folder = AN if name == "buffalo_mud" else F
     if name == "buffalo_mud":
@@ -181,7 +205,7 @@ while bx < END:
               scale=0.7 if name == "cracked_mud" else 1.0)
 
 # ------------------------------------------------------------------ distance: the fields' middle layer, then far
-band(["mid_fields_band"], 30.0, 9.0, 0.6, x_from=-80, x_to=180)
+band(["mid_fields_band", "mid_fields_band_2"], 30.0, 9.0, 0.6, x_from=-80, x_to=180)
 band(["mid_trees_band"], 42.0, 14.0, 1.2, x_from=-80, x_to=180, gaps=(10.0, 30.0), fade_sides=0.1)
 far_layer(REF / "D2_fields_far_layer.png", lift=0.42)
 

@@ -568,6 +568,28 @@ t6 = load("T6_tex_water.png")
 save_tile("paddy_water", t6[:, 8: t6.shape[1] // 2 - 8])
 save_tile("canal_water", t6[:, t6.shape[1] // 2 + 8: -8])
 
+# More for the fields (D8-D13), cut as they arrive. Each sheet's pieces are scaled by the tallest one, whose real height
+# is given: the watch platform about 5 m, the picottah pole about 5 m, a ploughing team about 1.9 m, the banyan about
+# 10 m, sorghum about 2.6 m.
+for _src, _prefix, _tallest, _kw in [("D8_field_buildings_2.png", "field_bldg", 5.0, {"ground_line": True}),
+                                     ("D9_canal_pieces.png", "canal_piece", 5.0, {}),
+                                     ("D10_field_life.png", "field_life", 1.9, {}),
+                                     ("D11_field_trees.png", "field_tree", 10.0, {}),
+                                     ("D12_more_crops.png", "crop_strip", 2.6, {})]:
+    if refs.path(_src).exists():
+        _names = cut_sheet(_src, _prefix, FIELDS, **_kw)
+        if _names:
+            _tall = max(manifest[nm]["px"][1] for nm in _names)
+            for nm in _names:
+                manifest[nm]["px_per_m"] = round(_tall / _tallest, 1)
+if refs.path("D13_fields_mid_layer_2.png").exists():
+    _b2, _a2 = magenta_cut(load("D13_fields_mid_layer_2.png"))
+    _lab2, _n2 = ndimage.label(_a2 > 0.3)
+    _s2 = ndimage.sum(_a2 > 0.3, _lab2, range(1, _n2 + 1))
+    _a2 *= ndimage.binary_dilation(np.isin(_lab2, [i + 1 for i, v in enumerate(_s2) if v >= 0.01 * _s2.max()]),
+                                   iterations=3)
+    save("mid_fields_band_2", _b2, _a2)
+
 # ---------------------------------------------------------------- zone 3 (E6-E10): rows of front-on buildings
 # Each sheet's pieces are scaled by the tallest one, whose real height is given: the wide single-storey houses about
 # 6 m with what stands on their roofs, shandy stalls about 3 m, the temple lane's mandapam about 5 m.
