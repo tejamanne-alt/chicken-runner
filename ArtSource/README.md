@@ -208,6 +208,15 @@ python ArtSource/tools/models/build_models.py --sheet models.png            # al
 python ArtSource/tools/models/build_models.py --only house_pink,cow --sheet check.png
 ```
 
+### Full 3D from four-view sheets (Meshy)
+
+The most faithful models come from four views of each asset in your own style. `tools/models/view_prompts.py`
+writes a prompt per asset ([docs/art/prompt-sheet-3d.md](../docs/art/prompt-sheet-3d.md)): attach the asset's
+painting, and ChatGPT or Gemini draws it four times in a 2 by 2 grid (front, left side, right side, back). The web
+version cuts each sheet into the four images; Meshy builds the model from them; the GLB goes in
+`ArtSource/models_meshy/<folder>/<name>.glb`, and `finish_models.py` fits it into the game ahead of any TRELLIS or
+extruded model of the same name.
+
 ### Full 3D from TRELLIS
 
 A single front painting cannot say what the sides, back and top look like, so the pieces are also generated whole

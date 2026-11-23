@@ -1,4 +1,5 @@
-"""Fits each TRELLIS model (ArtSource/models_ai, from trellis_models.py) to its painting and exports it for Unity.
+"""Fits each generated model to its painting and exports it for Unity: the Meshy models made from the four-view
+sheets (ArtSource/models_meshy/<folder>/<name>.glb) first, else the TRELLIS ones (ArtSource/models_ai).
 
     python finish_models.py [--only name1,name2] [--sheet OUT.png]
 
@@ -34,6 +35,7 @@ ARGS = sys.argv[2:]
 ONLY = set(ARGS[ARGS.index("--only") + 1].split(",")) if "--only" in ARGS else None
 SHEET = pathlib.Path(ARGS[ARGS.index("--sheet") + 1]) if "--sheet" in ARGS else None
 AI = B.ROOT / "ArtSource" / "models_ai"
+MESHY = B.ROOT / "ArtSource" / "models_meshy"    # models made in Meshy from the four-view sheets (view_prompts.py)
 LISTING = B.OUT / "models.json"
 MASK_RES = 160
 
@@ -159,7 +161,7 @@ def heading(co, tris, colours, png):
 
 
 # ------------------------------------------------------------------ one piece
-def finish(folder, name, glb):
+def finish(folder, name, glb, source="trellis"):
     png = B.CUT / folder / f"{name}.png"
     kind, _ = B.recipe(folder, name)
     img = Image.open(png)
@@ -343,19 +345,29 @@ def finish(folder, name, glb):
     ob.name = name
     B.export(ob, B.OUT / folder / f"{name}.fbx")
     return {"name": name, "folder": folder, "kind": kind, "width": round(w_m, 3), "height": round(h_m, 3),
-            "depth": round(depth, 3), "faces": len(me.polygons), "source": "trellis", "heading": round(deg, 1),
+            "depth": round(depth, 3), "faces": len(me.polygons), "source": source, "heading": round(deg, 1),
             "outline_match": round(match, 3)}
 
 
 def main():
     listing = {m["name"]: m for m in json.loads(LISTING.read_text())["models"]} if LISTING.exists() else {}
     done = []
-    for glb in sorted(AI.glob("*/*.glb")):
-        folder, name = glb.parent.name, glb.stem
+    # A model made in Meshy from its four views wins over the TRELLIS one. The characters and pickups are rigged
+    # and placed by their own builders, so only the scenery is finished here.
+    chosen = {}
+    for source, base in (("trellis", AI), ("meshy", MESHY)):
+        for glb in sorted(base.glob("*/*.glb")):
+            if glb.parent.name in ("characters", "pickups"):
+                continue
+            chosen[glb.stem] = (glb.parent.name, glb, source)
+    for name, (folder, glb, source) in sorted(chosen.items()):
         if ONLY and name not in ONLY:
             continue
+        if not (B.CUT / folder / f"{name}.png").exists():
+            print(f"SKIPPED {folder}/{name}: no cut-out of that name in ArtSource/cutouts/{folder}", flush=True)
+            continue
         try:
-            entry = finish(folder, name, glb)
+            entry = finish(folder, name, glb, source)
         except Exception as e:     # one odd model must not stop the rest; it keeps its extruded model
             print(f"FAILED {folder}/{name}: {e}", flush=True)
             continue

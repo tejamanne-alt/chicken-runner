@@ -1,6 +1,6 @@
 # Chicken Runner — art prompt sheet
 
-Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
+Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md). Four-view model sheets of every asset, for building the 3D models in Meshy, are in [prompt-sheet-3d.md](prompt-sheet-3d.md).
 
 **Progress:** 99 of 114 images are in `ArtSource/references/` (checked 23 Nov 2026); 58 of the 73 first-batch images. First batch still to make: D9, D12, D13, E17, E18, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10.
 
