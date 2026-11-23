@@ -578,9 +578,14 @@ REAL_NAMES = {"E8_market_stalls_1.png": ["stall_veg", "stall_flowers", "stall_ve
               "E10_temple_street.png": ["mandapam", "chariot_shed", "tank_wall"]}
 for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 6.0), ("E7_rooftop_houses_2.png", "roof_house_b", 6.0),
                              ("E8_market_stalls_1.png", "stall_a", 3.0), ("E9_market_stalls_2.png", "stall_b", 3.0),
-                             ("E10_temple_street.png", "temple_street", 5.0)]:
+                             ("E10_temple_street.png", "temple_street", 5.0),
+                             # More shandy stalls (E11-E14), cut as they arrive; each is its own kind of stall.
+                             ("E11_shandy_stalls_3.png", "stall_c", 3.0), ("E12_shandy_stalls_4.png", "stall_d", 3.0),
+                             ("E13_shandy_stalls_5.png", "stall_e", 3.0), ("E14_shandy_stalls_6.png", "stall_f", 3.0)]:
     if src == "E8_market_stalls_1.png" and refs.is_real(src):
         continue  # its stalls' awnings touch: cut by columns below
+    if not refs.path(src).exists():
+        continue  # not made yet, and no placeholder: the market fills in without it
     names = cut_sheet(src, prefix, MARKET, names_if_real=REAL_NAMES.get(src), ground_line=True)
     if names:
         tallest_px = max(manifest[nm]["px"][1] for nm in names)

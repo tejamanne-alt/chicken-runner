@@ -61,8 +61,9 @@ grass_spots = [(rng.uniform(START, END), rng.uniform(1.8, 6.0), rng.uniform(0.15
 
 # ------------------------------------------------------------------ no stall twice in view
 # Every stall belongs to a kind (the two flower stalls are one kind), and no kind comes back within 45 m (more than a
-# wide view), counting the lane's stalls and the market row together. Where no stall is free, the row fills with a
-# seller's spread on the ground, goods with no shade, or open ground with an animal.
+# wide view), counting the lane's stalls and the market row together. Stalls stand side by side, as at a real shandy,
+# with a wider gap now and then where people walk through; only when no stall is free does the row leave open ground.
+# With E11-E14 there are 16 kinds, enough for an unbroken row.
 KIND = {"flower_stall": "flowers", "stall_flowers": "flowers", "stall_vessels": "vessels", "coconut_cart": "coconuts",
         "stall_potter": "pots"}
 SPACING = 45.0
@@ -109,7 +110,7 @@ while sx < TEMPLE_FROM - 4:
             b, bw = piece(MK, "bunting", 0, obj.location.y + 0.1, z=2.6, mirror=False)
             if b:
                 b.location.x = sx + w + bw / 2 - 0.4
-        sx += w + rng.uniform(0.8, 2.0)
+        sx += w + (rng.uniform(1.8, 3.0) if rng.random() < 0.2 else rng.uniform(0.15, 0.7))
     else:
         # Open ground between stalls: now and then one lot of goods or an animal, never a row of little props.
         span = rng.uniform(4.0, 7.0)

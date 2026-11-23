@@ -2,14 +2,14 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 90 of 92 images are in `ArtSource/references/` (checked 23 Nov 2026); 49 of the 51 first-batch images. First batch still to make: E11, E12.
+**Progress:** 90 of 94 images are in `ArtSource/references/` (checked 23 Nov 2026); 49 of the 53 first-batch images. First batch still to make: E11, E12, E13, E14.
 
 ## How to use it
 
 1. Make **A0** first, in a new ChatGPT chat, attaching your four kid turnaround images. Then make **A1**, attaching A0 and your rooster photo.
 2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach* (A0 is the kid reference from now on).
 3. Save each image with the file name shown.
-4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 51 marked *first batch*.
+4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 53 marked *first batch*.
 
 Regenerate an image when words or labels appear in it, when a model sheet is not side-on and orthographic, or when the background is not plain.
 
@@ -852,14 +852,14 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 ### E11 · Shandy stalls 3
 
 ⬜ to make · prompt updated · Save as `E11_shandy_stalls_3.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, E2, E8  
-Used for: More stalls for the market, so no stall comes back within two screens.
+Used for: More stalls, so the market's stalls can stand side by side with none repeating within two screens.
 
 ```text
 Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall, its goods spread along the ground: a spice and grain seller with heaps of red chillies, turmeric, tamarind and rice in open jute sacks and brass measuring pots, under a plain faded turmeric-yellow cotton awning on bamboo poles; a betel-leaf and areca-nut seller sitting on a raised wooden plank under a woven palm-leaf umbrella; and a cloth seller with folded cotton saris and veshtis piled on a rope cot under a low thatched shade. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall, its goods spread along the ground: a spice and grain seller with heaps of red chillies, turmeric, tamarind and rice in open jute sacks and brass measuring pots, under a plain faded turmeric-yellow cotton awning on bamboo poles; a betel-leaf and areca-nut seller sitting on a raised wooden plank under a woven palm-leaf umbrella; and a cloth seller with folded cotton saris and veshtis piled on a rope cot under a low thatched shade. These stalls will stand side by side in a long row with stalls from the other sheets, so each is complete on its own, its shade and goods inside its own width. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
 
 The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
 
@@ -871,14 +871,52 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 ### E12 · Shandy stalls 4
 
 ⬜ to make · prompt updated · Save as `E12_shandy_stalls_4.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, E2, E8  
-Used for: More stalls for the market, so no stall comes back within two screens.
+Used for: More stalls, so the market's stalls can stand side by side with none repeating within two screens.
 
 ```text
 Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall: a palm-fruit seller with bunches of palmyra fruit and tender nungu in cane baskets under a palm-frond shade; a buttermilk and jaggery seller with big clay pots on a stand and blocks of jaggery on banana leaves, under a plain faded indigo cotton awning; and a basket weaver with bamboo baskets, winnowing trays and mats stacked high around them, under a thatched shade. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall: a palm-fruit seller with bunches of palmyra fruit and tender nungu in cane baskets under a palm-frond shade; a buttermilk and jaggery seller with big clay pots on a stand and blocks of jaggery on banana leaves, under a plain faded indigo cotton awning; and a basket weaver with bamboo baskets, winnowing trays and mats stacked high around them, under a thatched shade. These stalls will stand side by side in a long row with stalls from the other sheets, so each is complete on its own, its shade and goods inside its own width. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E13 · Shandy stalls 5
+
+⬜ to make · prompt updated · Save as `E13_shandy_stalls_5.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, E2, E8  
+Used for: More stalls, so the market's stalls can stand side by side with none repeating within two screens.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall: a vegetable seller with heaps of brinjals, ladies' fingers, drumsticks, gourds, onions and greens on jute sacks and banana leaves, under a plain faded madder-red cotton awning on bamboo poles; a groundnut seller roasting peanuts in hot sand in a big iron pan over a clay stove, with paper cones; and a parrot astrologer sitting on a mat under a black cloth umbrella, a green parrot in a small cane cage and a fan of fortune cards with pictures and no writing. These stalls will stand side by side in a long row with stalls from the other sheets, so each is complete on its own, its shade and goods inside its own width. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E14 · Shandy stalls 6
+
+⬜ to make · prompt updated · Save as `E14_shandy_stalls_6.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, E2, E8  
+Used for: More stalls, so the market's stalls can stand side by side with none repeating within two screens.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall: a sweets and snacks seller with trays of murukku, laddus and jalebis and glass jars on a wooden plank, under a plain undyed cotton awning; a sugarcane-juice seller with a hand-cranked iron press on a wooden stand, a bundle of sugarcane and brass tumblers, under a woven palm-leaf shade; and a seller of korai-grass mats, palm brooms and coir rope, rolled and stacked under a low thatched shade. These stalls will stand side by side in a long row with stalls from the other sheets, so each is complete on its own, its shade and goods inside its own width. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
 
 The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
 
