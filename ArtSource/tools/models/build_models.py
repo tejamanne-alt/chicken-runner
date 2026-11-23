@@ -128,7 +128,7 @@ def bled_texture(src, dst, inset=0, max_side=2048):
         scale = max_side / max(src_im.size)
         src_im = src_im.resize((round(src_im.width * scale), round(src_im.height * scale)), Image.LANCZOS)
     im = np.asarray(src_im)
-    solid = im[..., 3] > 8
+    solid = dehalo(im, im[..., 3] > 8)
     if inset and solid.any():
         core = ndimage.binary_erosion(solid, iterations=inset)
         if core.sum() > 50:
@@ -141,13 +141,24 @@ def bled_texture(src, dst, inset=0, max_side=2048):
     Image.fromarray(rgb.astype(np.uint8), "RGB").save(dst, quality=90)
 
 
+def dehalo(im, solid, width=4):
+    """The solid pixels less a near-white fringe along the outline: some cut-outs keep a thin white halo of the
+    background they were cut from, which would otherwise outline the model and bleed into its walls."""
+    if not solid.any():
+        return solid
+    rim = solid & ~ndimage.binary_erosion(solid, iterations=width)
+    white = rim & (im[..., :3].min(axis=2) > 215)
+    kept = solid & ~white
+    return kept if kept.sum() > 0.9 * solid.sum() else solid
+
+
 def mask_of(src, max_side):
     im = Image.open(src).convert("RGBA")
     scale = max_side / max(im.size)
-    small = im.resize((max(2, round(im.width * scale)), max(2, round(im.height * scale))), Image.LANCZOS)
-    a = np.asarray(small)[..., 3] > 110
-    a = ndimage.binary_opening(a, iterations=1) | (np.asarray(small)[..., 3] > 200)
-    return a
+    small = np.asarray(im.resize((max(2, round(im.width * scale)), max(2, round(im.height * scale))), Image.LANCZOS))
+    a = small[..., 3] > 110
+    a = ndimage.binary_opening(a, iterations=1) | (small[..., 3] > 200)
+    return dehalo(small, a, width=1)
 
 
 # ------------------------------------------------------------------ recipes
@@ -184,8 +195,17 @@ def prism_loops(mask, w_m):
     for c in measure.find_contours(np.pad(mask.astype(float), 1), 0.5):
         if len(c) < 8:
             continue
-        c = measure.approximate_polygon(c - 1, tolerance=0.8)
-        if len(c) < 4:
+        # evenly spaced points every 3 pixels (not simplified to corners: each stretch of wall needs its own
+        # direction into the painting and its own depth of paint)
+        c = c - 1
+        seg = np.linalg.norm(np.diff(c, axis=0), axis=1)
+        dist = np.r_[0, np.cumsum(seg)]
+        if dist[-1] < 12:
+            continue
+        at = np.arange(0, dist[-1], 3.0)
+        c = np.stack([np.interp(at, dist, c[:, 0]), np.interp(at, dist, c[:, 1])], 1)
+        c = np.r_[c, c[:1]]
+        if len(c) < 5:
             continue
         r, cc = np.clip(c[:-1, 0], 0, rows - 1), np.clip(c[:-1, 1], 0, cols - 1)
         pts = np.stack([(cc - (cols - 1) / 2) * pix, (rows - 1 - r) * pix], 1)
@@ -198,13 +218,27 @@ def prism_loops(mask, w_m):
         n = np.stack([-t[:, 1], t[:, 0]], 1)
         n /= np.linalg.norm(n, axis=1, keepdims=True) + 1e-12
         probe = pts + n * pix * 2.5
-        pc = np.clip(np.round(probe[:, 0] / pix + (cols - 1) / 2).astype(int), 0, cols - 1)
-        pr = np.clip(np.round(rows - 1 - probe[:, 1] / pix).astype(int), 0, rows - 1)
-        inside = mask[pr, pc]
+        pc = np.round(probe[:, 0] / pix + (cols - 1) / 2).astype(int)
+        pr = np.round(rows - 1 - probe[:, 1] / pix).astype(int)
+        ok = (pc >= 0) & (pc < cols) & (pr >= 0) & (pr < rows)     # past the image's edge is outside
+        inside = np.zeros(len(pts), bool)
+        inside[ok] = mask[pr[ok], pc[ok]]
         n[~inside] *= -1
         n = ndimage.uniform_filter1d(n, size=5, axis=0, mode="wrap")     # steady along jagged edges
         n /= np.linalg.norm(n, axis=1, keepdims=True) + 1e-12
-        loops.append((pts, uv, n))
+        # how far in from each point the painting runs before a gap (metres), so walls never sample across one
+        solid = np.zeros(len(pts))
+        for k in range(1, 60):
+            probe = pts + n * pix * k
+            pc = np.round(probe[:, 0] / pix + (cols - 1) / 2).astype(int)
+            pr = np.round(rows - 1 - probe[:, 1] / pix).astype(int)
+            ok = (pc >= 0) & (pc < cols) & (pr >= 0) & (pr < rows)
+            inside = np.zeros(len(pts), bool)
+            inside[ok] = mask[pr[ok], pc[ok]]
+            still = solid == (k - 1) * pix
+            solid[still & inside] = k * pix
+        solid = ndimage.median_filter(solid, size=5, mode="wrap")     # steady along the wall
+        loops.append((pts, uv, n, solid))
     return loops
 
 
@@ -227,7 +261,7 @@ def prism_object(name, loops, depth, w_m, h_m):
     layer = bm.loops.layers.uv.new("UVMap")
     rings = []        # per loop: [ring 0 verts, ring 1 verts, ...]
     edges = []
-    for pts, uv, n in loops:
+    for pts, uv, n, _ in loops:
         loop_rings = []
         for k in range(steps + 1):
             y = depth * k / steps
@@ -257,8 +291,10 @@ def prism_object(name, loops, depth, w_m, h_m):
             li, i = where[src]
             lp[layer].uv = tuple(loops[li][1][i])
     # the walls
-    for li, (pts, uv, n) in enumerate(loops):
+    for li, (pts, uv, n, solid) in enumerate(loops):
         n_uv = n / np.array([w_m, h_m])
+        # the band at each point: as wide as the painting runs inward there (less the outline), up to `band`
+        reach = np.clip(solid - inset, 0.25 * inset, band)
         loop_rings = rings[li]
         count = len(pts)
         for k in range(steps):
@@ -272,7 +308,7 @@ def prism_object(name, loops, depth, w_m, h_m):
                     continue
                 f.material_index = 0
                 for lp, (pi, d) in zip(f.loops, ((i, d0), (j, d0), (j, d1), (i, d1))):
-                    lp[layer].uv = tuple(uv[pi] + (inset + fold(d, band)) * n_uv[pi])
+                    lp[layer].uv = tuple(uv[pi] + (min(inset, solid[pi] * 0.5) + fold(d, reach[pi])) * n_uv[pi])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(me)
     bm.free()
