@@ -83,7 +83,8 @@ and the prompt sheet keeps it marked "make again".
 
 ## The rooster
 
-`cutouts/rooster/` holds the B1 side view and the eight B2 poses (two run frames, flutter, crow, startled, tumble,
+`cutouts/rooster/` holds the four turnaround views for modelling (B11-B14: front, back, left, right, beak closed),
+the B1 side view and the eight B2 poses (two run frames, flutter, crow, startled, tumble,
 peck, strut), all facing right, the way the chase runs. Every scene puts the rooster 8 m ahead of the kid, as the
 chase camera frames them in play.
 
@@ -99,7 +100,10 @@ chase camera frames them in play.
   mango, neem and tamarind trees, rows of palmyra and coconut palms, then the D7 band and the D2 far layer. The haze
   starts later here (10 m) than in the lane, as open fields see further.
 - **Zone 3, market day and the temple street** (`build_market_scene.py`): stalls on the lane whose palm-leaf and
-  thatch shades the kid bounces across, and baskets of hens; behind, a row of stalls of every kind (E8, E9 and the E5 stalls) with goods and
+  thatch shades the kid bounces across, and baskets of hens. No kind of stall comes back within 45 m (the two flower
+  stalls count as one kind), counting the lane and the market row together; where no stall is free the row fills
+  with goods spread on the ground and the odd animal. The village houses behind are dealt once each before any
+  returns, with shade trees between; behind, a row of stalls of every kind (E8, E9 and the E5 stalls) with goods and
   bunting, then two-storey houses with flat roofs (E6, E7); near the end the temple street (E10) and lamp-lit steps,
   with the temple tower in the far layer. Villagers, animals, kites over the roofs.
 

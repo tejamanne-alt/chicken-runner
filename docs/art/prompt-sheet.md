@@ -2,14 +2,14 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 88 of 90 images are in `ArtSource/references/` (checked 23 Nov 2026); 47 of the 49 first-batch images. First batch still to make: B13, B14.
+**Progress:** 90 of 92 images are in `ArtSource/references/` (checked 23 Nov 2026); 49 of the 51 first-batch images. First batch still to make: E11, E12.
 
 ## How to use it
 
 1. Make **A0** first, in a new ChatGPT chat, attaching your four kid turnaround images. Then make **A1**, attaching A0 and your rooster photo.
 2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach* (A0 is the kid reference from now on).
 3. Save each image with the file name shown.
-4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 49 marked *first batch*.
+4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 51 marked *first batch*.
 
 Regenerate an image when words or labels appear in it, when a model sheet is not side-on and orthographic, or when the background is not plain.
 
@@ -296,7 +296,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. 
 
 ### B13 · Rooster turnaround: left side
 
-🔁 make again: Came out with a painted ground and haze, the legs fading away and the comb blurred: make it again with the updated prompt, attaching B11. · prompt updated · Save as `B13_rooster_left.png` · Square 1:1 · first batch · **new** · Attach: A1, B1, B11  
+✅ in the repo · Save as `B13_rooster_left.png` · Square 1:1 · first batch · **new** · Attach: A1, B1, B11  
 Used for: The left side view for modelling the rooster in 3D, lined up with B11, B12 and B14.
 
 ```text
@@ -311,7 +311,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. 
 
 ### B14 · Rooster turnaround: right side
 
-🔁 make again: Came out with a painted ground and haze, the legs fading away and the comb blurred: make it again with the updated prompt, attaching B11. · prompt updated · Save as `B14_rooster_right.png` · Square 1:1 · first batch · **new** · Attach: A1, B1, B11  
+✅ in the repo · Save as `B14_rooster_right.png` · Square 1:1 · first batch · **new** · Attach: A1, B1, B11  
 Used for: The right side view for modelling the rooster in 3D, and the way it faces as it runs in the game.
 
 ```text
@@ -841,6 +841,44 @@ Landscape 3:2 image.
 Use the attached A1 key art as the style reference and match it closely.
 
 Three buildings on the lane to the village temple, simple and old, in the look of the attached E3 painting at dusk, lit only by oil lamps, and drawn flat like the attached G15 shrine. Each is wide and low: a long stone mandapam (pillared hall), about 14 m wide and 5 m tall, with a row of carved pillars under a flat stone roof; a long thatched shed, about 10 m wide, where the village's wooden temple chariot is kept, its carved front peeping out; and a 12 m stretch of the temple tank's stone wall with steps going down and a small arched gateway, oil lamps along its ledge. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E11 · Shandy stalls 3
+
+⬜ to make · prompt updated · Save as `E11_shandy_stalls_3.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, E2, E8  
+Used for: More stalls for the market, so no stall comes back within two screens.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall, its goods spread along the ground: a spice and grain seller with heaps of red chillies, turmeric, tamarind and rice in open jute sacks and brass measuring pots, under a plain faded turmeric-yellow cotton awning on bamboo poles; a betel-leaf and areca-nut seller sitting on a raised wooden plank under a woven palm-leaf umbrella; and a cloth seller with folded cotton saris and veshtis piled on a rope cot under a low thatched shade. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### E12 · Shandy stalls 4
+
+⬜ to make · prompt updated · Save as `E12_shandy_stalls_4.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C4, E2, E8  
+Used for: More stalls for the market, so no stall comes back within two screens.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Three more stalls at a 1970s weekly village shandy, different from the attached E8 stalls but drawn the same way. Each is wide and low, about 5 m wide and under 3 m tall: a palm-fruit seller with bunches of palmyra fruit and tender nungu in cane baskets under a palm-frond shade; a buttermilk and jaggery seller with big clay pots on a stand and blocks of jaggery on banana leaves, under a plain faded indigo cotton awning; and a basket weaver with bamboo baskets, winnowing trays and mats stacked high around them, under a thatched shade. Draw them big, side by side with a clear gap between them, together filling most of the image's width. Each one is wide and low, much wider than it is tall, as rural village buildings are, never a narrow, tall town house. Each is a flat front elevation for a side-scrolling game: its front faces the viewer squarely, parallel to the picture, so no side wall or gable end shows and there is no perspective. All stand on one thin ground line, at the same scale as the attached C4 house kit (doors about 2 m tall). Plain flat light-grey background, even lighting, no labels and no writing on any sign. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
 
 The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
 

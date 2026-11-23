@@ -287,7 +287,7 @@ G_BUILDINGS = {
     "G14_panchayat_office": ("panchayat_office", 1374, 220),     # door 2.1 m
     "G15_village_shrine": ("shrine_tree", 1387, 257),            # shrine opening 1.5 m
     "G16_stone_lamp_pillar": ("lamp_pillar", None, ("h", 9.0)),  # pillar 9 m
-    "H3_peepal_platform": ("peepal_platform", None, ("h", 12.0)),  # tree 12 m tall: the platform's centre is the door
+    "H3_peepal_platform": ("peepal_platform", None, 266.0),       # platform 213 px = 0.8 m (three 27 cm steps)
 }
 GROUND_ROW = {"G13_cattle_shed": 1173,  # no drawn ground line: the shed's posts stand here
               "H3_peepal_platform": "foot",  # no ground line either: the platform stands on its lowest row
@@ -644,6 +644,17 @@ cut_columns("B2_rooster_poses.png", ROOSTER,
              for i, p in enumerate(_poses)},
             {"rooster_run_1": 0.62, "rooster_run_2": 0.62, "rooster_flutter": 0.7, "rooster_crow": 0.72,
              "rooster_startled": 0.62, "rooster_tumble": 0.6, "rooster_peck": 0.55, "rooster_strut": 0.72})
+
+# The rooster's turnaround (B11-B14): one clean view per image, for modelling it in 3D.
+for _src, _name in [("B11_rooster_front.png", "rooster_view_front"), ("B12_rooster_back.png", "rooster_view_back"),
+                    ("B13_rooster_left.png", "rooster_view_left"), ("B14_rooster_right.png", "rooster_view_right")]:
+    if refs.is_real(_src):
+        _rgb, _pieces = sheet_pieces(_src, ground_line=True)
+        if _pieces:
+            _saved, OUT = OUT, ROOSTER
+            save(_name, _rgb, max(_pieces, key=lambda p_: (p_[0] > 0.5).sum())[0])
+            manifest[_name]["height_m"] = 0.72
+            OUT = _saved
 
 # ---------------------------------------------------------------- textures still to come (T10-T12): only real ones
 for src, tile_name in [("T10_tex_bare_brick.png", "bare_brick"), ("T11_tex_coconut_leaf_fence.png", "coconut_leaf_fence"),

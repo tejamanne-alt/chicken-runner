@@ -59,36 +59,85 @@ def first(*candidates):
 ground_plane(GROUND.earth_material(load_image(GROUND.grain_tile(CUT))))
 grass_spots = [(rng.uniform(START, END), rng.uniform(1.8, 6.0), rng.uniform(0.15, 0.6)) for _ in range(70)]
 
-# ------------------------------------------------------------------ the market row, 3-4.5 m back: stalls of every kind
-# Never the same stall twice in a row; goods (baskets, vessels, hens) in front of every other one.
-stalls = Pool(names("stall_", "coconut_cart", "flower_stall"), 3)
-goods = Pool(["veg_basket", "brass_vessels", "hens_basket", "veg_basket", "brass_vessels"], 2)
+# ------------------------------------------------------------------ no stall twice in view
+# Every stall belongs to a kind (the two flower stalls are one kind), and no kind comes back within 45 m (more than a
+# wide view), counting the lane's stalls and the market row together. Where no stall is free, the row fills with a
+# seller's spread on the ground, goods with no shade, or open ground with an animal.
+KIND = {"flower_stall": "flowers", "stall_flowers": "flowers", "stall_vessels": "vessels", "coconut_cart": "coconuts",
+        "stall_potter": "pots"}
+SPACING = 45.0
+last_kind_at = {}
+
+
+def stall_free(name, x):
+    kind = KIND.get(name, name)
+    return all(abs(x - at) > SPACING for at in last_kind_at.get(kind, []))
+
+
+def use_stall(name, x):
+    last_kind_at.setdefault(KIND.get(name, name), []).append(x)
+
+
+# ------------------------------------------------------------------ the lane: shades to bounce across, hens
+# The bounce pads are the flower stall's roof and the brass seller's thatch; between them, baskets of hens and vessels.
+for name, x in [(first("flower_stall", "stall_flowers"), 6.0), ("hens_basket", 13.0),
+                (first("stall_vessels", "stall_potter"), 22.0), ("hens_basket", 30.5), ("hens_basket", 31.6),
+                ("brass_vessels", 40.0)]:
+    if name:
+        piece(MK, name, x, 0.0, mirror=False)
+        if name in KIND:
+            use_stall(name, x)
+
+# ------------------------------------------------------------------ the market row, 3-4.5 m back
+stall_names = names("stall_", "coconut_cart", "flower_stall")
+rng.shuffle(stall_names)
+fillers = Pool(["veg_basket", "brass_vessels", "hens_basket", "chilli_mat", "papad_mat"], 3)
+spread_animals = Pool(["calf", "goat_eating", "hen_with_chicks", "goat_kid"], 2)
 sx = START
 while sx < TEMPLE_FROM - 4:
-    name = stalls.pick()
-    folder = MK
-    obj, w = piece(folder, name, 0, rng.uniform(3.0, 4.4), mirror=False)
-    if obj is None:
-        break
-    obj.location.x = sx + w / 2
-    if rng.random() < 0.6:
-        piece(MK, goods.pick(), sx + w * rng.uniform(0.2, 0.8), obj.location.y - rng.uniform(0.5, 0.9))
-    if rng.random() < 0.35:  # bunting strung between this stall and the next
-        b, bw = piece(MK, "bunting", 0, obj.location.y + 0.1, z=2.6, mirror=False, scale=1.0)
-        if b:
-            b.location.x = sx + w + bw / 2 - 0.4
-    sx += w + rng.uniform(0.3, 1.4)
+    free = [n for n in stall_names if stall_free(n, sx + 2.5)]
+    if free:
+        name = free[0]
+        stall_names.remove(name)
+        stall_names.append(name)
+        obj, w = piece(MK, name, 0, rng.uniform(3.0, 4.4), mirror=False)
+        if obj is None:
+            break
+        obj.location.x = sx + w / 2
+        use_stall(name, sx + w / 2)
+        if rng.random() < 0.35:  # bunting strung from this stall toward the next
+            b, bw = piece(MK, "bunting", 0, obj.location.y + 0.1, z=2.6, mirror=False)
+            if b:
+                b.location.x = sx + w + bw / 2 - 0.4
+        sx += w + rng.uniform(0.8, 2.0)
+    else:
+        # A seller's spread with no shade: two or three lots of goods on the ground, sometimes an animal.
+        span = rng.uniform(3.0, 5.5)
+        for k in range(rng.randint(2, 3)):
+            piece(MK, fillers.pick(), sx + span * (k + 0.5) / 3, rng.uniform(3.2, 4.2))
+        if rng.random() < 0.4:
+            piece(AN, spread_animals.pick(), sx + span * rng.uniform(0.2, 0.8), rng.uniform(4.4, 5.0))
+        sx += span + rng.uniform(0.5, 1.5)
 
-# ------------------------------------------------------------------ behind: two-storey houses with flat roofs
-houses = Pool(names("roof_house_"), 2)
-hx = START - 4
-while hx < TEMPLE_FROM:
-    name = houses.pick()
+# ------------------------------------------------------------------ behind: the village houses, each once before any repeats
+house_deck = names("roof_house_")
+rng.shuffle(house_deck)
+big_trees = Pool(["h1_1", "h1_3", "h2_1", "tree_mango_1", "tree_mango_2"], 3)
+TREE_H = {"h1_1": 8.0, "h1_3": 6.5, "h2_1": 7.5, "tree_mango_1": 6.0, "tree_mango_2": 6.0}
+hx, k = START - 4, 0
+while hx < TEMPLE_FROM and house_deck:
+    name = house_deck[k % len(house_deck)]
+    k += 1
     obj, w = piece(MK, name, 0, rng.uniform(7.5, 9.0), mirror=False)
     if obj is None:
         break
     obj.location.x = hx + w / 2
-    hx += w + rng.uniform(0.2, 1.2)
+    hx += w + rng.uniform(1.0, 2.5)
+    if rng.random() < 0.6:  # a shade tree between houses
+        tree = big_trees.pick()
+        card(f"{tree}_{hx:.0f}", (P if tree.startswith("h") else L) / f"{tree}.png", hx + 1.5, rng.uniform(9.5, 10.5),
+             size=("h", TREE_H[tree] * rng.uniform(0.9, 1.1)), mirror=rng.random() < 0.5, col="Plants", emission=0.55)
+        hx += 3.0
 
 # ------------------------------------------------------------------ the temple street, then the lamp-lit steps
 tx = TEMPLE_FROM
@@ -101,15 +150,6 @@ for name in [n for n in ["mandapam", "chariot_shed", "tank_wall"] if n in MANIFE
 for k in range(3):
     piece(MK, "lamp_step", tx + 1.0 + k * 2.4, 2.6 + k * 0.05, mirror=False)
     piece(MK, "lantern", tx + 2.0 + k * 2.4, 2.4)
-
-# ------------------------------------------------------------------ the lane: shades to bounce across, hens
-# The bounce pads are the palm-leaf mat and thatch shades and the flower stall's roof; no striped awnings.
-for name, x in [(first("stall_flowers", "flower_stall"), 4.0), ("hens_basket", 13.0),
-                (first("stall_vessels", "flower_stall"), 19.0), ("hens_basket", 25.5), ("hens_basket", 26.6),
-                (first("flower_stall"), 33.0), (first("stall_potter", "stall_flowers"), 44.0),
-                ("brass_vessels", 50.0)]:
-    if name:
-        piece(MK, name, x, 0.0, mirror=False)
 
 # ------------------------------------------------------------------ life and things on the ground
 people = ["vegetable_seller", "woman_carrying_pot", "milkman_on_bicycle", "kids_rolling_tyre", "old_man_on_chair"]
