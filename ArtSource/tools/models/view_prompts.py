@@ -1,9 +1,10 @@
 """Prompts for four-view model sheets of every asset, for building the 3D models in Meshy.
 
-    python view_prompts.py [--site DIR]
+    python view_prompts.py [--all] [--site DIR]
 
-Writes docs/art/prompt-sheet-3d.md. With --site, also writes the web version's data (data.json) and each asset's
-reference picture (refs/<name>.jpg, the cut-out on plain light grey) into DIR.
+Writes docs/art/prompt-sheet-3d.md for the assets worth a full model (MODEL_ORDER), or for every asset with --all.
+With --site, also writes the web version's data (data.json) and each asset's reference picture (refs/<name>.jpg,
+the cut-out on plain light grey) into DIR.
 
 Each prompt asks ChatGPT (or Gemini) for one image: the asset drawn four times in a 2 by 2 grid, front, left side,
 right side and back, from its painting (attached), at one scale on a plain light-grey background. The sheet is cut
@@ -309,6 +310,24 @@ GROUPS = [("lane", "The lane", "Zone 1: houses, shops, the lane's props and obst
                                        "they are painted on the ground as they are.")]
 
 
+# The pieces worth a full model: the ones the kid touches on the lane, plus the pickups. Everything else is only ever
+# seen from the front by the side-on camera, where its painting is already right. In the order the levels meet them.
+# (--all writes a prompt for every asset instead.)
+MODEL_ORDER = [
+    ("first", "Pickups and the rooster", "On screen all the time: the pickups spin as the kid collects them, and the "
+                                          "rooster runs ahead of her in every level.",
+     ["mango", "chilli", "feather", "rooster"]),
+    ("lane", "Levels 1–3: the lane", "Pots and the sleeping dog, washing day, and up on the roofs.",
+     ["pot_stack", "dog_sleeping", "hand_pump", "clothesline", "rope_cot", "bullock_cart", "water_pot_stand",
+      "brass_pots", "house_indigo_veranda", "house_limewash", "house_pink", "house_turmeric_ladder"]),
+    ("fields", "Levels 4–6: the fields", "The canal, the mango trees, and the buffalo and haystacks.",
+     ["tree_mango_1", "haystack", "haystack_small", "buffalo_mud", "well"]),
+    ("market", "Levels 7–9: roofs, market and temple", "The rooftop run, market day and the temple steps.",
+     ["black_tank", "stall_c_1", "stall_d_2", "stall_e_3", "stall_f_1", "stall_flowers", "stall_g_2", "stall_h_1",
+      "stall_vessels", "hen_1", "hen_2", "hen_3", "hens_basket", "mandapam", "lamp_step", "lantern"]),
+]
+ALL = "--all" in ARGS
+
 PRIORITY = {1: "On the lane", 2: "Beside the lane", 3: "Far off", 4: "Not in the game yet"}
 PRIORITY_NOTE = {1: "The kid runs into, over or past it: make this first.",
                  2: "Seen up close beside the lane.",
@@ -442,11 +461,28 @@ def records():
         rec["note"] = "No painting of it yet: the prompt describes it."
         rec["priority"] = 1
         out.append(rec)
+    if not ALL:
+        by_name = {r["name"]: r for r in out}
+        chosen = []
+        for section, _, _, names in MODEL_ORDER:
+            for name in names:
+                if name == "rooster":
+                    continue          # added below with the characters
+                r = by_name[name]
+                r["section"] = section
+                chosen.append(r)
+        out = chosen
     for name, title, files, note in CHARACTERS:
         out.append({"name": name, "folder": "characters", "group": "characters", "kind": "character", "title": title,
                     "existing": files, "model": f"{name}.glb", "note": note,
                     "ref": f"refs/{files[0].replace('.png', '.jpg')}",
-                    "existing_refs": [f"refs/{f.replace('.png', '.jpg')}" for f in files], "priority": 1})
+                    "existing_refs": [f"refs/{f.replace('.png', '.jpg')}" for f in files], "priority": 1,
+                    "section": "first"})
+    if not ALL:
+        position = {n: i for i, n in enumerate(n for _, _, _, names in MODEL_ORDER for n in names)}
+        out.sort(key=lambda r: position.get(r["name"], -1))     # the kid (yours) first, then the list's order
+        for i, r in enumerate(r for r in out if r["name"] != "kid"):
+            r["order"] = i + 1
     return out
 
 
@@ -463,19 +499,35 @@ def markdown(recs):
              "version does this) and give the four to Meshy's multi-image to 3D, each in its slot.",
              "4. Download the model as GLB, named `<name>.glb`, and put it in `ArtSource/models_meshy/<folder>/` "
              "(or upload it in the chat). `finish_models.py` fits it into the game at the painting's size and place.",
-             "", "Prints, ruts, cracked mud and kolams need no model: they lie flat on the ground as painted.", "",
-             "## What to make first", ""]
-    counts = {k: sum(1 for r in recs if r.get("priority") == k and r["kind"] not in ("character",)) for k in PRIORITY}
-    lines += [f"- **{PRIORITY[k]}** ({counts[k]}): {PRIORITY_NOTE[k]}" for k in PRIORITY] + [""]
-    order = ["characters"] + [g[0] for g in GROUPS]
-    names = {"characters": ("Characters and pickups", "The kid and the rooster have their four views already; the "
-                                                       "pickups have no painting, so their prompts describe them.")}
-    names.update({g[0]: (g[1], g[2]) for g in GROUPS})
+             ""]
+    if ALL:
+        counts = {k: sum(1 for r in recs if r.get("priority") == k and r["kind"] != "character") for k in PRIORITY}
+        lines += ["## What to make first", ""]
+        lines += [f"- **{PRIORITY[k]}** ({counts[k]}): {PRIORITY_NOTE[k]}" for k in PRIORITY] + [""]
+    else:
+        sheets = sum(1 for r in recs if r.get("chatgpt"))
+        lines += ["## Which assets", "",
+                  f"Only the {sheets} worth a full model, in the order the levels meet them: the pieces the kid touches "
+                  "on the lane, and the pickups; plus the rooster, from his four existing views, and the kid (yours). "
+                  "The game's camera watches the lane from the side, so everything else (the houses, trees, animals and "
+                  "people beside the lane and far off) is seen from the front, where its painting is already exactly "
+                  "right: it stays a painted card. Run `view_prompts.py --all` for a prompt for every asset.", ""]
+    if ALL:
+        order = ["characters"] + [g[0] for g in GROUPS]
+        names = {"characters": ("Characters and pickups", "The kid and the rooster have their four views already; "
+                                                           "the pickups have no painting, so their prompts describe them.")}
+        names.update({g[0]: (g[1], g[2]) for g in GROUPS})
+        key = "group"
+    else:
+        order = [m[0] for m in MODEL_ORDER]
+        names = {m[0]: (m[1], m[2]) for m in MODEL_ORDER}
+        key = "section"
     for group in order:
         title, blurb = names[group]
         lines += [f"## {title}", "", blurb, ""]
-        for r in [r for r in recs if r["group"] == group]:
-            lines += [f"### {r['title']} · `{r['name']}`", ""]
+        for r in [r for r in recs if r.get(key) == group]:
+            number = f"{r['order']}. " if r.get("order") else ""
+            lines += [f"### {number}{r['title']} · `{r['name']}`", ""]
             if r["kind"] == "character":
                 lines += [r["note"], "", "Images: " + ", ".join(f"`{f}`" for f in r["existing"]), ""]
                 continue
