@@ -104,11 +104,12 @@ namespace ChickenRunner.EditorTools
             int made = 0;
             foreach (var card in cards)
             {
-                var go = LayoutFile.MakeCard(card, root.transform);
+                var go = LayoutFile.MakeCard(card, root.transform, default, ArtModels.RoomBehind(card, cards));
                 if (go == null) continue;
                 made++;
                 // Plants between the camera and the lane draw over the kid; everything behind the lane under her.
-                go.GetComponent<Renderer>().sortingOrder = card.z <= LaneFront ? GameBuilder.ForegroundOrder : GameBuilder.SceneryOrder;
+                foreach (var renderer in go.GetComponentsInChildren<Renderer>())
+                    renderer.sortingOrder = card.z <= LaneFront ? GameBuilder.ForegroundOrder : GameBuilder.SceneryOrder;
             }
             if (made == 0)
             {

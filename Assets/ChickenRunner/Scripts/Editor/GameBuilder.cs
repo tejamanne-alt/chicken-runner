@@ -61,6 +61,7 @@ namespace ChickenRunner.EditorTools
             foreach (var folder in new[] { ConfigFolder, ChunkFolder, LevelFolder, ObstacleFolder, SceneryFolder, MaterialFolder })
                 ArtAssets.EnsureFolder(folder);
             ArtAssets.ClearCache();
+            ArtModels.ClearCache();
             ClearModelCache();
             if (ArtAssets.CardShader == null || Shader.Find(ArtAssets.GroundShaderName) == null)
             {

@@ -114,7 +114,8 @@ namespace ChickenRunner.EditorTools
             }
 
             /// <summary>
-            /// A painted cut-out standing with its bottom centre at (x, y, z) under <paramref name="parent"/>, sized by
+            /// A painted cut-out (its 3D model where it has one) standing with its bottom centre at (x, y, z) under
+            /// <paramref name="parent"/>, sized by
             /// <paramref name="height"/> (or <paramref name="width"/>, or the manifest's real size when both are 0).
             /// Returns null, and its size as zero, when the cut-out does not exist.
             /// </summary>
@@ -129,8 +130,9 @@ namespace ChickenRunner.EditorTools
                 if (height > 0f) size = new Vector2(height * aspect, height);
                 else if (width > 0f) size = new Vector2(width, width / aspect);
                 else size = real;
-                var card = ArtAssets.Card(parent ?? _root, piece, ArtAssets.CardMaterial(texture), new Vector3(x, y, z), size, mirror);
-                card.GetComponent<Renderer>().sortingOrder = order;
+                var card = ArtModels.Enabled ? ArtModels.Place(parent ?? _root, piece, new Vector3(x, y, z), size, mirror) : null;
+                if (card == null) card = ArtAssets.Card(parent ?? _root, piece, ArtAssets.CardMaterial(texture), new Vector3(x, y, z), size, mirror);
+                foreach (var renderer in card.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = order;
                 return card;
             }
 
@@ -143,8 +145,9 @@ namespace ChickenRunner.EditorTools
                 if (texture == null) return null;
                 var real = ArtAssets.SizeOf(piece, texture, 1f);
                 var size = new Vector2(width, width * real.y / Mathf.Max(0.001f, real.x));
-                var card = ArtAssets.Card(_root, piece, ArtAssets.CardMaterial(texture), new Vector3(x, 0.004f, z), size, false, true, turn);
-                card.GetComponent<Renderer>().sortingOrder = LaneOrder - 1;
+                var card = ArtModels.Enabled ? ArtModels.Place(_root, piece, new Vector3(x, 0f, z), size, false, true, turn) : null;
+                if (card == null) card = ArtAssets.Card(_root, piece, ArtAssets.CardMaterial(texture), new Vector3(x, 0.004f, z), size, false, true, turn);
+                foreach (var renderer in card.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder - 1;
                 return card;
             }
 

@@ -15,6 +15,8 @@ Shader "ChickenRunner/Toon"
         _Gloss ("Highlight strength", Range(0, 1)) = 0
         _OutlineColor ("Outline", Color) = (0.13, 0.07, 0.05, 1)
         _OutlineWidth ("Outline width (m)", Range(0, 0.02)) = 0.004
+        _HazeColor ("Haze colour", Color) = (0.98, 0.765, 0.545, 1)
+        _Haze ("Haze (distance)", Range(0, 1)) = 0
     }
     SubShader
     {
@@ -30,6 +32,8 @@ Shader "ChickenRunner/Toon"
             #include "UnityCG.cginc"
             fixed4 _OutlineColor;
             float _OutlineWidth;
+            fixed4 _HazeColor;
+            float _Haze;
             struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; };
             float4 vert (appdata v) : SV_POSITION
             {
@@ -37,7 +41,7 @@ Shader "ChickenRunner/Toon"
                 float3 n = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
                 return UnityWorldToClipPos(world + n * _OutlineWidth);
             }
-            fixed4 frag () : SV_Target { return _OutlineColor; }
+            fixed4 frag () : SV_Target { return fixed4(lerp(_OutlineColor.rgb, _HazeColor.rgb, _Haze), 1); }
             ENDCG
         }
 
@@ -57,6 +61,8 @@ Shader "ChickenRunner/Toon"
             float _Threshold;
             float _Softness;
             float _Gloss;
+            fixed4 _HazeColor;
+            float _Haze;
             struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD0; };
             struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; float3 normal : TEXCOORD1; float3 view : TEXCOORD2; };
             v2f vert (appdata v)
@@ -80,7 +86,7 @@ Shader "ChickenRunner/Toon"
                     float spec = smoothstep(0.93, 0.96, dot(n, normalize(l + i.view)));
                     c = 1 - (1 - c) * (1 - spec * _Gloss * 0.9);
                 }
-                return fixed4(c, 1);
+                return fixed4(lerp(c, _HazeColor.rgb, _Haze), 1);
             }
             ENDCG
         }

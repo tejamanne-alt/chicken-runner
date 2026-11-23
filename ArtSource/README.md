@@ -154,28 +154,61 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 `tools/village_kit.py` builds the compound walls and palm-leaf fences. It can also build houses and coconut palms in 3D
 (see `tools/build_house_catalog.py`), but the street doesn't use them: buildings and trees come only from the art.
 
-## 3D characters and pickups
+## 3D models
 
-The kid, the rooster and the pickups are 3D models built in Blender from code, in `tools/characters/`:
+Every painted piece is also a 3D model, built in Blender from the paintings themselves, so the models are the
+paintings in the round.
 
-| File | What it makes |
-| --- | --- |
-| `kid_model.py` | The kid to the A0 turnaround: about 1.08 m, pattu frock with the temple border, wavy bob, hairband, anklets; a Unity Humanoid-named rig plus hair and skirt bones |
-| `kid_anims.py` | Her clips: Idle, Run, JumpUp, Fall, Land, DoubleJump (a tuck somersault), Slide, Vault, Climb, Stumble, Dive, Wade |
-| `rooster_model.py`, `rooster_anims.py` | The rooster to B11-B14, and his clips: Idle (looks about, pecks), Run, Panic, Flutter, Crow, Startled, Tumble |
-| `pickups.py` | The mango, the chilli and the tail feather |
-| `build_character.py` | Keys the clips, exports `Assets/ChickenRunner/Art/Characters/<Name>.fbx` with every clip as a take, and renders contact sheets or every frame |
+### The kid and the rooster, from their turnarounds
 
-Run them with the Blender Python (the same venv as the scene builders):
+`tools/characters/hull_character.py` builds each from its four painted views (A0 front/back/left/right, B11-B14):
+
+1. Each view is cut from its background and scaled to the character's height (1.08 m and 0.64 m).
+2. The shape is carved slice by slice: every span the front and back views see is paired with every span the side
+   views see and filled with a rounded section touching both, so the outline matches all four paintings and the body
+   is round between them. Small gaps (between feathers, curls, toes) are bridged when choosing the sections and kept
+   open in the carve. The kid's arms take their depth and place from the skin in the side views, her head is the face
+   (as wide as the skin in the front view) with the hair beside and behind it, and the rooster's tail is a thin fan.
+3. Each point is painted from the view that sees it most squarely and is not hidden there (a depth buffer per view),
+   blended by angle and baked to one texture (`Kid_painted.png`, `Rooster_painted.png`). Points no view sees, under
+   the arms or inside the hem, take the colour around them.
+4. The rig is the hand-built one (`kid_model.BONES`, `rooster_model.BONES`) with its joints moved to where the
+   paintings put them, skinned with automatic weights (the frock hangs on the skirt bones), so every clip in
+   `kid_anims.py` and `rooster_anims.py` plays on it. Exported as `Assets/ChickenRunner/Art/Characters/Kid.fbx` and
+   `Rooster.fbx` with every clip as a take.
 
 ```bash
-python ArtSource/tools/characters/build_character.py kid --sheet kid_clips.png
-python ArtSource/tools/characters/build_character.py rooster --sheet rooster_clips.png
+python ArtSource/tools/characters/hull_character.py kid --sheet kid.png --closeup kid_close.png
+python ArtSource/tools/characters/hull_character.py rooster --sheet rooster.png --closeup rooster_close.png
 python ArtSource/tools/characters/pickups.py --sheet pickups.png
 ```
 
-Clips are written as functions of time (`run(t)`, `fall(t)`, ...), so loops are seamless and the hair and skirt follow
-through on their own. They are rendered toon-shaded (two tones from a fixed front-left light, ink outlines), and in Unity
-the `ChickenRunner/Toon` shader gives the same look. The colours and faces are painted from code until the M textures
-(M1 faces, M2-M5 frock, border, hair and hairband, M6-M8 plumage, M9 mango, M10 feather) are pushed: then re-run these
-and Build Game, and the models wear them.
+`--frames DIR` renders every frame of every clip (for the web version: `Tools/WebPreview/pack_characters.py DIR`).
+
+The clips are functions of time in `kid_anims.py` (Idle, Run, JumpUp, Fall, Land, DoubleJump, Slide, Vault, Climb,
+Stumble, Dive, Wade) and `rooster_anims.py` (Idle, Run, Panic, Flutter, Crow, Startled, Tumble), so loops are seamless
+and the hair and skirt follow through. The hand-built models in `kid_model.py` and `rooster_model.py`
+(`build_character.py kid|rooster`) are the fallback when the turnarounds are missing; `pickups.py` builds the mango,
+the chilli and the tail feather the same way. In Unity the `ChickenRunner/Toon` shader gives them two-tone shading
+and an ink outline.
+
+### Everything else, from its cut-out
+
+`tools/models/build_models.py` turns every cut-out (about 200 pieces; not the distant bands, which stay painted cards)
+into a model at its real size, with the painting on its front:
+
+| Recipe | Pieces | How |
+| --- | --- | --- |
+| volume | animals, people, trees, plants, pots, baskets, crops | the outline inflated into a rounded solid, thickest where the shape is widest |
+| slab | cots, carts, cycles, clotheslines, mats, kolams, ground details | the outline extruded to the thing's real thickness |
+| building | houses, shops, sheds, stalls, temple pieces, walls, wells | the facade extruded back to the building's depth; walls and roof show the painting just inside each edge (plaster, brick, thatch, tiles), mirrored to and fro |
+
+```bash
+python ArtSource/tools/models/build_models.py --sheet models.png            # all of them, about 10 minutes
+python ArtSource/tools/models/build_models.py --only house_pink,cow --sheet check.png
+```
+
+They go to `Assets/ChickenRunner/Art/Models/<folder>/<name>.fbx` with a JPEG texture beside each and `models.json`
+listing their sizes. Build Game and Import Art Layouts stand each piece's model where its card would be (same spot,
+size and haze; a building stops short of whatever stands behind it). **Chicken Runner > Use 3D Scenery Models**
+switches back to the flat cards.

@@ -14,8 +14,13 @@ Rebuild after the art, the layouts or the code change:
 ```bash
 ArtSource/blender/venv/bin/python Tools/WebPreview/build_assets.py   # about 15 minutes; only when art or layouts change
 ArtSource/blender/venv/bin/python Tools/WebPreview/atlas.py
+ArtSource/blender/venv/bin/python Tools/WebPreview/pack_characters.py FRAMES   # the 3D characters' frames, below
 python3 Tools/WebPreview/make_site.py
 ```
+
+The kid, the rooster and the pickups are drawn from frames of their 3D models: render them into FRAMES/kid,
+FRAMES/rooster and FRAMES/pickups with `ArtSource/tools/characters/hull_character.py kid|rooster --frames
+FRAMES/<who>` and `pickups.py --frames FRAMES/pickups`.
 
 Any Python with Pillow and NumPy works for the first two. `Web/` keeps its images out of Git LFS (see
 `Web/.gitattributes`) so a host that builds from the repository serves the pictures themselves.

@@ -34,9 +34,24 @@ namespace ChickenRunner.EditorTools
             return layout?.cards == null || layout.cards.Length == 0 ? null : layout;
         }
 
-        /// <summary>Makes the card's quad under <paramref name="parent"/>, or returns null when its art is missing.</summary>
-        public static GameObject MakeCard(LayoutCard card, Transform parent, Vector3 offset = default)
+        /// <summary>
+        /// Makes the card under <paramref name="parent"/>: the piece's 3D model where it has one (see
+        /// <see cref="ArtModels"/>; <paramref name="roomBehind"/> caps how far back it reaches), else its painted quad.
+        /// Null when its art is missing.
+        /// </summary>
+        public static GameObject MakeCard(LayoutCard card, Transform parent, Vector3 offset = default,
+            float roomBehind = float.PositiveInfinity)
         {
+            if (ArtModels.Enabled)
+            {
+                var model = ArtModels.Place(parent, card.image, new Vector3(card.x, card.y, card.z) + offset, new Vector2(card.w, card.h),
+                    card.mirror, card.flat, card.turn, card.haze, roomBehind);
+                if (model != null)
+                {
+                    model.name = card.name;
+                    return model;
+                }
+            }
             var texture = ArtAssets.Texture(card.image);
             var material = ArtAssets.CardMaterial(texture, card.haze, card.fade_bottom, card.fade_sides);
             if (material == null) return null;
@@ -47,7 +62,8 @@ namespace ChickenRunner.EditorTools
 #pragma warning restore 0649
 
     /// <summary>
-    /// Rebuilds the Blender scenes' painted cut-outs in Unity, exactly as staged, for looking at a zone as a whole.
+    /// Rebuilds the Blender scenes' painted cut-outs in Unity, exactly as staged, for looking at a zone as a whole (as
+    /// 3D models where the cut-out has one).
     /// The scene builders in ArtSource/tools write one layout per zone to Assets/ChickenRunner/Art/Layouts/*.json; this
     /// copies the art each layout uses into Assets/ChickenRunner/Art/Textures, makes a material per card look, and saves
     /// a prefab per zone in Assets/ChickenRunner/Art/Prefabs with the cards grouped by layer (Houses, Plants, ...).
@@ -73,6 +89,7 @@ namespace ChickenRunner.EditorTools
                 return;
             }
             ArtAssets.ClearCache();
+            ArtModels.ClearCache();
             foreach (var file in Directory.GetFiles(LayoutFolder, "*.json"))
                 Import(file);
             AssetDatabase.SaveAssets();
@@ -97,7 +114,7 @@ namespace ChickenRunner.EditorTools
                         parent.SetParent(root.transform, false);
                         layers[card.layer] = parent;
                     }
-                    LayoutFile.MakeCard(card, parent);
+                    LayoutFile.MakeCard(card, parent, default, ArtModels.RoomBehind(card, layout.cards));
                 }
             }
             finally
