@@ -483,7 +483,12 @@ class Course {
     for (const p of placements) {
       const k = chunk(p.name), ox = p.x;
       const objMap = new Map();
-      for (const s of k.solids) this.solids.push({ ...s, x0: s.x0 + ox, x1: s.x1 + ox });
+      for (const s of k.solids) {
+        const ladder = s.ladder && typeof s.ladder === 'object'
+          ? { ...s.ladder, foot: [s.ladder.foot[0] + ox, ...s.ladder.foot.slice(1)], head: [s.ladder.head[0] + ox, ...s.ladder.head.slice(1)] }
+          : s.ladder;
+        this.solids.push({ ...s, x0: s.x0 + ox, x1: s.x1 + ox, ladder });
+      }
       for (const o of k.obstacles) {
         const c = { ...o, x: o.x + ox, armed: !o.hidden, react: -1, reveal: -1, hidden: o.hidden };
         objMap.set(o, c); this.obstacles.push(c);
