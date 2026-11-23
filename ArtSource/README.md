@@ -208,6 +208,29 @@ python ArtSource/tools/models/build_models.py --sheet models.png            # al
 python ArtSource/tools/models/build_models.py --only house_pink,cow --sheet check.png
 ```
 
+### Full 3D from TRELLIS
+
+A single front painting cannot say what the sides, back and top look like, so the pieces are also generated whole
+by TRELLIS (image to 3D) and then fitted back to the paintings:
+
+```bash
+python ArtSource/tools/models/trellis_models.py      # each cut-out to ArtSource/models_ai/<folder>/<name>.glb
+python ArtSource/tools/models/finish_models.py       # fit, repaint the front, export over the extruded model
+```
+
+`trellis_models.py` sends each cut-out to the TRELLIS Space on Hugging Face by its public GitHub URL and keeps the
+GLB. It needs the Space's host allowed on the network and a Hugging Face token for it (a network secret, so the GPU
+time counts against that account). The free GPU quota covers about seven pieces a day, Hugging Face PRO about 60;
+when it runs out the run stops, and running it again later carries on with the pieces still missing, the lane's
+own obstacles, roofs and stalls first. Ground details and kolams stay flat slabs (they are painted from above).
+`--only name --seed N --redo` makes one again with another seed.
+
+`finish_models.py` turns each model to the heading where, seen from the front, it looks most like the painting
+(TRELLIS repeats the painting on the side it was shown; colour picks that side), fits its outline to the cut-out's
+painted area at the cut-out's real size, and projects the painting back onto the surfaces facing the camera where
+it agrees with the generated colour (sharper than the generated texture; where a leg or edge sits differently the
+generated colour stays). It then replaces that piece's extruded model and its `models.json` entry.
+
 They go to `Assets/ChickenRunner/Art/Models/<folder>/<name>.fbx` with a JPEG texture beside each and `models.json`
 listing their sizes. Build Game and Import Art Layouts stand each piece's model where its card would be (same spot,
 size and haze; a building stops short of whatever stands behind it). **Chicken Runner > Use 3D Scenery Models**

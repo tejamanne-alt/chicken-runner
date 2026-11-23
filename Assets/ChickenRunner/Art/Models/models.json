@@ -6,8 +6,11 @@
    "kind": "volume",
    "width": 2.615,
    "height": 1.5,
-   "depth": 0.72,
-   "faces": 6000
+   "depth": 2.674,
+   "faces": 9000,
+   "source": "trellis",
+   "heading": 90.0,
+   "outline_match": 0.722
   },
   {
    "name": "bullocks",
@@ -24,8 +27,11 @@
    "kind": "volume",
    "width": 1.145,
    "height": 0.95,
-   "depth": 0.42,
-   "faces": 6000
+   "depth": 0.612,
+   "faces": 8036,
+   "source": "trellis",
+   "heading": 90.0,
+   "outline_match": 0.753
   },
   {
    "name": "cat_on_wall",
@@ -33,8 +39,11 @@
    "kind": "volume",
    "width": 0.777,
    "height": 0.55,
-   "depth": 0.16,
-   "faces": 6000
+   "depth": 0.254,
+   "faces": 8999,
+   "source": "trellis",
+   "heading": 0.0,
+   "outline_match": 0.824
   },
   {
    "name": "cow",
@@ -42,8 +51,11 @@
    "kind": "volume",
    "width": 1.743,
    "height": 1.45,
-   "depth": 0.6,
-   "faces": 6000
+   "depth": 1.02,
+   "faces": 9000,
+   "source": "trellis",
+   "heading": 90.0,
+   "outline_match": 0.762
   },
   {
    "name": "crows_on_ledge",
@@ -51,8 +63,11 @@
    "kind": "volume",
    "width": 0.908,
    "height": 0.45,
-   "depth": 0.14,
-   "faces": 6000
+   "depth": 0.304,
+   "faces": 8999,
+   "source": "trellis",
+   "heading": 90.0,
+   "outline_match": 0.778
   },
   {
    "name": "dog_barking",
@@ -60,8 +75,11 @@
    "kind": "volume",
    "width": 0.75,
    "height": 0.6,
-   "depth": 0.24,
-   "faces": 6000
+   "depth": 0.351,
+   "faces": 9000,
+   "source": "trellis",
+   "heading": 80.0,
+   "outline_match": 0.702
   },
   {
    "name": "dog_sleeping",

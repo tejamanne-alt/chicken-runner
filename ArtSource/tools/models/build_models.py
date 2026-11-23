@@ -478,4 +478,5 @@ def contact_sheet(objects, index):
     sheet.save(SHEET)
 
 
-main()
+if __name__ == "__main__":
+    main()
