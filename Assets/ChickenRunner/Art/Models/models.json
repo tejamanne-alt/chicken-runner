@@ -1,0 +1,1858 @@
+{
+ "models": [
+  {
+   "name": "buffalo_mud",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 2.615,
+   "height": 1.5,
+   "depth": 0.72,
+   "faces": 6000
+  },
+  {
+   "name": "bullocks",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 2.482,
+   "height": 1.55,
+   "depth": 1.3,
+   "faces": 6000
+  },
+  {
+   "name": "calf",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 1.145,
+   "height": 0.95,
+   "depth": 0.42,
+   "faces": 6000
+  },
+  {
+   "name": "cat_on_wall",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.777,
+   "height": 0.55,
+   "depth": 0.16,
+   "faces": 6000
+  },
+  {
+   "name": "cow",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 1.743,
+   "height": 1.45,
+   "depth": 0.6,
+   "faces": 5998
+  },
+  {
+   "name": "crows_on_ledge",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.908,
+   "height": 0.45,
+   "depth": 0.14,
+   "faces": 6000
+  },
+  {
+   "name": "dog_barking",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.75,
+   "height": 0.6,
+   "depth": 0.24,
+   "faces": 6000
+  },
+  {
+   "name": "dog_sleeping",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.9,
+   "height": 0.513,
+   "depth": 0.3,
+   "faces": 6000
+  },
+  {
+   "name": "duck_1",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.412,
+   "height": 0.55,
+   "depth": 0.16,
+   "faces": 6000
+  },
+  {
+   "name": "duck_2",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.403,
+   "height": 0.55,
+   "depth": 0.16,
+   "faces": 6000
+  },
+  {
+   "name": "goat_eating",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 1.05,
+   "height": 0.95,
+   "depth": 0.3,
+   "faces": 6000
+  },
+  {
+   "name": "goat_kid",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.575,
+   "height": 0.55,
+   "depth": 0.24,
+   "faces": 6000
+  },
+  {
+   "name": "goat_on_wall",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 1.376,
+   "height": 1.35,
+   "depth": 0.32,
+   "faces": 6000
+  },
+  {
+   "name": "hen_1",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.409,
+   "height": 0.42,
+   "depth": 0.18,
+   "faces": 6000
+  },
+  {
+   "name": "hen_2",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.376,
+   "height": 0.42,
+   "depth": 0.18,
+   "faces": 6000
+  },
+  {
+   "name": "hen_3",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.35,
+   "height": 0.42,
+   "depth": 0.18,
+   "faces": 6000
+  },
+  {
+   "name": "hen_with_chicks",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.891,
+   "height": 0.45,
+   "depth": 0.3,
+   "faces": 5998
+  },
+  {
+   "name": "parrots",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.652,
+   "height": 0.5,
+   "depth": 0.1,
+   "faces": 6000
+  },
+  {
+   "name": "peacock",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 2.189,
+   "height": 1.05,
+   "depth": 0.26,
+   "faces": 6000
+  },
+  {
+   "name": "squirrel",
+   "folder": "animals",
+   "kind": "volume",
+   "width": 0.44,
+   "height": 0.3,
+   "depth": 0.08,
+   "faces": 6000
+  },
+  {
+   "name": "bund_block",
+   "folder": "fields",
+   "kind": "building",
+   "width": 2.327,
+   "height": 0.7,
+   "depth": 0.9,
+   "faces": 3256
+  },
+  {
+   "name": "bund_strip",
+   "folder": "fields",
+   "kind": "building",
+   "width": 3.43,
+   "height": 0.55,
+   "depth": 0.9,
+   "faces": 1486
+  },
+  {
+   "name": "canal_bank",
+   "folder": "fields",
+   "kind": "building",
+   "width": 4.175,
+   "height": 1.3,
+   "depth": 0.8,
+   "faces": 1004
+  },
+  {
+   "name": "canal_bridge",
+   "folder": "fields",
+   "kind": "building",
+   "width": 2.053,
+   "height": 1.1,
+   "depth": 1.0,
+   "faces": 2796
+  },
+  {
+   "name": "crop_strip_1",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 8.248,
+   "height": 0.703,
+   "depth": 2.062,
+   "faces": 12000
+  },
+  {
+   "name": "crop_strip_2",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 8.538,
+   "height": 1.055,
+   "depth": 2.134,
+   "faces": 12000
+  },
+  {
+   "name": "crop_strip_3",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 8.352,
+   "height": 2.6,
+   "depth": 2.088,
+   "faces": 12000
+  },
+  {
+   "name": "crop_strip_4",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 8.248,
+   "height": 0.738,
+   "depth": 2.062,
+   "faces": 12000
+  },
+  {
+   "name": "crop_strip_5",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 8.324,
+   "height": 1.428,
+   "depth": 2.081,
+   "faces": 12000
+  },
+  {
+   "name": "crop_strip_6",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 8.262,
+   "height": 2.255,
+   "depth": 2.066,
+   "faces": 12000
+  },
+  {
+   "name": "field_bldg_1",
+   "folder": "fields",
+   "kind": "building",
+   "width": 7.414,
+   "height": 4.468,
+   "depth": 3.5,
+   "faces": 1853
+  },
+  {
+   "name": "field_bldg_2",
+   "folder": "fields",
+   "kind": "building",
+   "width": 3.908,
+   "height": 5.0,
+   "depth": 3.5,
+   "faces": 2856
+  },
+  {
+   "name": "field_bldg_3",
+   "folder": "fields",
+   "kind": "building",
+   "width": 8.369,
+   "height": 3.348,
+   "depth": 3.5,
+   "faces": 1204
+  },
+  {
+   "name": "field_life_1",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.947,
+   "height": 1.63,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "field_life_2",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.833,
+   "height": 1.309,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "field_life_3",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 1.915,
+   "height": 1.375,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "field_life_4",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 3.166,
+   "height": 1.576,
+   "depth": 0.34,
+   "faces": 12000
+  },
+  {
+   "name": "field_life_5",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.938,
+   "height": 1.624,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "field_life_6",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 1.194,
+   "height": 1.9,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "field_shrine",
+   "folder": "fields",
+   "kind": "building",
+   "width": 2.676,
+   "height": 4.2,
+   "depth": 1.5,
+   "faces": 1322
+  },
+  {
+   "name": "field_tree_1",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 9.494,
+   "height": 10.0,
+   "depth": 3.038,
+   "faces": 12000
+  },
+  {
+   "name": "field_tree_2",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 5.314,
+   "height": 5.688,
+   "depth": 1.7,
+   "faces": 12000
+  },
+  {
+   "name": "field_tree_3",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 5.172,
+   "height": 8.472,
+   "depth": 1.655,
+   "faces": 12000
+  },
+  {
+   "name": "field_tree_4",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 5.182,
+   "height": 4.433,
+   "depth": 1.658,
+   "faces": 12000
+  },
+  {
+   "name": "field_tree_5",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 4.059,
+   "height": 9.008,
+   "depth": 1.299,
+   "faces": 12000
+  },
+  {
+   "name": "field_tree_6",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 3.887,
+   "height": 2.54,
+   "depth": 1.244,
+   "faces": 12000
+  },
+  {
+   "name": "granary",
+   "folder": "fields",
+   "kind": "building",
+   "width": 4.584,
+   "height": 4.6,
+   "depth": 3,
+   "faces": 2138
+  },
+  {
+   "name": "haystack",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.854,
+   "height": 2.6,
+   "depth": 2.283,
+   "faces": 6000
+  },
+  {
+   "name": "haystack_small",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 1.681,
+   "height": 1.8,
+   "depth": 1.344,
+   "faces": 6000
+  },
+  {
+   "name": "hut_with_pen",
+   "folder": "fields",
+   "kind": "building",
+   "width": 6.543,
+   "height": 3.8,
+   "depth": 4,
+   "faces": 2004
+  },
+  {
+   "name": "paddy_ripe",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.622,
+   "height": 1.0,
+   "depth": 0.655,
+   "faces": 6000
+  },
+  {
+   "name": "paddy_tall",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.406,
+   "height": 1.0,
+   "depth": 0.601,
+   "faces": 6000
+  },
+  {
+   "name": "paddy_young",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 1.654,
+   "height": 0.55,
+   "depth": 0.414,
+   "faces": 6000
+  },
+  {
+   "name": "palmyra_1",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 4.647,
+   "height": 9.0,
+   "depth": 1.487,
+   "faces": 12000
+  },
+  {
+   "name": "palmyra_2",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 4.721,
+   "height": 9.5,
+   "depth": 1.511,
+   "faces": 12000
+  },
+  {
+   "name": "palmyra_3",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 4.354,
+   "height": 9.0,
+   "depth": 1.393,
+   "faces": 12000
+  },
+  {
+   "name": "pump_house",
+   "folder": "fields",
+   "kind": "building",
+   "width": 3.83,
+   "height": 2.9,
+   "depth": 3,
+   "faces": 1660
+  },
+  {
+   "name": "scarecrow",
+   "folder": "fields",
+   "kind": "slab",
+   "width": 1.723,
+   "height": 2.1,
+   "depth": 0.25,
+   "faces": 978
+  },
+  {
+   "name": "sluice_gate",
+   "folder": "fields",
+   "kind": "building",
+   "width": 2.205,
+   "height": 1.7,
+   "depth": 0.8,
+   "faces": 2148
+  },
+  {
+   "name": "sugarcane",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 5.624,
+   "height": 2.8,
+   "depth": 1.406,
+   "faces": 12000
+  },
+  {
+   "name": "well",
+   "folder": "fields",
+   "kind": "building",
+   "width": 3.137,
+   "height": 2.4,
+   "depth": 1.6,
+   "faces": 2694
+  },
+  {
+   "name": "cart_rut",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 2.6,
+   "height": 0.685,
+   "depth": 0.012,
+   "faces": 260
+  },
+  {
+   "name": "coconut",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.22,
+   "height": 0.234,
+   "depth": 0.012,
+   "faces": 541
+  },
+  {
+   "name": "cracked_mud",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 1.6,
+   "height": 0.669,
+   "depth": 0.012,
+   "faces": 259
+  },
+  {
+   "name": "footprints",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 1.4,
+   "height": 0.278,
+   "depth": 0.012,
+   "faces": 378
+  },
+  {
+   "name": "hen_prints",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.225,
+   "depth": 0.012,
+   "faces": 343
+  },
+  {
+   "name": "hoof_prints",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 1.2,
+   "height": 0.338,
+   "depth": 0.012,
+   "faces": 410
+  },
+  {
+   "name": "husk",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.3,
+   "height": 0.214,
+   "depth": 0.012,
+   "faces": 669
+  },
+  {
+   "name": "leaf_1",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.12,
+   "height": 0.186,
+   "depth": 0.012,
+   "faces": 287
+  },
+  {
+   "name": "leaf_2",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.12,
+   "height": 0.305,
+   "depth": 0.012,
+   "faces": 266
+  },
+  {
+   "name": "leaf_3",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.12,
+   "height": 0.296,
+   "depth": 0.012,
+   "faces": 254
+  },
+  {
+   "name": "pebble_cluster",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.35,
+   "height": 0.24,
+   "depth": 0.012,
+   "faces": 627
+  },
+  {
+   "name": "pebbles",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.6,
+   "height": 0.269,
+   "depth": 0.012,
+   "faces": 223
+  },
+  {
+   "name": "tuft_1",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.3,
+   "height": 0.343,
+   "depth": 0.012,
+   "faces": 884
+  },
+  {
+   "name": "tuft_2",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.22,
+   "height": 0.246,
+   "depth": 0.012,
+   "faces": 797
+  },
+  {
+   "name": "tuft_3",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.2,
+   "height": 0.244,
+   "depth": 0.012,
+   "faces": 689
+  },
+  {
+   "name": "tuft_4",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.16,
+   "height": 0.152,
+   "depth": 0.012,
+   "faces": 689
+  },
+  {
+   "name": "twigs",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.45,
+   "height": 0.299,
+   "depth": 0.012,
+   "faces": 740
+  },
+  {
+   "name": "weed_1",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.3,
+   "height": 0.309,
+   "depth": 0.012,
+   "faces": 1103
+  },
+  {
+   "name": "weed_2",
+   "folder": "ground",
+   "kind": "slab",
+   "width": 0.3,
+   "height": 0.44,
+   "depth": 0.012,
+   "faces": 1069
+  },
+  {
+   "name": "bicycle",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 1.7,
+   "height": 1.205,
+   "depth": 0.12,
+   "faces": 2274
+  },
+  {
+   "name": "brass_pots",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 0.697,
+   "height": 0.45,
+   "depth": 0.558,
+   "faces": 6000
+  },
+  {
+   "name": "bullock_cart",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 3.8,
+   "height": 1.726,
+   "depth": 1.1,
+   "faces": 1658
+  },
+  {
+   "name": "cattle_shed",
+   "folder": "lane",
+   "kind": "building",
+   "width": 6.373,
+   "height": 3.438,
+   "depth": 4,
+   "faces": 1589
+  },
+  {
+   "name": "chicken_basket",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 0.718,
+   "height": 0.6,
+   "depth": 0.574,
+   "faces": 6000
+  },
+  {
+   "name": "clothesline",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 2.4,
+   "height": 1.693,
+   "depth": 0.05,
+   "faces": 980
+  },
+  {
+   "name": "doorway_garland",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 1.858,
+   "height": 2.3,
+   "depth": 0.06,
+   "faces": 341
+  },
+  {
+   "name": "dung",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.6,
+   "height": 0.252,
+   "depth": 0.08,
+   "faces": 495
+  },
+  {
+   "name": "hand_pump",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 1.304,
+   "height": 1.2,
+   "depth": 0.2,
+   "faces": 803
+  },
+  {
+   "name": "house_being_built",
+   "folder": "lane",
+   "kind": "building",
+   "width": 8.167,
+   "height": 3.525,
+   "depth": 4.5,
+   "faces": 1126
+  },
+  {
+   "name": "house_hut_porch",
+   "folder": "lane",
+   "kind": "building",
+   "width": 6.799,
+   "height": 4.668,
+   "depth": 4.5,
+   "faces": 1092
+  },
+  {
+   "name": "house_indigo_veranda",
+   "folder": "lane",
+   "kind": "building",
+   "width": 4.532,
+   "height": 4.2,
+   "depth": 4.5,
+   "faces": 1660
+  },
+  {
+   "name": "house_limewash",
+   "folder": "lane",
+   "kind": "building",
+   "width": 2.118,
+   "height": 4.27,
+   "depth": 4.5,
+   "faces": 3810
+  },
+  {
+   "name": "house_mud_tin",
+   "folder": "lane",
+   "kind": "building",
+   "width": 4.567,
+   "height": 3.682,
+   "depth": 4.5,
+   "faces": 581
+  },
+  {
+   "name": "house_pink",
+   "folder": "lane",
+   "kind": "building",
+   "width": 2.83,
+   "height": 4.27,
+   "depth": 4.5,
+   "faces": 2032
+  },
+  {
+   "name": "house_plank_sheet",
+   "folder": "lane",
+   "kind": "building",
+   "width": 4.739,
+   "height": 3.202,
+   "depth": 4.5,
+   "faces": 986
+  },
+  {
+   "name": "house_potter",
+   "folder": "lane",
+   "kind": "building",
+   "width": 8.745,
+   "height": 4.542,
+   "depth": 4.5,
+   "faces": 1740
+  },
+  {
+   "name": "house_thatched_hut",
+   "folder": "lane",
+   "kind": "building",
+   "width": 6.064,
+   "height": 4.733,
+   "depth": 4.5,
+   "faces": 1292
+  },
+  {
+   "name": "house_tiled_gate",
+   "folder": "lane",
+   "kind": "building",
+   "width": 9.967,
+   "height": 5.317,
+   "depth": 6,
+   "faces": 1629
+  },
+  {
+   "name": "house_turmeric_ladder",
+   "folder": "lane",
+   "kind": "building",
+   "width": 3.512,
+   "height": 3.97,
+   "depth": 4.5,
+   "faces": 2394
+  },
+  {
+   "name": "house_village_head",
+   "folder": "lane",
+   "kind": "building",
+   "width": 13.517,
+   "height": 8.006,
+   "depth": 7,
+   "faces": 1864
+  },
+  {
+   "name": "house_weaver",
+   "folder": "lane",
+   "kind": "building",
+   "width": 6.553,
+   "height": 4.482,
+   "depth": 4.5,
+   "faces": 1056
+  },
+  {
+   "name": "jute_sacks",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 1.153,
+   "height": 0.8,
+   "depth": 0.922,
+   "faces": 6000
+  },
+  {
+   "name": "kolam_1",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.711,
+   "depth": 0.012,
+   "faces": 1030
+  },
+  {
+   "name": "kolam_2",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.751,
+   "depth": 0.012,
+   "faces": 1157
+  },
+  {
+   "name": "kolam_3",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.814,
+   "depth": 0.012,
+   "faces": 857
+  },
+  {
+   "name": "kolam_4",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.652,
+   "depth": 0.012,
+   "faces": 795
+  },
+  {
+   "name": "kolam_5",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.642,
+   "depth": 0.012,
+   "faces": 1289
+  },
+  {
+   "name": "kolam_6",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.9,
+   "height": 0.949,
+   "depth": 0.012,
+   "faces": 1517
+  },
+  {
+   "name": "lamp_pillar",
+   "folder": "lane",
+   "kind": "building",
+   "width": 5.807,
+   "height": 9.115,
+   "depth": 0.7,
+   "faces": 719
+  },
+  {
+   "name": "panchayat_office",
+   "folder": "lane",
+   "kind": "building",
+   "width": 8.509,
+   "height": 4.286,
+   "depth": 6,
+   "faces": 806
+  },
+  {
+   "name": "peepal_platform",
+   "folder": "lane",
+   "kind": "building",
+   "width": 6.932,
+   "height": 5.327,
+   "depth": 4,
+   "faces": 2369
+  },
+  {
+   "name": "pot_stack",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 0.449,
+   "height": 0.65,
+   "depth": 0.359,
+   "faces": 6000
+  },
+  {
+   "name": "rope_cot",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 1.9,
+   "height": 1.02,
+   "depth": 0.85,
+   "faces": 1954
+  },
+  {
+   "name": "shop_provisions",
+   "folder": "lane",
+   "kind": "building",
+   "width": 5.027,
+   "height": 3.81,
+   "depth": 4,
+   "faces": 948
+  },
+  {
+   "name": "shop_tailor_cycle",
+   "folder": "lane",
+   "kind": "building",
+   "width": 4.671,
+   "height": 3.697,
+   "depth": 4,
+   "faces": 1102
+  },
+  {
+   "name": "shop_tea_stall",
+   "folder": "lane",
+   "kind": "building",
+   "width": 4.439,
+   "height": 3.47,
+   "depth": 4,
+   "faces": 1831
+  },
+  {
+   "name": "shrine_stone",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 1.067,
+   "height": 1.0,
+   "depth": 0.854,
+   "faces": 6000
+  },
+  {
+   "name": "shrine_tree",
+   "folder": "lane",
+   "kind": "building",
+   "width": 7.175,
+   "height": 5.494,
+   "depth": 4,
+   "faces": 2342
+  },
+  {
+   "name": "tree_mango_1",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 6.575,
+   "height": 6.0,
+   "depth": 2.104,
+   "faces": 12000
+  },
+  {
+   "name": "tree_mango_2",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 6.124,
+   "height": 6.0,
+   "depth": 1.96,
+   "faces": 12000
+  },
+  {
+   "name": "tulsi_planter",
+   "folder": "lane",
+   "kind": "volume",
+   "width": 0.729,
+   "height": 1.1,
+   "depth": 0.583,
+   "faces": 6000
+  },
+  {
+   "name": "water_pot_stand",
+   "folder": "lane",
+   "kind": "slab",
+   "width": 0.96,
+   "height": 1.1,
+   "depth": 0.45,
+   "faces": 930
+  },
+  {
+   "name": "black_tank",
+   "folder": "market",
+   "kind": "volume",
+   "width": 1.629,
+   "height": 2.0,
+   "depth": 1.303,
+   "faces": 6000
+  },
+  {
+   "name": "brass_vessels",
+   "folder": "market",
+   "kind": "volume",
+   "width": 0.814,
+   "height": 0.9,
+   "depth": 0.651,
+   "faces": 6000
+  },
+  {
+   "name": "bunting",
+   "folder": "market",
+   "kind": "slab",
+   "width": 1.893,
+   "height": 0.7,
+   "depth": 0.015,
+   "faces": 644
+  },
+  {
+   "name": "chariot_shed",
+   "folder": "market",
+   "kind": "building",
+   "width": 7.911,
+   "height": 5.0,
+   "depth": 5,
+   "faces": 1132
+  },
+  {
+   "name": "chilli_mat",
+   "folder": "market",
+   "kind": "slab",
+   "width": 0.435,
+   "height": 0.25,
+   "depth": 0.05,
+   "faces": 443
+  },
+  {
+   "name": "coconut_cart",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.858,
+   "height": 2.711,
+   "depth": 1.1,
+   "faces": 1949
+  },
+  {
+   "name": "flower_stall",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.183,
+   "height": 2.6,
+   "depth": 1.4,
+   "faces": 2994
+  },
+  {
+   "name": "hens_basket",
+   "folder": "market",
+   "kind": "volume",
+   "width": 0.713,
+   "height": 0.55,
+   "depth": 0.57,
+   "faces": 6000
+  },
+  {
+   "name": "kite",
+   "folder": "market",
+   "kind": "slab",
+   "width": 0.579,
+   "height": 0.9,
+   "depth": 0.02,
+   "faces": 720
+  },
+  {
+   "name": "lamp_step",
+   "folder": "market",
+   "kind": "building",
+   "width": 1.746,
+   "height": 1.9,
+   "depth": 0.6,
+   "faces": 840
+  },
+  {
+   "name": "lantern",
+   "folder": "market",
+   "kind": "slab",
+   "width": 0.203,
+   "height": 0.45,
+   "depth": 0.2,
+   "faces": 1152
+  },
+  {
+   "name": "mandapam",
+   "folder": "market",
+   "kind": "building",
+   "width": 10.355,
+   "height": 2.89,
+   "depth": 4,
+   "faces": 1298
+  },
+  {
+   "name": "papad_mat",
+   "folder": "market",
+   "kind": "slab",
+   "width": 0.437,
+   "height": 0.25,
+   "depth": 0.05,
+   "faces": 392
+  },
+  {
+   "name": "parapet_gap",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.093,
+   "height": 1.2,
+   "depth": 0.3,
+   "faces": 676
+  },
+  {
+   "name": "roof_house_a_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 13.121,
+   "height": 5.998,
+   "depth": 6,
+   "faces": 671
+  },
+  {
+   "name": "roof_house_a_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 12.517,
+   "height": 5.176,
+   "depth": 6,
+   "faces": 1678
+  },
+  {
+   "name": "roof_house_b_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 9.863,
+   "height": 4.505,
+   "depth": 6,
+   "faces": 3358
+  },
+  {
+   "name": "roof_house_b_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 8.162,
+   "height": 6.0,
+   "depth": 6,
+   "faces": 2945
+  },
+  {
+   "name": "stall_c_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.033,
+   "height": 2.845,
+   "depth": 1.6,
+   "faces": 1826
+  },
+  {
+   "name": "stall_c_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.15,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 1774
+  },
+  {
+   "name": "stall_c_3",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.541,
+   "height": 2.329,
+   "depth": 1.6,
+   "faces": 2398
+  },
+  {
+   "name": "stall_d_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.35,
+   "height": 2.987,
+   "depth": 1.6,
+   "faces": 2932
+  },
+  {
+   "name": "stall_d_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.963,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 2340
+  },
+  {
+   "name": "stall_d_3",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.447,
+   "height": 2.836,
+   "depth": 1.6,
+   "faces": 968
+  },
+  {
+   "name": "stall_e_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 6.353,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 1558
+  },
+  {
+   "name": "stall_e_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.086,
+   "height": 2.82,
+   "depth": 1.6,
+   "faces": 2516
+  },
+  {
+   "name": "stall_e_3",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.103,
+   "height": 2.874,
+   "depth": 1.6,
+   "faces": 1620
+  },
+  {
+   "name": "stall_f_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.954,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 1634
+  },
+  {
+   "name": "stall_f_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.966,
+   "height": 2.97,
+   "depth": 1.6,
+   "faces": 1371
+  },
+  {
+   "name": "stall_f_3",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.646,
+   "height": 2.859,
+   "depth": 1.6,
+   "faces": 3686
+  },
+  {
+   "name": "stall_f_4",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.966,
+   "height": 2.886,
+   "depth": 1.6,
+   "faces": 1272
+  },
+  {
+   "name": "stall_flowers",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.606,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 4450
+  },
+  {
+   "name": "stall_g_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.793,
+   "height": 2.878,
+   "depth": 1.6,
+   "faces": 1576
+  },
+  {
+   "name": "stall_g_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.934,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 2172
+  },
+  {
+   "name": "stall_g_3",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.427,
+   "height": 2.931,
+   "depth": 1.6,
+   "faces": 3558
+  },
+  {
+   "name": "stall_h_1",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.254,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 1228
+  },
+  {
+   "name": "stall_h_2",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.327,
+   "height": 2.87,
+   "depth": 1.6,
+   "faces": 2902
+  },
+  {
+   "name": "stall_h_3",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.95,
+   "height": 2.854,
+   "depth": 1.6,
+   "faces": 3656
+  },
+  {
+   "name": "stall_high",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.045,
+   "height": 2.9,
+   "depth": 1.6,
+   "faces": 3670
+  },
+  {
+   "name": "stall_low",
+   "folder": "market",
+   "kind": "building",
+   "width": 2.546,
+   "height": 2.0,
+   "depth": 1.6,
+   "faces": 3811
+  },
+  {
+   "name": "stall_potter",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.33,
+   "height": 2.977,
+   "depth": 1.6,
+   "faces": 1415
+  },
+  {
+   "name": "stall_sweets",
+   "folder": "market",
+   "kind": "building",
+   "width": 5.002,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 2414
+  },
+  {
+   "name": "stall_veg",
+   "folder": "market",
+   "kind": "building",
+   "width": 4.14,
+   "height": 3.0,
+   "depth": 1.6,
+   "faces": 1733
+  },
+  {
+   "name": "stall_vessels",
+   "folder": "market",
+   "kind": "building",
+   "width": 3.977,
+   "height": 2.6,
+   "depth": 1.6,
+   "faces": 2686
+  },
+  {
+   "name": "tank_wall",
+   "folder": "market",
+   "kind": "building",
+   "width": 10.467,
+   "height": 3.387,
+   "depth": 0.5,
+   "faces": 250
+  },
+  {
+   "name": "veg_basket",
+   "folder": "market",
+   "kind": "volume",
+   "width": 0.718,
+   "height": 0.6,
+   "depth": 0.575,
+   "faces": 6000
+  },
+  {
+   "name": "kids_rolling_tyre",
+   "folder": "people",
+   "kind": "volume",
+   "width": 1.901,
+   "height": 1.15,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "milkman_on_bicycle",
+   "folder": "people",
+   "kind": "volume",
+   "width": 1.865,
+   "height": 1.75,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "old_man_on_chair",
+   "folder": "people",
+   "kind": "volume",
+   "width": 1.202,
+   "height": 1.35,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "vegetable_seller",
+   "folder": "people",
+   "kind": "volume",
+   "width": 2.083,
+   "height": 1.65,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "woman_carrying_pot",
+   "folder": "people",
+   "kind": "volume",
+   "width": 0.716,
+   "height": 1.95,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "woman_drawing_kolam",
+   "folder": "people",
+   "kind": "volume",
+   "width": 1.342,
+   "height": 1.0,
+   "depth": 0.34,
+   "faces": 6000
+  },
+  {
+   "name": "h1_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.044,
+   "height": 1.0,
+   "depth": 0.334,
+   "faces": 5998
+  },
+  {
+   "name": "h1_2",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.543,
+   "height": 1.0,
+   "depth": 0.174,
+   "faces": 6000
+  },
+  {
+   "name": "h1_3",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.844,
+   "height": 1.0,
+   "depth": 0.27,
+   "faces": 6000
+  },
+  {
+   "name": "h2_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.004,
+   "height": 1.0,
+   "depth": 0.321,
+   "faces": 6000
+  },
+  {
+   "name": "h2_2",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.589,
+   "height": 1.0,
+   "depth": 0.188,
+   "faces": 6000
+  },
+  {
+   "name": "h2_3",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.807,
+   "height": 1.0,
+   "depth": 0.258,
+   "faces": 6000
+  },
+  {
+   "name": "h2_4",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.566,
+   "height": 1.0,
+   "depth": 0.181,
+   "faces": 6000
+  },
+  {
+   "name": "h3_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.187,
+   "height": 1.0,
+   "depth": 0.38,
+   "faces": 6000
+  },
+  {
+   "name": "h4_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.519,
+   "height": 1.0,
+   "depth": 0.166,
+   "faces": 6000
+  },
+  {
+   "name": "h4_2",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.684,
+   "height": 1.0,
+   "depth": 0.219,
+   "faces": 6000
+  },
+  {
+   "name": "h4_3",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.678,
+   "height": 1.0,
+   "depth": 0.217,
+   "faces": 6000
+  },
+  {
+   "name": "h4_4",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.838,
+   "height": 1.0,
+   "depth": 0.268,
+   "faces": 6000
+  },
+  {
+   "name": "h4_5",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.546,
+   "height": 1.0,
+   "depth": 0.175,
+   "faces": 6000
+  },
+  {
+   "name": "h5_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.693,
+   "height": 1.0,
+   "depth": 0.222,
+   "faces": 6000
+  },
+  {
+   "name": "h5_2",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.691,
+   "height": 1.0,
+   "depth": 0.221,
+   "faces": 6000
+  },
+  {
+   "name": "h5_3",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.476,
+   "height": 1.0,
+   "depth": 0.152,
+   "faces": 6000
+  },
+  {
+   "name": "h5_4",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.797,
+   "height": 1.0,
+   "depth": 0.255,
+   "faces": 6000
+  },
+  {
+   "name": "h5_5",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.56,
+   "height": 1.0,
+   "depth": 0.179,
+   "faces": 6000
+  },
+  {
+   "name": "h5_6",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.775,
+   "height": 1.0,
+   "depth": 0.248,
+   "faces": 6000
+  },
+  {
+   "name": "h6_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.907,
+   "height": 1.0,
+   "depth": 0.29,
+   "faces": 6000
+  },
+  {
+   "name": "h6_2",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.229,
+   "height": 1.0,
+   "depth": 0.393,
+   "faces": 6000
+  },
+  {
+   "name": "h6_3",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.823,
+   "height": 1.0,
+   "depth": 0.583,
+   "faces": 6000
+  },
+  {
+   "name": "h6_4",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.878,
+   "height": 1.0,
+   "depth": 0.281,
+   "faces": 6000
+  },
+  {
+   "name": "h6_5",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.969,
+   "height": 1.0,
+   "depth": 0.31,
+   "faces": 6000
+  },
+  {
+   "name": "h6_6",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.924,
+   "height": 1.0,
+   "depth": 0.296,
+   "faces": 6000
+  },
+  {
+   "name": "h6_7",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.585,
+   "height": 1.0,
+   "depth": 0.507,
+   "faces": 6000
+  },
+  {
+   "name": "h7_1",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.251,
+   "height": 1.0,
+   "depth": 0.4,
+   "faces": 6000
+  },
+  {
+   "name": "h7_2",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.671,
+   "height": 1.0,
+   "depth": 0.215,
+   "faces": 6000
+  },
+  {
+   "name": "h7_3",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.717,
+   "height": 1.0,
+   "depth": 0.229,
+   "faces": 6000
+  },
+  {
+   "name": "h7_4",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 0.639,
+   "height": 1.0,
+   "depth": 0.205,
+   "faces": 6000
+  },
+  {
+   "name": "h7_5",
+   "folder": "plants",
+   "kind": "volume",
+   "width": 1.858,
+   "height": 1.0,
+   "depth": 0.595,
+   "faces": 6000
+  }
+ ]
+}
