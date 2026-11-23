@@ -421,6 +421,72 @@ def fields_band(name):
     im.save(OUT / name)
 
 
+def fields_band_2(name):
+    """D13: golden ripe paddy, haystacks, a hamlet of thatched huts under palms, grazing cattle, on magenta."""
+    w, h = 3168, 1344
+    im = Image.new("RGB", (w, h), MAGENTA)
+    d = ImageDraw.Draw(im)
+    ground = 1150
+    d.rectangle((0, ground - 40, w, ground + 60), fill=(170, 110, 66))
+    d.rectangle((0, ground - 40, w, ground - 25), fill=(110, 150, 60))
+    for x in range(0, w, 12):  # ripe paddy
+        top = ground - 40 - rng.uniform(80, 130)
+        d.line((x, ground - 40, x + rng.uniform(-8, 8), top), fill=rng.choice([(214, 176, 70), (196, 160, 60), (226, 190, 90)]),
+               width=6)
+    x = rng.uniform(60, 220)
+    while x < w:
+        roll = rng.random()
+        if roll < 0.3:  # a thatched hut under a palm
+            fw = rng.uniform(200, 280)
+            box(d, x, ground - 300, x + fw, ground - 150, (200, 160, 110))
+            d.polygon([(x - 30, ground - 300), (x + fw + 30, ground - 300), (x + fw / 2, ground - 420)],
+                      fill=(204, 170, 96), outline=INK)
+            th = rng.uniform(560, 720)
+            d.line((x + fw + 60, ground - 140, x + fw + 60, ground - th), fill=(70, 56, 46), width=14)
+            d.ellipse((x + fw - 60, ground - th - 100, x + fw + 180, ground - th + 80), fill=LEAF_DARK, outline=INK, width=4)
+            x += fw + rng.uniform(200, 340)
+        elif roll < 0.55:  # a haystack
+            d.polygon([(x, ground - 150), (x + 180, ground - 150), (x + 90, ground - 380)], fill=(214, 176, 90), outline=INK)
+            x += rng.uniform(220, 360)
+        elif roll < 0.75:  # grazing cattle
+            for k in range(rng.randint(2, 3)):
+                cx = x + k * 110
+                d.ellipse((cx, ground - 230, cx + 100, ground - 170), fill=(236, 232, 220), outline=INK, width=3)
+                d.line((cx + 20, ground - 175, cx + 20, ground - 140), fill=INK, width=5)
+                d.line((cx + 80, ground - 175, cx + 80, ground - 140), fill=INK, width=5)
+            x += rng.uniform(380, 480)
+        else:  # a palmyra
+            th = rng.uniform(560, 760)
+            d.line((x, ground - 140, x, ground - th), fill=(70, 56, 46), width=16)
+            d.ellipse((x - 110, ground - th - 100, x + 110, ground - th + 80), fill=LEAF_DARK, outline=INK, width=4)
+            x += rng.uniform(160, 300)
+    label(d, w / 2, ground + 10, "D13 placeholder")
+    im.save(OUT / name)
+
+
+def crop_strips(name):
+    """D12: six crop strips on grey, each a long low strip seen from the side."""
+    im, d = sheet()
+    specs = [("seedbed", (120, 200, 80), 0.35), ("stubble", (210, 180, 110), 0.3), ("sorghum", (150, 170, 80), 2.6),
+             ("groundnut", (90, 150, 60), 0.4), ("cotton", (110, 150, 80), 1.2), ("banana", (90, 160, 70), 2.4)]
+    M_ = 110
+    for k, (kind, col, hm) in enumerate(specs):
+        x0, ground = 120 + (k % 2) * 1330, 500 + (k // 2) * 440
+        x1 = x0 + 1180
+        d.rectangle((x0, ground - 18, x1, ground), fill=(150, 110, 70))
+        for x in range(int(x0), int(x1), 26 if hm > 1 else 14):
+            top = ground - hm * M_ * rng.uniform(0.8, 1.0)
+            d.line((x, ground - 18, x, top), fill=col, width=10 if hm > 1 else 6)
+            if kind == "sorghum":
+                d.ellipse((x - 14, top - 30, x + 14, top + 10), fill=(170, 80, 50), outline=INK, width=2)
+            if kind == "cotton":
+                d.ellipse((x - 12, top - 12, x + 12, top + 12), fill=(250, 250, 245), outline=INK, width=2)
+            if kind == "stubble" and rng.random() < 0.08:
+                d.polygon([(x, ground - 18), (x + 60, ground - 18), (x + 30, ground - 90)], fill=(214, 176, 90), outline=INK)
+        label(d, (x0 + x1) / 2, ground + 30, f"D12 placeholder: {kind}", 26)
+    im.save(OUT / name)
+
+
 # ---------------------------------------------------------------- textures, edge to edge (wrap round, so they tile)
 def tile(name, draw_fn, base, size=1024):
     im = Image.new("RGB", (size * 3, size * 3), base)
@@ -486,6 +552,8 @@ def main():
                                        lambda d, x, g: tank_wall_long(d, x, g)], "E10", 76)
     peepal("H3_peepal_platform.png")
     fields_band("D7_fields_mid_layer.png")
+    fields_band_2("D13_fields_mid_layer_2.png")
+    crop_strips("D12_more_crops.png")
     tile("T10_tex_bare_brick.png", bricks, (150, 146, 140))
     tile("T11_tex_coconut_leaf_fence.png", leaf_weave, (120, 96, 66))
     tile("T12_tex_plain_red_earth.png", red_earth, (190, 86, 48))

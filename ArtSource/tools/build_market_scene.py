@@ -65,7 +65,7 @@ grass_spots = [(rng.uniform(START, END), rng.uniform(1.8, 6.0), rng.uniform(0.15
 # with a wider gap now and then where people walk through; only when no stall is free does the row leave open ground.
 # With E11-E18 there are 28 kinds: enough for an unbroken row, with a stall seen once in about four screens.
 KIND = {"flower_stall": "flowers", "stall_flowers": "flowers", "stall_vessels": "vessels", "coconut_cart": "coconuts",
-        "stall_potter": "pots"}
+        "stall_potter": "pots", "stall_f_1": "sweets", "stall_f_2": "sweets"}  # E14's first two both sell sweets
 SPACING = 45.0
 last_kind_at = {}
 

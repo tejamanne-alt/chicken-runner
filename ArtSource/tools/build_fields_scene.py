@@ -154,9 +154,13 @@ while ex < END + 6:
                  rng.uniform(12.0, 15.0), size=("h", TREE_H[name] * rng.uniform(0.9, 1.1)), mirror=rng.random() < 0.5,
                  col="Plants", emission=0.55)
         ex += rng.uniform(5, 9)
-# People and animals working the fields (D10), one of each, out on the far bunds.
-for k, name in enumerate(more("field_life")):
-    piece(F, name, START + 10 + k * 17 + rng.uniform(0, 8), rng.uniform(6.5, 10.0))
+# People and animals working the fields (D10), one of each, spread along the far fields: those drawn standing in mud
+# or water (the women transplanting, the wallowing buffalo) stand in the paddy water, the rest on the field bunds.
+life = more("field_life")
+rng.shuffle(life)
+for k, name in enumerate(life):
+    in_water = name in ("field_life_2", "field_life_4")
+    piece(F, name, START + 10 + k * 17 + rng.uniform(0, 8), rng.uniform(6.5, 10.0), z=WATER_Z if in_water else 0.0)
 # Lines of palmyra and coconut palms along the far bunds.
 for row_y, step in [(16.0, (3.0, 7.0)), (21.0, (2.5, 6.0))]:
     px = START - 6

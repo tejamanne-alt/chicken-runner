@@ -66,7 +66,7 @@ placeholder in `placeholders/`. So the scenes are complete before all the art ex
 placeholder's place just by being pushed under the sheet's file name and re-running the cut-outs and scenes. Pieces cut
 from a placeholder are marked `"placeholder": true` in the manifest, and are labelled in the renders.
 
-An image that came out wrong and is being made again (D7 and H3 so far) is listed with its hash in
+An image that came out wrong and is being made again (D9, E17 and E18 now) is listed with its hash in
 `placeholders/rejected.json`: until a new version with a different hash is pushed, its placeholder is used instead,
 and the prompt sheet keeps it marked "make again".
 
@@ -78,6 +78,7 @@ and the prompt sheet keeps it marked "make again".
 | G12 house being built, G16 stone lamp pillar | the lane (G12 in the deck of houses, G16 seen over the rooftops) |
 | E8, E9 market stalls | the market row |
 | E10 temple street | the end of the market, before the temple steps |
+| D12 more crops, D13 fields band 2 | the fields' crops and their second distant band |
 | T10, T11, T12 textures | not used: the scenes keep their own stand-ins (the woven fence, the shader-made ground) until the real textures arrive |
 | F7, F8 story frames | not used yet |
 

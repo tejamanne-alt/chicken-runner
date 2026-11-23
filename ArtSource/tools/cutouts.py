@@ -415,6 +415,8 @@ def sheet_pieces(src, plain_sheet=True, min_area=6000, merge=6, ground_line=Fals
         for y in range(top - 3, bottom + 4):
             alpha[y, ~above] = 0
         alpha[bottom + 4:] = 0
+        if bottom - top > 20:  # a painted strip of ground, not a thin line: cut it off so pieces stand on the scene's
+            alpha[top + 12:] = 0  # own ground
         # Stalls drawn on one long strip of ground come apart where nothing stands above the strip.
         upper = ndimage.binary_dilation((alpha[:max(top - 20, 1)] > 0.5).any(axis=0), iterations=6)
         alpha[:, ~upper] = 0
@@ -437,14 +439,43 @@ def sheet_pieces(src, plain_sheet=True, min_area=6000, merge=6, ground_line=Fals
     return rgb, [p for row in rows for p in sorted(row, key=lambda p: p[1][0])]
 
 
-def cut_sheet(src, prefix, folder, names_if_real=None, **kw):
+def split_columns(pieces, n):
+    """When drawings touch (goods spread along one strip of ground), cut the sheet into n pieces at the n - 1 columns
+    where least is drawn, at least a tenth of the drawing's width apart."""
+    alpha = np.maximum.reduce([p[0] for p in pieces])
+    solid = alpha > 0.5
+    cols = np.nonzero(solid.any(axis=0))[0]
+    x0, x1 = cols.min(), cols.max() + 1
+    occ = np.convolve(solid.sum(axis=0).astype(float), np.ones(25) / 25, mode="same")
+    gap = 0.1 * (x1 - x0)
+    cuts = []
+    for x in np.argsort(occ[x0:x1]) + x0:
+        if x - x0 > gap and x1 - x > gap and all(abs(x - c) > gap for c in cuts):
+            cuts.append(int(x))
+            if len(cuts) == n - 1:
+                break
+    edges = [x0] + sorted(cuts) + [x1]
+    out = []
+    for a, b in zip(edges[:-1], edges[1:]):
+        part = np.zeros_like(alpha)
+        part[:, a:b] = alpha[:, a:b]
+        ys = np.nonzero((part > 0.5).any(axis=1))[0]
+        if len(ys):
+            out.append((part, (a, int(ys.min()), b, int(ys.max()) + 1)))
+    return out
+
+
+def cut_sheet(src, prefix, folder, names_if_real=None, expect=None, **kw):
     """Saves every piece of a sheet as <prefix>_<k> in folder, or under names_if_real when the sheet is the real image
-    and has that many pieces; returns their names."""
+    and has that many pieces; returns their names. expect: how many drawings the sheet should hold; if fewer pieces
+    come apart (they touch), the sheet is cut into that many at its emptiest columns."""
     global OUT
     rgb, pieces = sheet_pieces(src, **kw)
-    if pieces:  # a row of buildings: drop bits much shorter than the tallest (washing, a label, a stray leaf)
-        tallest = max(b[3] - b[1] for _, b in pieces)
+    if pieces and kw.get("ground_line"):  # a row of buildings: drop bits much shorter than the tallest (washing,
+        tallest = max(b[3] - b[1] for _, b in pieces)  # a label, a stray leaf)
         pieces = [p for p in pieces if p[1][3] - p[1][1] > 0.3 * tallest]
+    if expect and 0 < len(pieces) < expect:
+        pieces = split_columns(pieces, expect)
     saved, OUT = OUT, folder
     folder.mkdir(exist_ok=True)
     names = []
@@ -571,12 +602,12 @@ save_tile("canal_water", t6[:, t6.shape[1] // 2 + 8: -8])
 # More for the fields (D8-D13), cut as they arrive. Each sheet's pieces are scaled by the tallest one, whose real height
 # is given: the watch platform about 5 m, the picottah pole about 5 m, a ploughing team about 1.9 m, the banyan about
 # 10 m, sorghum about 2.6 m.
-for _src, _prefix, _tallest, _kw in [("D8_field_buildings_2.png", "field_bldg", 5.0, {"ground_line": True}),
-                                     ("D9_canal_pieces.png", "canal_piece", 5.0, {}),
-                                     ("D10_field_life.png", "field_life", 1.9, {}),
-                                     ("D11_field_trees.png", "field_tree", 10.0, {}),
-                                     ("D12_more_crops.png", "crop_strip", 2.6, {})]:
-    if refs.path(_src).exists():
+for _src, _prefix, _tallest, _kw in [("D8_field_buildings_2.png", "field_bldg", 5.0, {"ground_line": True, "expect": 3}),
+                                     ("D9_canal_pieces.png", "canal_piece", 5.0, {"expect": 4}),
+                                     ("D10_field_life.png", "field_life", 1.9, {"expect": 6}),
+                                     ("D11_field_trees.png", "field_tree", 10.0, {"expect": 6, "merge": 2}),
+                                     ("D12_more_crops.png", "crop_strip", 2.6, {"expect": 6})]:
+    if refs.is_real(_src) or refs.is_placeholder(_src):
         _names = cut_sheet(_src, _prefix, FIELDS, **_kw)
         if _names:
             _tall = max(manifest[nm]["px"][1] for nm in _names)
@@ -606,11 +637,13 @@ for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 6.0), (
                              ("E13_shandy_stalls_5.png", "stall_e", 3.0), ("E14_shandy_stalls_6.png", "stall_f", 3.0),
                              ("E15_shandy_stalls_7.png", "stall_g", 3.0), ("E16_shandy_stalls_8.png", "stall_h", 3.0),
                              ("E17_shandy_stalls_9.png", "stall_i", 3.0), ("E18_shandy_stalls_10.png", "stall_j", 3.0)]:
+    _expect = {"E14_shandy_stalls_6.png": 4}.get(src, 3) if src.startswith(("E11", "E12", "E13", "E14", "E15", "E16",
+                                                                            "E17", "E18")) else None
     if src == "E8_market_stalls_1.png" and refs.is_real(src):
         continue  # its stalls' awnings touch: cut by columns below
-    if not refs.path(src).exists():
-        continue  # not made yet, and no placeholder: the market fills in without it
-    names = cut_sheet(src, prefix, MARKET, names_if_real=REAL_NAMES.get(src), ground_line=True)
+    if not (refs.is_real(src) or refs.is_placeholder(src)):
+        continue  # not made yet (or being made again), and no placeholder: the market fills in without it
+    names = cut_sheet(src, prefix, MARKET, names_if_real=REAL_NAMES.get(src), expect=_expect, ground_line=True)
     if names:
         tallest_px = max(manifest[nm]["px"][1] for nm in names)
         for nm in names:
