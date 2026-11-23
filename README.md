@@ -2,16 +2,20 @@
 
 A side-scrolling chase runner: a village kid chases a smug rooster through an Indian village. The design is in [docs/game-design-document.md](docs/game-design-document.md).
 
-**Status: milestone 1, grey-box chase.** Capsule kid, block rooster, gap bar, jump and slide, six chunks. The milestone gate is that the chase is fun with no art at all.
+**Status: the whole game, on placeholder art where pictures are still being made.** Nine levels across the three zones, the painted kid and rooster, painted obstacles and scenery, the title, story strip, village map, results and finale, and a save. Pictures still to come (D12, D13 and the D9, E17, E18 remakes) are covered by placeholders and swap in when they arrive. The milestone 1 grey-box chase is still there for tuning with no art at all.
 
 ## Open it
 
 1. In Unity Hub, choose **Add project from disk** and pick this folder. Open it with **Unity 6.3 LTS** (6000.3.x). If Hub offers a different 6000.3 patch, accept it.
 2. On first open Unity installs the Input System package. If it asks whether to enable the new input backends, choose **Yes** and let the editor restart. Choosing No also works, because the game falls back to the old Input Manager.
-3. Choose **Chicken Runner > Build Grey-box Level** from the menu bar. This generates the tuning assets, chunk prefabs, level and scene, then opens `Assets/ChickenRunner/Greybox/Chase_Greybox.unity`.
-4. Press **Play**, then tap, click or press Space to start the chase.
+3. Choose **Chicken Runner > Build Game** from the menu bar. This copies the art it needs from `ArtSource` into `Assets/ChickenRunner/Art/Textures`, generates the tuning and obstacle assets, every zone's chunk prefabs, the nine levels and each zone's scenery, and saves `Assets/ChickenRunner/Game/Game.unity` (first in the build settings). Then **Chicken Runner > Open Game Scene**.
+4. Press **Play**: the title, then the story strip the first time, then level 1. Tap, click or press Space to start each chase.
 
-Commit what the builder generates (the `Greybox` and `Config` folders and their `.meta` files) so every machine shares the same assets.
+To try any level straight away, tick **Unlock All** on the `Game` object's GameSession: Play then opens on the village map with every stop open. The save lives in the app's persistent data folder; **Reset** on the title screen (tap twice) erases it.
+
+Re-run **Build Game** after new art arrives (after `cutouts.py` and the zone scene builders in `ArtSource/tools`, see [ArtSource/README.md](ArtSource/README.md)). It keeps the tuning and obstacle assets, so numbers tuned in the Inspector survive. Commit what it generates (the `Game`, `Config` and `Art` folders and their `.meta` files) so every machine shares the same assets.
+
+The milestone 1 grey-box (**Chicken Runner > Build Grey-box Level**) still builds its own scene, `Assets/ChickenRunner/Greybox/Chase_Greybox.unity`, with capsules and one looping level.
 
 ## Controls
 
@@ -22,13 +26,37 @@ Everything works with one thumb anywhere on the screen. In the editor, the mouse
 | Jump (hold for higher) | Tap; hold for the full 1.4 m | Space, Up or W |
 | Double jump | Tap again in the air | Space again |
 | Slide, or fast drop in the air | Swipe down | Down or S |
+| Climb a ladder or a branch | Run into the ladder; jump at the branch | |
 | Pause | II button, top right | Esc or P |
-| Retry | Tap on the result screen | R |
+| Retry | Retry on the result screen | R |
 | Debug readout | | F1 or backquote |
 
-A touch waits 60 ms before it becomes a jump, so a swipe down never starts with one. Jump buffer (0.1 s) and coyote time (0.08 s) follow the doc. Climbing (swipe up beside a ladder) arrives with ladders in milestone 2; until then a swipe up jumps.
+A touch waits 60 ms before it becomes a jump, so a swipe down never starts with one. Jump buffer (0.1 s) and coyote time (0.08 s) follow the doc. Ladders climb on their own when the kid runs into them, so a swipe up stays a jump.
 
-## What's in the grey-box
+## What's in the game
+
+| Level | Zone | What it teaches | Chunks |
+| --- | --- | --- | --- |
+| 1. Pots and the sleeping dog | The lane | Jump | pot stacks, dung and a dog, the hand-pump puddle, the bullock cart |
+| 2. Washing day | The lane | Slide; the rope-cot bounce | clotheslines, the cot, sarees and pots, the rooster's mischief |
+| 3. Up on the roofs | The lane | Ladders, roofs, the jump between them | a row of houses with a ladder, two rows with a gap |
+| 4. The canal | Fields | Jump it, wade it or take the plank | canals 2.5, 3.5 (with a plank bridge) and 4.5 m wide |
+| 5. Mango trees | Fields | Jump at a branch to climb up | the mango-tree branch route, small haystacks |
+| 6. Buffalo and haystacks | Fields | Bounce off a buffalo's back | the buffalo in its mud, haystack chains, mischief by the well |
+| 7. Rooftop run | Terraces | Gaps and water tanks | long roof runs with gaps, tanks to jump |
+| 8. Market day | Market | Bounce across the awnings | rows of stalls, hens, the hens-basket fake-out |
+| 9. The temple steps | Temple | Everything, 800 m | the temple steps and a bit of everything |
+
+- **Speeds and courses** follow the doc: 6, 7 and 8 m/s for the kid, 500, 600 and 700 m courses (800 m for level 9). Each level plays its chunks in order once, then repeats them in a seeded shuffle, so a course is the same on every retry and can be learnt.
+- **New moves:** wading (a canal's bed is 0.28 m down; the kid wades at 45% speed, which is slow but not a stumble), ladders and branches (a quick climb at 60% speed instead of the slow vault), bounce pads with their own heights (cot, awnings 2.0 m, buffalo 2.6 m). Roofs are 2.35 m, inside the doc's range and low enough for a fair double jump (see Tuning).
+- **Three hidden feathers per level,** on the harder routes: high over the dog or a canal, on the roofs and the branch, at the top of a bounce. The HUD shows the feathers found in a run, the map shows each level's.
+- **Progression:** stars are kept star by star (each level's best grab, mango and no-stumble stars from any runs). 5 of the lane's 9 stars open the fields and 12 of the first 18 open the terraces, as in the doc; each level also needs the one before it won. Mangoes from every run, won or lost, go into a bank for the outfits to come.
+- **Screens:** the title (F1), the wordless story strip the first time (F2 to F6, skippable), the village map (three painted zones, nine stops with stars, feathers and locks), the result with Next, Again and Map (the wriggle-free picture for a win, the rooster crowing (F7) for a loss), a pause with Carry on and Village map, and Amma's kitchen (F8) after level 9.
+- **Art:** the kid and the rooster are flipbooks of their painted poses (two running frames swapped by distance run, so the feet keep pace at any speed; jump, fall, landing, slide, vault, stumble and dive; pecking, strutting, fluttering, crowing, startled and tumbling). Obstacles, houses, stalls, haystacks, the buffalo and the mango tree are their cut-outs, standing on colliders sized to the pictures. Each zone's scenery is its Blender scene, repeated along the course: the distant bands as continuous strips, the near houses and trees as a set. The ground is a world-space earth tile (paddy water away from the bund in the fields) with the same distance haze as the cards. Anything without a painting yet falls back to a grey-box shape.
+
+Still placeholder: the IMGUI screens and HUD (the doc's signboard UI comes later), the words that pop up for sounds, the cube debris, primitive mangoes, chillies and feathers, the plank bridge and temple steps (grey-box shapes), and the basket intro.
+
+## What's in the grey-box (milestone 1)
 
 - **The chase.** The kid auto-runs at 6 m/s and the rooster at 5.5 m/s, starting 12 m ahead. The gap bar shows the metres. Inside 0.8 m (and roughly level with him) the kid dives and the rooster wriggles free; past 25 m, or at the 500 m course end, he escapes.
 - **Rooster behaviours, built before any art as the doc's risk table asks.** Gap-driven run speed, the taunt (stops, turns round and crows beyond 18 m), the panic burst under 2 m (sprints and sheds feathers, twice per chase), fluttering over obstacles along routes authored in each chunk, mischief (knocks a pot stack into the lane behind him, but only when the kid is at least 7 m back) and the wriggle-free gag.
@@ -64,17 +92,23 @@ So the doc's "about 30 s clean, up to 90 s messy" holds in all three zones. The 
 ```
 Assets/ChickenRunner/
   Scripts/Core/        Engine-free rules: tuning, jump maths, kid speed, rooster moods, win/loss,
-                       stars, gestures, a chase forecast and the tuning report (no UnityEngine)
-  Scripts/Gameplay/    GameFlow, ChaseDirector, KidController, RoosterBrain, LevelStreamer, chunks,
-                       obstacles, pickups, camera and HUD
-  Scripts/Editor/      The grey-box builder and the tuning Inspector
+                       stars, progression and save data, gestures, a chase forecast and the tuning
+                       report (no UnityEngine)
+  Scripts/Gameplay/    GameSession (screens, levels, save), GameFlow, ChaseDirector, KidController,
+                       RoosterBrain, LevelStreamer, chunks, obstacles, pickups, water, ladders,
+                       the card visuals, BackdropStreamer, camera, HUD and menus
+  Scripts/Editor/      The game builder, zone scenery builder, art importer, the grey-box builder
+                       and the tuning Inspector
+  Art/Shaders/         PaintedCard (the cut-outs) and PaintedGround (earth, paddy and canal water)
+  Art/Layouts/         Each zone's Blender scene as cards, written by ArtSource/tools
   Tests/EditMode/      NUnit tests for Core
-  Config/, Greybox/    Generated by the builder
+  Game/, Config/, Art/Textures, Art/Materials   Generated by Build Game
+  Greybox/             Generated by Build Grey-box Level
 Tools/CoreTests/       Runs the Core tests without Unity
 docs/                  Game design document
 ```
 
-The architecture follows the doc. GameFlow owns the level state machine and a fixed 120 Hz simulation clock, and kid and rooster are interpolated between ticks, so jumps are the same on every device. ChaseDirector owns the gap, win and loss, and the stats the HUD reads. A level is a `LevelDefinition` asset (a tuning config plus an ordered chunk list), so designers reorder chunks without code. Chunks are prefabs with ground colliders, obstacle and pickup objects and rooster route markers. They are pooled and recycled behind the kid.
+The architecture follows the doc. GameSession owns everything around the chase (title, story, map, results, the save) and loads a level into GameFlow and its zone's scenery into the BackdropStreamer; GameMenus only draws the screens and calls the session. GameFlow owns the level state machine and a fixed 120 Hz simulation clock, and kid and rooster are interpolated between ticks, so jumps are the same on every device. ChaseDirector owns the gap, win and loss, and the stats the HUD reads. A level is a `LevelDefinition` asset (a tuning config plus an ordered chunk list), so designers reorder chunks without code. Chunks are prefabs with ground colliders, obstacle and pickup objects and rooster route markers. They are pooled and recycled behind the kid.
 
 ## Tests
 
@@ -82,12 +116,16 @@ The architecture follows the doc. GameFlow owns the level state machine and a fi
 dotnet test Tools/CoreTests
 ```
 
-This runs 57 tests on the Core rules with the .NET 8 SDK and no Unity install. The same test files run in Unity's Test Runner once you add the **Test Framework** package from the Package Manager.
+This runs 74 tests on the Core rules with the .NET 8 SDK and no Unity install. The same test files run in Unity's Test Runner once you add the **Test Framework** package from the Package Manager.
 
 ## Render pipeline
 
-The grey-box renders in the Built-in pipeline or in URP. The builder picks the lit shader of whichever pipeline is active, and every prop is tinted through a property block. The doc's URP and toon shader setup belongs to milestone 2, with the kid model. After switching to URP, run the builder again so the grey-box material picks up the URP shader.
+The game is set up for the Built-in pipeline. The painted cards and ground are unlit shaders (`ChickenRunner/PaintedCard`, `ChickenRunner/PaintedGround`) that also draw in URP; the few grey-box shapes left pick the lit shader of whichever pipeline is active. After switching to URP, run the builders again.
+
+## Not checked yet
+
+Everything here compiles under both input settings and the Core tests pass, but it was built without opening Unity, so nothing has been played yet. Worth checking first: the art's sizes and positions against the colliders (pot stacks, clotheslines, the cart's bed, roofs, awnings), that every feather can be reached, the scenery's repeat seams, and the frame rate in the fields (about 500 scenery cards per repeat).
 
 ## Next
 
-Play the grey-box against the milestone 1 gate. Tune in the Inspector, then move to milestone 2 (the supplied kid model, animation states, ladder, canal wade and the basket intro). Several of the doc's open decisions are worth settling before milestone 2 starts.
+Play all nine levels and tune in the Inspector. Then the basket intro, audio, the signboard UI, outfits, and the pictures still to come.

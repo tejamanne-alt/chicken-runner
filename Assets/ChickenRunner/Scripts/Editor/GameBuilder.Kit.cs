@@ -6,6 +6,12 @@ namespace ChickenRunner.EditorTools
 {
     internal static partial class GameBuilder
     {
+        /// <summary>
+        /// Flat roofs, metres. The doc allows 2.2 to 2.6 m; the tuning report shows 2.6 m needs a frame-perfect double
+        /// jump and about 2.37 m leaves a fair 150 ms window, so roofs sit just under that.
+        /// </summary>
+        internal const float Roof = 2.35f;
+
         /// <summary>Card sort orders: the lane's pieces over the scenery, the kid and rooster over those, foreground plants over all.</summary>
         internal const int SceneryOrder = 0;
         internal const int LaneOrder = 5;
@@ -285,13 +291,13 @@ namespace ChickenRunner.EditorTools
             // ------------------------------------------------------------------ buildings and climbables
 
             /// <summary>
-            /// A row of flat-roofed house fronts touching each other, starting at x: their roofs make one run 2.5 m up.
+            /// A row of flat-roofed house fronts touching each other, starting at x: their roofs make one run 2.35 m up.
             /// The first front can carry a ladder (the turmeric house's, mirrored to face the kid). Returns the row's end.
             /// </summary>
             public float RoofRow(float x, string[] fronts, bool ladder)
             {
-                const float cardHeight = 2.65f;
-                const float roof = 2.5f;
+                const float cardHeight = Roof + 0.15f; // the parapet stands a little above the roof the kid runs on
+                const float roof = Roof;
                 float start = x;
                 for (int i = 0; i < fronts.Length; i++)
                 {
@@ -402,6 +408,8 @@ namespace ChickenRunner.EditorTools
                 var branch = Box("Branch", _root, new Vector3(x + 3f, 2.22f, 0f), new Vector3(4f, 0.16f, 0.8f), _z.prims, true);
                 branch.GetComponent<Renderer>().enabled = false;
                 branch.AddComponent<Ladder>();
+                // The rooster runs on whatever is highest under him, so he flutters up onto the branch rather than popping up.
+                Hop(x + 0.2f, 1.0f, 0.5f);
                 MangoLine(x + 1.4f, 6, 0.6f, 2.85f);
             }
 

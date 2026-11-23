@@ -231,7 +231,13 @@ namespace ChickenRunner
         {
             var flow = session.Flow;
             if (flow == null || !flow.Paused) return;
-            if (GUI.Button(new Rect(w * 0.5f - 130f, h * 0.34f + 110f, 260f, 64f), "Village map", _button)) session.ShowMap();
+            var panel = new Rect(w * 0.5f - 300f, h * 0.5f - 150f, 600f, 300f);
+            Fill(panel, s_panel);
+            var level = session.CurrentLevel;
+            Shadowed(new Rect(panel.x, panel.y + 20f, panel.width, 64f), "Paused", _big);
+            if (level != null) Shadowed(new Rect(panel.x, panel.y + 84f, panel.width, 40f), (session.LevelIndex + 1) + ". " + level.DisplayName, _label);
+            if (GUI.Button(new Rect(panel.x + 40f, panel.yMax - 112f, 250f, 80f), "Carry on", _button)) flow.SetPaused(false);
+            if (GUI.Button(new Rect(panel.xMax - 290f, panel.yMax - 112f, 250f, 80f), "Village map", _button)) session.ShowMap();
         }
 
         // ------------------------------------------------------------------ result

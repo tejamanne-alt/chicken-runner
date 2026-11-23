@@ -56,8 +56,15 @@ mirroring, haze and fades of every card). In Unity, **Chicken Runner > Import Ar
 uses into `Assets/ChickenRunner/Art/Textures/`, makes materials with the `ChickenRunner/PaintedCard` shader (the art
 unlit, as painted, faded into the haze like in Blender) and saves a prefab per zone in `Assets/ChickenRunner/Art/Prefabs/`,
 cards grouped by layer. Place it at the origin of a level scene: its lane runs along +X at depth 0, as the grey-box's
-does. Not exported yet: the ground and water (made in Blender's shaders) and the 3D bits (walls, fences, pebbles,
-grass); they need baking to textures or meshes first.
+does. Not exported yet: the 3D bits (walls, fences, pebbles, grass); they need baking to textures or meshes first.
+
+**Chicken Runner > Build Game** uses the same layouts for the game's scenery. It leaves out what stood on the lane in
+the previews (the obstacles, the kid and rooster: the levels' chunks put the real ones there), turns the distant bands
+(cards 20 m wide or more) into strips that repeat without a seam, and repeats the rest as one set every stretch the
+scene covers. The ground is redone in Unity by the `ChickenRunner/PaintedGround` shader from `plain_red_earth` (T12),
+`paddy_water` and `canal_water` (T6). The kid's and rooster's poses and the obstacles' cut-outs are used directly, sized
+from the manifest. So after new art: run `cutouts.py`, the zone scene builders (they rewrite the layouts), then Build
+Game.
 
 ## Placeholders, and swapping in the real images
 

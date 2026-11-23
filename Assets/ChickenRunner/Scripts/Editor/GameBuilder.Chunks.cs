@@ -226,8 +226,8 @@ namespace ChickenRunner.EditorTools
         {
             var kit = new Kit("Houses", 24f, z, 9);
             float end = kit.RoofRow(5f, new[] { "", "house_pink", "house_limewash" }, ladder: true);
-            kit.MangoLine(5.6f, Mathf.FloorToInt((end - 6f) / 0.65f), 0.65f, 3.05f);
-            kit.Feather(end - 1f, 3.95f, 2);
+            kit.MangoLine(5.6f, Mathf.FloorToInt((end - 6f) / 0.65f), 0.65f, Roof + 0.55f);
+            kit.Feather(end - 1f, Roof + 1.45f, 2);
             JumpPots(kit, end + 7f);
             return kit.Finish();
         }
@@ -238,9 +238,9 @@ namespace ChickenRunner.EditorTools
             var kit = new Kit("RoofHop", 26f, z, 10);
             kit.Arc(1.2f, 3.4f, 2.6f, 4);
             float end = kit.RoofRow(5f, new[] { "house_indigo_veranda", "house_pink" }, ladder: false);
-            kit.Arc(end - 0.6f, 3f, 1.2f, 3, 2.5f);
+            kit.Arc(end - 0.6f, 3f, 1.2f, 3, Roof);
             float end2 = kit.RoofRow(end + 1.8f, new[] { "house_limewash", "house_indigo_veranda" }, ladder: false);
-            kit.MangoLine(end + 2.4f, 4, 0.7f, 3.05f);
+            kit.MangoLine(end + 2.4f, 4, 0.7f, Roof + 0.55f);
             kit.Chilli(end2 + 3f, 0.6f);
             return kit.Finish();
         }
@@ -375,12 +375,12 @@ namespace ChickenRunner.EditorTools
         {
             var kit = new Kit("RoofRun", 30f, z, 31);
             float end = kit.RoofRow(4f, new[] { "", "house_indigo_veranda", "house_pink", "house_limewash" }, ladder: true);
-            kit.Tank(9.2f, 2.5f);
-            kit.Arc(9.2f - 2.4f, 4.8f, 1.4f, 5, 2.5f);
-            kit.Art(null, "chilli_mat", end - 1.4f, 2.5f, 0.3f, out _, height: 0.25f);
+            kit.Tank(9.2f, Roof);
+            kit.Arc(9.2f - 2.4f, 4.8f, 1.4f, 5, Roof);
+            kit.Art(null, "chilli_mat", end - 1.4f, Roof, 0.3f, out _, height: 0.25f);
             float end2 = kit.RoofRow(end + 2f, new[] { "house_indigo_veranda", "house_pink" }, ladder: false);
-            kit.Arc(end - 0.8f, 3.6f, 1.2f, 4, 2.5f);
-            kit.Feather((end + 2f + end2) * 0.5f, 4.1f, 0);
+            kit.Arc(end - 0.8f, 3.6f, 1.2f, 4, Roof);
+            kit.Feather((end + 2f + end2) * 0.5f, Roof + 1.6f, 0);
             kit.Chilli(end2 + 3f, 0.6f);
             return kit.Finish();
         }
@@ -389,12 +389,12 @@ namespace ChickenRunner.EditorTools
         {
             var kit = new Kit("RoofTanks", 28f, z, 32);
             float end = kit.RoofRow(3f, new[] { "", "house_indigo_veranda", "house_pink", "house_indigo_veranda" }, ladder: true);
-            kit.Tank(6.6f, 2.5f);
-            kit.Tank(end - 2f, 2.5f);
-            kit.Art(null, "papad_mat", 8.6f, 2.5f, 0.3f, out _, height: 0.25f);
+            kit.Tank(6.6f, Roof);
+            kit.Tank(end - 2f, Roof);
+            kit.Art(null, "papad_mat", 8.6f, Roof, 0.3f, out _, height: 0.25f);
             float end2 = kit.RoofRow(end + 2.2f, new[] { "house_limewash", "house_pink", "house_indigo_veranda" }, ladder: false);
-            kit.Feather(end2 - 1.5f, 4.1f, 1);
-            kit.MangoLine(end + 2.8f, 5, 0.7f, 3.05f);
+            kit.Feather(end2 - 1.5f, Roof + 1.6f, 1);
+            kit.MangoLine(end + 2.8f, 5, 0.7f, Roof + 0.55f);
             return kit.Finish();
         }
 

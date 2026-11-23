@@ -42,7 +42,8 @@ namespace ChickenRunner
         [Tooltip("Ignore taps for this long on the result screen, so frantic tapping at the end does not skip it.")]
         [SerializeField] internal float resultInputDelay = 0.6f;
         [SerializeField] internal bool showDebug;
-        [Tooltip("A tap on the result screen retries. Off when a GameSession shows its own result buttons.")]
+        [Tooltip("A tap on the result screen retries, and any tap ends a pause. Off when a GameSession shows its own "
+            + "result and pause buttons (a tap that ended the pause would take the button away before it was clicked).")]
         [SerializeField] internal bool tapToRetry = true;
 
         float _accumulator;
@@ -139,7 +140,7 @@ namespace ChickenRunner
             if (input.PausePressed && State == FlowState.Chase) TogglePause();
             if (Paused)
             {
-                if (input.AnyPress) SetPaused(false);
+                if (tapToRetry && input.AnyPress) SetPaused(false);
                 return;
             }
 

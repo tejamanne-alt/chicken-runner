@@ -82,7 +82,7 @@ namespace ChickenRunner
                     if (flow.TapToRetry) DrawResult(director, width, height);
                     break;
             }
-            if (flow.Paused) DrawCentred(width, height * 0.34f, "Paused", "Tap to carry on");
+            if (flow.Paused && flow.TapToRetry) DrawCentred(width, height * 0.34f, "Paused", "Tap to carry on");
             if (flow.State != FlowState.Ready && director.Feathers > 0) DrawFeathers(director);
             if (flow.ShowDebug) DrawDebug(director);
         }
