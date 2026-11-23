@@ -22,5 +22,9 @@ The kid, the rooster and the pickups are drawn from frames of their 3D models: r
 FRAMES/rooster and FRAMES/pickups with `ArtSource/tools/characters/hull_character.py kid|rooster --frames
 FRAMES/<who>` and `pickups.py --frames FRAMES/pickups`.
 
+The bamboo ladder the kid climbs is drawn from `art/bamboo_ladder.png`, a picture of its 3D model leaning as it does
+in the game (`ArtSource/tools/models/ladder_model.py --picture`); the kid's Climb frames show her from behind, as the
+Unity build turns her to the wall.
+
 Any Python with Pillow and NumPy works for the first two. `Web/` keeps its images out of Git LFS (see
 `Web/.gitattributes`) so a host that builds from the repository serves the pictures themselves.
