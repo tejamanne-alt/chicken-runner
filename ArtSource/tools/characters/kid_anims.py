@@ -243,7 +243,10 @@ def climb(t):
     P = pose()
     q = 2 * math.pi * t / 0.4
     for side, s in (("Left", 1), ("Right", -1)):
-        arm(P, side, forward=145 + 28 * math.sin(q) * s, out=18, elbow=42 - 28 * math.sin(q) * s, hand=10)
+        # Hand over hand up the ladder's rails: each hand reaches up beside the head (about 1 m up, 0.19 m out, where
+        # the rails are), then pulls down to the shoulder; the game turns her back to the camera on a ladder, and the
+        # hands show either side of her hair. (On this rig a negative out swings the arm away from the body.)
+        arm(P, side, forward=140 + 28 * math.sin(q) * s, out=-40, elbow=30 - 25 * math.sin(q) * s, hand=10)
         leg(P, side, thigh=55 - 32 * math.sin(q) * s, knee=-92 + 22 * math.sin(q) * s, foot=-10)
     P["Spine"] = [12, 0, 0]
     P["Head"] = [-22, 0, 0]

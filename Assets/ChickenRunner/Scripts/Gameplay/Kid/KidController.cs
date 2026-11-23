@@ -70,6 +70,8 @@ namespace ChickenRunner
         Vector2 _vaultFrom;
         Vector2 _vaultTo;
         Collider _wallCollider;
+        // Share of a ladder climb spent going up the rungs; the rest is stepping off onto the top.
+        const float ClimbRiseShare = 0.8f;
 
         bool _inWater;
         bool _wasInWater;
@@ -90,6 +92,10 @@ namespace ChickenRunner
         public float Height => Pose == KidPose.Slide ? slideHeight : standHeight;
         /// <summary>On the bed of a canal, slowed to wading pace.</summary>
         public bool IsWading => _inWater && _grounded;
+        /// <summary>The ladder being climbed rung by rung, or null.</summary>
+        public Ladder ClimbLadder { get; private set; }
+        /// <summary>How fast the kid is going up the ladder's rungs, in m/s (0 while stepping off at the top).</summary>
+        public float ClimbRate { get; private set; }
 
         /// <summary>The kid ran into an armed obstacle; the float is the metres the mistake costs.</summary>
         public event Action<Obstacle, float> HitObstacle;
@@ -133,6 +139,8 @@ namespace ChickenRunner
             _inWater = false;
             _wasInWater = false;
             _wallCollider = null;
+            ClimbLadder = null;
+            ClimbRate = 0f;
             _speed?.Reset();
             CurrentSpeed = 0f;
             Pose = KidPose.Run;
@@ -411,7 +419,8 @@ namespace ChickenRunner
         /// <summary>Over a wall too high to step onto: a slow vault, or a quick climb if the wall has a ladder.</summary>
         void StartVault(float wallX, float topY)
         {
-            bool ladder = _wallCollider != null && _wallCollider.GetComponentInParent<Ladder>() != null;
+            var rungs = _wallCollider != null ? _wallCollider.GetComponentInParent<Ladder>() : null;
+            bool ladder = rungs != null;
             Pose = ladder ? KidPose.Climb : KidPose.Vault;
             _vaultTimer = 0f;
             _vaultDuration = Mathf.Max(0.01f, ladder ? _t.ladderClimbDuration : _t.vaultDuration);
@@ -419,6 +428,10 @@ namespace ChickenRunner
             float speedFactor = ladder ? _t.ladderSpeedFactor : _t.vaultSpeedFactor;
             float creep = _t.kidRunSpeed * speedFactor * _vaultDuration;
             _vaultTo = new Vector2(Mathf.Max(_position.x + creep, wallX + radius + 0.05f), topY);
+            ClimbLadder = rungs != null && rungs.Upright ? rungs : null;
+            ClimbRate = 0f;
+            // Up the rungs and off the top onto the roof, a short step past the ladder's head.
+            if (ClimbLadder != null) _vaultTo = new Vector2(Mathf.Max(wallX + radius + 0.05f, ClimbLadder.Head.x + 0.3f), topY);
             _verticalSpeed = 0f;
             _grounded = false;
             _slideQueued = false;
@@ -431,15 +444,44 @@ namespace ChickenRunner
         {
             _vaultTimer += dt;
             float k = Mathf.Clamp01(_vaultTimer / Mathf.Max(0.01f, _vaultDuration));
-            float up = 1f - (1f - k) * (1f - k);
-            _position = new Vector2(Mathf.Lerp(_vaultFrom.x, _vaultTo.x, k * k), Mathf.Lerp(_vaultFrom.y, _vaultTo.y, up));
+            if (ClimbLadder != null) TickClimb(k);
+            else
+            {
+                float up = 1f - (1f - k) * (1f - k);
+                _position = new Vector2(Mathf.Lerp(_vaultFrom.x, _vaultTo.x, k * k), Mathf.Lerp(_vaultFrom.y, _vaultTo.y, up));
+            }
             if (k < 1f) return;
 
+            ClimbLadder = null;
+            ClimbRate = 0f;
             Pose = KidPose.Run;
             _grounded = true;
             _jumpedSinceGrounded = false;
             _doubleJumpUsed = false;
             _timeSinceGrounded = 0f;
+        }
+
+        /// <summary>
+        /// Up a ladder: across to it in the first moments, straight up its rungs at a steady rate (following its lean),
+        /// then a step off onto the top. k runs 0 to 1 over the climb.
+        /// </summary>
+        void TickClimb(float k)
+        {
+            var ladder = ClimbLadder;
+            if (k < ClimbRiseShare)
+            {
+                float rise = k / ClimbRiseShare;
+                float y = Mathf.Lerp(_vaultFrom.y, _vaultTo.y, rise);
+                float across = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(rise / 0.15f));
+                _position = new Vector2(Mathf.Lerp(_vaultFrom.x, ladder.At(y).x, across), y);
+                ClimbRate = (_vaultTo.y - _vaultFrom.y) / Mathf.Max(0.01f, _vaultDuration * ClimbRiseShare);
+            }
+            else
+            {
+                float off = Mathf.SmoothStep(0f, 1f, (k - ClimbRiseShare) / (1f - ClimbRiseShare));
+                _position = new Vector2(Mathf.Lerp(ladder.At(_vaultTo.y).x, _vaultTo.x, off), _vaultTo.y);
+                ClimbRate = 0f;
+            }
         }
 
         void TickDive(float dt)

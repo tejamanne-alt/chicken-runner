@@ -1,6 +1,6 @@
 """Builds the kid or the rooster from their four painted views, so the model is the painting in the round.
 
-    python hull_character.py kid|rooster [--sheet OUT.png] [--closeup OUT.png] [--frames DIR] [--no-fbx]
+    python hull_character.py kid|rooster [--sheet OUT.png] [--closeup OUT.png] [--frames DIR [--clips A,B]] [--no-fbx]
 
 1. Each view (front, back, left, right: A0_kid_pattu_frock_*.png, B11-B14) is cut from its plain background, the
    ground line removed, and scaled to the character's height.
@@ -566,10 +566,17 @@ if SHEET or FRAMES:
         sheet.save(SHEET)
         print("sheet", SHEET)
     if FRAMES:
-        arm.rotation_euler = (0, 0, math.radians(65))
+        # --clips renders just those clips again, keeping the others' frames already in DIR.
+        only = set(ARGS[ARGS.index("--clips") + 1].split(",")) if "--clips" in ARGS else None
         meta = {"pixelsPerMetre": res / view, "anchor": [res / 2, res * (1 - ground)], "size": res, "clips": {}}
+        if only and (FRAMES / "frames.json").exists():
+            meta["clips"] = json.loads((FRAMES / "frames.json").read_text())["clips"]
         FRAMES.mkdir(parents=True, exist_ok=True)
         for clip, frames, loop, face, fn in A.CLIPS:
+            if only and clip not in only:
+                continue
+            # Three-quarter view on the run; up a ladder her back is to the camera, as KidModelVisual turns her to the wall.
+            arm.rotation_euler = (0, 0, math.radians(180 if clip == "Climb" else 65))
             arm.animation_data.action = actions[clip]
             names = []
             for f in range(frames):

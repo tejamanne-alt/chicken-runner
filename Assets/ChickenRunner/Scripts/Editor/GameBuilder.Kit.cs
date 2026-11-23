@@ -312,11 +312,46 @@ namespace ChickenRunner.EditorTools
                     var wall = Box("House", _root, new Vector3(x + width * 0.5f, roof * 0.5f, 0f), new Vector3(width, roof, 1.2f), _z.prims, true);
                     wall.GetComponent<Renderer>().enabled = card == null;
                     if (card == null) wall.AddComponent<GreyboxColor>().SetColor(Palette.Walls[i % Palette.Walls.Length]);
-                    if (withLadder) wall.AddComponent<Ladder>();
+                    if (withLadder) StandLadder(wall, x, width, cardHeight);
                     x += width;
                 }
                 Hop(start - 1.5f, 1.7f, 0.6f);
                 return x;
+            }
+
+            /// <summary>
+            /// The bamboo ladder the kid climbs, against the house front starting at x (the card mirrored, so the ladder
+            /// is at its left end): where the painting had it before cutouts.py painted it off the card, foot 8.4% of
+            /// the way along the front, leaning the way the painted one did, resting on the parapet. Its wall gets the
+            /// <see cref="Ladder"/> with the same foot and head.
+            /// </summary>
+            void StandLadder(GameObject wall, float x, float width, float cardHeight)
+            {
+                const float front = 0.4f;               // the house front: its card's z
+                const float rest = Roof + 0.08f;        // on the parapet's coping
+                // The painted ladder's middle moves 13.5% of the front's width along it over 93% of its height.
+                float lean = 0.135f * width / (0.93f * cardHeight);
+                var foot = new Vector3(x + 0.084f * width, 0f, front - 0.45f);
+                var head = new Vector3(foot.x + lean * rest, rest, front - 0.05f);
+                var ladder = wall.AddComponent<Ladder>();
+                ladder.foot = foot - wall.transform.localPosition;
+                ladder.head = head - wall.transform.localPosition;
+                ladder.rungSpacing = 0.27f;   // as built by ArtSource/tools/models/ladder_model.py
+
+                var model = ArtModels.Stand(_root, "lane", "bamboo_ladder", foot, head);
+                if (model == null)
+                {
+                    // Not built: two grey-box rails and the rungs, leaning the same way.
+                    model = new GameObject("Ladder");
+                    model.transform.SetParent(_root, false);
+                    model.transform.localPosition = foot;
+                    model.transform.localRotation = Quaternion.FromToRotation(Vector3.up, (head - foot).normalized);
+                    foreach (float side in new[] { -0.17f, 0.17f })
+                        Prim(PrimitiveType.Cube, "Rail", model.transform, new Vector3(side, 1.3f, 0f), new Vector3(0.05f, 2.6f, 0.05f), Palette.Wood);
+                    for (float y = 0.27f; y < 2.5f; y += 0.27f)
+                        Prim(PrimitiveType.Cube, "Rung", model.transform, new Vector3(0f, y, 0f), new Vector3(0.38f, 0.035f, 0.035f), Palette.Wood);
+                }
+                foreach (var renderer in model.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder + 1;
             }
 
             /// <summary>A canal across the lane, <paramref name="width"/> wide from x: wade it, jump it, or cross the plank bridge.</summary>

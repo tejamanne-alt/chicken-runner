@@ -126,6 +126,10 @@ for name, (x0, x1) in {"house_limewash": (8, 262), "house_indigo_veranda": (262,
         a[:352, 1192:1222] = 0  # above the ladder's top rung there is only the pink parapet
     ys = np.nonzero(a.max(axis=1) > 0.5)[0]
     save(name, hrgb, a, (x0, ys.min() - 2, x1, 793))
+    if name == "house_turmeric_ladder":
+        # The kid climbs a 3D bamboo ladder the game stands there instead (tools/models/ladder_model.py).
+        from paint_out_ladder import paint_out_file
+        paint_out_file(OUT / f"{name}.png")
 manifest["_house_px_per_m"] = 120  # doors are about 243 px tall; a village door is about 2 m
 
 # ---------------------------------------------------------------- props (C5, C6)

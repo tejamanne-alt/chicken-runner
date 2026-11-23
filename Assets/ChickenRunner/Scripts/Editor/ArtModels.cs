@@ -185,6 +185,37 @@ namespace ChickenRunner.EditorTools
             return pivot;
         }
 
+        /// <summary>
+        /// A model built standing up from its own origin (the bamboo ladder), stood with its foot at
+        /// <paramref name="foot"/> and leaning along the line to <paramref name="toward"/>, its front to the camera, at its
+        /// own size. Unlike the scenery it is used whether or not the scenery models are on. Null if it has not been built.
+        /// </summary>
+        public static GameObject Stand(Transform parent, string folder, string name, Vector3 foot, Vector3 toward, float outline = 0.004f)
+        {
+            string path = $"{Folder}/{folder}/{name}.fbx";
+            if (!File.Exists(Path.Combine(ArtAssets.RepoRoot, path))) return null;
+            AssetDatabase.ImportAsset(path);
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (model == null) return null;
+            var pivot = new GameObject(name);
+            pivot.transform.SetParent(parent, false);
+            pivot.transform.localPosition = foot;
+            pivot.transform.localRotation = Quaternion.FromToRotation(Vector3.up, (toward - foot).normalized);
+            var holder = new GameObject("Model").transform;
+            holder.SetParent(pivot.transform, false);
+            holder.localRotation = Quaternion.Euler(0f, 180f, 0f);  // the models face +Z; turned round, the camera
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, holder);
+            foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = renderer.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = Surface(mats[i], 0f, outline);
+                renderer.sharedMaterials = mats;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+            return pivot;
+        }
+
         /// <summary>The toon copy of a model's imported material: its painting, lit softly from the side, with a thin ink
         /// outline and the card's haze.</summary>
         static Material Surface(Material source, float haze, float outline)

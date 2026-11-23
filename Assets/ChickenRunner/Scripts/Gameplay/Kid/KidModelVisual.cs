@@ -24,6 +24,10 @@ namespace ChickenRunner
         [Tooltip("The run speed the Run clip was made for, in m/s.")]
         [SerializeField] internal float runReferenceSpeed = 6f;
         [SerializeField] internal float crossFade = 0.07f;
+        [Tooltip("How far in front of the rungs the kid's body is while she climbs a ladder, in metres.")]
+        [SerializeField] internal float ladderStandOff = 0.16f;
+        [Tooltip("Seconds of one loop of the Climb clip, which moves each hand up one rung (two rungs a loop).")]
+        [SerializeField] internal float climbClipLength = 0.4f;
 
         string _state;
         float _landTimer;
@@ -32,6 +36,9 @@ namespace ChickenRunner
         bool _caught;
         Texture2D _face;
         MaterialPropertyBlock _block;
+        Transform _holder;              // the model's holder: turned to face the run, or the wall on a ladder
+        Quaternion _runFacing;
+        bool _haveFacing;
 
         void OnEnable()
         {
@@ -72,7 +79,12 @@ namespace ChickenRunner
             {
                 case KidPose.Dive: state = "Dive"; break;
                 case KidPose.Vault: state = "Vault"; break;
-                case KidPose.Climb: state = "Climb"; break;
+                case KidPose.Climb:
+                    state = "Climb";
+                    // Hands and feet keep time with the rungs: a loop of the clip climbs two of them.
+                    if (kid.ClimbLadder != null && kid.ClimbRate > 0f)
+                        speed = kid.ClimbRate * climbClipLength / (2f * Mathf.Max(0.05f, kid.ClimbLadder.rungSpacing));
+                    break;
                 case KidPose.Slide: state = "Slide"; break;
                 case KidPose.Air:
                     state = _doubleTimer > 0f ? "DoubleJump" : kid.VerticalSpeed > 0.5f ? "JumpUp" : "Fall";
@@ -85,13 +97,37 @@ namespace ChickenRunner
                     else { state = "Run"; speed = kid.CurrentSpeed / Mathf.Max(0.1f, runReferenceSpeed); }
                     break;
             }
-            animator.speed = Mathf.Clamp(speed, 0.3f, 2.5f);
+            animator.speed = Mathf.Clamp(speed, 0.3f, state == "Climb" ? 4.5f : 2.5f);
+            FaceLadder(dt);
             if (state != _state)
             {
                 animator.CrossFadeInFixedTime(state, crossFade, 0, 0f);
                 _state = state;
             }
             SetFace(FaceFor(state));
+        }
+
+        /// <summary>
+        /// On a ladder the kid turns her back to the camera to face the wall and keeps just in front of the rungs as the
+        /// ladder leans back; off it she turns back to face the run.
+        /// </summary>
+        void FaceLadder(float dt)
+        {
+            if (_holder == null)
+            {
+                _holder = animator.transform.parent != null && animator.transform.parent != kid.transform
+                    ? animator.transform.parent : animator.transform;
+                _runFacing = _holder.localRotation;
+                _haveFacing = true;
+            }
+            if (!_haveFacing) return;
+            var ladder = kid.Pose == KidPose.Climb ? kid.ClimbLadder : null;
+            Quaternion facing = ladder != null ? Quaternion.identity : _runFacing;   // the model's own front is +Z
+            float z = ladder != null ? ladder.At(kid.Position.y).z - ladderStandOff - kid.transform.position.z : 0f;
+            float follow = 1f - Mathf.Exp(-dt * 22f);
+            _holder.localRotation = Quaternion.Slerp(_holder.localRotation, facing, follow);
+            var p = _holder.localPosition;
+            _holder.localPosition = new Vector3(p.x, p.y, Mathf.Lerp(p.z, z, follow));
         }
 
         Texture2D FaceFor(string state)
