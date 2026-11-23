@@ -290,6 +290,7 @@ G_BUILDINGS = {
     "H3_peepal_platform": ("peepal_platform", None, ("h", 12.0)),  # tree 12 m tall: the platform's centre is the door
 }
 GROUND_ROW = {"G13_cattle_shed": 1173,  # no drawn ground line: the shed's posts stand here
+              "H3_peepal_platform": "foot",  # no ground line either: the platform stands on its lowest row
               }
 KEY_ABOVE = {}  # sheet rows to key rather than fill (sky seen between thin things), by source
 SEE_THROUGH = {"G12_house_being_built"}  # the sheet shows between the scaffold's poles
@@ -414,6 +415,9 @@ def sheet_pieces(src, plain_sheet=True, min_area=6000, merge=6, ground_line=Fals
         for y in range(top - 3, bottom + 4):
             alpha[y, ~above] = 0
         alpha[bottom + 4:] = 0
+        # Stalls drawn on one long strip of ground come apart where nothing stands above the strip.
+        upper = ndimage.binary_dilation((alpha[:max(top - 20, 1)] > 0.5).any(axis=0), iterations=6)
+        alpha[:, ~upper] = 0
     lab, n = ndimage.label(ndimage.binary_dilation(alpha > 0.5, iterations=merge))
     h, w = alpha.shape
     found = []
@@ -433,8 +437,9 @@ def sheet_pieces(src, plain_sheet=True, min_area=6000, merge=6, ground_line=Fals
     return rgb, [p for row in rows for p in sorted(row, key=lambda p: p[1][0])]
 
 
-def cut_sheet(src, prefix, folder, **kw):
-    """Saves every piece of a sheet as <prefix>_<k> in folder; returns their names."""
+def cut_sheet(src, prefix, folder, names_if_real=None, **kw):
+    """Saves every piece of a sheet as <prefix>_<k> in folder, or under names_if_real when the sheet is the real image
+    and has that many pieces; returns their names."""
     global OUT
     rgb, pieces = sheet_pieces(src, **kw)
     if pieces:  # a row of buildings: drop bits much shorter than the tallest (washing, a label, a stray leaf)
@@ -443,8 +448,9 @@ def cut_sheet(src, prefix, folder, **kw):
     saved, OUT = OUT, folder
     folder.mkdir(exist_ok=True)
     names = []
+    real_names = names_if_real if names_if_real and not load.placeholder and len(names_if_real) == len(pieces) else None
     for k, (piece, (x0, y0, x1, y1)) in enumerate(pieces, 1):
-        name = f"{prefix}_{k}"
+        name = real_names[k - 1] if real_names else f"{prefix}_{k}"
         save(name, rgb, piece)
         manifest[name]["src_box"] = [int(x0), int(y0), int(x1), int(y1)]
         names.append(name)
@@ -551,7 +557,12 @@ cut_groups("D6_crops_field_edges.png", FIELDS, {"paddy_young": [1], "paddy_tall"
                     "canal_bank": 1.3, "sugarcane": 2.8, "haystack_small": 1.8, "palmyra_1": 9.0, "palmyra_2": 9.5,
                     "palmyra_3": 9.0})
 # The fields' middle layer (D7, or its placeholder): a strip on magenta, like C8.
-save("mid_fields_band", *magenta_cut(load("D7_fields_mid_layer.png")))
+_band_rgb, _band_a = magenta_cut(load("D7_fields_mid_layer.png"))
+_lab, _n = ndimage.label(_band_a > 0.3)  # drop the corner watermark and specks: keep the band itself
+_sizes = ndimage.sum(_band_a > 0.3, _lab, range(1, _n + 1))
+_band_a *= ndimage.binary_dilation(np.isin(_lab, [i + 1 for i, v in enumerate(_sizes) if v >= 0.01 * _sizes.max()]),
+                                   iterations=3)
+save("mid_fields_band", _band_rgb, _band_a)
 # The two halves of the water texture (T6): paddy water with seedlings, and open canal water.
 t6 = load("T6_tex_water.png")
 save_tile("paddy_water", t6[:, 8: t6.shape[1] // 2 - 8])
@@ -561,10 +572,16 @@ save_tile("canal_water", t6[:, t6.shape[1] // 2 + 8: -8])
 # Each sheet's pieces are scaled by the tallest one, whose real height is given: the wide single-storey houses about
 # 6 m with what stands on their roofs, shandy stalls about 3 m, the temple lane's mandapam about 5 m.
 MARKET = OUT.parent / "market"
+# The real sheets' pieces get names, so the scenes can pick them by what they are.
+REAL_NAMES = {"E8_market_stalls_1.png": ["stall_veg", "stall_flowers", "stall_vessels"],
+              "E9_market_stalls_2.png": ["coconut_cart", "stall_sweets", "stall_potter"],
+              "E10_temple_street.png": ["mandapam", "chariot_shed", "tank_wall"]}
 for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 6.0), ("E7_rooftop_houses_2.png", "roof_house_b", 6.0),
                              ("E8_market_stalls_1.png", "stall_a", 3.0), ("E9_market_stalls_2.png", "stall_b", 3.0),
                              ("E10_temple_street.png", "temple_street", 5.0)]:
-    names = cut_sheet(src, prefix, MARKET, ground_line=True)
+    if src == "E8_market_stalls_1.png" and refs.is_real(src):
+        continue  # its stalls' awnings touch: cut by columns below
+    names = cut_sheet(src, prefix, MARKET, names_if_real=REAL_NAMES.get(src), ground_line=True)
     if names:
         tallest_px = max(manifest[nm]["px"][1] for nm in names)
         for nm in names:
@@ -606,6 +623,15 @@ cut_columns("E4_rooftop_props.png", MARKET, {"black_tank": (0, 249), "parapet_ga
                                              "papad_mat": (842, 1092), "kite": (1058, 1216), "bunting": (1216, 1536)},
             {"black_tank": 2.0, "parapet_gap": 1.2, "chilli_mat": 0.25, "papad_mat": 0.25, "kite": 0.9, "bunting": 0.7})
 
+if refs.is_real("E8_market_stalls_1.png"):
+    # Cut where the awnings touch (columns 1180 and 2090, the narrowest points above the shared ground strip).
+    _e8 = load("E8_market_stalls_1.png")
+    _top, _bottom = ground_band(painted_alpha(_e8, drop_sheet=True))
+    cut_columns("E8_market_stalls_1.png", MARKET, {"stall_veg": (0, 1180, 0, _bottom + 4),
+                                                   "stall_flowers": (1180, 2090, 0, _bottom + 4),
+                                                   "stall_vessels": (2090, 3168, 0, _bottom + 4)},
+                {"stall_veg": 3.0, "stall_flowers": 3.0, "stall_vessels": 2.6})
+
 # ---------------------------------------------------------------- the rooster (B1 side view, B2 poses), facing right
 ROOSTER = OUT.parent / "rooster"
 cut_columns("B1_rooster_model_sheet.png", ROOSTER, {"rooster_side": (0, 560)}, {"rooster_side": 0.72})
@@ -622,6 +648,12 @@ for src, tile_name in [("T10_tex_bare_brick.png", "bare_brick"), ("T11_tex_cocon
                        ("T12_tex_plain_red_earth.png", "plain_red_earth")]:
     if refs.is_real(src):  # the scenes keep their own stand-ins until the real texture arrives
         save_tile(tile_name, load(src))
+
+# Red-and-white striped awnings look like a modern or Western market, not a 1970s Indian village: these pieces are
+# kept but marked, and the scenes leave them out.
+for name in ["stall_high", "stall_low", "stall_veg", "stall_sweets"]:
+    if name in manifest:
+        manifest[name]["striped"] = True
 
 (OUT / "manifest.json").write_text(json.dumps(manifest, indent=1))
 print(f"{len(manifest) - 1} pieces in {OUT.relative_to(ROOT)}")

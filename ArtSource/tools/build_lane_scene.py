@@ -28,7 +28,7 @@ SIZES = {
 # ------------------------------------------------------------------ ground
 # Built in the shader, so no mark repeats (see ground.py); the painted mud tile lends it brush-stroke grain.
 
-ground_plane(GROUND.earth_material(load_image(CUT / "textures" / "mud_floor.png")))
+ground_plane(GROUND.earth_material(load_image(GROUND.grain_tile(CUT))))
 
 # ------------------------------------------------------------------ the street: room to breathe, never the same thing twice
 # Placement rules (the game's chunk builder will follow the same ones). Everything comes from the reference art:

@@ -369,3 +369,9 @@ def paddy_water_material(name="M_paddy_water"):
     g.link(fog.outputs["Emission"], blend.inputs[2])
     g.link(blend.outputs["Shader"], g.nt.nodes["Material Output"].inputs["Surface"])
     return mat
+
+
+def grain_tile(cut_dir):
+    """The texture lending the earth its brush-stroke grain: T12's plain red earth when it's there, else the mud tile."""
+    plain = cut_dir / "textures" / "plain_red_earth.png"
+    return plain if plain.exists() else cut_dir / "textures" / "mud_floor.png"

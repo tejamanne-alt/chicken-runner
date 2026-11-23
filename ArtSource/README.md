@@ -44,6 +44,11 @@ half-built concrete house (the old G12) and the overhead water tank (the old G16
 ask for a house being built with mud bricks and a bamboo scaffold, and a stone lamp pillar. The black plastic water
 tanks in E1 and E4 are left out too.
 
+Striped awnings are out too: red-and-white stripes look like a modern or Western market, not a 1970s Indian village.
+Every prompt now asks for plain faded cotton, palm-leaf mats, thatch or black cloth umbrellas instead, and the striped
+stalls already made (the two in E5, E8's vegetable stall, E9's sweets stall) are marked `"striped": true` in the
+manifest and left out of the scenes.
+
 ## Into Unity
 
 Each scene builder also writes its painted cards to `Assets/ChickenRunner/Art/Layouts/<zone>.json` (position, size,
@@ -93,8 +98,8 @@ chase camera frames them in play.
   to stay under the kid's feet in the game view. Behind: the D5 field buildings, haystacks, a well and a scarecrow,
   mango, neem and tamarind trees, rows of palmyra and coconut palms, then the D7 band and the D2 far layer. The haze
   starts later here (10 m) than in the lane, as open fields see further.
-- **Zone 3, market day and the temple street** (`build_market_scene.py`): stalls on the lane with striped awnings to
-  bounce across, and baskets of hens; behind, a row of stalls of every kind (E8, E9 and the E5 stalls) with goods and
+- **Zone 3, market day and the temple street** (`build_market_scene.py`): stalls on the lane whose palm-leaf and
+  thatch shades the kid bounces across, and baskets of hens; behind, a row of stalls of every kind (E8, E9 and the E5 stalls) with goods and
   bunting, then two-storey houses with flat roofs (E6, E7); near the end the temple street (E10) and lamp-lit steps,
   with the temple tower in the far layer. Villagers, animals, kites over the roofs.
 

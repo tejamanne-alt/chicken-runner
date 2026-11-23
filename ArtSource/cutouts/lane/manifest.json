@@ -438,13 +438,12 @@
  },
  "house_being_built": {
   "px": [
-   883,
-   496
+   2539,
+   1096
   ],
-  "placeholder": true,
-  "px_per_m": 142.4,
+  "px_per_m": 310.9,
   "door": 0.5,
-  "below_ground_px": 12
+  "below_ground_px": 39
  },
  "cattle_shed": {
   "px": [
@@ -475,23 +474,21 @@
  },
  "lamp_pillar": {
   "px": [
-   511,
-   1448
+   860,
+   1350
   ],
-  "placeholder": true,
-  "px_per_m": 159.6,
+  "px_per_m": 148.1,
   "door": 0.5,
-  "below_ground_px": 12
+  "below_ground_px": 17
  },
  "peepal_platform": {
   "px": [
-   1306,
-   1387
+   1844,
+   1417
   ],
-  "placeholder": true,
-  "px_per_m": 114.6,
+  "px_per_m": 117.2,
   "door": 0.5,
-  "below_ground_px": 12
+  "below_ground_px": 10
  },
  "h1_1": {
   "px": [
@@ -1103,7 +1100,7 @@
  },
  "pump_house": {
   "px": [
-   532,
+   494,
    374
   ],
   "height_m": 2.9
@@ -1124,7 +1121,7 @@
  },
  "field_shrine": {
   "px": [
-   346,
+   339,
    532
   ],
   "height_m": 4.2
@@ -1202,205 +1199,155 @@
  "mid_fields_band": {
   "px": [
    3168,
-   915
-  ],
-  "placeholder": true
+   882
+  ]
  },
  "roof_house_a_1": {
   "px": [
-   1553,
-   567
+   1564,
+   816
   ],
-  "placeholder": true,
   "src_box": [
-   84,
-   683,
-   1637,
-   1250
+   71,
+   174,
+   1635,
+   990
   ],
-  "px_per_m": 94.5
+  "px_per_m": 136.0
  },
  "roof_house_a_2": {
   "px": [
-   1362,
-   470
+   1492,
+   718
   ],
-  "placeholder": true,
   "src_box": [
-   1733,
-   780,
-   3095,
-   1250
+   1618,
+   273,
+   3109,
+   990
   ],
-  "px_per_m": 94.5
+  "px_per_m": 136.0
  },
  "roof_house_b_1": {
   "px": [
-   1331,
-   518
+   1583,
+   723
   ],
-  "placeholder": true,
   "src_box": [
-   104,
-   732,
-   1435,
-   1250
+   84,
+   398,
+   1666,
+   1120
   ],
-  "px_per_m": 130.5
+  "px_per_m": 160.5
  },
  "roof_house_b_2": {
   "px": [
-   1331,
-   783
+   1310,
+   963
   ],
-  "placeholder": true,
   "src_box": [
-   1508,
-   467,
-   2839,
-   1250
+   1702,
+   158,
+   3012,
+   1121
   ],
-  "px_per_m": 130.5
+  "px_per_m": 160.5
  },
- "stall_a_1": {
+ "coconut_cart": {
   "px": [
-   968,
-   533
+   1041,
+   581
   ],
-  "placeholder": true,
   "src_box": [
-   74,
-   717,
-   1042,
-   1250
+   89,
+   459,
+   1129,
+   1039
   ],
-  "px_per_m": 192.0
+  "px_per_m": 214.3
  },
- "stall_a_2": {
+ "stall_sweets": {
   "px": [
-   968,
-   533
+   1072,
+   643
   ],
-  "placeholder": true,
   "src_box": [
-   1106,
-   717,
-   2074,
-   1250
+   1097,
+   396,
+   2169,
+   1037
   ],
-  "px_per_m": 192.0
+  "px_per_m": 214.3,
+  "striped": true
  },
- "stall_a_3": {
+ "stall_potter": {
   "px": [
-   968,
-   576
+   928,
+   638
   ],
-  "placeholder": true,
   "src_box": [
-   2139,
-   674,
-   3107,
-   1250
+   2154,
+   400,
+   3082,
+   1037
   ],
-  "px_per_m": 192.0
+  "px_per_m": 214.3
  },
- "stall_b_1": {
+ "mandapam": {
   "px": [
-   968,
-   533
+   1021,
+   285
   ],
-  "placeholder": true,
   "src_box": [
-   74,
-   717,
-   1042,
-   1250
+   115,
+   691,
+   1135,
+   976
   ],
-  "px_per_m": 192.0
+  "px_per_m": 98.6
  },
- "stall_b_2": {
+ "chariot_shed": {
   "px": [
-   968,
-   533
+   780,
+   493
   ],
-  "placeholder": true,
   "src_box": [
-   1106,
-   717,
-   2074,
-   1250
+   1193,
+   484,
+   1973,
+   976
   ],
-  "px_per_m": 192.0
+  "px_per_m": 98.6
  },
- "stall_b_3": {
+ "tank_wall": {
   "px": [
-   968,
-   576
+   1032,
+   334
   ],
-  "placeholder": true,
   "src_box": [
-   2139,
-   674,
-   3107,
-   1250
+   2017,
+   644,
+   3049,
+   976
   ],
-  "px_per_m": 192.0
- },
- "temple_street_1": {
-  "px": [
-   1117,
-   396
-  ],
-  "placeholder": true,
-  "src_box": [
-   94,
-   854,
-   1211,
-   1250
-  ],
-  "px_per_m": 79.2
- },
- "temple_street_2": {
-  "px": [
-   853,
-   381
-  ],
-  "placeholder": true,
-  "src_box": [
-   1206,
-   869,
-   2059,
-   1250
-  ],
-  "px_per_m": 79.2
- },
- "temple_street_3": {
-  "px": [
-   925,
-   214
-  ],
-  "placeholder": true,
-  "src_box": [
-   2074,
-   1036,
-   2999,
-   1250
-  ],
-  "px_per_m": 79.2
+  "px_per_m": 98.6
  },
  "stall_high": {
   "px": [
    316,
    301
   ],
-  "height_m": 2.9
+  "height_m": 2.9,
+  "striped": true
  },
  "stall_low": {
   "px": [
    247,
    194
   ],
-  "height_m": 2.0
+  "height_m": 2.0,
+  "striped": true
  },
  "flower_stall": {
   "px": [
@@ -1485,6 +1432,28 @@
    115
   ],
   "height_m": 0.7
+ },
+ "stall_veg": {
+  "px": [
+   1180,
+   893
+  ],
+  "height_m": 3.0,
+  "striped": true
+ },
+ "stall_flowers": {
+  "px": [
+   922,
+   836
+  ],
+  "height_m": 3.0
+ },
+ "stall_vessels": {
+  "px": [
+   1078,
+   743
+  ],
+  "height_m": 2.6
  },
  "rooster_side": {
   "px": [

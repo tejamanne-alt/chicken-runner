@@ -42,17 +42,26 @@ def piece(folder, name, x, y, z=0.0, col="Props", scale=1.0, mirror=None, flat=F
     return obj, w
 
 
-def names(prefix):
-    return sorted(n for n in MANIFEST if n.startswith(prefix) and (MK / f"{n}.png").exists())
+def names(*prefixes):
+    """Market pieces whose names start with any of these, leaving out red-and-white striped ones (not a 1970s
+    Indian look)."""
+    return sorted(n for n in MANIFEST if n.startswith(prefixes) and (MK / f"{n}.png").exists()
+                  and not MANIFEST[n].get("striped"))
+
+
+def first(*candidates):
+    """The first of these pieces that exists and isn't striped."""
+    return next((n for n in candidates if n in MANIFEST and (MK / f"{n}.png").exists()
+                 and not MANIFEST[n].get("striped")), None)
 
 
 # ------------------------------------------------------------------ ground
-ground_plane(GROUND.earth_material(load_image(CUT / "textures" / "mud_floor.png")))
+ground_plane(GROUND.earth_material(load_image(GROUND.grain_tile(CUT))))
 grass_spots = [(rng.uniform(START, END), rng.uniform(1.8, 6.0), rng.uniform(0.15, 0.6)) for _ in range(70)]
 
 # ------------------------------------------------------------------ the market row, 3-4.5 m back: stalls of every kind
 # Never the same stall twice in a row; goods (baskets, vessels, hens) in front of every other one.
-stalls = Pool(names("stall_a_") + names("stall_b_") + ["stall_high", "stall_low", "flower_stall"], 4)
+stalls = Pool(names("stall_", "coconut_cart", "flower_stall"), 3)
 goods = Pool(["veg_basket", "brass_vessels", "hens_basket", "veg_basket", "brass_vessels"], 2)
 sx = START
 while sx < TEMPLE_FROM - 4:
@@ -83,7 +92,7 @@ while hx < TEMPLE_FROM:
 
 # ------------------------------------------------------------------ the temple street, then the lamp-lit steps
 tx = TEMPLE_FROM
-for name in names("temple_street_"):
+for name in [n for n in ["mandapam", "chariot_shed", "tank_wall"] if n in MANIFEST] or names("temple_street_"):
     obj, w = piece(MK, name, 0, rng.uniform(5.0, 6.5), mirror=False)
     if obj is None:
         break
@@ -93,10 +102,14 @@ for k in range(3):
     piece(MK, "lamp_step", tx + 1.0 + k * 2.4, 2.6 + k * 0.05, mirror=False)
     piece(MK, "lantern", tx + 2.0 + k * 2.4, 2.4)
 
-# ------------------------------------------------------------------ the lane: awnings to bounce across, hens
-for name, x in [("stall_high", 4.0), ("hens_basket", 13.0), ("stall_low", 19.0), ("hens_basket", 25.5),
-                ("hens_basket", 26.6), ("flower_stall", 33.0), ("stall_high", 44.0), ("brass_vessels", 50.0)]:
-    piece(MK, name, x, 0.0, mirror=False)
+# ------------------------------------------------------------------ the lane: shades to bounce across, hens
+# The bounce pads are the palm-leaf mat and thatch shades and the flower stall's roof; no striped awnings.
+for name, x in [(first("stall_flowers", "flower_stall"), 4.0), ("hens_basket", 13.0),
+                (first("stall_vessels", "flower_stall"), 19.0), ("hens_basket", 25.5), ("hens_basket", 26.6),
+                (first("flower_stall"), 33.0), (first("stall_potter", "stall_flowers"), 44.0),
+                ("brass_vessels", 50.0)]:
+    if name:
+        piece(MK, name, x, 0.0, mirror=False)
 
 # ------------------------------------------------------------------ life and things on the ground
 people = ["vegetable_seller", "woman_carrying_pot", "milkman_on_bicycle", "kids_rolling_tyre", "old_man_on_chair"]

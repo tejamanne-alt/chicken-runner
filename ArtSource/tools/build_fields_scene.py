@@ -46,7 +46,7 @@ def in_canal(x, margin=0.0):
 
 
 # ------------------------------------------------------------------ ground: the bund, the water, the canals
-earth = GROUND.earth_material(load_image(CUT / "textures" / "mud_floor.png"), ruts=(), haze_from=10.0, haze_to=55.0)
+earth = GROUND.earth_material(load_image(GROUND.grain_tile(CUT)), ruts=(), haze_from=10.0, haze_to=55.0)
 edges = [START] + [v for cx, w, _ in CANALS for v in (cx - w / 2, cx + w / 2)] + [END]
 for i in range(0, len(edges), 2):  # the bund in pieces, broken where the canals cross it
     x0, x1 = edges[i], edges[i + 1]

@@ -743,7 +743,9 @@ class Kit:
         """A fence of woven dried coconut leaves ("palm") or split-bamboo matting ("bamboo") along a straight line,
         on thin posts, with a ragged top. gap=(a, b): leave an opening between those fractions of its length."""
         r = self.rng
-        if style == "palm":
+        if style == "palm" and (self.tex_dir / "coconut_leaf_fence.png").exists():  # T11, as painted
+            panel = self.textured("coconut_leaf_fence", (r.uniform(0.92, 1.0), r.uniform(0.9, 0.98), 0.9), scale=0.9)
+        elif style == "palm":
             panel = self.textured("thatch", (r.uniform(0.74, 0.84), r.uniform(0.62, 0.70), 0.50), scale=1.3)
         else:
             panel = self.textured("bamboo_weave", (1.0, 0.86, 0.66), scale=1.6)
