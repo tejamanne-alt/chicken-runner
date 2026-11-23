@@ -189,6 +189,130 @@ def shop(d, x0, ground, w_m, goods_colour):
     return w
 
 
+def rural_house(d, x0, ground, w_m, kind):
+    """A wide, low single-storey village house with a flat roof terrace (E6, E7), 4 m to the top of the parapet."""
+    w, h = w_m * M, 3.5 * M
+    wall = {"lime": (246, 234, 204), "ochre": (214, 150, 80), "blue": (150, 186, 214), "old": (226, 210, 190)}[kind]
+    top = ground - h
+    box(d, x0, top, x0 + w, ground, wall)
+    box(d, x0 - 10, top - 0.5 * M, x0 + w + 10, top, wall)  # parapet
+    box(d, x0, ground - 0.45 * M, x0 + w, ground, (168, 70, 50), 3)  # red-oxide plinth
+    door(d, x0 + w * 0.5, ground - 0.45 * M, 1.0 * M, 2.0 * M)
+    for fx in (0.22, 0.78):
+        window(d, x0 + w * fx, ground - 1.9 * M, 0.8 * M, 0.8 * M)
+    if kind == "lime":  # a veranda under a tiled lean-to on pillars, steps up the end wall, pots on the terrace
+        d.polygon([(x0 - 30, ground - 2.6 * M), (x0 + w + 30, ground - 2.6 * M), (x0 + w + 10, ground - 3.2 * M),
+                   (x0 - 10, ground - 3.2 * M)], fill=ROOF, outline=INK)
+        for fx in (0.04, 0.3, 0.7, 0.96):
+            d.line((x0 + w * fx, ground - 2.6 * M, x0 + w * fx, ground - 0.45 * M), fill=WOOD, width=10)
+        for i in range(8):
+            box(d, x0 + w + i * 22, ground - (i + 1) * 0.5 * M, x0 + w + 60 + i * 22, ground - i * 0.5 * M, (190, 186, 176), 3)
+        w += 8 * 22 + 60  # the steps are part of this house
+        for i in range(3):
+            d.ellipse((x0 + w * (0.6 + 0.1 * i), top - 1.2 * M, x0 + w * (0.6 + 0.1 * i) + 0.7 * M, top - 0.4 * M),
+                      fill=(176, 92, 52), outline=INK, width=3)
+        d.polygon([(x0 + w * 0.15, top - 0.5 * M), (x0 + w * 0.32, top - 0.5 * M), (x0 + w * 0.235, top - 1.6 * M)],
+                  fill=(214, 176, 90), outline=INK)  # a small haystack
+    elif kind == "ochre":  # a pumpkin creeper on the roof and a thatched cattle shed at one end
+        for i in range(10):
+            d.ellipse((x0 + 40 + i * w / 11, top - 0.7 * M, x0 + 120 + i * w / 11, top - 0.3 * M), fill=LEAF, outline=LEAF_DARK)
+        box(d, x0 + w + 20, ground - 2.4 * M, x0 + w + 2.6 * M, ground, (180, 150, 100))
+        d.polygon([(x0 + w, ground - 2.4 * M), (x0 + w + 2.9 * M, ground - 2.4 * M), (x0 + w + 2.6 * M, ground - 3.1 * M),
+                   (x0 + w + 20, ground - 3.1 * M)], fill=(204, 170, 96), outline=INK)
+        w += 2.9 * M
+    elif kind == "blue":  # chillies and papads on mats, a bamboo ladder
+        for i in range(3):
+            box(d, x0 + w * (0.08 + 0.3 * i), top - 0.75 * M, x0 + w * (0.34 + 0.3 * i), top - 0.5 * M,
+                (200, 40, 30) if i % 2 == 0 else (236, 206, 140), 3)
+        lx = x0 + w * 0.9
+        d.line((lx, ground, lx + 60, top - 0.4 * M), fill=(200, 170, 100), width=8)
+        d.line((lx + 50, ground, lx + 110, top - 0.4 * M), fill=(200, 170, 100), width=8)
+    elif kind == "old":  # flaking lime wash, a thatched room on the roof, firewood on the terrace
+        for i in range(8):
+            fx, fy = x0 + rng.uniform(0.05, 0.85) * w, ground - rng.uniform(0.8, 3.2) * M
+            d.rectangle((fx, fy, fx + rng.uniform(50, 120), fy + rng.uniform(25, 60)), fill=(178, 92, 62))
+        box(d, x0 + w * 0.68, top - 2.3 * M, x0 + w * 0.95, top - 0.5 * M, wall)
+        d.polygon([(x0 + w * 0.65, top - 2.3 * M), (x0 + w * 0.98, top - 2.3 * M), (x0 + w * 0.815, top - 3.0 * M)],
+                  fill=(204, 170, 96), outline=INK)
+        for i in range(5):
+            d.line((x0 + w * 0.1, top - 0.55 * M - i * 12, x0 + w * 0.35, top - 0.55 * M - i * 12), fill=WOOD, width=10)
+    return w
+
+
+def wide_stall(d, x0, ground, colours, goods, kind):
+    """A wide, low shandy stall (E8, E9): goods spread along the ground under a long shade on bamboo poles."""
+    w = 5.0 * M
+    a, b = colours or ((200, 80, 60), (240, 226, 200))
+    shade_y = ground - 2.5 * M
+    for fx in (0.0, 0.33, 0.66, 1.0):
+        d.line((x0 + w * fx, shade_y, x0 + w * fx, ground), fill=(196, 168, 104), width=10)
+    if kind == "mat":
+        d.polygon([(x0 - 40, shade_y - 0.45 * M), (x0 + w + 40, shade_y - 0.45 * M), (x0 + w + 40, shade_y),
+                   (x0 - 40, shade_y)], fill=(176, 146, 92), outline=INK)
+    elif kind == "thatch":
+        d.polygon([(x0 - 40, shade_y), (x0 + w + 40, shade_y), (x0 + w - 20, shade_y - 0.7 * M), (x0 + 20, shade_y - 0.7 * M)],
+                  fill=(204, 170, 96), outline=INK)
+    else:
+        for i in range(10):
+            sx = x0 - 40 + (w + 80) * i / 10
+            d.polygon([(sx, shade_y - 0.45 * M), (sx + (w + 80) / 10, shade_y - 0.45 * M), (sx + (w + 80) / 10, shade_y),
+                       (sx, shade_y)], fill=a if i % 2 else b, outline=INK)
+    d.rectangle((x0, ground - 0.12 * M, x0 + w, ground), fill=(170, 136, 84), outline=INK, width=3)
+    for k in range(4):
+        sx = x0 + 30 + k * (w - 60) / 4
+        sw = (w - 60) / 4 - 20
+        d.rounded_rectangle((sx, ground - 0.5 * M, sx + sw, ground), 14, fill=(186, 150, 96), outline=INK, width=3)
+        for i in range(int(sw / 46)):
+            gx = sx + 8 + i * 46
+            d.ellipse((gx, ground - 0.85 * M, gx + 42, ground - 0.5 * M), fill=rng.choice(goods), outline=INK, width=2)
+    return w
+
+
+def long_mandapam(d, x0, ground):
+    w = 14 * M
+    box(d, x0, ground - 0.5 * M, x0 + w, ground, (190, 180, 160))
+    box(d, x0 - 20, ground - 5.0 * M, x0 + w + 20, ground - 4.4 * M, (180, 168, 150))
+    for i in range(12):
+        px = x0 + 30 + i * (w - 90) / 11
+        box(d, px, ground - 4.4 * M, px + 0.4 * M, ground - 0.5 * M, (204, 194, 172))
+    return w
+
+
+def chariot_shed(d, x0, ground):
+    w = 10 * M
+    box(d, x0, ground - 3.6 * M, x0 + w, ground, (190, 160, 110))
+    d.polygon([(x0 - 40, ground - 3.6 * M), (x0 + w + 40, ground - 3.6 * M), (x0 + w - 60, ground - 4.8 * M),
+               (x0 + 60, ground - 4.8 * M)], fill=(204, 170, 96), outline=INK)
+    box(d, x0 + w * 0.3, ground - 3.2 * M, x0 + w * 0.7, ground, (120, 76, 44))  # the chariot's carved front
+    return w
+
+
+def tank_wall_long(d, x0, ground):
+    w = 12 * M
+    box(d, x0, ground - 2.4 * M, x0 + w, ground, (178, 168, 150))
+    d.chord((x0 + w * 0.44, ground - 2.2 * M, x0 + w * 0.56, ground - 0.2 * M), 180, 360, fill=(70, 56, 46), outline=INK)
+    box(d, x0 + w * 0.44, ground - 1.2 * M, x0 + w * 0.56, ground, (70, 56, 46))
+    for i in range(14):
+        cx = x0 + 40 + i * (w - 80) / 13
+        d.ellipse((cx - 14, ground - 2.6 * M, cx + 14, ground - 2.4 * M), fill=(250, 200, 80))
+    return w
+
+
+def wide_row(name, items, ident, scale):
+    """A 21:9 sheet of wide, low pieces drawn at `scale` px per metre, like the E6-E10 prompts ask for."""
+    global M
+    saved, M = M, scale
+    im, d = sheet(3168, 1344)
+    ground, x = 1240, 120
+    for draw_fn in items:
+        w = draw_fn(d, x, ground)
+        label(d, x + w / 2, ground - 0.25 * M, f"{ident} placeholder", 28)
+        x += w + 0.9 * M
+    ground_line(d, 60, x, ground)
+    im.save(OUT / name)
+    M = saved
+
+
 def buildings(name, items, ident, title):
     im, d = sheet()
     ground = 1380
@@ -342,31 +466,24 @@ def story(name, ident, title, sky, ground_col):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    buildings("E6_rooftop_houses_1.png", [lambda d, x, g: flat_roof_house(d, x, g, 5.2, "stairs"),
-                                          lambda d, x, g: flat_roof_house(d, x, g, 4.6, "pots"),
-                                          lambda d, x, g: flat_roof_house(d, x, g, 4.8, "room")], "E6", "houses")
-    buildings("E7_rooftop_houses_2.png", [lambda d, x, g: flat_roof_house(d, x, g, 4.8, "pergola"),
-                                          lambda d, x, g: flat_roof_house(d, x, g, 5.0, "chillies"),
-                                          lambda d, x, g: flat_roof_house(d, x, g, 4.6, "old")], "E7", "houses")
+    wide_row("E6_rooftop_houses_1.png", [lambda d, x, g: rural_house(d, x, g, 12.0, "lime"),
+                                         lambda d, x, g: rural_house(d, x, g, 9.5, "ochre")], "E6", 108)
+    wide_row("E7_rooftop_houses_2.png", [lambda d, x, g: rural_house(d, x, g, 11.0, "blue"),
+                                         lambda d, x, g: rural_house(d, x, g, 11.0, "old")], "E7", 118)
     being_built("G12_house_being_built.png")
     lamp_pillar("G16_stone_lamp_pillar.png")
-    goods_veg = [(220, 50, 40), (120, 60, 140), (90, 160, 60), (230, 150, 50)]
-    buildings("E8_market_stalls_1.png", [
-        lambda d, x, g: stall(d, x, g, 3.4, ((220, 60, 50), (250, 240, 220)), goods_veg),
-        lambda d, x, g: stall(d, x, g, 3.0, ((240, 170, 30), (250, 240, 220)), [(250, 160, 20), (250, 250, 240)]),
-        lambda d, x, g: stall(d, x, g, 3.0, ((60, 110, 200), (250, 240, 220)), [(220, 60, 160), (60, 160, 220)]),
-        lambda d, x, g: stall(d, x, g, 3.2, ((60, 150, 90), (250, 220, 80)), [(200, 200, 200), (210, 170, 70)])],
-        "E8", "stalls")
-    buildings("E9_market_stalls_2.png", [
-        lambda d, x, g: stall(d, x, g, 2.8, ((90, 160, 60), (250, 240, 220)), [(110, 170, 60)]),
-        lambda d, x, g: stall(d, x, g, 3.2, ((200, 60, 60), (250, 220, 80)), [(240, 200, 120), (230, 130, 60)]),
-        lambda d, x, g: stall(d, x, g, 3.2, ((250, 160, 40), (250, 240, 220)), [(250, 220, 60), (240, 140, 40)]),
-        lambda d, x, g: stall(d, x, g, 3.0, ((140, 100, 60), (230, 200, 150)), [(200, 160, 100)])],
-        "E9", "stalls")
-    buildings("E10_temple_street.png", [lambda d, x, g: mandapam(d, x, g),
-                                        lambda d, x, g: shop(d, x, g, 3.2, (250, 160, 20)),
-                                        lambda d, x, g: shop(d, x, g, 3.2, (210, 170, 60)),
-                                        lambda d, x, g: tank_wall(d, x, g)], "E10", "temple")
+    veg = [(220, 50, 40), (120, 60, 140), (90, 160, 60), (230, 150, 50)]
+    wide_row("E8_market_stalls_1.png", [
+        lambda d, x, g: wide_stall(d, x, g, ((200, 80, 60), (240, 226, 200)), veg, "cloth"),
+        lambda d, x, g: wide_stall(d, x, g, None, [(250, 160, 20), (250, 250, 240)], "mat"),
+        lambda d, x, g: wide_stall(d, x, g, None, [(210, 170, 70), (190, 110, 60)], "thatch")], "E8", 175)
+    wide_row("E9_market_stalls_2.png", [
+        lambda d, x, g: wide_stall(d, x, g, None, [(110, 170, 60)], "mat"),
+        lambda d, x, g: wide_stall(d, x, g, ((180, 60, 60), (240, 210, 120)), [(240, 200, 120), (230, 130, 60)], "cloth"),
+        lambda d, x, g: wide_stall(d, x, g, None, [(176, 92, 52), (200, 120, 70)], "thatch")], "E9", 175)
+    wide_row("E10_temple_street.png", [lambda d, x, g: long_mandapam(d, x, g),
+                                       lambda d, x, g: chariot_shed(d, x, g),
+                                       lambda d, x, g: tank_wall_long(d, x, g)], "E10", 76)
     peepal("H3_peepal_platform.png")
     fields_band("D7_fields_mid_layer.png")
     tile("T10_tex_bare_brick.png", bricks, (150, 146, 140))

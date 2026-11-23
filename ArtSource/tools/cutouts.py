@@ -558,11 +558,11 @@ save_tile("paddy_water", t6[:, 8: t6.shape[1] // 2 - 8])
 save_tile("canal_water", t6[:, t6.shape[1] // 2 + 8: -8])
 
 # ---------------------------------------------------------------- zone 3 (E6-E10): rows of front-on buildings
-# Each sheet's pieces are scaled by the tallest one, whose real height is given: rooftop houses about 8 m with what
-# stands on their roofs, market stalls about 3.2 m, the temple street about 5 m.
+# Each sheet's pieces are scaled by the tallest one, whose real height is given: the wide single-storey houses about
+# 6 m with what stands on their roofs, shandy stalls about 3 m, the temple lane's mandapam about 5 m.
 MARKET = OUT.parent / "market"
-for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 8.0), ("E7_rooftop_houses_2.png", "roof_house_b", 8.0),
-                             ("E8_market_stalls_1.png", "stall_a", 3.2), ("E9_market_stalls_2.png", "stall_b", 3.2),
+for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 6.0), ("E7_rooftop_houses_2.png", "roof_house_b", 6.0),
+                             ("E8_market_stalls_1.png", "stall_a", 3.0), ("E9_market_stalls_2.png", "stall_b", 3.0),
                              ("E10_temple_street.png", "temple_street", 5.0)]:
     names = cut_sheet(src, prefix, MARKET, ground_line=True)
     if names:
