@@ -362,7 +362,7 @@ while px < 170:
 far_layer(REF / "C2_lane_far_layer.png")
 
 # ------------------------------------------------------------------ the kid, for scale
-kid, _, _ = card("kid_run", K / "run_contact.png", 0.0, 0.0, size=SIZES["run_contact"], col="Characters", emission=0.6)
+chase(0.0, 8.0)
 
 # ------------------------------------------------------------------ light, camera, save and render
 outlines("BuiltHouses")

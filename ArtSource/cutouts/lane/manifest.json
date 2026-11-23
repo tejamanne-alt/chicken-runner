@@ -274,43 +274,50 @@
   "px": [
    337,
    192
-  ]
+  ],
+  "width_m": 0.9
  },
  "dog_barking": {
   "px": [
    395,
    316
-  ]
+  ],
+  "height_m": 0.6
  },
  "hen_1": {
   "px": [
    227,
    233
-  ]
+  ],
+  "height_m": 0.42
  },
  "hen_2": {
   "px": [
    207,
    231
-  ]
+  ],
+  "height_m": 0.42
  },
  "hen_3": {
   "px": [
    206,
    247
-  ]
+  ],
+  "height_m": 0.42
  },
  "buffalo_mud": {
   "px": [
    680,
    390
-  ]
+  ],
+  "height_m": 1.5
  },
  "bullocks": {
   "px": [
    796,
    497
-  ]
+  ],
+  "height_m": 1.55
  },
  "mid_palms_slice_1": {
   "px": [
@@ -1448,5 +1455,166 @@
    1390
   ],
   "px_per_m": 129.2
+ },
+ "black_tank": {
+  "px": [
+   237,
+   291
+  ],
+  "height_m": 2.0
+ },
+ "parapet_gap": {
+  "px": [
+   354,
+   203
+  ],
+  "height_m": 1.2
+ },
+ "chilli_mat": {
+  "px": [
+   247,
+   142
+  ],
+  "height_m": 0.25
+ },
+ "stall_high": {
+  "px": [
+   316,
+   301
+  ],
+  "height_m": 2.9
+ },
+ "stall_low": {
+  "px": [
+   247,
+   194
+  ],
+  "height_m": 2.0
+ },
+ "flower_stall": {
+  "px": [
+   225,
+   268
+  ],
+  "height_m": 2.6
+ },
+ "veg_basket": {
+  "px": [
+   164,
+   137
+  ],
+  "height_m": 0.6
+ },
+ "brass_vessels": {
+  "px": [
+   152,
+   168
+  ],
+  "height_m": 0.9
+ },
+ "hens_basket": {
+  "px": [
+   171,
+   132
+  ],
+  "height_m": 0.55
+ },
+ "lantern": {
+  "px": [
+   77,
+   171
+  ],
+  "height_m": 0.45
+ },
+ "lamp_step": {
+  "px": [
+   250,
+   272
+  ],
+  "height_m": 1.9
+ },
+ "papad_mat": {
+  "px": [
+   248,
+   142
+  ],
+  "height_m": 0.25
+ },
+ "kite": {
+  "px": [
+   159,
+   247
+  ],
+  "height_m": 0.9
+ },
+ "bunting": {
+  "px": [
+   311,
+   115
+  ],
+  "height_m": 0.7
+ },
+ "rooster_side": {
+  "px": [
+   530,
+   586
+  ],
+  "height_m": 0.72
+ },
+ "rooster_run_1": {
+  "px": [
+   380,
+   315
+  ],
+  "height_m": 0.62
+ },
+ "rooster_run_2": {
+  "px": [
+   359,
+   316
+  ],
+  "height_m": 0.62
+ },
+ "rooster_flutter": {
+  "px": [
+   388,
+   378
+  ],
+  "height_m": 0.7
+ },
+ "rooster_crow": {
+  "px": [
+   330,
+   364
+  ],
+  "height_m": 0.72
+ },
+ "rooster_startled": {
+  "px": [
+   384,
+   342
+  ],
+  "height_m": 0.62
+ },
+ "rooster_tumble": {
+  "px": [
+   347,
+   343
+  ],
+  "height_m": 0.6
+ },
+ "rooster_peck": {
+  "px": [
+   360,
+   306
+  ],
+  "height_m": 0.55
+ },
+ "rooster_strut": {
+  "px": [
+   321,
+   380
+  ],
+  "height_m": 0.72
  }
 }

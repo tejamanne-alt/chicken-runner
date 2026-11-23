@@ -24,7 +24,7 @@ F, AN, GB = CUT / "fields", CUT / "animals", CUT / "ground"
 MANIFEST = json.loads((CUT / "lane" / "manifest.json").read_text())
 START, END = -28.0, 96.0
 WATER_Z = -0.38  # the paddy water stands this far below the top of the bund
-CANALS = [(8.0, 2.5, "open"), (24.0, 3.5, "bridge"), (44.0, 4.5, "sluice"), (66.0, 2.5, "open"), (84.0, 3.5, "bridge")]
+CANALS = [(5.0, 2.5, "open"), (24.0, 3.5, "bridge"), (44.0, 4.5, "sluice"), (66.0, 2.5, "open"), (84.0, 3.5, "bridge")]
 BUND_HALF = 1.0  # the bund is 2 m across
 
 
@@ -186,7 +186,7 @@ band(["mid_trees_band"], 42.0, 14.0, 1.2, x_from=-80, x_to=180, gaps=(10.0, 30.0
 far_layer(REF / "D2_fields_far_layer.png", lift=0.42)
 
 # ------------------------------------------------------------------ the kid, light, camera, save and render
-card("kid_run", K / "run_contact.png", 0.0, 0.0, size=("h", 1.05), col="Characters", emission=0.6)
+chase(0.0, 8.0)
 light_and_world()
 make_camera()
 save_and_render(OUT_BLEND, "fields_zone2", [

@@ -239,6 +239,10 @@ rgb = load("B7_animals_sheet.png")
 argb, aa = grey_alpha(rgb, background(rgb))
 split_components(argb, aa, ["dog_sleeping", "dog_barking", "hen_1", "hen_2", "hen_3", "buffalo_mud", "bullocks"],
                  min_area=2500)
+for _name, _size in {"dog_sleeping": ("width_m", 0.9), "dog_barking": ("height_m", 0.6), "hen_1": ("height_m", 0.42),
+                     "hen_2": ("height_m", 0.42), "hen_3": ("height_m", 0.42), "buffalo_mud": ("height_m", 1.5),
+                     "bullocks": ("height_m", 1.55)}.items():
+    manifest[_name][_size[0]] = _size[1]
 OUT = _out
 
 # ---------------------------------------------------------------- the palm band, sliced into clumps to reshuffle
@@ -565,6 +569,53 @@ for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 8.0), (
         tallest_px = max(manifest[nm]["px"][1] for nm in names)
         for nm in names:
             manifest[nm]["px_per_m"] = round(tallest_px / tallest, 1)
+
+# Market and rooftop props (E4, E5): these sheets' pieces stand close together and touch the edges, so they're cut by
+# column ranges in source pixels instead.
+def cut_columns(src, folder, columns, heights):
+    """columns: name -> (x0, x1), or (x0, x1, y0, y1) for a cell of a grid."""
+    global OUT
+    rgb = load(src)
+    alpha = painted_alpha(rgb, drop_sheet=True)
+    saved, OUT = OUT, folder
+    folder.mkdir(exist_ok=True)
+    for name, span in columns.items():
+        x0, x1, y0, y1 = span if len(span) == 4 else (*span, 0, alpha.shape[0])
+        a = np.zeros_like(alpha)
+        a[y0:y1, x0:x1] = alpha[y0:y1, x0:x1]
+        lab, n = ndimage.label(a > 0.5)
+        sizes = ndimage.sum(a > 0.5, lab, range(1, n + 1))
+        boxes = ndimage.find_objects(lab)
+        biggest = int(np.argmax(sizes))
+        # Keep the drawing; drop slivers of the neighbours cut off at the column's edges.
+        keep = [i + 1 for i, v in enumerate(sizes) if v > 400 and
+                (i == biggest or (boxes[i][1].start > x0 + 1 and boxes[i][1].stop < x1 - 1))]
+        a *= np.isin(lab, keep)
+        save(name, rgb, a)
+        manifest[name]["height_m"] = heights[name]
+    OUT = saved
+
+
+cut_columns("E5_market_props.png", MARKET, {"stall_high": (0, 312), "stall_low": (312, 547), "flower_stall": (547, 760),
+                                            "veg_basket": (760, 912), "brass_vessels": (912, 1052),
+                                            "hens_basket": (1052, 1216), "lantern": (1216, 1290),
+                                            "lamp_step": (1290, 1536)},
+            {"stall_high": 2.9, "stall_low": 2.0, "flower_stall": 2.6, "veg_basket": 0.6, "brass_vessels": 0.9,
+             "hens_basket": 0.55, "lantern": 0.45, "lamp_step": 1.9})
+cut_columns("E4_rooftop_props.png", MARKET, {"black_tank": (0, 249), "parapet_gap": (249, 600), "chilli_mat": (600, 842),
+                                             "papad_mat": (842, 1092), "kite": (1058, 1216), "bunting": (1216, 1536)},
+            {"black_tank": 2.0, "parapet_gap": 1.2, "chilli_mat": 0.25, "papad_mat": 0.25, "kite": 0.9, "bunting": 0.7})
+
+# ---------------------------------------------------------------- the rooster (B1 side view, B2 poses), facing right
+ROOSTER = OUT.parent / "rooster"
+cut_columns("B1_rooster_model_sheet.png", ROOSTER, {"rooster_side": (0, 560)}, {"rooster_side": 0.72})
+_cols, _row = [0, 412, 790, 1178, 1536], 490
+_poses = ["run_1", "run_2", "flutter", "crow", "startled", "tumble", "peck", "strut"]
+cut_columns("B2_rooster_poses.png", ROOSTER,
+            {f"rooster_{p}": (_cols[i % 4], _cols[i % 4 + 1], 0 if i < 4 else _row, _row if i < 4 else 1024)
+             for i, p in enumerate(_poses)},
+            {"rooster_run_1": 0.62, "rooster_run_2": 0.62, "rooster_flutter": 0.7, "rooster_crow": 0.72,
+             "rooster_startled": 0.62, "rooster_tumble": 0.6, "rooster_peck": 0.55, "rooster_strut": 0.72})
 
 # ---------------------------------------------------------------- textures still to come (T10-T12): only real ones
 for src, tile_name in [("T10_tex_bare_brick.png", "bare_brick"), ("T11_tex_coconut_leaf_fence.png", "coconut_leaf_fence"),

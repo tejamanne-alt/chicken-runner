@@ -305,6 +305,14 @@ def band(names, y, height, sink, x_from=-80.0, x_to=180.0, gaps=(0.0, 0.0), fade
     return copies
 
 
+def chase(kid_x=0.0, gap=8.0):
+    """The kid running, and the rooster `gap` metres ahead, both on the lane (depth 0)."""
+    card("kid_run", K / "run_contact.png", kid_x, 0.0, size=("h", 1.05), col="Characters", emission=0.6)
+    rooster = CUT / "rooster" / "rooster_run_1.png"
+    if rooster.exists():
+        card("rooster_run", rooster, kid_x + gap, 0.0, size=("h", 0.62), col="Characters", emission=0.6)
+
+
 def far_layer(path, y=95.0, width=190.0, lift=0.36, centre_x=25.0):
     """The painted far layer: hills and sky, never shaded, with mirrored copies either side so a wide view never runs
     past the painting's edge (mirroring makes the seams match)."""

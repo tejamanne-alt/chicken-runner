@@ -7,9 +7,10 @@ Source art for the Blender pipeline. It lives outside `Assets/` on purpose: Unit
 | --- | --- |
 | `references/` | The ChatGPT or Gemini images from [the prompt sheet](../docs/art/prompt-sheet.md), exactly as generated and named as the sheet says (`A1_key_art.png`, `C4_house_kit_elevations.png` …). One flat folder: the ID at the start of each name keeps them in order. |
 | `supplied/` | Your own files: the kid reference art, the rooster photo and the kid model (FBX or `.blend`, with its rig). |
-| `cutouts/` | Pieces cut from the reference sheets with alpha: house fronts, props, kolam, trees, animals, the palm layer in slices, the kid's poses and A0 views, the seamless lane ground, and seamless texture tiles (`cutouts/textures/`) for the built houses. Made by `tools/cutouts.py`. |
-| `blender/` | The Blender scenes, built by script from the cut-outs (`lane_zone1.blend`), and their preview renders in `blender/renders/`. |
-| `tools/` | The scripts that make the two folders above. |
+| `placeholders/` | Stand-ins for images not made yet, named as the prompt sheet names them and laid out as each prompt asks. Made by `tools/placeholders.py`; used only until the real image is in `references/`. |
+| `cutouts/` | Pieces cut from the references with alpha, by kind: `lane/` (house fronts, props, kolam, middle layers), `plants/`, `animals/`, `people/`, `ground/` (things lying on the ground), `fields/`, `market/`, `kid/`, and seamless `textures/`. Made by `tools/cutouts.py`; sizes and scales are in `lane/manifest.json`. |
+| `blender/` | The Blender scenes, built by script from the cut-outs (`lane_zone1.blend`, `fields_zone2.blend`, `market_zone3.blend`), and their preview renders in `blender/renders/`. |
+| `tools/` | The scripts that make the folders above. |
 
 Finished, game-ready exports (FBX models, cleaned textures) go into `Assets/ChickenRunner/Art/` instead.
 
@@ -22,13 +23,60 @@ clone slower.
 The scripts run with Blender's Python module (`pip install bpy==5.3.0 pillow numpy scipy`, Python 3.13):
 
 ```bash
+python ArtSource/tools/placeholders.py
 python ArtSource/tools/cutouts.py
 python ArtSource/tools/build_lane_scene.py
+python ArtSource/tools/build_fields_scene.py
+python ArtSource/tools/build_market_scene.py
 ```
 
-The first cuts the reference sheets into `cutouts/`. The second builds `blender/lane_zone1.blend` and renders the previews
-(Cycles; add `--samples 16` for a quick look, `--only gameplay` for one view, `--no-render` to only build, `--seed 4`
-for a different street).
+The first draws the placeholders, the second cuts the references into `cutouts/`, and the others build one zone each
+and render its previews (Cycles; add `--samples 16` for a quick look, `--only gameplay` for one view, `--no-render` to
+only build, `--seed 4` for a different street). What the scene builders share (cards, haze, middle layers, light,
+camera, rendering) is in `tools/stage.py`.
+
+## Placeholders, and swapping in the real images
+
+Every tool loads a reference through `tools/refs.py`: the real image in `references/` when there is one, else its
+placeholder in `placeholders/`. So the scenes are complete before all the art exists, and a new image takes its
+placeholder's place just by being pushed under the sheet's file name and re-running the cut-outs and scenes. Pieces cut
+from a placeholder are marked `"placeholder": true` in the manifest, and are labelled in the renders.
+
+An image that came out wrong and is being made again (D7 and H3 so far) is listed with its hash in
+`placeholders/rejected.json`: until a new version with a different hash is pushed, its placeholder is used instead,
+and the prompt sheet keeps it marked "make again".
+
+| Placeholder for | Used in |
+| --- | --- |
+| D7 fields middle layer | the fields scene's middle distance |
+| H3 peepal on its platform | a landmark in a break on the lane |
+| E6, E7 rooftop houses | the houses behind the market |
+| E8, E9 market stalls | the market row |
+| E10 temple street | the end of the market, before the temple steps |
+| T10, T11, T12 textures | not used: the scenes keep their own stand-ins (the woven fence, the shader-made ground) until the real textures arrive |
+| F7, F8 story frames | not used yet |
+
+## The rooster
+
+`cutouts/rooster/` holds the B1 side view and the eight B2 poses (two run frames, flutter, crow, startled, tumble,
+peck, strut), all facing right, the way the chase runs. Every scene puts the rooster 8 m ahead of the kid, as the
+chase camera frames them in play.
+
+## The three zones
+
+- **Zone 1, the lane** (`build_lane_scene.py`): see below.
+- **Zone 2, fields and canal** (`build_fields_scene.py`): the kid runs along a raised earthen bund between flooded
+  paddy. Canals 2.5, 3.5 and 4.5 m wide cross it (the design doc's widths), one with a plank bridge, one by a sluice
+  gate. A haystack, a buffalo and a scarecrow stand on the bund. Each field has its own crop (young, tall or ripe
+  paddy, sugarcane, or open water), in rows of D6 cards; the water between them is made in the shader (sky reflection,
+  muddy drifts, ripples, seedling rows), so it never repeats. In front of the bund only young paddy grows, low enough
+  to stay under the kid's feet in the game view. Behind: the D5 field buildings, haystacks, a well and a scarecrow,
+  mango, neem and tamarind trees, rows of palmyra and coconut palms, then the D7 band and the D2 far layer. The haze
+  starts later here (10 m) than in the lane, as open fields see further.
+- **Zone 3, market day and the temple street** (`build_market_scene.py`): stalls on the lane with striped awnings to
+  bounce across, and baskets of hens; behind, a row of stalls of every kind (E8, E9 and the E5 stalls) with goods and
+  bunting, then two-storey houses with flat roofs (E6, E7); near the end the temple street (E10) and lamp-lit steps,
+  with the temple tower in the far layer. Villagers, animals, kites over the roofs.
 
 ## Keeping the street natural and from repeating
 
@@ -60,6 +108,10 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
   repeated every 3 m: earth tones in patches 10-20 m across, dusty and compacted patches, the painted mud tile's
   brush grain at two scales and angles, pebble specks, two cart ruts that wander along the lane, a worn path and grassy
   verges. Real 3D pebbles lie in loose drifts and grass tufts grow along walls, fences and the lane's edges.
+- **Life**: yard animals (B8, B9) in the open breaks, never two of a kind side by side; a cat and crows on walls, a goat
+  on a wall, a peacock and a squirrel in the groves, once each; each villager (B10) once per street, by doorsteps or
+  walking along the verge; things lying on the ground (C10: leaves, twigs, husks, pebbles, footprints, hoof and hen
+  prints, cart ruts, cracked mud) every few metres, at any angle, with prints and ruts along the lane.
 - Kolam, hens and doorstep props come from pools that skip their last few picks, and are mirrored and scaled.
 
 `tools/village_kit.py` builds the compound walls and palm-leaf fences. It can also build houses and coconut palms in 3D
