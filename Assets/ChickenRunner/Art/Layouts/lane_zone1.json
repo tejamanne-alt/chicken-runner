@@ -171,7 +171,7 @@
    "fade_sides": 0.0,
    "name": "dress_brass_pots_9",
    "layer": "Props",
-   "x": 76.0348,
+   "x": 75.9749,
    "y": 0.0,
    "z": 6.1677,
    "turn": 0.0
@@ -205,7 +205,7 @@
    "fade_sides": 0.0,
    "name": "dress_shrine_stone_5",
    "layer": "Props",
-   "x": 38.2569,
+   "x": 38.1969,
    "y": 0.0,
    "z": 6.9043,
    "turn": 0.0
@@ -613,7 +613,7 @@
    "fade_sides": 0.0,
    "name": "h5_6_4",
    "layer": "Houses",
-   "x": 70.2683,
+   "x": 70.2083,
    "y": 0.0,
    "z": 6.5177,
    "turn": 0.0
@@ -630,7 +630,7 @@
    "fade_sides": 0.0,
    "name": "h6_4_3",
    "layer": "Houses",
-   "x": 26.3616,
+   "x": 26.3016,
    "y": 0.0,
    "z": 7.3091,
    "turn": 0.0
@@ -834,7 +834,7 @@
    "fade_sides": 0.0,
    "name": "house_mud_tin_10",
    "layer": "Houses",
-   "x": 80.7422,
+   "x": 80.6822,
    "y": -0.1656,
    "z": 4.3,
    "turn": 0.0
@@ -868,7 +868,7 @@
    "fade_sides": 0.0,
    "name": "house_village_head_5",
    "layer": "Houses",
-   "x": 32.3093,
+   "x": 32.2493,
    "y": -0.686,
    "z": 7.6,
    "turn": 0.0
@@ -885,7 +885,7 @@
    "fade_sides": 0.0,
    "name": "house_weaver_9",
    "layer": "Houses",
-   "x": 73.1516,
+   "x": 73.0916,
    "y": -0.2157,
    "z": 6.8,
    "turn": 0.0
@@ -1038,7 +1038,7 @@
    "fade_sides": 0.0,
    "name": "kolam_10",
    "layer": "Decals",
-   "x": 80.7148,
+   "x": 80.6548,
    "y": 0.004,
    "z": 3.35,
    "turn": 0.0
@@ -1089,7 +1089,7 @@
    "fade_sides": 0.0,
    "name": "kolam_5",
    "layer": "Decals",
-   "x": 32.3093,
+   "x": 32.2493,
    "y": 0.004,
    "z": 5.85,
    "turn": 0.0
@@ -1106,7 +1106,7 @@
    "fade_sides": 0.0,
    "name": "kolam_6",
    "layer": "Decals",
-   "x": 47.048,
+   "x": 46.988,
    "y": 0.004,
    "z": 5.05,
    "turn": 0.0
@@ -1123,7 +1123,7 @@
    "fade_sides": 0.0,
    "name": "kolam_7",
    "layer": "Decals",
-   "x": 56.6312,
+   "x": 56.5712,
    "y": 0.004,
    "z": 4.45,
    "turn": 0.0
@@ -1140,7 +1140,7 @@
    "fade_sides": 0.0,
    "name": "kolam_8",
    "layer": "Decals",
-   "x": 65.1306,
+   "x": 65.0706,
    "y": 0.004,
    "z": 4.3,
    "turn": 0.0
@@ -1157,9 +1157,26 @@
    "fade_sides": 0.0,
    "name": "kolam_9",
    "layer": "Decals",
-   "x": 73.4923,
+   "x": 73.4323,
    "y": 0.004,
    "z": 5.85,
+   "turn": 0.0
+  },
+  {
+   "image": "ArtSource/cutouts/lane/lamp_pillar.png",
+   "w": 3.2017543859649122,
+   "h": 9.072681704260653,
+   "mirror": false,
+   "flat": false,
+   "shadeless": false,
+   "haze": 0.196,
+   "fade_bottom": 0.0,
+   "fade_sides": 0.0,
+   "name": "lamp_pillar_11",
+   "layer": "Houses",
+   "x": 31.909,
+   "y": -0.0752,
+   "z": 11.0,
    "turn": 0.0
   },
   {
@@ -1973,7 +1990,7 @@
    "fade_sides": 0.0,
    "name": "panchayat_office_6",
    "layer": "Houses",
-   "x": 47.3628,
+   "x": 47.3029,
    "y": -0.1773,
    "z": 6.8,
    "turn": 0.0
@@ -2133,8 +2150,8 @@
   },
   {
    "image": "ArtSource/cutouts/lane/peepal_platform.png",
-   "w": 11.456140350877194,
-   "h": 12.105263157894736,
+   "w": 11.396160558464224,
+   "h": 12.102966841186737,
    "mirror": false,
    "flat": false,
    "shadeless": false,
@@ -2143,8 +2160,8 @@
    "fade_sides": 0.0,
    "name": "peepal_platform_4",
    "layer": "Houses",
-   "x": 17.9225,
-   "y": -0.1053,
+   "x": 17.8925,
+   "y": -0.1047,
    "z": 5.6,
    "turn": 0.0
   },
@@ -2194,7 +2211,7 @@
    "fade_sides": 0.0,
    "name": "shop_tea_stall_7",
    "layer": "Houses",
-   "x": 56.7022,
+   "x": 56.6422,
    "y": -0.1606,
    "z": 5.4,
    "turn": 0.0
@@ -2211,7 +2228,7 @@
    "fade_sides": 0.0,
    "name": "shrine_tree_8",
    "layer": "Houses",
-   "x": 65.0875,
+   "x": 65.0275,
    "y": -0.0545,
    "z": 5.2,
    "turn": 0.0
@@ -2948,23 +2965,6 @@
    "turn": 0.0
   },
   {
-   "image": "ArtSource/cutouts/lane/water_tank.png",
-   "w": 13.402173913043478,
-   "h": 12.315217391304348,
-   "mirror": false,
-   "flat": false,
-   "shadeless": false,
-   "haze": 0.353,
-   "fade_bottom": 0.0,
-   "fade_sides": 0.0,
-   "name": "water_tank_11",
-   "layer": "Houses",
-   "x": 37.0092,
-   "y": -0.1087,
-   "z": 16.0,
-   "turn": 0.0
-  },
-  {
    "image": "ArtSource/cutouts/ground/weed_1.png",
    "w": 0.32136394232137094,
    "h": 0.3310435791382797,
@@ -3197,7 +3197,7 @@
    "fade_sides": 0.0,
    "name": "woman_drawing_kolam_56.6",
    "layer": "Props",
-   "x": 56.6312,
+   "x": 56.5712,
    "y": 0.0,
    "z": 4.3,
    "turn": 0.0
