@@ -111,13 +111,14 @@ while sx < TEMPLE_FROM - 4:
                 b.location.x = sx + w + bw / 2 - 0.4
         sx += w + rng.uniform(0.8, 2.0)
     else:
-        # A seller's spread with no shade: two or three lots of goods on the ground, sometimes an animal.
-        span = rng.uniform(3.0, 5.5)
-        for k in range(rng.randint(2, 3)):
-            piece(MK, fillers.pick(), sx + span * (k + 0.5) / 3, rng.uniform(3.2, 4.2))
-        if rng.random() < 0.4:
-            piece(AN, spread_animals.pick(), sx + span * rng.uniform(0.2, 0.8), rng.uniform(4.4, 5.0))
-        sx += span + rng.uniform(0.5, 1.5)
+        # Open ground between stalls: now and then one lot of goods or an animal, never a row of little props.
+        span = rng.uniform(4.0, 7.0)
+        roll = rng.random()
+        if roll < 0.45:
+            piece(MK, fillers.pick(), sx + span * rng.uniform(0.3, 0.7), rng.uniform(3.2, 4.2))
+        elif roll < 0.75:
+            piece(AN, spread_animals.pick(), sx + span * rng.uniform(0.3, 0.7), rng.uniform(3.6, 5.0))
+        sx += span
 
 # ------------------------------------------------------------------ behind: the village houses, each once before any repeats
 house_deck = names("roof_house_")
