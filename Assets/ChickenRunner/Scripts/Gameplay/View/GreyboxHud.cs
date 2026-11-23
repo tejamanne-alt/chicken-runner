@@ -168,6 +168,12 @@ namespace ChickenRunner
         void DrawReady(float width, float height)
         {
             // Above the kid and rooster, so the player sees who is chasing whom before the first tap.
+            var level = flow.Level;
+            if (level != null && !string.IsNullOrEmpty(level.Subtitle))
+            {
+                DrawCentred(width, height * 0.34f, level.DisplayName, level.Subtitle + "\nTap to chase!");
+                return;
+            }
             DrawCentred(width, height * 0.34f, "Tap to chase!",
                 "Tap: jump (hold for higher)   Tap in the air: double jump   Swipe down: slide, or drop in the air\n"
                 + "Keyboard: Space or Up to jump, Down or S to slide, R to retry, Esc to pause, F1 for debug");
