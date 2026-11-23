@@ -249,3 +249,17 @@ stand a piece's model where its card would be (same spot, size and haze; a build
 behind it) when it is a full model, from Meshy or TRELLIS. A piece with only an extrusion of its one painting stays
 its painted card, which is exactly right from the camera, unless **Chicken Runner > Include Extruded Scenery Models**
 is on. **Use 3D Scenery Models** switches all of them back to cards.
+
+### The bamboo ladder
+
+The kid climbs a real ladder onto the first roof of a row, not a painted one. `tools/models/ladder_model.py` builds it
+(two bamboo poles with growth rings, nine rungs 27 cm apart lashed with coir, 2.6 m long, in the painted ladder's
+colours) as `Assets/ChickenRunner/Art/Models/lane/bamboo_ladder.fbx`; `--picture` also renders it leaning as it stands
+in the game, for the web version (`Tools/WebPreview/art/bamboo_ladder.png`). Build Game leans it against the turmeric
+house where the painting had its ladder (whether or not the scenery models are on) and gives the wall's `Ladder` its
+foot and head, which the kid climbs rung by rung. So the card does not show a second ladder, `tools/paint_out_ladder.py`
+paints the ladder off the house's cut-out; `cutouts.py` runs it after cutting the house from C4.
+
+```bash
+python ArtSource/tools/models/ladder_model.py --picture
+```

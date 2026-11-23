@@ -97,7 +97,7 @@ namespace ChickenRunner
                     else { state = "Run"; speed = kid.CurrentSpeed / Mathf.Max(0.1f, runReferenceSpeed); }
                     break;
             }
-            animator.speed = Mathf.Clamp(speed, 0.3f, state == "Climb" ? 4.5f : 2.5f);
+            animator.speed = Mathf.Clamp(speed, 0.3f, state == "Climb" ? 5f : 2.5f);
             FaceLadder(dt);
             if (state != _state)
             {

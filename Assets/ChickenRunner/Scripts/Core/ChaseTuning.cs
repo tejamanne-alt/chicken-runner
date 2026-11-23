@@ -61,9 +61,10 @@ namespace ChickenRunner.Core
         public float vaultSpeedFactor = 0.1f;
         public float maxVaultHeight = 2.8f;
 
-        // Ladders: a quick scramble up the rungs and off the top, still cheaper than a vault. (On the mango branch,
-        // which has no rungs, a pull-up that keeps ladderSpeedFactor of the run speed.)
-        public float ladderClimbDuration = 0.55f;
+        // Ladders: a scramble up the rungs and off the top. At 0.45 s it loses about 1.7 m to the rooster at 6 m/s,
+        // against 2.3 m for vaulting the same roof. On the mango branch, which has no rungs, a pull-up that keeps
+        // ladderSpeedFactor of the run speed.
+        public float ladderClimbDuration = 0.45f;
         public float ladderSpeedFactor = 0.6f;
 
         // Wading across a canal (zone 2): slow going, but not a stumble.

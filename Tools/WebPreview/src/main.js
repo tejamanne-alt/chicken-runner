@@ -425,7 +425,11 @@ function characterItems3d(items, alpha) {
   switch (k.pose) {
     case 'dive': clip = 'Dive'; break;
     case 'vault': clip = 'Vault'; break;
-    case 'climb': clip = 'Climb'; break;
+    case 'climb':
+      clip = 'Climb';
+      // Hands and feet keep time with the rungs: a loop of the clip (0.4 s) climbs two of them.
+      if (k.climb && k.climbRate > 0) rate = k.climbRate * 0.4 / (2 * k.climb.rung);
+      break;
     case 'slide': clip = 'Slide'; break;
     case 'air': clip = a.double > 0 ? 'DoubleJump' : k.vs > 0.5 ? 'JumpUp' : 'Fall'; break;
     default:
@@ -435,11 +439,13 @@ function characterItems3d(items, alpha) {
       else if (k.wading) { clip = 'Wade'; rate = k.speed / (game.t.kidRunSpeed * 0.45); }
       else { clip = 'Run'; rate = k.speed / 6; }
   }
-  const kidName = clipFrame(a.kid, C.kid, clip, dt, Math.max(0.3, Math.min(2.5, rate)));
+  const kidName = clipFrame(a.kid, C.kid, clip, dt, Math.max(0.3, Math.min(clip === 'Climb' ? 5 : 2.5, rate)));
   const kidFx = {};
   if (ky < -0.04) kidFx.clipY = project(kx, -0.06, 0)[1];
   if (k.boosted) kidFx.alpha = 0.85 + 0.15 * Math.sin(performance.now() / 40);
-  frameItem(items, C.kid, kidName, kx, ky, 0, 10, kidFx);
+  // On a ladder she keeps just in front of its rungs as it leans back to the wall (KidModelVisual.FaceLadder).
+  const kz = k.pose === 'climb' && k.climb ? ladderAt(k.climb, ky)[2] - 0.16 : 0;
+  frameItem(items, C.kid, kidName, kx, ky, kz, 10, kidFx);
 
   const rx = lerp(r.px, r.x, alpha), ry = lerp(r.py, r.y, alpha);
   let rc, rr = 1;

@@ -114,6 +114,13 @@ for name in PIECES:
     longest = {"tree_mango_1": 5.2, "mandapam": 2.9}.get(name, max(h, 0.5))
     scale = longest / h
     pieces[name] = dict(img=bake(p, w * scale, h * scale, NEAR_PPM * 1.2), w=round(w, 4), h=round(h, 4))
+# The bamboo ladder the kid climbs: a picture of the 3D ladder as it leans on the turmeric house, 0.9 m by 2.65 m
+# (ArtSource/tools/models/ladder_model.py --picture).
+LADDER = pathlib.Path(__file__).resolve().parent / 'art' / 'bamboo_ladder.png'
+if LADDER.exists():
+    pieces['bamboo_ladder'] = dict(img=bake(LADDER, 0.9, 2.65, NEAR_PPM * 1.2), w=0.9, h=2.65)
+else:
+    print('missing piece bamboo_ladder: run ladder_model.py --picture', file=sys.stderr)
 
 # ------------------------------------------------------------------ characters
 def frames(names, height, ppm):
