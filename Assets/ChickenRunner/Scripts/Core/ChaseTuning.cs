@@ -61,6 +61,13 @@ namespace ChickenRunner.Core
         public float vaultSpeedFactor = 0.1f;
         public float maxVaultHeight = 2.8f;
 
+        // Ladders: a quick climb that keeps most of the kid's speed, unlike a vault.
+        public float ladderClimbDuration = 0.35f;
+        public float ladderSpeedFactor = 0.6f;
+
+        // Wading across a canal (zone 2): slow going, but not a stumble.
+        public float wadeSpeedFactor = 0.45f;
+
         // Mistakes
         public float stumbleDuration = 0.7f;
         public float stumbleSpeedFactor = 0.45f;

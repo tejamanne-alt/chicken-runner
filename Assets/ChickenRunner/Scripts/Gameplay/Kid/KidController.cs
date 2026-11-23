@@ -11,6 +11,8 @@ namespace ChickenRunner
         Slide,
         Vault,
         Dive,
+        /// <summary>Going up a bamboo ladder onto a roof.</summary>
+        Climb,
     }
 
     /// <summary>
@@ -18,8 +20,9 @@ namespace ChickenRunner
     /// the chunk colliders. No rigidbody physics, and it is stepped at a fixed rate by GameFlow,
     /// so a jump is the same height and length on every device.
     ///
-    /// Solid (non-trigger) colliders are ground, platforms and walls. Trigger colliders are obstacles, pickups
-    /// and cots, recognised by their components.
+    /// Solid (non-trigger) colliders are ground, platforms and walls; a wall with a <see cref="Ladder"/> is climbed
+    /// quickly instead of vaulted. Trigger colliders are obstacles, pickups, bouncers (cots, awnings, a buffalo's back)
+    /// and canal water, recognised by their components.
     /// </summary>
     public sealed class KidController : MonoBehaviour
     {
@@ -63,8 +66,13 @@ namespace ChickenRunner
         bool _stopping;
 
         float _vaultTimer;
+        float _vaultDuration;
         Vector2 _vaultFrom;
         Vector2 _vaultTo;
+        Collider _wallCollider;
+
+        bool _inWater;
+        bool _wasInWater;
 
         float _diveTimer;
         Vector2 _diveFrom;
@@ -80,6 +88,8 @@ namespace ChickenRunner
         public bool IsStumbling => _speed != null && _speed.IsPenalised;
         public bool IsBoosted => _speed != null && _speed.IsBoosted;
         public float Height => Pose == KidPose.Slide ? slideHeight : standHeight;
+        /// <summary>On the bed of a canal, slowed to wading pace.</summary>
+        public bool IsWading => _inWater && _grounded;
 
         /// <summary>The kid ran into an armed obstacle; the float is the metres the mistake costs.</summary>
         public event Action<Obstacle, float> HitObstacle;
@@ -89,7 +99,10 @@ namespace ChickenRunner
         public event Action Landed;
         public event Action Bounced;
         public event Action Vaulted;
+        public event Action Climbed;
         public event Action SlideStarted;
+        /// <summary>Splashed down into a canal.</summary>
+        public event Action EnteredWater;
 
         public void Init(ChaseTuning tuning)
         {
@@ -117,6 +130,9 @@ namespace ChickenRunner
             _slideTimer = 0f;
             _graceTimer = 0f;
             _stopping = false;
+            _inWater = false;
+            _wasInWater = false;
+            _wallCollider = null;
             _speed?.Reset();
             CurrentSpeed = 0f;
             Pose = KidPose.Run;
@@ -151,7 +167,7 @@ namespace ChickenRunner
                 TickDive(dt);
                 return;
             }
-            if (Pose == KidPose.Vault)
+            if (Pose == KidPose.Vault || Pose == KidPose.Climb)
             {
                 // Input keeps its normal 0.1 s buffer during the climb; slides are not possible mid-vault.
                 _jumpBufferTimer = Mathf.Max(0f, _jumpBufferTimer - dt);
@@ -161,7 +177,8 @@ namespace ChickenRunner
                 return;
             }
 
-            CurrentSpeed = _stopping ? Mathf.MoveTowards(CurrentSpeed, 0f, 12f * dt) : _speed.Speed;
+            CurrentSpeed = _stopping ? Mathf.MoveTowards(CurrentSpeed, 0f, 12f * dt)
+                : _speed.Speed * (IsWading ? _t.wadeSpeedFactor : 1f);
 
             HandleJumpInput(dt);
             HandleSlideInput(dt);
@@ -359,6 +376,7 @@ namespace ChickenRunner
         {
             wallX = float.PositiveInfinity;
             topY = float.PositiveInfinity;
+            _wallCollider = null;
             // The lowest ray sits just above the feet, so a ledge met while falling is still seen as a wall
             // (and stepped onto if it is low enough) rather than fallen into.
             float bottom = _position.y + Skin;
@@ -374,6 +392,7 @@ namespace ChickenRunner
                     && hit.normal.x < -0.5f && hit.point.x < wallX)
                 {
                     wallX = hit.point.x;
+                    _wallCollider = hit.collider;
                     lowestHitHeight = Mathf.Min(lowestHitHeight, y);
                 }
             }
@@ -389,24 +408,29 @@ namespace ChickenRunner
             return true;
         }
 
+        /// <summary>Over a wall too high to step onto: a slow vault, or a quick climb if the wall has a ladder.</summary>
         void StartVault(float wallX, float topY)
         {
-            Pose = KidPose.Vault;
+            bool ladder = _wallCollider != null && _wallCollider.GetComponentInParent<Ladder>() != null;
+            Pose = ladder ? KidPose.Climb : KidPose.Vault;
             _vaultTimer = 0f;
+            _vaultDuration = Mathf.Max(0.01f, ladder ? _t.ladderClimbDuration : _t.vaultDuration);
             _vaultFrom = _position;
-            float creep = _t.kidRunSpeed * _t.vaultSpeedFactor * _t.vaultDuration;
+            float speedFactor = ladder ? _t.ladderSpeedFactor : _t.vaultSpeedFactor;
+            float creep = _t.kidRunSpeed * speedFactor * _vaultDuration;
             _vaultTo = new Vector2(Mathf.Max(_position.x + creep, wallX + radius + 0.05f), topY);
             _verticalSpeed = 0f;
             _grounded = false;
             _slideQueued = false;
-            CurrentSpeed = (_vaultTo.x - _vaultFrom.x) / Mathf.Max(0.01f, _t.vaultDuration);
-            Vaulted?.Invoke();
+            CurrentSpeed = (_vaultTo.x - _vaultFrom.x) / _vaultDuration;
+            if (ladder) Climbed?.Invoke();
+            else Vaulted?.Invoke();
         }
 
         void TickVault(float dt)
         {
             _vaultTimer += dt;
-            float k = Mathf.Clamp01(_vaultTimer / Mathf.Max(0.01f, _t.vaultDuration));
+            float k = Mathf.Clamp01(_vaultTimer / Mathf.Max(0.01f, _vaultDuration));
             float up = 1f - (1f - k) * (1f - k);
             _position = new Vector2(Mathf.Lerp(_vaultFrom.x, _vaultTo.x, k * k), Mathf.Lerp(_vaultFrom.y, _vaultTo.y, up));
             if (k < 1f) return;
@@ -434,6 +458,7 @@ namespace ChickenRunner
             var bottom = new Vector3(_position.x, _position.y + radius, 0f);
             var top = new Vector3(_position.x, _position.y + Mathf.Max(radius, height - radius), 0f);
             int count = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, _overlaps, Physics.AllLayers, QueryTriggerInteraction.Collide);
+            if (!pickupsOnly) _inWater = false;
 
             for (int i = 0; i < count; i++)
             {
@@ -455,9 +480,20 @@ namespace ChickenRunner
                     continue;
                 }
 
+                if (other.GetComponentInParent<WaterZone>() != null)
+                {
+                    _inWater = true;
+                    continue;
+                }
+
                 var obstacle = other.GetComponentInParent<Obstacle>();
                 if (obstacle != null && obstacle.IsArmed && _graceTimer <= 0f) HitObstacleNow(obstacle);
             }
+
+            if (pickupsOnly) return;
+            // A jump over a canal can brush the water's trigger; only standing in it is a splash.
+            if (IsWading && !_wasInWater) EnteredWater?.Invoke();
+            _wasInWater = IsWading;
         }
 
         void Collect(Pickup pickup)
@@ -472,7 +508,7 @@ namespace ChickenRunner
             // Bounce when landing on the cot or running into it, not while already flying up past it,
             // and not once the chase is over (a kid stopped on a cot would bounce for ever).
             if (_stopping || _verticalSpeed > 0.5f || _position.y > bouncer.TopY + 0.2f) return;
-            _verticalSpeed = JumpMath.BounceVelocity(_t);
+            _verticalSpeed = JumpMath.BounceVelocity(_t, bouncer.BounceHeight);
             _grounded = false;
             _jumpedSinceGrounded = true;
             _doubleJumpUsed = false;

@@ -55,16 +55,22 @@ namespace ChickenRunner
 
             if (anyChunk)
             {
+                var order = new List<Chunk>(chunks);
+                var random = new System.Random(_level.Seed);
+                Chunk previous = null;
                 int i = 0;
                 while (x < end)
                 {
-                    if (i >= chunks.Count)
+                    if (i >= order.Count)
                     {
                         if (!_level.LoopChunks) break;
                         i = 0;
+                        if (_level.ShuffleRepeats) Shuffle(order, random, previous);
                     }
-                    var chunk = chunks[i++];
-                    if (chunk != null) x = Place(chunk, x);
+                    var chunk = order[i++];
+                    if (chunk == null) continue;
+                    x = Place(chunk, x);
+                    previous = chunk;
                 }
             }
 
@@ -75,6 +81,21 @@ namespace ChickenRunner
             else if (!anyChunk)
             {
                 Debug.LogError($"{_level.name} has no runway and no chunks; there is nothing to run on.", _level);
+            }
+        }
+
+        /// <summary>Fisher-Yates, then moves a repeat of <paramref name="previous"/> away from the front.</summary>
+        static void Shuffle(List<Chunk> order, System.Random random, Chunk previous)
+        {
+            for (int k = order.Count - 1; k > 0; k--)
+            {
+                int j = random.Next(k + 1);
+                (order[k], order[j]) = (order[j], order[k]);
+            }
+            if (order.Count > 1 && order[0] == previous)
+            {
+                int swap = 1 + random.Next(order.Count - 1);
+                (order[0], order[swap]) = (order[swap], order[0]);
             }
         }
 

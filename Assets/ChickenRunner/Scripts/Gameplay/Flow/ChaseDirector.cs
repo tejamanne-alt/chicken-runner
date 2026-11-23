@@ -30,6 +30,8 @@ namespace ChickenRunner
         public int MangoesPassed { get; private set; }
         public int Chillies { get; private set; }
         public int Feathers { get; private set; }
+        /// <summary>A bit for each of the level's hidden feathers taken this run.</summary>
+        public int FeatherMask { get; private set; }
         public int Stumbles { get; private set; }
         public float MetresLost { get; private set; }
         public StarResult Stars { get; private set; }
@@ -65,6 +67,7 @@ namespace ChickenRunner
             _streamer = streamer;
             _kid.HitObstacle += OnHit;
             _kid.Collected += OnCollected;
+            _kid.EnteredWater += OnSplash;
         }
 
         public void ResetChase()
@@ -75,6 +78,7 @@ namespace ChickenRunner
             MangoesPassed = 0;
             Chillies = 0;
             Feathers = 0;
+            FeatherMask = 0;
             Stumbles = 0;
             MetresLost = 0f;
             Stars = default;
@@ -119,14 +123,23 @@ namespace ChickenRunner
                     break;
                 case PickupKind.Feather:
                     Feathers++;
+                    FeatherMask |= 1 << pickup.FeatherIndex;
+                    WorldBarks.Show("FEATHER!", _kid.transform.position + Vector3.up * 1.6f, s_gainColor);
                     break;
             }
+        }
+
+        void OnSplash()
+        {
+            if (Outcome != ChaseOutcome.Ongoing) return;
+            WorldBarks.Show("SPLASH!", _kid.transform.position + Vector3.up * 1.4f, new Color(0.2f, 0.45f, 0.8f));
         }
 
         void Unsubscribe()
         {
             _kid.HitObstacle -= OnHit;
             _kid.Collected -= OnCollected;
+            _kid.EnteredWater -= OnSplash;
         }
 
         void OnDestroy()

@@ -1,3 +1,4 @@
+using System;
 using ChickenRunner.Core;
 using UnityEngine;
 
@@ -19,6 +20,8 @@ namespace ChickenRunner
     /// The level's state machine (ready, chase, grab, result) and the fixed-rate simulation clock.
     /// Kid, rooster and director are ticked here in a fixed order at <see cref="simulationRate"/> Hz,
     /// and their transforms are interpolated between ticks, so timing never depends on the frame rate.
+    /// On its own it plays its <see cref="level"/> and a tap on the result retries; in the full game a
+    /// <see cref="GameSession"/> loads levels with <see cref="LoadLevel"/> and handles the result itself.
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class GameFlow : MonoBehaviour
@@ -39,9 +42,12 @@ namespace ChickenRunner
         [Tooltip("Ignore taps for this long on the result screen, so frantic tapping at the end does not skip it.")]
         [SerializeField] internal float resultInputDelay = 0.6f;
         [SerializeField] internal bool showDebug;
+        [Tooltip("A tap on the result screen retries. Off when a GameSession shows its own result buttons.")]
+        [SerializeField] internal bool tapToRetry = true;
 
         float _accumulator;
         bool _ready;
+        bool _started;
 
         public FlowState State { get; private set; }
         public float StateTime { get; private set; }
@@ -53,6 +59,14 @@ namespace ChickenRunner
         public ChaseDirector Director => director;
         public ChaseCamera ChaseCamera => chaseCamera;
         public bool CanDismissResult => State == FlowState.Result && StateTime >= resultInputDelay;
+        public bool TapToRetry
+        {
+            get => tapToRetry;
+            set => tapToRetry = value;
+        }
+
+        /// <summary>The chase is over and the result is showing.</summary>
+        public event Action Finished;
 
         void Awake()
         {
@@ -62,6 +76,15 @@ namespace ChickenRunner
 
         void Start()
         {
+            _started = true;
+            // A session loads its own levels; a scene with only a GameFlow plays the level it was given.
+            if (level != null && !_ready) LoadLevel(level);
+        }
+
+        /// <summary>Sets up <paramref name="newLevel"/> with its zone's tuning and waits at the start for the first tap.</summary>
+        public void LoadLevel(LevelDefinition newLevel)
+        {
+            level = newLevel;
             if (!Validate()) return;
             var tuning = level.Tuning.Values;
             kid.Init(tuning);
@@ -69,6 +92,7 @@ namespace ChickenRunner
             streamer.Init(level);
             director.Init(level, kid, rooster, streamer);
             _ready = true;
+            enabled = true;
             ResetLevel();
         }
 
@@ -79,11 +103,14 @@ namespace ChickenRunner
             if (!ok)
             {
                 Debug.LogError("GameFlow is missing references (level with tuning, kid, rooster, director, streamer, input). "
-                    + "Run Chicken Runner > Build Grey-box Level to regenerate the scene.", this);
-                enabled = false;
+                    + "Run Chicken Runner > Build Game to regenerate the scene.", this);
+                _ready = false;
             }
             return ok;
         }
+
+        /// <summary>Whether Start has run, so a session knows the scene is set up.</summary>
+        public bool IsStarted => _started;
 
         void OnDisable()
         {
@@ -129,7 +156,7 @@ namespace ChickenRunner
                     FeedInput();
                     break;
                 case FlowState.Result:
-                    if (CanDismissResult && input.AnyPress)
+                    if (tapToRetry && CanDismissResult && input.AnyPress)
                     {
                         Retry();
                         return;
@@ -241,10 +268,10 @@ namespace ChickenRunner
                     else if (ChaseRules.IsEscape(outcome)) EnterEscape();
                     break;
                 case FlowState.Grab:
-                    if (StateTime >= grabSequenceDuration) Enter(FlowState.Result);
+                    if (StateTime >= grabSequenceDuration) EnterResult();
                     break;
                 case FlowState.Escape:
-                    if (StateTime >= escapeSequenceDuration) Enter(FlowState.Result);
+                    if (StateTime >= escapeSequenceDuration) EnterResult();
                     break;
             }
         }
@@ -264,6 +291,12 @@ namespace ChickenRunner
             director.Finish();
             kid.BeginStop();
             rooster.BeginFlee();
+        }
+
+        void EnterResult()
+        {
+            Enter(FlowState.Result);
+            Finished?.Invoke();
         }
 
         void Enter(FlowState state)

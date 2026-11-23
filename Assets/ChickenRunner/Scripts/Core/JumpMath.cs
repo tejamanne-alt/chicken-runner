@@ -24,6 +24,10 @@ namespace ChickenRunner.Core
 
         public static float BounceVelocity(ChaseTuning t) => VelocityForHeight(Gravity(t), t.cotBounceHeight);
 
+        /// <summary>Launch speed for a bounce of <paramref name="height"/> metres (awnings, a buffalo's back); 0 or less uses the cot's.</summary>
+        public static float BounceVelocity(ChaseTuning t, float height) =>
+            height > 0f ? VelocityForHeight(Gravity(t), height) : BounceVelocity(t);
+
         /// <summary>Extra gravity while rising with the button released; an instant release peaks at tapJumpHeight.</summary>
         public static float LowJumpGravityMultiplier(ChaseTuning t) =>
             t.tapJumpHeight <= 0f ? 1f : Math.Max(1f, t.jumpHeight / t.tapJumpHeight);

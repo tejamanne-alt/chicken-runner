@@ -93,6 +93,7 @@ namespace ChickenRunner
                     targetLean = 20f;
                     break;
                 case KidPose.Vault:
+                case KidPose.Climb:
                     targetLean = -35f;
                     break;
                 case KidPose.Dive:

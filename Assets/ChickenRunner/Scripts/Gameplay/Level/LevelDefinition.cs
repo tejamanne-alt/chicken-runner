@@ -11,7 +11,11 @@ namespace ChickenRunner
     public sealed class LevelDefinition : ScriptableObject
     {
         [SerializeField] internal string displayName = "Level";
+        [Tooltip("One line for the village map, e.g. what the level teaches.")]
+        [SerializeField] internal string subtitle = "";
         [SerializeField] internal TuningConfig tuning;
+        [Tooltip("The zone's painted backdrop and ground. Empty keeps whatever is showing.")]
+        [SerializeField] internal ZoneArt art;
 
         [Tooltip("Flat chunk the kid starts on; also used after the course end so the rooster has somewhere to run.")]
         [SerializeField] internal Chunk runwayChunk;
@@ -22,11 +26,20 @@ namespace ChickenRunner
         [Tooltip("Repeat the chunk list until the course length is covered. Off: the course ends with the list.")]
         [SerializeField] internal bool loopChunks = true;
 
+        [Tooltip("After the first pass through the list, repeat the chunks in a shuffled order (never the same chunk "
+            + "twice in a row). The shuffle is seeded, so the course is the same on every retry and can be learnt.")]
+        [SerializeField] internal bool shuffleRepeats = true;
+        [SerializeField] internal int seed = 1;
+
         [Tooltip("Metres. Zero uses the zone's course length.")]
         [SerializeField, Min(0f)] internal float courseLengthOverride;
 
         public string DisplayName => displayName;
+        public string Subtitle => subtitle;
         public TuningConfig Tuning => tuning;
+        public ZoneArt Art => art;
+        public bool ShuffleRepeats => shuffleRepeats;
+        public int Seed => seed;
         public Chunk RunwayChunk => runwayChunk;
         public IReadOnlyList<Chunk> Chunks => chunks;
         public bool LoopChunks => loopChunks;

@@ -55,7 +55,7 @@ namespace ChickenRunner
 
         void OnGUI()
         {
-            if (flow == null || flow.Director == null || flow.Director.Tuning == null) return;
+            if (flow == null || !flow.isActiveAndEnabled || flow.Director == null || flow.Director.Tuning == null) return;
             EnsureStyles();
             float scale = HudLayout.Scale;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
@@ -78,10 +78,12 @@ namespace ChickenRunner
                     DrawReady(width, height);
                     break;
                 case FlowState.Result:
-                    DrawResult(director, width, height);
+                    // In the full game the GameMenus draw the result with its buttons.
+                    if (flow.TapToRetry) DrawResult(director, width, height);
                     break;
             }
             if (flow.Paused) DrawCentred(width, height * 0.34f, "Paused", "Tap to carry on");
+            if (flow.State != FlowState.Ready && director.Feathers > 0) DrawFeathers(director);
             if (flow.ShowDebug) DrawDebug(director);
         }
 
@@ -119,6 +121,16 @@ namespace ChickenRunner
             Fill(new Rect(panel.x + 12f, panel.y + 16f, 24f, 24f), s_mango);
             Shadowed(new Rect(panel.x + 44f, panel.y, panel.width - 44f, panel.height),
                 director.Mangoes.ToString(CultureInfo.InvariantCulture), _label, TextAnchor.MiddleLeft);
+        }
+
+        void DrawFeathers(ChaseDirector director)
+        {
+            // Feather pips under the mango count: one per hidden feather found this run.
+            for (int i = 0; i < 3; i++)
+            {
+                bool found = (director.FeatherMask & (1 << i)) != 0;
+                Fill(new Rect(28f + i * 26f, 80f, 18f, 30f), found ? s_rooster : new Color(1f, 1f, 1f, 0.2f));
+            }
         }
 
         void DrawEdgeArrow(ChaseDirector director, float width)

@@ -3,20 +3,25 @@ using UnityEngine;
 namespace ChickenRunner
 {
     /// <summary>
-    /// A rope cot: touching it from above or running into it bounces the kid high. It never costs distance.
-    /// Needs a trigger collider whose top is the cot's surface.
+    /// A rope cot, a stall's awning or a buffalo's back: touching it from above or running into it bounces the kid high.
+    /// It never costs distance. Needs a trigger collider whose top is the bouncing surface. An awning's trigger hangs
+    /// above head height, so the kid runs under it and only bounces off it from a jump.
     /// </summary>
     public sealed class Bouncer : MonoBehaviour, IChunkPart
     {
         const float SquashDuration = 0.3f;
 
         [SerializeField] internal Transform visual;
+        [Tooltip("Bounce height in metres; 0 uses the zone tuning's cot bounce height.")]
+        [SerializeField, Min(0f)] internal float bounceHeight;
+        [SerializeField] internal string bark = "BOING!";
 
         Collider _collider;
         Vector3 _restScale = Vector3.one;
         float _squashTimer = -1f;
 
         public float TopY => _collider != null ? _collider.bounds.max.y : transform.position.y;
+        public float BounceHeight => bounceHeight;
 
         void Awake()
         {
@@ -28,7 +33,8 @@ namespace ChickenRunner
         public void Bounce()
         {
             _squashTimer = 0f;
-            WorldBarks.Show("BOING!", transform.position + Vector3.up * 1.2f, new Color(0.2f, 0.6f, 0.3f));
+            if (!string.IsNullOrEmpty(bark))
+                WorldBarks.Show(bark, new Vector3(transform.position.x, TopY + 0.7f, 0f), new Color(0.2f, 0.6f, 0.3f));
         }
 
         public void ResetPart()

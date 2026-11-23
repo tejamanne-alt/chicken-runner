@@ -20,6 +20,8 @@ namespace ChickenRunner
         [SerializeField] internal PickupKind kind = PickupKind.Mango;
         [SerializeField] internal Transform visual;
         [SerializeField] internal float spinSpeed = 180f;
+        [Tooltip("Feathers only: which of the level's three hidden feathers this is, 0 to 2.")]
+        [SerializeField, Range(0, 2)] internal int featherIndex;
 
         Collider _collider;
         Vector3 _restScale = Vector3.one;
@@ -27,6 +29,7 @@ namespace ChickenRunner
         bool _cached;
 
         public PickupKind Kind => kind;
+        public int FeatherIndex => featherIndex;
         public bool Collected { get; private set; }
 
         void Awake()
