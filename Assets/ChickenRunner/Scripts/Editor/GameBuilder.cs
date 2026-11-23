@@ -159,6 +159,9 @@ namespace ChickenRunner.EditorTools
             material.SetFloat("_Drift", drift);
             material.SetFloat("_UseFar", far != null ? 1f : 0f);
             if (far != null) material.SetTexture("_FarTex", far);
+            // Paddy only behind the bund: up close in front of the camera the paddy tile is magnified into a pattern,
+            // so the near side stays earth (the preview showed it).
+            material.SetFloat("_BandFront", -40f);
             material.SetColor("_HazeColor", ArtAssets.Haze);
             material.SetFloat("_HazeFrom", hazeFrom);
             material.SetFloat("_HazeTo", hazeTo);
