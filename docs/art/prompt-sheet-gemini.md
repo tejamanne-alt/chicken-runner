@@ -11,7 +11,7 @@ The same images as [the ChatGPT sheet](prompt-sheet.md), with the same IDs and f
 
 Start with the 45 marked *first batch*. Gemini is good at small edits, so ask for just the change: *Using the image you just made, remove the labels and keep everything else the same.* A small sparkle mark in a corner is Gemini's watermark; leave it and I'll paint it out.
 
-**Progress:** 64 of 86 images are in `ArtSource/references/` (checked 23 Nov 2026); first batch still to make: B8, B9, C8, C10, T11, T12.
+**Progress:** 72 of 86 images are in `ArtSource/references/` (checked 23 Nov 2026); first batch still to make: T11, T12.
 
 ## A. Style anchors
 
@@ -175,7 +175,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### B8 · Cows and goats
 
-⬜ to make · Save as `B8_cows_goats.png` · 16:9 landscape · first batch · **new** · Upload: A1, B7  
+✅ in the repo (Usable: the cow, calf and goats cut out cleanly. The buffalo came out lost in a dust cloud, so make it again only if you want the buffalo.) · Save as `B8_cows_goats.png` · 16:9 landscape · first batch · **new** · Upload: A1, B7  
 Used for: More animals, so the same one never appears twice in view.
 
 ```text
@@ -190,7 +190,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### B9 · Small animals and birds
 
-⬜ to make · Save as `B9_small_animals.png` · 16:9 landscape · first batch · **new** · Upload: A1, B7  
+✅ in the repo · Save as `B9_small_animals.png` · 16:9 landscape · first batch · **new** · Upload: A1, B7  
 Used for: Life on walls and rooftops: cats, crows, parrots, hens with chicks.
 
 ```text
@@ -205,7 +205,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### B10 · Villagers in the background
 
-⬜ to make · Save as `B10_villagers.png` · 16:9 landscape · second batch · **new** · Upload: A1  
+✅ in the repo · Save as `B10_villagers.png` · 16:9 landscape · second batch · **new** · Upload: A1  
 Used for: People going about their day behind the chase.
 
 ```text
@@ -335,7 +335,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### C8 · Lane middle layer 2
 
-⬜ to make · Save as `C8_lane_mid_layer_2.png` · 21:9 ultra-wide · first batch · **new** · Upload: A1, C3  
+✅ in the repo · Save as `C8_lane_mid_layer_2.png` · 21:9 ultra-wide · first batch · **new** · Upload: A1, C3  
 Used for: A second distance layer, so the palm band does not repeat.
 
 ```text
@@ -352,7 +352,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### C9 · Lane middle layer 3
 
-⬜ to make · Save as `C9_lane_mid_layer_3.png` · 21:9 ultra-wide · second batch · **new** · Upload: A1, C3  
+✅ in the repo (Usable: the haze painted round the hillock stays in the layer as a soft patch, which suits a distant layer.) · Save as `C9_lane_mid_layer_3.png` · 21:9 ultra-wide · second batch · **new** · Upload: A1, C3  
 Used for: A third distance layer.
 
 ```text
@@ -369,7 +369,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### C10 · Ground details to scatter
 
-⬜ to make · Save as `C10_ground_details.png` · 16:9 landscape · first batch · **new** · Upload: A1, T1  
+✅ in the repo · Save as `C10_ground_details.png` · 16:9 landscape · first batch · **new** · Upload: A1, T1  
 Used for: Scattered one by one over the lane, each at a random turn and size, so the ground never repeats.
 
 ```text
@@ -452,7 +452,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### D5 · Field buildings
 
-⬜ to make · Save as `D5_field_buildings.png` · 16:9 landscape · second batch · **new** · Upload: A1, C4, D1  
+✅ in the repo · Save as `D5_field_buildings.png` · 16:9 landscape · second batch · **new** · Upload: A1, C4, D1  
 Used for: The buildings along the zone 2 fields, so no two in view are the same.
 
 ```text
@@ -467,7 +467,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### D6 · Crops and field edges
 
-⬜ to make · Save as `D6_crops_field_edges.png` · 16:9 landscape · second batch · **new** · Upload: A1, D1  
+✅ in the repo · Save as `D6_crops_field_edges.png` · 16:9 landscape · second batch · **new** · Upload: A1, D1  
 Used for: Pieces the fields are built from: crop rows, bunds and canal banks, never the same twice.
 
 ```text
@@ -482,7 +482,7 @@ Render it as stylised, hand-painted 3D game art for a side-scrolling mobile game
 
 ### D7 · Fields middle layer
 
-⬜ to make · Save as `D7_fields_mid_layer.png` · 21:9 ultra-wide · second batch · **new** · Upload: A1, D1, D2  
+🔁 make again: Came out as a view looking across the fields in perspective, with magenta only along the top: make it again as a flat side-on band, like C8, with magenta all round it. · Save as `D7_fields_mid_layer.png` · 21:9 ultra-wide · second batch · **new** · Upload: A1, D1, D2  
 Used for: The band of fields and palms right behind zone 2, between the play area and the D2 far layer.
 
 ```text
