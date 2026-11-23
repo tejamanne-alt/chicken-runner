@@ -627,9 +627,11 @@ if refs.is_real("E8_market_stalls_1.png"):
     # Cut where the awnings touch (columns 1180 and 2090, the narrowest points above the shared ground strip).
     _e8 = load("E8_market_stalls_1.png")
     _top, _bottom = ground_band(painted_alpha(_e8, drop_sheet=True))
-    cut_columns("E8_market_stalls_1.png", MARKET, {"stall_veg": (0, 1180, 0, _bottom + 4),
-                                                   "stall_flowers": (1180, 2090, 0, _bottom + 4),
-                                                   "stall_vessels": (2090, 3168, 0, _bottom + 4)},
+    # Cut at the top of the painted strip of red ground they share, so they stand on the scene's own ground.
+    _cut = _top + 12
+    cut_columns("E8_market_stalls_1.png", MARKET, {"stall_veg": (0, 1180, 0, _cut),
+                                                   "stall_flowers": (1180, 2090, 0, _cut),
+                                                   "stall_vessels": (2090, 3168, 0, _cut)},
                 {"stall_veg": 3.0, "stall_flowers": 3.0, "stall_vessels": 2.6})
 
 # ---------------------------------------------------------------- the rooster (B1 side view, B2 poses), facing right

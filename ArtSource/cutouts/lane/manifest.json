@@ -1435,8 +1435,8 @@
  },
  "stall_veg": {
   "px": [
-   1180,
-   893
+   1137,
+   824
   ],
   "height_m": 3.0,
   "striped": true
@@ -1444,14 +1444,14 @@
  "stall_flowers": {
   "px": [
    922,
-   836
+   767
   ],
   "height_m": 3.0
  },
  "stall_vessels": {
   "px": [
-   1078,
-   743
+   1031,
+   674
   ],
   "height_m": 2.6
  },
