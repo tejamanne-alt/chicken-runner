@@ -38,7 +38,8 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 - **Buildings** are the painted fronts cut from the references (`cutouts/lane/`), all facing the street square on:
   the four from the C4 kit and G1-G16, each scaled to match the kid (mostly by its door). Landmarks stand once per
   street: the village head's house (G5) near the start, the panchayat office (G14) further on, the shrine under its
-  tree (G15) and the peepal on its platform (H3) in breaks, and the water tank (G16) behind the houses.
+  tree (G15) in a break, and the water tank (G16) behind the houses. The peepal on its platform (H3) joins them once
+  it's drawn front-on.
 - The rest are dealt like cards: each comes up once before any comes back, none twice in any 45 m, and never two of a
   kind side by side (huts, mud houses, tiled houses, shops, sheds).
 - **Spacing**: 0.8-2.4 m of open ground between buildings, and every 2-4 a wider break: a compound wall, a gateway,
@@ -46,8 +47,8 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 - **Compounds**: some huts and mud houses sit back in a yard fenced with woven dried coconut leaves (or split-bamboo
   matting), with an opening at the door, coconut palms and a garden plant inside; never two side by side.
 - **Trees and plants** (`cutouts/plants/`): H1 neem, H2 tamarind and drumstick, H4 coconut palms and the D4 mangoes;
-  H5 garden plants and H6 flowering bushes at house corners; a few H7 low plants and stones in front of the lane, clear
-  of the obstacles. Each pool skips its last few picks, and pieces are mirrored and scaled a little.
+  H5 garden plants and H6 flowering bushes at house corners; a few H7 low plants and stones 6-7 m in front of the
+  lane, which in the game view rise into the bottom of the screen and stay below the kid's feet. Each pool skips its last few picks, and pieces are mirrored and scaled a little.
 - **Distance**: a row of trees and palms right behind the houses, then the C3 middle layer 12-15 m back, reshuffled in
   clumps with their bushy feet sunk into the ground. The ground fades into the haze painted at the foot of the C2 far
   layer, reaching it where the ground ends, so there's no horizon line.

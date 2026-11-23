@@ -237,8 +237,7 @@ COL["Ground"].objects.link(ground)
 # Placement rules (the game's chunk builder will follow the same ones). Everything comes from the reference art:
 #   * Buildings are the painted fronts, all facing the street square on: the four from the C4 kit and G1-G16.
 #     Landmarks stand once per street: the village head's house (G5) near the start, the panchayat office (G14)
-#     further on, the shrine under its tree (G15) and the peepal on its platform (H3) in breaks, and the water
-#     tank (G16) behind the houses.
+#     further on, the shrine under its tree (G15) in a break, and the water tank (G16) behind the houses.
 #   * The rest are dealt like cards: each comes up once before any comes back, none twice in any 45 m, and never two
 #     of a kind side by side (huts, mud houses, tiled houses, shops, sheds).
 #   * Houses stand apart: 0.8 to 2.4 m of open ground between neighbours, and every 2 to 4 houses a wider break of
@@ -247,7 +246,8 @@ COL["Ground"].objects.link(ground)
 #     opening at the door and coconut palms and garden plants in the yard; never two side by side.
 #   * Trees (H1 neem, H2 tamarind and drumstick, H4 coconut palms, the D4 mangoes) and plants (H5 garden plants,
 #     H6 flowering bushes) come from pools that skip their last few picks, mirrored and scaled a little.
-#   * A few low plants and stones (H7) stand in front of the lane, at the screen's bottom edge, away from obstacles.
+#   * A few low plants and stones (H7) stand between the lane and the camera, low enough to stay below the kid's
+#     feet in the game view, so they frame the screen's bottom edge and are never mistaken for obstacles.
 #   * Right behind the houses: a row of trees and palms, then the C3 middle layer; the ground fades into the haze.
 from village_kit import Kit  # noqa: E402
 
@@ -275,7 +275,7 @@ PALMS = {"h4_1": (9.0, 11.0), "h4_2": (8.0, 10.0), "h4_3": (9.0, 11.0), "h4_5": 
 GARDEN = {"h5_1": (3.4, 4.0), "h5_2": (2.8, 3.4), "h5_3": (3.4, 4.2), "h5_4": (1.9, 2.4), "h5_5": (2.4, 2.9),
           "h5_6": (1.7, 2.0), "h6_1": (1.5, 1.9), "h6_3": (0.6, 0.75), "h6_4": (1.7, 1.9), "h6_5": (0.9, 1.1),
           "h6_6": (1.7, 2.1), "h6_7": (0.5, 0.65)}
-FOREGROUND = {"h7_1": (0.8, 1.0), "h7_2": (0.9, 1.2), "h7_5": (0.6, 0.8)}
+FOREGROUND = {"h7_1": (0.75, 0.9), "h7_2": (0.8, 0.95), "h7_5": (0.55, 0.7)}
 
 
 def plant_path(name):
@@ -411,12 +411,7 @@ while x < STREET_END:
             landmarks["shrine"] = x
             tufts_along(x, x + w, 5.0, 1.0)
             x += w + 1.2
-        elif x >= -12.0 and "peepal" not in landmarks:
-            # The peepal on its platform, where people sit in the evening.
-            landmarks["peepal"] = x
-            w = plant(Pool(["h3_1"], 1), {"h3_1": (7.0, 7.5)}, x + 4.0, 5.6)
-            x += w + 1.0
-        else:
+        else:  # (the H3 peepal on its platform waits until it's drawn front-on: the first one came out from above)
             gap = rng.uniform(2.5, 5.0)
             street_break(n, x, gap, rng.choice(["wall", "gate", "yard", "grove", "grove"]))
             x += gap
@@ -474,13 +469,13 @@ while bx < STREET_END + 8:
     else:
         plant(big_trees, BIG_TREES, bx, rng.uniform(9.0, 11.5), col="Backdrop")
 
-# In front of the lane: a few low plants and stones at the screen's bottom edge, clear of the obstacles.
-OBSTACLE_XS = [6, 11.5, 15.5, 19.5, 26, 32, 39]
+# Between the lane and the camera: a few low plants and stones, 6-7 m in front of the lane. In the game view the
+# screen's bottom edge meets the ground about 5 m in front, so they rise into the frame from below and stay under the
+# kid's feet (anything taller than about 1 m would reach them).
 fx = -14.0
 while fx < STREET_END:
     fx += rng.uniform(14.0, 26.0)
-    if all(abs(fx - ox) > 2.5 for ox in OBSTACLE_XS):
-        plant(foreground, FOREGROUND, fx, rng.uniform(-5.5, -3.5), col="Props")
+    plant(foreground, FOREGROUND, fx, rng.uniform(-7.0, -6.0), col="Props")
 
 # Pebbles in loose drifts over the lane and verges, and grass along walls, fences and the lane's edges.
 GROUND.pebbles(COL["Ground"], rng, ((-24, 86), (-7, 4.2)), 900)

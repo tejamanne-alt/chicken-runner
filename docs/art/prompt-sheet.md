@@ -2,7 +2,7 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 65 of 86 images are in `ArtSource/references/` (checked 22 Nov 2026); 39 of the 45 first-batch images. First batch still to make: B8, B9, C8, C10, T11, T12.
+**Progress:** 64 of 86 images are in `ArtSource/references/` (checked 23 Nov 2026); 39 of the 45 first-batch images. First batch still to make: B8, B9, C8, C10, T11, T12.
 
 ## How to use it
 
@@ -1033,7 +1033,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### H3 · Meeting tree with platform
 
-✅ in the repo · Save as `H3_peepal_platform.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
+🔁 make again: Came out seen from above, with the platform at an angle: make it again side-on, the platform's front face square to the viewer and its top barely showing, like the G buildings. · Save as `H3_peepal_platform.png` · Landscape 3:2 · second batch · **new** · Attach: A1, D4  
 Used for: The village gathering spot: a one-off landmark.
 
 ```text
@@ -1041,7 +1041,7 @@ Landscape 3:2 image.
 
 Use the attached A1 key art as the style reference and match it closely.
 
-A huge peepal tree with heart-shaped leaves growing from a raised square stone platform where villagers sit, a few small stone idols and lamps at its base, and red threads tied round the trunk. Drawn like the attached D4 mango tree sheet. Each item in side view, at the same scale relative to each other, evenly spaced and separate, on a plain flat light-grey background, even lighting, no labels.
+A huge peepal tree with heart-shaped leaves growing from a raised square stone platform where villagers sit, a few small stone idols and lamps at its base, and red threads tied round the trunk. Drawn like the attached D4 mango tree sheet, side-on: the platform's front face square to the viewer and its top barely showing, not seen from above. Show only this one building, as a flat front elevation for a side-scrolling game: its front wall faces the viewer squarely, parallel to the picture, so neither side wall shows and the roof is seen only from the front, with no corner or gable end turned toward the viewer (no three-quarter view, no perspective). Standing on a thin ground line, drawn at the same scale and in the same painted style as the attached C4 house kit (its doors are about 2 m tall). Even lighting, plain flat light-grey background, no labels.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Backgrounds are painterly and atmospheric, with visible brush texture, soft haze in the distance, light shafts and floating dust. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
