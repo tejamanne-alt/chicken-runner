@@ -43,7 +43,7 @@
    "width": 1.743,
    "height": 1.45,
    "depth": 0.6,
-   "faces": 5998
+   "faces": 6000
   },
   {
    "name": "crows_on_ledge",
@@ -187,7 +187,7 @@
    "width": 2.327,
    "height": 0.7,
    "depth": 0.9,
-   "faces": 3256
+   "faces": 5316
   },
   {
    "name": "bund_strip",
@@ -196,7 +196,7 @@
    "width": 3.43,
    "height": 0.55,
    "depth": 0.9,
-   "faces": 1486
+   "faces": 3146
   },
   {
    "name": "canal_bank",
@@ -205,7 +205,7 @@
    "width": 4.175,
    "height": 1.3,
    "depth": 0.8,
-   "faces": 1004
+   "faces": 3044
   },
   {
    "name": "canal_bridge",
@@ -214,7 +214,7 @@
    "width": 2.053,
    "height": 1.1,
    "depth": 1.0,
-   "faces": 2796
+   "faces": 4908
   },
   {
    "name": "crop_strip_1",
@@ -277,7 +277,7 @@
    "width": 7.414,
    "height": 4.468,
    "depth": 3.5,
-   "faces": 1853
+   "faces": 6109
   },
   {
    "name": "field_bldg_2",
@@ -286,7 +286,7 @@
    "width": 3.908,
    "height": 5.0,
    "depth": 3.5,
-   "faces": 2856
+   "faces": 7252
   },
   {
    "name": "field_bldg_3",
@@ -295,7 +295,7 @@
    "width": 8.369,
    "height": 3.348,
    "depth": 3.5,
-   "faces": 1204
+   "faces": 3340
   },
   {
    "name": "field_life_1",
@@ -358,7 +358,7 @@
    "width": 2.676,
    "height": 4.2,
    "depth": 1.5,
-   "faces": 1322
+   "faces": 3116
   },
   {
    "name": "field_tree_1",
@@ -421,7 +421,7 @@
    "width": 4.584,
    "height": 4.6,
    "depth": 3,
-   "faces": 2138
+   "faces": 5024
   },
   {
    "name": "haystack",
@@ -448,7 +448,7 @@
    "width": 6.543,
    "height": 3.8,
    "depth": 4,
-   "faces": 2004
+   "faces": 5388
   },
   {
    "name": "paddy_ripe",
@@ -511,7 +511,7 @@
    "width": 3.83,
    "height": 2.9,
    "depth": 3,
-   "faces": 1660
+   "faces": 4828
   },
   {
    "name": "scarecrow",
@@ -520,7 +520,7 @@
    "width": 1.723,
    "height": 2.1,
    "depth": 0.25,
-   "faces": 978
+   "faces": 1794
   },
   {
    "name": "sluice_gate",
@@ -529,7 +529,7 @@
    "width": 2.205,
    "height": 1.7,
    "depth": 0.8,
-   "faces": 2148
+   "faces": 3958
   },
   {
    "name": "sugarcane",
@@ -547,7 +547,7 @@
    "width": 3.137,
    "height": 2.4,
    "depth": 1.6,
-   "faces": 2694
+   "faces": 5556
   },
   {
    "name": "cart_rut",
@@ -556,7 +556,7 @@
    "width": 2.6,
    "height": 0.685,
    "depth": 0.012,
-   "faces": 260
+   "faces": 737
   },
   {
    "name": "coconut",
@@ -565,7 +565,7 @@
    "width": 0.22,
    "height": 0.234,
    "depth": 0.012,
-   "faces": 541
+   "faces": 1120
   },
   {
    "name": "cracked_mud",
@@ -574,7 +574,7 @@
    "width": 1.6,
    "height": 0.669,
    "depth": 0.012,
-   "faces": 259
+   "faces": 667
   },
   {
    "name": "footprints",
@@ -583,7 +583,7 @@
    "width": 1.4,
    "height": 0.278,
    "depth": 0.012,
-   "faces": 378
+   "faces": 739
   },
   {
    "name": "hen_prints",
@@ -592,7 +592,7 @@
    "width": 0.9,
    "height": 0.225,
    "depth": 0.012,
-   "faces": 343
+   "faces": 764
   },
   {
    "name": "hoof_prints",
@@ -601,7 +601,7 @@
    "width": 1.2,
    "height": 0.338,
    "depth": 0.012,
-   "faces": 410
+   "faces": 917
   },
   {
    "name": "husk",
@@ -610,7 +610,7 @@
    "width": 0.3,
    "height": 0.214,
    "depth": 0.012,
-   "faces": 669
+   "faces": 1437
   },
   {
    "name": "leaf_1",
@@ -619,7 +619,7 @@
    "width": 0.12,
    "height": 0.186,
    "depth": 0.012,
-   "faces": 287
+   "faces": 686
   },
   {
    "name": "leaf_2",
@@ -628,7 +628,7 @@
    "width": 0.12,
    "height": 0.305,
    "depth": 0.012,
-   "faces": 266
+   "faces": 599
   },
   {
    "name": "leaf_3",
@@ -637,7 +637,7 @@
    "width": 0.12,
    "height": 0.296,
    "depth": 0.012,
-   "faces": 254
+   "faces": 608
   },
   {
    "name": "pebble_cluster",
@@ -646,7 +646,7 @@
    "width": 0.35,
    "height": 0.24,
    "depth": 0.012,
-   "faces": 627
+   "faces": 1356
   },
   {
    "name": "pebbles",
@@ -655,7 +655,7 @@
    "width": 0.6,
    "height": 0.269,
    "depth": 0.012,
-   "faces": 223
+   "faces": 787
   },
   {
    "name": "tuft_1",
@@ -664,7 +664,7 @@
    "width": 0.3,
    "height": 0.343,
    "depth": 0.012,
-   "faces": 884
+   "faces": 1625
   },
   {
    "name": "tuft_2",
@@ -673,7 +673,7 @@
    "width": 0.22,
    "height": 0.246,
    "depth": 0.012,
-   "faces": 797
+   "faces": 1445
   },
   {
    "name": "tuft_3",
@@ -682,7 +682,7 @@
    "width": 0.2,
    "height": 0.244,
    "depth": 0.012,
-   "faces": 689
+   "faces": 1334
   },
   {
    "name": "tuft_4",
@@ -691,7 +691,7 @@
    "width": 0.16,
    "height": 0.152,
    "depth": 0.012,
-   "faces": 689
+   "faces": 1244
   },
   {
    "name": "twigs",
@@ -700,7 +700,7 @@
    "width": 0.45,
    "height": 0.299,
    "depth": 0.012,
-   "faces": 740
+   "faces": 1688
   },
   {
    "name": "weed_1",
@@ -709,7 +709,7 @@
    "width": 0.3,
    "height": 0.309,
    "depth": 0.012,
-   "faces": 1103
+   "faces": 2069
   },
   {
    "name": "weed_2",
@@ -718,7 +718,7 @@
    "width": 0.3,
    "height": 0.44,
    "depth": 0.012,
-   "faces": 1069
+   "faces": 1795
   },
   {
    "name": "bicycle",
@@ -727,7 +727,7 @@
    "width": 1.7,
    "height": 1.205,
    "depth": 0.12,
-   "faces": 2274
+   "faces": 4523
   },
   {
    "name": "brass_pots",
@@ -745,7 +745,7 @@
    "width": 3.8,
    "height": 1.726,
    "depth": 1.1,
-   "faces": 1658
+   "faces": 3302
   },
   {
    "name": "cattle_shed",
@@ -754,7 +754,7 @@
    "width": 6.373,
    "height": 3.438,
    "depth": 4,
-   "faces": 1589
+   "faces": 5027
   },
   {
    "name": "chicken_basket",
@@ -772,7 +772,7 @@
    "width": 2.4,
    "height": 1.693,
    "depth": 0.05,
-   "faces": 980
+   "faces": 2252
   },
   {
    "name": "doorway_garland",
@@ -781,7 +781,7 @@
    "width": 1.858,
    "height": 2.3,
    "depth": 0.06,
-   "faces": 341
+   "faces": 1022
   },
   {
    "name": "dung",
@@ -790,7 +790,7 @@
    "width": 0.6,
    "height": 0.252,
    "depth": 0.08,
-   "faces": 495
+   "faces": 939
   },
   {
    "name": "hand_pump",
@@ -799,7 +799,7 @@
    "width": 1.304,
    "height": 1.2,
    "depth": 0.2,
-   "faces": 803
+   "faces": 1814
   },
   {
    "name": "house_being_built",
@@ -808,7 +808,7 @@
    "width": 8.167,
    "height": 3.525,
    "depth": 4.5,
-   "faces": 1126
+   "faces": 3836
   },
   {
    "name": "house_hut_porch",
@@ -817,7 +817,7 @@
    "width": 6.799,
    "height": 4.668,
    "depth": 4.5,
-   "faces": 1092
+   "faces": 4572
   },
   {
    "name": "house_indigo_veranda",
@@ -826,7 +826,7 @@
    "width": 4.532,
    "height": 4.2,
    "depth": 4.5,
-   "faces": 1660
+   "faces": 6564
   },
   {
    "name": "house_limewash",
@@ -835,7 +835,7 @@
    "width": 2.118,
    "height": 4.27,
    "depth": 4.5,
-   "faces": 3810
+   "faces": 8556
   },
   {
    "name": "house_mud_tin",
@@ -844,7 +844,7 @@
    "width": 4.567,
    "height": 3.682,
    "depth": 4.5,
-   "faces": 581
+   "faces": 4235
   },
   {
    "name": "house_pink",
@@ -853,7 +853,7 @@
    "width": 2.83,
    "height": 4.27,
    "depth": 4.5,
-   "faces": 2032
+   "faces": 6003
   },
   {
    "name": "house_plank_sheet",
@@ -862,7 +862,7 @@
    "width": 4.739,
    "height": 3.202,
    "depth": 4.5,
-   "faces": 986
+   "faces": 4386
   },
   {
    "name": "house_potter",
@@ -871,7 +871,7 @@
    "width": 8.745,
    "height": 4.542,
    "depth": 4.5,
-   "faces": 1740
+   "faces": 5156
   },
   {
    "name": "house_thatched_hut",
@@ -880,7 +880,7 @@
    "width": 6.064,
    "height": 4.733,
    "depth": 4.5,
-   "faces": 1292
+   "faces": 4108
   },
   {
    "name": "house_tiled_gate",
@@ -889,7 +889,7 @@
    "width": 9.967,
    "height": 5.317,
    "depth": 6,
-   "faces": 1629
+   "faces": 4437
   },
   {
    "name": "house_turmeric_ladder",
@@ -898,7 +898,7 @@
    "width": 3.512,
    "height": 3.97,
    "depth": 4.5,
-   "faces": 2394
+   "faces": 7074
   },
   {
    "name": "house_village_head",
@@ -907,7 +907,7 @@
    "width": 13.517,
    "height": 8.006,
    "depth": 7,
-   "faces": 1864
+   "faces": 4854
   },
   {
    "name": "house_weaver",
@@ -916,7 +916,7 @@
    "width": 6.553,
    "height": 4.482,
    "depth": 4.5,
-   "faces": 1056
+   "faces": 4152
   },
   {
    "name": "jute_sacks",
@@ -934,7 +934,7 @@
    "width": 0.9,
    "height": 0.711,
    "depth": 0.012,
-   "faces": 1030
+   "faces": 3565
   },
   {
    "name": "kolam_2",
@@ -943,7 +943,7 @@
    "width": 0.9,
    "height": 0.751,
    "depth": 0.012,
-   "faces": 1157
+   "faces": 3011
   },
   {
    "name": "kolam_3",
@@ -952,7 +952,7 @@
    "width": 0.9,
    "height": 0.814,
    "depth": 0.012,
-   "faces": 857
+   "faces": 3173
   },
   {
    "name": "kolam_4",
@@ -961,7 +961,7 @@
    "width": 0.9,
    "height": 0.652,
    "depth": 0.012,
-   "faces": 795
+   "faces": 3027
   },
   {
    "name": "kolam_5",
@@ -970,7 +970,7 @@
    "width": 0.9,
    "height": 0.642,
    "depth": 0.012,
-   "faces": 1289
+   "faces": 3813
   },
   {
    "name": "kolam_6",
@@ -979,7 +979,7 @@
    "width": 0.9,
    "height": 0.949,
    "depth": 0.012,
-   "faces": 1517
+   "faces": 4424
   },
   {
    "name": "lamp_pillar",
@@ -988,7 +988,7 @@
    "width": 5.807,
    "height": 9.115,
    "depth": 0.7,
-   "faces": 719
+   "faces": 1598
   },
   {
    "name": "panchayat_office",
@@ -997,7 +997,7 @@
    "width": 8.509,
    "height": 4.286,
    "depth": 6,
-   "faces": 806
+   "faces": 4666
   },
   {
    "name": "peepal_platform",
@@ -1006,7 +1006,7 @@
    "width": 6.932,
    "height": 5.327,
    "depth": 4,
-   "faces": 2369
+   "faces": 4959
   },
   {
    "name": "pot_stack",
@@ -1024,7 +1024,7 @@
    "width": 1.9,
    "height": 1.02,
    "depth": 0.85,
-   "faces": 1954
+   "faces": 3655
   },
   {
    "name": "shop_provisions",
@@ -1033,7 +1033,7 @@
    "width": 5.027,
    "height": 3.81,
    "depth": 4,
-   "faces": 948
+   "faces": 5604
   },
   {
    "name": "shop_tailor_cycle",
@@ -1042,7 +1042,7 @@
    "width": 4.671,
    "height": 3.697,
    "depth": 4,
-   "faces": 1102
+   "faces": 6943
   },
   {
    "name": "shop_tea_stall",
@@ -1051,7 +1051,7 @@
    "width": 4.439,
    "height": 3.47,
    "depth": 4,
-   "faces": 1831
+   "faces": 7475
   },
   {
    "name": "shrine_stone",
@@ -1069,7 +1069,7 @@
    "width": 7.175,
    "height": 5.494,
    "depth": 4,
-   "faces": 2342
+   "faces": 4918
   },
   {
    "name": "tree_mango_1",
@@ -1105,7 +1105,7 @@
    "width": 0.96,
    "height": 1.1,
    "depth": 0.45,
-   "faces": 930
+   "faces": 2150
   },
   {
    "name": "black_tank",
@@ -1132,7 +1132,7 @@
    "width": 1.893,
    "height": 0.7,
    "depth": 0.015,
-   "faces": 644
+   "faces": 1085
   },
   {
    "name": "chariot_shed",
@@ -1141,7 +1141,7 @@
    "width": 7.911,
    "height": 5.0,
    "depth": 5,
-   "faces": 1132
+   "faces": 3164
   },
   {
    "name": "chilli_mat",
@@ -1150,7 +1150,7 @@
    "width": 0.435,
    "height": 0.25,
    "depth": 0.05,
-   "faces": 443
+   "faces": 782
   },
   {
    "name": "coconut_cart",
@@ -1159,7 +1159,7 @@
    "width": 4.858,
    "height": 2.711,
    "depth": 1.1,
-   "faces": 1949
+   "faces": 4299
   },
   {
    "name": "flower_stall",
@@ -1168,7 +1168,7 @@
    "width": 2.183,
    "height": 2.6,
    "depth": 1.4,
-   "faces": 2994
+   "faces": 5510
   },
   {
    "name": "hens_basket",
@@ -1186,7 +1186,7 @@
    "width": 0.579,
    "height": 0.9,
    "depth": 0.02,
-   "faces": 720
+   "faces": 1252
   },
   {
    "name": "lamp_step",
@@ -1195,7 +1195,7 @@
    "width": 1.746,
    "height": 1.9,
    "depth": 0.6,
-   "faces": 840
+   "faces": 2244
   },
   {
    "name": "lantern",
@@ -1204,7 +1204,7 @@
    "width": 0.203,
    "height": 0.45,
    "depth": 0.2,
-   "faces": 1152
+   "faces": 1964
   },
   {
    "name": "mandapam",
@@ -1213,7 +1213,7 @@
    "width": 10.355,
    "height": 2.89,
    "depth": 4,
-   "faces": 1298
+   "faces": 4842
   },
   {
    "name": "papad_mat",
@@ -1222,7 +1222,7 @@
    "width": 0.437,
    "height": 0.25,
    "depth": 0.05,
-   "faces": 392
+   "faces": 764
   },
   {
    "name": "parapet_gap",
@@ -1231,7 +1231,7 @@
    "width": 2.093,
    "height": 1.2,
    "depth": 0.3,
-   "faces": 676
+   "faces": 1940
   },
   {
    "name": "roof_house_a_1",
@@ -1240,7 +1240,7 @@
    "width": 13.121,
    "height": 5.998,
    "depth": 6,
-   "faces": 671
+   "faces": 3632
   },
   {
    "name": "roof_house_a_2",
@@ -1249,7 +1249,7 @@
    "width": 12.517,
    "height": 5.176,
    "depth": 6,
-   "faces": 1678
+   "faces": 4099
   },
   {
    "name": "roof_house_b_1",
@@ -1258,7 +1258,7 @@
    "width": 9.863,
    "height": 4.505,
    "depth": 6,
-   "faces": 3358
+   "faces": 7772
   },
   {
    "name": "roof_house_b_2",
@@ -1267,7 +1267,7 @@
    "width": 8.162,
    "height": 6.0,
    "depth": 6,
-   "faces": 2945
+   "faces": 5276
   },
   {
    "name": "stall_c_1",
@@ -1276,7 +1276,7 @@
    "width": 4.033,
    "height": 2.845,
    "depth": 1.6,
-   "faces": 1826
+   "faces": 5636
   },
   {
    "name": "stall_c_2",
@@ -1285,7 +1285,7 @@
    "width": 3.15,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 1774
+   "faces": 5149
   },
   {
    "name": "stall_c_3",
@@ -1294,7 +1294,7 @@
    "width": 3.541,
    "height": 2.329,
    "depth": 1.6,
-   "faces": 2398
+   "faces": 6730
   },
   {
    "name": "stall_d_1",
@@ -1303,7 +1303,7 @@
    "width": 4.35,
    "height": 2.987,
    "depth": 1.6,
-   "faces": 2932
+   "faces": 6572
   },
   {
    "name": "stall_d_2",
@@ -1312,7 +1312,7 @@
    "width": 3.963,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 2340
+   "faces": 5804
   },
   {
    "name": "stall_d_3",
@@ -1321,7 +1321,7 @@
    "width": 4.447,
    "height": 2.836,
    "depth": 1.6,
-   "faces": 968
+   "faces": 3176
   },
   {
    "name": "stall_e_1",
@@ -1330,7 +1330,7 @@
    "width": 6.353,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 1558
+   "faces": 4333
   },
   {
    "name": "stall_e_2",
@@ -1339,7 +1339,7 @@
    "width": 3.086,
    "height": 2.82,
    "depth": 1.6,
-   "faces": 2516
+   "faces": 7412
   },
   {
    "name": "stall_e_3",
@@ -1348,7 +1348,7 @@
    "width": 3.103,
    "height": 2.874,
    "depth": 1.6,
-   "faces": 1620
+   "faces": 5018
   },
   {
    "name": "stall_f_1",
@@ -1357,7 +1357,7 @@
    "width": 2.954,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 1634
+   "faces": 5528
   },
   {
    "name": "stall_f_2",
@@ -1366,7 +1366,7 @@
    "width": 2.966,
    "height": 2.97,
    "depth": 1.6,
-   "faces": 1371
+   "faces": 4661
   },
   {
    "name": "stall_f_3",
@@ -1375,7 +1375,7 @@
    "width": 2.646,
    "height": 2.859,
    "depth": 1.6,
-   "faces": 3686
+   "faces": 10428
   },
   {
    "name": "stall_f_4",
@@ -1384,7 +1384,7 @@
    "width": 2.966,
    "height": 2.886,
    "depth": 1.6,
-   "faces": 1272
+   "faces": 4554
   },
   {
    "name": "stall_flowers",
@@ -1393,7 +1393,7 @@
    "width": 3.606,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 4450
+   "faces": 9658
   },
   {
    "name": "stall_g_1",
@@ -1402,7 +1402,7 @@
    "width": 4.793,
    "height": 2.878,
    "depth": 1.6,
-   "faces": 1576
+   "faces": 4462
   },
   {
    "name": "stall_g_2",
@@ -1411,7 +1411,7 @@
    "width": 3.934,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 2172
+   "faces": 6284
   },
   {
    "name": "stall_g_3",
@@ -1420,7 +1420,7 @@
    "width": 4.427,
    "height": 2.931,
    "depth": 1.6,
-   "faces": 3558
+   "faces": 7896
   },
   {
    "name": "stall_h_1",
@@ -1429,7 +1429,7 @@
    "width": 3.254,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 1228
+   "faces": 4143
   },
   {
    "name": "stall_h_2",
@@ -1438,7 +1438,7 @@
    "width": 3.327,
    "height": 2.87,
    "depth": 1.6,
-   "faces": 2902
+   "faces": 8152
   },
   {
    "name": "stall_h_3",
@@ -1447,7 +1447,7 @@
    "width": 2.95,
    "height": 2.854,
    "depth": 1.6,
-   "faces": 3656
+   "faces": 11198
   },
   {
    "name": "stall_high",
@@ -1456,7 +1456,7 @@
    "width": 3.045,
    "height": 2.9,
    "depth": 1.6,
-   "faces": 3670
+   "faces": 6910
   },
   {
    "name": "stall_low",
@@ -1465,7 +1465,7 @@
    "width": 2.546,
    "height": 2.0,
    "depth": 1.6,
-   "faces": 3811
+   "faces": 8046
   },
   {
    "name": "stall_potter",
@@ -1474,7 +1474,7 @@
    "width": 4.33,
    "height": 2.977,
    "depth": 1.6,
-   "faces": 1415
+   "faces": 4085
   },
   {
    "name": "stall_sweets",
@@ -1483,7 +1483,7 @@
    "width": 5.002,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 2414
+   "faces": 6138
   },
   {
    "name": "stall_veg",
@@ -1492,7 +1492,7 @@
    "width": 4.14,
    "height": 3.0,
    "depth": 1.6,
-   "faces": 1733
+   "faces": 4918
   },
   {
    "name": "stall_vessels",
@@ -1501,7 +1501,7 @@
    "width": 3.977,
    "height": 2.6,
    "depth": 1.6,
-   "faces": 2686
+   "faces": 6526
   },
   {
    "name": "tank_wall",
@@ -1510,7 +1510,7 @@
    "width": 10.467,
    "height": 3.387,
    "depth": 0.5,
-   "faces": 250
+   "faces": 1195
   },
   {
    "name": "veg_basket",
