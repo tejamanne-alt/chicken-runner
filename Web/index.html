@@ -143,7 +143,7 @@ function tuningFor(zone) {
     mischiefMinKidDistance: 7, jumpHeight: 1.4, tapJumpHeight: 0.9, jumpLength: 3.7, jumpReferenceSpeed: 6,
     doubleJumpTotalHeight: 2.6, fallGravityMultiplier: 1, maxFallSpeed: 20, fastDropSpeed: 16, jumpBuffer: 0.1,
     coyoteTime: 0.08, cotBounceHeight: 2.4, slideDuration: 0.6, vaultDuration: 0.45, vaultSpeedFactor: 0.1,
-    maxVaultHeight: 2.8, ladderClimbDuration: 0.35, ladderSpeedFactor: 0.6, wadeSpeedFactor: 0.45,
+    maxVaultHeight: 2.8, ladderClimbDuration: 0.45, ladderSpeedFactor: 0.6, wadeSpeedFactor: 0.45,
     stumbleDuration: 0.7, stumbleSpeedFactor: 0.45, hitGracePeriod: 0.35, boostSpeedBonus: 0.35, boostDuration: 2.2,
     framingMaxGap: 14, mangoStarFraction: 0.7,
   };
@@ -162,6 +162,12 @@ const JumpMath = {
 };
 const clamp01 = v => Math.min(1, Math.max(0, v));
 const lerp = (a, b, k) => a + (b - a) * k;
+const smoothstep = k => k * k * (3 - 2 * k);
+// The point on a ladder's middle line at height y (clamped to its foot and head): [x, y, z].
+const ladderAt = (L, y) => {
+  const k = clamp01((y - L.foot[1]) / Math.max(0.01, L.head[1] - L.foot[1]));
+  return L.foot.map((v, i) => lerp(v, L.head[i], k));
+};
 const moveTowards = (a, b, d) => (Math.abs(b - a) <= d ? b : a + Math.sign(b - a) * d);
 
 // System.Random (the Knuth subtractive generator Unity's Mono uses), so seeded shuffles and the chunks' picks match.
@@ -287,6 +293,15 @@ class Kit {
     const o = this.obstacle('WaterTank', x, 'tank', 0.55, 0.7, 0, false, y);
     this.art('black_tank', 0, 0, 0.05, { height: 0.75, parent: o });
   }
+  // The bamboo ladder against the first house, as GameBuilder.StandLadder stands it: where the painting had it (the card
+  // is mirrored, so at its left end), leaning back onto the parapet. Drawn from art/bamboo_ladder.png, a picture of the
+  // 3D ladder leaning so (ladder_model.py --picture: from 0.25 m left of its foot to 0.65 m right, 2.65 m high).
+  standLadder(x, width, cardHeight) {
+    const front = 0.4, rest = ROOF + 0.08, lean = 0.135 * width / (0.93 * cardHeight);
+    const foot = [x + 0.084 * width, 0, front - 0.45], head = [foot[0] + lean * rest, rest, front - 0.05];
+    this.art('bamboo_ladder', foot[0] + 0.2, 0, (foot[2] + head[2]) / 2, { width: 0.9 });
+    return { foot, head, rung: 0.27 };
+  }
   roofRow(x, fronts, ladder) {
     const cardHeight = ROOF + 0.15;
     const start = x;
@@ -296,7 +311,7 @@ class Kit {
       const card = this.art(piece, 0, 0, 0.4, { height: cardHeight, mirror: withLadder });
       const width = card ? card.w : 2.6;
       if (card) card.x = x + width * 0.5;
-      this.solids.push({ x0: x, x1: x + width, y0: 0, y1: ROOF, ladder: withLadder });
+      this.solids.push({ x0: x, x1: x + width, y0: 0, y1: ROOF, ladder: withLadder ? this.standLadder(x, width, cardHeight) : false });
       x += width;
     }
     this.hop(start - 1.5, 1.7, 0.6);
@@ -600,7 +615,12 @@ class Course {
     for (const p of placements) {
       const k = chunk(p.name), ox = p.x;
       const objMap = new Map();
-      for (const s of k.solids) this.solids.push({ ...s, x0: s.x0 + ox, x1: s.x1 + ox });
+      for (const s of k.solids) {
+        const ladder = s.ladder && typeof s.ladder === 'object'
+          ? { ...s.ladder, foot: [s.ladder.foot[0] + ox, ...s.ladder.foot.slice(1)], head: [s.ladder.head[0] + ox, ...s.ladder.head.slice(1)] }
+          : s.ladder;
+        this.solids.push({ ...s, x0: s.x0 + ox, x1: s.x1 + ox, ladder });
+      }
       for (const o of k.obstacles) {
         const c = { ...o, x: o.x + ox, armed: !o.hidden, react: -1, reveal: -1, hidden: o.hidden };
         objMap.set(o, c); this.obstacles.push(c);
@@ -655,7 +675,7 @@ class Kid {
     this.x = x; this.y = gy ?? 0; this.px = this.x; this.py = this.y;
     Object.assign(this, { vs: 0, vstep: 0, grounded: true, tsg: 0, jumpedSince: false, doubleUsed: false, rising: false, cut: false,
       held: false, jumpBuf: 0, slideReq: false, slideQueued: false, slideTimer: 0, grace: 0, stopping: false, inWater: false,
-      wasWading: false, pose: 'run', speed: 0, penalty: 0, penaltyFactor: 1, boost: 0, vaultT: 0 });
+      wasWading: false, pose: 'run', speed: 0, penalty: 0, penaltyFactor: 1, boost: 0, vaultT: 0, climb: null, climbRate: 0 });
   }
   get height() { return this.pose === 'slide' ? this.slideH : this.standH; }
   get wading() { return this.inWater && this.grounded; }
@@ -765,6 +785,10 @@ class Kid {
     this.vFrom = [this.x, this.y];
     const creep = this.t.kidRunSpeed * (ladder ? this.t.ladderSpeedFactor : this.t.vaultSpeedFactor) * this.vaultDur;
     this.vTo = [Math.max(this.x + creep, wall.x + this.r + 0.05), wall.topY];
+    // A real ladder is climbed rung by rung (KidController.TickClimb); the mango branch stays a pull-up.
+    this.climb = ladder && typeof wall.solid.ladder === 'object' ? wall.solid.ladder : null;
+    this.climbRate = 0;
+    if (this.climb) this.vTo = [Math.max(wall.x + this.r + 0.05, this.climb.head[0] + 0.3), wall.topY];
     this.vs = 0; this.grounded = false; this.slideQueued = false;
     this.speed = (this.vTo[0] - this.vFrom[0]) / this.vaultDur;
     if (!ladder) this.ev.vaulted();
@@ -772,9 +796,24 @@ class Kid {
   tickVault(dt) {
     this.vaultT += dt;
     const k = clamp01(this.vaultT / this.vaultDur), up = 1 - (1 - k) * (1 - k);
-    this.x = lerp(this.vFrom[0], this.vTo[0], k * k); this.y = lerp(this.vFrom[1], this.vTo[1], up);
+    if (this.climb) this.tickClimb(k);
+    else { this.x = lerp(this.vFrom[0], this.vTo[0], k * k); this.y = lerp(this.vFrom[1], this.vTo[1], up); }
     if (k < 1) return;
-    Object.assign(this, { pose: 'run', grounded: true, jumpedSince: false, doubleUsed: false, tsg: 0 });
+    Object.assign(this, { pose: 'run', grounded: true, jumpedSince: false, doubleUsed: false, tsg: 0, climb: null, climbRate: 0 });
+  }
+  // Up a ladder: across to it in the first moments, straight up its line at a steady rate, then a step off the top.
+  tickClimb(k) {
+    const rise = 0.8, L = this.climb;
+    if (k < rise) {
+      const r = k / rise, y = lerp(this.vFrom[1], this.vTo[1], r);
+      const across = smoothstep(clamp01(r / 0.15));
+      this.x = lerp(this.vFrom[0], ladderAt(L, y)[0], across); this.y = y;
+      this.climbRate = (this.vTo[1] - this.vFrom[1]) / Math.max(0.01, this.vaultDur * rise);
+    } else {
+      const off = smoothstep((k - rise) / (1 - rise));
+      this.x = lerp(ladderAt(L, this.vTo[1])[0], this.vTo[0], off); this.y = this.vTo[1];
+      this.climbRate = 0;
+    }
   }
   tickDive(dt) {
     this.diveT += dt;
@@ -1373,7 +1412,11 @@ function characterItems3d(items, alpha) {
   switch (k.pose) {
     case 'dive': clip = 'Dive'; break;
     case 'vault': clip = 'Vault'; break;
-    case 'climb': clip = 'Climb'; break;
+    case 'climb':
+      clip = 'Climb';
+      // Hands and feet keep time with the rungs: a loop of the clip (0.4 s) climbs two of them.
+      if (k.climb && k.climbRate > 0) rate = k.climbRate * 0.4 / (2 * k.climb.rung);
+      break;
     case 'slide': clip = 'Slide'; break;
     case 'air': clip = a.double > 0 ? 'DoubleJump' : k.vs > 0.5 ? 'JumpUp' : 'Fall'; break;
     default:
@@ -1383,11 +1426,13 @@ function characterItems3d(items, alpha) {
       else if (k.wading) { clip = 'Wade'; rate = k.speed / (game.t.kidRunSpeed * 0.45); }
       else { clip = 'Run'; rate = k.speed / 6; }
   }
-  const kidName = clipFrame(a.kid, C.kid, clip, dt, Math.max(0.3, Math.min(2.5, rate)));
+  const kidName = clipFrame(a.kid, C.kid, clip, dt, Math.max(0.3, Math.min(clip === 'Climb' ? 5 : 2.5, rate)));
   const kidFx = {};
   if (ky < -0.04) kidFx.clipY = project(kx, -0.06, 0)[1];
   if (k.boosted) kidFx.alpha = 0.85 + 0.15 * Math.sin(performance.now() / 40);
-  frameItem(items, C.kid, kidName, kx, ky, 0, 10, kidFx);
+  // On a ladder she keeps just in front of its rungs as it leans back to the wall (KidModelVisual.FaceLadder).
+  const kz = k.pose === 'climb' && k.climb ? ladderAt(k.climb, ky)[2] - 0.16 : 0;
+  frameItem(items, C.kid, kidName, kx, ky, kz, 10, kidFx);
 
   const rx = lerp(r.px, r.x, alpha), ry = lerp(r.py, r.y, alpha);
   let rc, rr = 1;

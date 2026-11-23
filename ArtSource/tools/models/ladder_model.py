@@ -146,19 +146,20 @@ def picture(ob, path):
     scene.render.engine = "CYCLES"
     scene.cycles.samples = 32
     scene.render.film_transparent = True
+    scene.view_settings.view_transform = "Standard"     # the painted pieces' own colours, not a filmic grade
     scene.render.resolution_x, scene.render.resolution_y = round((right - left) * PICTURE_PPM), round(top * PICTURE_PPM)
     scene.render.use_freestyle = True
     scene.render.line_thickness_mode = "ABSOLUTE"
-    scene.render.line_thickness = 1.6
+    scene.render.line_thickness = 0.9
     lineset = scene.view_layers[0].freestyle_settings.linesets.new("ink")
-    lineset.linestyle.color = (0.17, 0.11, 0.06)
+    lineset.linestyle.color = (0.03, 0.018, 0.008)   # linear: a dark brown ink, as the paintings have
     sun = bpy.data.objects.new("Sun", bpy.data.lights.new("Sun", "SUN"))
     sun.rotation_euler = (math.radians(55), 0, math.radians(-35))
-    sun.data.energy = 3.0
+    sun.data.energy = 2.2
     scene.collection.objects.link(sun)
     world = bpy.data.worlds.new("W")
     scene.world = world
-    world.node_tree.nodes["Background"].inputs[1].default_value = 0.9
+    world.node_tree.nodes["Background"].inputs[1].default_value = 0.6
     cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam"))
     scene.collection.objects.link(cam)
     cam.data.type = "ORTHO"
