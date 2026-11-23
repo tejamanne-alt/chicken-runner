@@ -63,7 +63,7 @@ grass_spots = [(rng.uniform(START, END), rng.uniform(1.8, 6.0), rng.uniform(0.15
 # Every stall belongs to a kind (the two flower stalls are one kind), and no kind comes back within 45 m (more than a
 # wide view), counting the lane's stalls and the market row together. Stalls stand side by side, as at a real shandy,
 # with a wider gap now and then where people walk through; only when no stall is free does the row leave open ground.
-# With E11-E14 there are 16 kinds, enough for an unbroken row.
+# With E11-E18 there are 28 kinds: enough for an unbroken row, with a stall seen once in about four screens.
 KIND = {"flower_stall": "flowers", "stall_flowers": "flowers", "stall_vessels": "vessels", "coconut_cart": "coconuts",
         "stall_potter": "pots"}
 SPACING = 45.0

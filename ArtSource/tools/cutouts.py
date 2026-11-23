@@ -581,7 +581,9 @@ for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 6.0), (
                              ("E10_temple_street.png", "temple_street", 5.0),
                              # More shandy stalls (E11-E14), cut as they arrive; each is its own kind of stall.
                              ("E11_shandy_stalls_3.png", "stall_c", 3.0), ("E12_shandy_stalls_4.png", "stall_d", 3.0),
-                             ("E13_shandy_stalls_5.png", "stall_e", 3.0), ("E14_shandy_stalls_6.png", "stall_f", 3.0)]:
+                             ("E13_shandy_stalls_5.png", "stall_e", 3.0), ("E14_shandy_stalls_6.png", "stall_f", 3.0),
+                             ("E15_shandy_stalls_7.png", "stall_g", 3.0), ("E16_shandy_stalls_8.png", "stall_h", 3.0),
+                             ("E17_shandy_stalls_9.png", "stall_i", 3.0), ("E18_shandy_stalls_10.png", "stall_j", 3.0)]:
     if src == "E8_market_stalls_1.png" and refs.is_real(src):
         continue  # its stalls' awnings touch: cut by columns below
     if not refs.path(src).exists():
