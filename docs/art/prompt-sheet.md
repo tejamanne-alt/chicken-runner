@@ -2,14 +2,14 @@
 
 Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** 99 of 104 images are in `ArtSource/references/` (checked 23 Nov 2026); 58 of the 63 first-batch images. First batch still to make: D9, D12, D13, E17, E18.
+**Progress:** 99 of 114 images are in `ArtSource/references/` (checked 23 Nov 2026); 58 of the 73 first-batch images. First batch still to make: D9, D12, D13, E17, E18, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10.
 
 ## How to use it
 
 1. Make **A0** first, in a new ChatGPT chat, attaching your four kid turnaround images. Then make **A1**, attaching A0 and your rooster photo.
 2. Stay in that chat for the rest. Each prompt below is copy-ready: it asks ChatGPT to match A1 and carries the style rules. Attach the files listed under *Attach* (A0 is the kid reference from now on).
 3. Save each image with the file name shown.
-4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 63 marked *first batch*.
+4. Put the images in the repo at `ArtSource/references/` (or upload them in the chat), in batches, starting with the 73 marked *first batch*.
 
 Regenerate an image when words or labels appear in it, when a model sheet is not side-on and orthographic, or when the background is not plain.
 
@@ -1959,6 +1959,164 @@ Use the attached A1 key art as the style reference and match it closely.
 A texture of bare red laterite earth seen straight down from above, in the colours of the attached T1 texture: fine dust, crumbs and grit, with soft brush-stroke variation between deep red, red-orange and dusty orange. Only the earth itself: no footprints, tracks, leaves, plants, stones or cracks, and no patch darker or lighter than the rest. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
 
 Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+## M. 3D model textures
+
+Painted surfaces for the 3D kid, rooster and pickups. The models are already built in flat colours; each image swaps in on its own as it arrives.
+
+### M1 · Kid's faces
+
+⬜ to make · prompt updated · Save as `M1_kid_faces.png` · Square 1:1 · first batch · Attach: A0, A1  
+Used for: Painted onto the 3D kid's face: neutral while she runs, a grin when she grabs the rooster, shocked when she stumbles, straining on a vault or climb.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+Four faces of the game's toddler hero from the attached A0 sheet (her front view), in a 2 by 2 grid of equal squares: top left neutral and determined, top right a big open grin, bottom left shocked with round eyes and an open mouth, bottom right straining with eyes squeezed and teeth gritted. Each face seen exactly from the front, centred in its square and the same size, showing only the face on her warm brown skin: eyes, eyebrows, nose, mouth and cheeks, with no hair, ears, hairband or neck, and the skin colour running to the edges of each square. Even flat lighting, no shading on the face, clean dark outlines on the features. Plain, no background.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Colours exactly as in the attached model sheet. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+### M2 · Frock silk
+
+⬜ to make · prompt updated · Save as `M2_frock_silk.png` · Square 1:1 · first batch · Attach: A0, A1  
+Used for: The 3D kid's frock: the body of the skirt, bodice and sleeves.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of the peacock-blue pattu silk of the kid's frock in the attached A0 sheet: a soft silk sheen painted in two or three close blues, with tiny gold zari dots (butis) scattered evenly. Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M3 · Zari border
+
+⬜ to make · prompt updated · Save as `M3_zari_border.png` · Landscape 3:2 · first batch · Attach: A0, A1  
+Used for: The wide band at the hem of the 3D kid's frock, and the gold edging of the neckline and sleeves.
+
+```text
+Landscape 3:2 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A long woven border band from the hem of the kid's frock in the attached A0 sheet, filling the whole image: magenta silk with gold zari, a row of small temple-tower motifs between two thin gold lines. Seen straight on, perfectly flat and even, no folds or shading. The pattern repeats seamlessly from the left edge to the right edge; the top and bottom edges are the band's own straight gold edges.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M4 · Hair
+
+⬜ to make · prompt updated · Save as `M4_hair.png` · Square 1:1 · first batch · Attach: A0, A1  
+Used for: The 3D kid's shoulder-length wavy black hair.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of the kid's glossy black wavy hair from the attached A0 sheet: soft waves of strands all running top to bottom, painted in near-black and deep blue-brown with a few soft lighter strokes. Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M5 · Leopard hairband
+
+⬜ to make · prompt updated · Save as `M5_leopard_print.png` · Square 1:1 · first batch · Attach: A0, A1  
+Used for: The 3D kid's hairband.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of the leopard print of the kid's hairband in the attached A0 sheet: golden-yellow fabric with brown and black rosettes, drawn with clean painted edges. Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M6 · Rooster body feathers
+
+⬜ to make · prompt updated · Save as `M6_rooster_body.png` · Square 1:1 · first batch · Attach: B1, B11, A1  
+Used for: The 3D rooster's body, back and wings.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of the rooster's body plumage from the attached B1 sheet: overlapping rows of rounded deep red-chestnut feathers, each with a slightly darker edge, like scales, all pointing the same way (down the image). Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M7 · Rooster neck hackles
+
+⬜ to make · prompt updated · Save as `M7_rooster_hackles.png` · Square 1:1 · first batch · Attach: B1, B11, A1  
+Used for: The 3D rooster's neck and the saddle feathers over its back.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of the rooster's neck hackles from the attached B1 sheet: long, narrow, pointed feathers in glowing orange-gold with lighter golden tips, layered and all flowing downward. Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M8 · Rooster tail feathers
+
+⬜ to make · prompt updated · Save as `M8_rooster_tail.png` · Square 1:1 · first batch · Attach: B1, B11, A1  
+Used for: The 3D rooster's sickle tail feathers.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of the rooster's tail feathers from the attached B1 sheet: long glossy black feathers side by side running top to bottom, with an iridescent green and blue-violet sheen along their middles. Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M9 · Mango skin
+
+⬜ to make · prompt updated · Save as `M9_mango_skin.png` · Square 1:1 · first batch · Attach: A1  
+Used for: The 3D mangoes the kid collects.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+A texture of ripe Alphonso mango skin: warm golden yellow blending into orange and a soft red blush, with tiny pale speckles and a gentle painted sheen. Seen exactly straight on, filling the square, even flat lighting with no shading, shadows, highlights or folds, so it can be wrapped around a 3D model. The pattern runs off all four edges with no border, frame or single feature in the middle, at an even density everywhere, so copies placed side by side show no seam and no obvious repeat.
+
+Texture rules: seamless and tileable for a 3D game, seen straight on (straight down for floors), even flat lighting with no cast shadows, no perspective and no vignette. Hand-painted with visible brush strokes and simplified shapes that still read at small size. Colours from this palette: terracotta, red earth, turmeric, kumkum red, indigo, lime-wash white, paddy green. No text, logos or watermarks. Only materials a 1970s village would have.
+```
+
+### M10 · Golden tail feather
+
+⬜ to make · prompt updated · Save as `M10_tail_feather.png` · Square 1:1 · first batch · Attach: B1, A1  
+Used for: The hidden tail feather pickup: a card on the 3D feather.
+
+```text
+Square 1:1 image.
+
+Use the attached A1 key art as the style reference and match it closely.
+
+One single long curved tail feather from the rooster in the attached B1 sheet, lying flat and seen straight on, its quill at the bottom and its tip curving up to the top right, filling the square: glossy black-green at the tip shading to orange-gold and russet near the quill. Clean dark outline, flat even light, no shadow. Keep the background one flat light-grey everywhere: no painted ground, sky, haze, dust, mist, glow or blurred scenery behind or around anything, and nothing cropped by the edges of the image.
+
+The setting is a South Indian village in the 1970s and 1980s, like a vintage storybook: lime-washed, mud and terracotta-tiled buildings; things made of brass, copper, clay, wood, cane, cotton, jute and palm leaf. Nothing modern: no plastic (no buckets, chairs, sheets or black water tanks), no concrete or half-built multi-storey buildings, no overhead water tanks, satellite dishes, motorbikes, tube lights, printed posters or packaged goods.
+
+Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
+
+Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
 ```
 
 ## What happens in Blender
