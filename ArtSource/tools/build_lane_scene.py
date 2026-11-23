@@ -67,6 +67,9 @@ def collection(name):
     return c
 
 
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+import ground as GROUND  # noqa: E402
+
 COL = {n: collection(n) for n in ["Ground", "Houses", "BuiltHouses", "Plants", "Props", "Decals", "Backdrop",
                                    "Characters", "Lights_Camera"]}
 
@@ -77,8 +80,12 @@ def load_image(path):
     return img
 
 
-def card_material(name, img, emission=0.55, shadeless=False):
-    """A painted card: the texture's own painted light shows through, the sun adds warmth and cast shadows."""
+def card_material(name, img, emission=0.55, shadeless=False, haze=0.0, fade_bottom=0.0):
+    """A painted card: the texture's own painted light shows through, the sun adds warmth and cast shadows.
+
+    haze: how far the card has faded into the distance (0-1), the same amount as the ground under it.
+    fade_bottom: fraction of the card's height over which its foot fades out, so it melts into the ground."""
+    name = f"{name}_h{haze:.2f}_f{fade_bottom:.2f}" if (haze or fade_bottom) else name
     mat = bpy.data.materials.get(name)
     if mat:
         return mat
@@ -111,13 +118,42 @@ def card_material(name, img, emission=0.55, shadeless=False):
     bsdf.inputs["Emission Strength"].default_value = emission
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
-    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
-    nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    alpha = tex.outputs["Alpha"]
+    if fade_bottom:
+        uvn = nt.nodes.new("ShaderNodeTexCoord")
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(uvn.outputs["UV"], sep.inputs[0])
+        ramp = nt.nodes.new("ShaderNodeMapRange")
+        ramp.interpolation_type = "SMOOTHSTEP"
+        ramp.inputs["From Min"].default_value, ramp.inputs["From Max"].default_value = 0.0, fade_bottom
+        nt.links.new(sep.outputs["Y"], ramp.inputs["Value"])
+        mul = nt.nodes.new("ShaderNodeMath")
+        mul.operation = "MULTIPLY"
+        nt.links.new(alpha, mul.inputs[0])
+        nt.links.new(ramp.outputs["Result"], mul.inputs[1])
+        alpha = mul.outputs[0]
+    nt.links.new(alpha, bsdf.inputs["Alpha"])
+    shader = bsdf.outputs["BSDF"]
+    if haze > 0:
+        # The haze glows in front of the card where the card is solid: card and haze mixed by the haze amount.
+        fog = nt.nodes.new("ShaderNodeEmission")
+        fog.inputs["Color"].default_value = GROUND.lin(GROUND.HAZE)
+        transp = nt.nodes.new("ShaderNodeBsdfTransparent")
+        fog_cut = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(alpha, fog_cut.inputs["Fac"])
+        nt.links.new(transp.outputs[0], fog_cut.inputs[1])
+        nt.links.new(fog.outputs[0], fog_cut.inputs[2])
+        hazed = nt.nodes.new("ShaderNodeMixShader")
+        hazed.inputs["Fac"].default_value = haze
+        nt.links.new(shader, hazed.inputs[1])
+        nt.links.new(fog_cut.outputs[0], hazed.inputs[2])
+        shader = hazed.outputs[0]
+    nt.links.new(shader, out.inputs["Surface"])
     return mat
 
 
 def card(name, img_path, x, y, z=0.0, size=None, px_per_m=None, mirror=False, flat=False, col="Props",
-         emission=0.55, shadeless=False):
+         emission=0.55, shadeless=False, fade_bottom=0.0):
     """A cut-out standing on the ground at (x, y), facing the camera. Its bottom edge sits at height z."""
     img = load_image(img_path)
     w_px, h_px = img.size
@@ -135,7 +171,8 @@ def card(name, img_path, x, y, z=0.0, size=None, px_per_m=None, mirror=False, fl
     uv = mesh.uv_layers.new()
     for i, (u, v) in enumerate([(0, 0), (1, 0), (1, 1), (0, 1)]):
         uv.data[i].uv = (1 - u, v) if mirror else (u, v)
-    mesh.materials.append(card_material(f"M_{pathlib.Path(img_path).stem}", img, emission, shadeless))
+    haze = 0.0 if shadeless else round(GROUND.haze_amount(y), 2)
+    mesh.materials.append(card_material(f"M_{pathlib.Path(img_path).stem}", img, emission, shadeless, haze, fade_bottom))
     obj = bpy.data.objects.new(name, mesh)
     obj.location = (x, y, z)
     if col == "Backdrop":
@@ -219,8 +256,6 @@ def box(name, x, y, z, w, d, h, mat, col="Houses"):
 
 # ------------------------------------------------------------------ ground
 # Built in the shader, so no mark repeats (see ground.py); the painted mud tile lends it brush-stroke grain.
-sys.path.insert(0, str(pathlib.Path(__file__).parent))
-import ground as GROUND  # noqa: E402
 
 ground_mat = GROUND.earth_material(load_image(CUT / "textures" / "mud_floor.png"))
 bpy.ops.mesh.primitive_plane_add(size=1, location=(30, 5, 0))
@@ -457,10 +492,8 @@ while x < STREET_END:
     x += w + rng.uniform(0.8, 2.4) + after
     since_break += 1
 
-# Behind the houses: the water tank once, and a row of shade trees and palms in front of the middle layer.
-if "water_tank" in MANIFEST:
-    tank_x = rng.uniform(22.0, 34.0)
-    landmark_front("water_tank", n + 1, tank_x, 16.0, body=False)
+# Behind the houses: a row of shade trees and palms in front of the middle layers (the water tank comes later,
+# once the middle layers are placed).
 bx = -26.0
 while bx < STREET_END + 8:
     bx += rng.uniform(4.0, 8.0)
@@ -490,18 +523,47 @@ for i, (name, px) in enumerate([("pot_stack", 6), ("dung", 11.5), ("dog_sleeping
     card(f"lane_{name}_{i}", folder / f"{name}.png", px, 0.0, size=SIZES[name], mirror=(name == "pot_stack" and i > 2))
 card("bullocks", A / "bullocks.png", 44.5, 2.2, size=SIZES["bullocks"], col="Props")
 
-# ------------------------------------------------------------------ distance: the middle layer close behind, then far
-# The C3 middle layer (palms, banana plants, tiled roofs, bushes) stands just behind the houses, 12-15 m back, so the
-# village carries straight on behind them; its bushy foot sinks into the ground. Clumps are reshuffled, mirrored and
-# set at slightly different depths so they part a little as the camera moves.
+# ------------------------------------------------------------------ distance: three middle layers, then far
+# Each layer stands a little further back and fades a little more into the haze, by the same amount as the ground
+# under it, so nothing looks pasted on; each one's foot fades out into the ground instead of ending in a line.
+#   12-13 m  C3 palm clumps, scattered, breaking up the band behind them
+#   15 m     C8: a village of tiled roofs, banana groves and a water tank, repeated mirrored
+#   29 m     C9: big shade trees, small houses and a hillock with a shrine, repeated mirrored
+def band(name, y, height, sink, x_from=-80.0, x_to=180.0):
+    """A middle layer repeated mirrored along the street. Returns [(left x, width, mirrored)] of each copy."""
+    path = L / f"{name}.png"
+    copies = []
+    if not path.exists():
+        return copies
+    px, k = x_from + rng.uniform(-8, 0), 0
+    while px < x_to:
+        obj, w, h = card(f"{name}_{k}", path, 0, y, z=-sink, size=("h", height), mirror=k % 2 == 1, col="Backdrop",
+                         emission=0.7, fade_bottom=0.14)
+        obj.location.x = px + w / 2
+        copies.append((px, w, k % 2 == 1))
+        px += w - 0.02
+        k += 1
+    return copies
+
+
+band("mid_trees_band", 29.0, 16.0, 1.6)
+village_copies = band("mid_village_band", 15.0, 9.5, 0.9)
+# Where C8's own water tank stands (40% across the band, 60% when mirrored), so G16's tank keeps clear of it.
+C8_TANKS = [x0 + w * (0.6 if mirrored else 0.4) for x0, w, mirrored in village_copies]
+if "water_tank" in MANIFEST:
+    # Two water towers in one view would look like a repeat: G16 stands where C8's tanks are furthest away.
+    tank_x = max((rng.uniform(10.0, 50.0) for _ in range(40)),
+                 key=lambda tx: min(abs(tx + 6.5 - t) for t in C8_TANKS) if C8_TANKS else 0)
+    landmark_front("water_tank", n + 1, tank_x, 16.0, body=False)
 palms = Pool([f"mid_palms_slice_{i}" for i in range(1, 4)], 1)
 px = -70.0
 while px < 170:
-    obj, w, h = card(f"palms_{px:.0f}", L / f"{palms.pick()}.png", 0, rng.choice([12.0, 13.5, 15.0]),
-                     z=-rng.uniform(0.35, 1.0),  # sunk by different amounts, so their feet don't line up
-                     size=("h", rng.uniform(8.5, 10.5)), mirror=rng.random() < 0.5, col="Backdrop", emission=0.75)
+    px += rng.uniform(8.0, 20.0)
+    obj, w, h = card(f"palms_{px:.0f}", L / f"{palms.pick()}.png", 0, rng.choice([12.0, 12.5, 13.0]),
+                     z=-rng.uniform(0.5, 1.0), size=("h", rng.uniform(8.0, 10.0)), mirror=rng.random() < 0.5,
+                     col="Backdrop", emission=0.7, fade_bottom=0.12)
     obj.location.x = px + w / 2
-    px += w * rng.uniform(0.6, 0.85)
+    px += w
 far, fw, fh = card("far_sky_temple", REF / "C2_lane_far_layer.png", 25, 95.0, size=("w", 190.0), col="Backdrop",
                    shadeless=True)
 far.location.z = -fh * 0.36  # puts the painted hills a little above the rooftops in view

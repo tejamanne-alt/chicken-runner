@@ -90,7 +90,16 @@ class Graph:
 HAZE = (0.98, 0.765, 0.545)
 
 
-def earth_material(grain_image, ruts=(-0.5, 0.75), haze_from=9.0, haze_to=40.0):
+# Aerial perspective, shared by the ground and every painted card, so a thing and the ground under it always fade
+# by the same amount: none in front of the houses, all of it where the ground ends at 40 m.
+HAZE_FROM, HAZE_TO, HAZE_POWER = 6.0, 40.0, 0.85
+
+
+def haze_amount(y):
+    return min(max((y - HAZE_FROM) / (HAZE_TO - HAZE_FROM), 0.0), 1.0) ** HAZE_POWER
+
+
+def earth_material(grain_image, ruts=(-0.5, 0.75), haze_from=HAZE_FROM, haze_to=HAZE_TO):
     mat = bpy.data.materials.new("M_ground_earth")
     mat.use_nodes = True
     g = Graph(mat)
@@ -185,7 +194,7 @@ def earth_material(grain_image, ruts=(-0.5, 0.75), haze_from=9.0, haze_to=40.0):
     fog.inputs["Color"].default_value = lin(HAZE)
     fog.inputs["Strength"].default_value = 1.0
     blend = g.node("ShaderNodeMixShader")
-    g.link(g.math("POWER", g.remap(g.y, haze_from, haze_to, smooth=False), 0.8), blend.inputs["Fac"])
+    g.link(g.math("POWER", g.remap(g.y, haze_from, haze_to, smooth=False), HAZE_POWER), blend.inputs["Fac"])
     g.link(bsdf.outputs["BSDF"], blend.inputs[1])
     g.link(fog.outputs["Emission"], blend.inputs[2])
     g.link(blend.outputs["Shader"], g.nt.nodes["Material Output"].inputs["Surface"])

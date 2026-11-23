@@ -49,9 +49,13 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 - **Trees and plants** (`cutouts/plants/`): H1 neem, H2 tamarind and drumstick, H4 coconut palms and the D4 mangoes;
   H5 garden plants and H6 flowering bushes at house corners; a few H7 low plants and stones 6-7 m in front of the
   lane, which in the game view rise into the bottom of the screen and stay below the kid's feet. Each pool skips its last few picks, and pieces are mirrored and scaled a little.
-- **Distance**: a row of trees and palms right behind the houses, then the C3 middle layer 12-15 m back, reshuffled in
-  clumps with their bushy feet sunk into the ground. The ground fades into the haze painted at the foot of the C2 far
-  layer, reaching it where the ground ends, so there's no horizon line.
+- **Distance**: three painted middle layers stand behind the houses, each further back: C3 palm clumps scattered at
+  12-13 m, the C8 village band (tiled roofs, banana groves, a water tank) at 15 m and the C9 band (big shade trees, small
+  houses, a hillock with a shrine) at 29 m, both repeated mirrored. G16's water tank stands where C8's tanks are
+  furthest away, so two towers never share a view. Every layer's foot fades into the ground instead of ending in a line.
+- **Haze**: everything fades into the warm haze painted at the foot of the C2 far layer by the same amount as the ground
+  under it (none in front of the houses, all of it where the ground ends at 40 m), so nothing looks pasted on and
+  there's no horizon line.
 - **The ground** is built in the shader (`tools/ground.py`), not tiled from T1, whose footprints and tyre track
   repeated every 3 m: earth tones in patches 10-20 m across, dusty and compacted patches, the painted mud tile's
   brush grain at two scales and angles, pebble specks, two cart ruts that wander along the lane, a worn path and grassy

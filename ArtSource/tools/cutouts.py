@@ -125,20 +125,35 @@ rgb = load("C6_lane_props_b.png")
 prgb, pa = grey_alpha(rgb, background(rgb))
 split_components(prgb, pa, ["bullock_cart", "clothesline", "chicken_basket", "jute_sacks", "doorway_garland", "shrine_stone", "water_pot_stand"])
 
-# ---------------------------------------------------------------- palms (C3, magenta key)
-rgb = load("C3_lane_mid_layer.png")
-key = np.array([252, 2, 252], np.float32)
-d = np.linalg.norm(rgb - key, axis=2)
-a = np.clip((d - 90) / 110, 0, 1)
-# Edge pixels are a blend of foliage and magenta: unmix them (colour = (observed - (1 - a) * key) / a),
-# then pull any leftover magenta tint (red and blue both above green) back to neutral.
-rgb2 = (rgb - (1 - a[..., None]) * key) / np.maximum(a[..., None], 0.05)
-rgb2 = rgb2.clip(0, 255)
-tint = np.minimum(rgb2[..., 0], rgb2[..., 2]) - rgb2[..., 1]
-pink = tint > 0
-rgb2[pink, 0] -= tint[pink] * 0.8
-rgb2[pink, 2] -= tint[pink] * 0.8
-save("mid_palms", rgb2, a)
+# ---------------------------------------------------------------- middle layers (C3, C8, C9: magenta key)
+def magenta_cut(rgb):
+    """Alpha against a flat magenta sheet, with edge colours unmixed from the magenta."""
+    key = np.array([252, 2, 252], np.float32)
+    d = np.linalg.norm(rgb - key, axis=2)
+    a = np.clip((d - 90) / 110, 0, 1)
+    # Edge pixels are a blend of foliage and magenta: unmix them (colour = (observed - (1 - a) * key) / a),
+    # then pull any leftover magenta tint (red and blue both above green) back to neutral.
+    rgb2 = (rgb - (1 - a[..., None]) * key) / np.maximum(a[..., None], 0.05)
+    rgb2 = rgb2.clip(0, 255)
+    tint = np.minimum(rgb2[..., 0], rgb2[..., 2]) - rgb2[..., 1]
+    pink = tint > 0
+    rgb2[pink, 0] -= tint[pink] * 0.8
+    rgb2[pink, 2] -= tint[pink] * 0.8
+    # Where the painting has haze glowing over the magenta (C8, C9), unmixing leaves a teal cast in the thin parts:
+    # paint those in the warm haze colour instead, so they read as haze.
+    haze = np.array([250, 195, 139], np.float32)
+    thin = np.clip((0.75 - a) / 0.75, 0, 1)[..., None]
+    return rgb2 * (1 - thin) + haze * thin, a
+
+
+save("mid_palms", *magenta_cut(load("C3_lane_mid_layer.png")))
+# C8 (a village of tiled roofs, banana groves and a water tank) and C9 (big trees, a hillock with a shrine) run edge
+# to edge, so they're kept whole and repeated mirrored.
+for src, name in [("C8_lane_mid_layer_2.png", "mid_village_band"), ("C9_lane_mid_layer_3.png", "mid_trees_band")]:
+    if (REF / src).exists():
+        rgb2, a = magenta_cut(load(src))
+        ys = np.nonzero((a > 0.5).mean(axis=1) > 0.01)[0]
+        save(name, rgb2, a, (0, max(ys.min() - 6, 0), a.shape[1], min(ys.max() + 6, a.shape[0])))
 
 # ---------------------------------------------------------------- kolam (C7, dark sheet)
 rgb = load("C7_kolam_decals.png")
