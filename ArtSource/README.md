@@ -50,9 +50,9 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
   H5 garden plants and H6 flowering bushes at house corners; a few H7 low plants and stones 6-7 m in front of the
   lane, which in the game view rise into the bottom of the screen and stay below the kid's feet. Each pool skips its last few picks, and pieces are mirrored and scaled a little.
 - **Distance**: three painted middle layers stand behind the houses, each further back: C3 palm clumps scattered at
-  12-13 m, the C8 village band (tiled roofs, banana groves, a water tank) at 15 m and the C9 band (big shade trees, small
-  houses, a hillock with a shrine) at 29 m, both repeated mirrored. G16's water tank stands where C8's tanks are
-  furthest away, so two towers never share a view. Every layer's foot fades into the ground instead of ending in a line.
+  12-13 m, clusters of the C8 village (tiled roofs and banana groves) at 15 m, and the C9 band (big shade trees, small
+  houses, a hillock with a shrine) at 29 m, repeated mirrored. C8 is used as two slices without its water tower, so
+  G16 is the street's only tower. Every layer's foot, and each C8 cluster's ends, fade out instead of ending in a line.
 - **Haze**: everything fades into the warm haze painted at the foot of the C2 far layer by the same amount as the ground
   under it (none in front of the houses, all of it where the ground ends at 40 m), so nothing looks pasted on and
   there's no horizon line.

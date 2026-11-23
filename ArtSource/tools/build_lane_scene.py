@@ -80,12 +80,14 @@ def load_image(path):
     return img
 
 
-def card_material(name, img, emission=0.55, shadeless=False, haze=0.0, fade_bottom=0.0):
+def card_material(name, img, emission=0.55, shadeless=False, haze=0.0, fade_bottom=0.0, fade_sides=0.0):
     """A painted card: the texture's own painted light shows through, the sun adds warmth and cast shadows.
 
     haze: how far the card has faded into the distance (0-1), the same amount as the ground under it.
-    fade_bottom: fraction of the card's height over which its foot fades out, so it melts into the ground."""
-    name = f"{name}_h{haze:.2f}_f{fade_bottom:.2f}" if (haze or fade_bottom) else name
+    fade_bottom: fraction of the card's height over which its foot fades out, so it melts into the ground.
+    fade_sides: fraction of the card's width over which its left and right ends fade out."""
+    if haze or fade_bottom or fade_sides:
+        name = f"{name}_h{haze:.2f}_f{fade_bottom:.2f}_s{fade_sides:.2f}"
     mat = bpy.data.materials.get(name)
     if mat:
         return mat
@@ -119,6 +121,23 @@ def card_material(name, img, emission=0.55, shadeless=False, haze=0.0, fade_bott
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
     alpha = tex.outputs["Alpha"]
+    if fade_sides:
+        uvs = nt.nodes.new("ShaderNodeTexCoord")
+        sxs = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(uvs.outputs["UV"], sxs.inputs[0])
+        edge = nt.nodes.new("ShaderNodeMath")  # distance to the nearer side: min(u, 1 - u)
+        edge.operation = "PINGPONG"
+        edge.inputs[1].default_value = 0.5
+        nt.links.new(sxs.outputs["X"], edge.inputs[0])
+        sramp = nt.nodes.new("ShaderNodeMapRange")
+        sramp.interpolation_type = "SMOOTHSTEP"
+        sramp.inputs["From Min"].default_value, sramp.inputs["From Max"].default_value = 0.0, fade_sides
+        nt.links.new(edge.outputs[0], sramp.inputs["Value"])
+        smul = nt.nodes.new("ShaderNodeMath")
+        smul.operation = "MULTIPLY"
+        nt.links.new(alpha, smul.inputs[0])
+        nt.links.new(sramp.outputs["Result"], smul.inputs[1])
+        alpha = smul.outputs[0]
     if fade_bottom:
         uvn = nt.nodes.new("ShaderNodeTexCoord")
         sep = nt.nodes.new("ShaderNodeSeparateXYZ")
@@ -153,7 +172,7 @@ def card_material(name, img, emission=0.55, shadeless=False, haze=0.0, fade_bott
 
 
 def card(name, img_path, x, y, z=0.0, size=None, px_per_m=None, mirror=False, flat=False, col="Props",
-         emission=0.55, shadeless=False, fade_bottom=0.0):
+         emission=0.55, shadeless=False, fade_bottom=0.0, fade_sides=0.0):
     """A cut-out standing on the ground at (x, y), facing the camera. Its bottom edge sits at height z."""
     img = load_image(img_path)
     w_px, h_px = img.size
@@ -172,7 +191,8 @@ def card(name, img_path, x, y, z=0.0, size=None, px_per_m=None, mirror=False, fl
     for i, (u, v) in enumerate([(0, 0), (1, 0), (1, 1), (0, 1)]):
         uv.data[i].uv = (1 - u, v) if mirror else (u, v)
     haze = 0.0 if shadeless else round(GROUND.haze_amount(y), 2)
-    mesh.materials.append(card_material(f"M_{pathlib.Path(img_path).stem}", img, emission, shadeless, haze, fade_bottom))
+    mesh.materials.append(card_material(f"M_{pathlib.Path(img_path).stem}", img, emission, shadeless, haze, fade_bottom,
+                                        fade_sides))
     obj = bpy.data.objects.new(name, mesh)
     obj.location = (x, y, z)
     if col == "Backdrop":
@@ -527,38 +547,37 @@ card("bullocks", A / "bullocks.png", 44.5, 2.2, size=SIZES["bullocks"], col="Pro
 # Each layer stands a little further back and fades a little more into the haze, by the same amount as the ground
 # under it, so nothing looks pasted on; each one's foot fades out into the ground instead of ending in a line.
 #   12-13 m  C3 palm clumps, scattered, breaking up the band behind them
-#   15 m     C8: a village of tiled roofs, banana groves and a water tank, repeated mirrored
-#   29 m     C9: big shade trees, small houses and a hillock with a shrine, repeated mirrored
-def band(name, y, height, sink, x_from=-80.0, x_to=180.0):
-    """A middle layer repeated mirrored along the street. Returns [(left x, width, mirrored)] of each copy."""
-    path = L / f"{name}.png"
+#   15 m     C8: clusters of tiled roofs and banana groves (its water tower left out: G16 is the street's one
+#            tower), alternating two slices with gaps between, their ends fading into the haze
+#   29 m     C9: big shade trees, small houses and a hillock with a shrine, repeated mirrored behind everything
+def band(names, y, height, sink, x_from=-80.0, x_to=180.0, gaps=(0.0, 0.0), fade_sides=0.0):
+    """A middle layer along the street: its pieces in turn, every other round mirrored.
+    Returns [(left x, width, mirrored)] of each copy."""
+    names = [n for n in names if (L / f"{n}.png").exists()]
     copies = []
-    if not path.exists():
+    if not names:
         return copies
     px, k = x_from + rng.uniform(-8, 0), 0
     while px < x_to:
-        obj, w, h = card(f"{name}_{k}", path, 0, y, z=-sink, size=("h", height), mirror=k % 2 == 1, col="Backdrop",
-                         emission=0.7, fade_bottom=0.14)
+        name = names[k % len(names)]
+        mirrored = (k // len(names)) % 2 == 1 if len(names) > 1 else k % 2 == 1
+        obj, w, h = card(f"{name}_{k}", L / f"{name}.png", 0, y, z=-sink, size=("h", height), mirror=mirrored,
+                         col="Backdrop", emission=0.7, fade_bottom=0.14, fade_sides=fade_sides)
         obj.location.x = px + w / 2
-        copies.append((px, w, k % 2 == 1))
-        px += w - 0.02
+        copies.append((px, w, mirrored))
+        px += w - 0.02 + rng.uniform(*gaps)
         k += 1
     return copies
 
 
-band("mid_trees_band", 29.0, 16.0, 1.6)
-village_copies = band("mid_village_band", 15.0, 9.5, 0.9)
-# Where C8's own water tank stands (40% across the band, 60% when mirrored), so G16's tank keeps clear of it.
-C8_TANKS = [x0 + w * (0.6 if mirrored else 0.4) for x0, w, mirrored in village_copies]
+band(["mid_trees_band"], 29.0, 16.0, 1.6)
+band(["mid_village_a", "mid_village_b"], 15.0, 9.5, 0.9, gaps=(6.0, 16.0), fade_sides=0.1)
 if "water_tank" in MANIFEST:
-    # Two water towers in one view would look like a repeat: G16 stands where C8's tanks are furthest away.
-    tank_x = max((rng.uniform(10.0, 50.0) for _ in range(40)),
-                 key=lambda tx: min(abs(tx + 6.5 - t) for t in C8_TANKS) if C8_TANKS else 0)
-    landmark_front("water_tank", n + 1, tank_x, 16.0, body=False)
+    landmark_front("water_tank", n + 1, rng.uniform(15.0, 40.0), 16.0, body=False)
 palms = Pool([f"mid_palms_slice_{i}" for i in range(1, 4)], 1)
 px = -70.0
 while px < 170:
-    px += rng.uniform(8.0, 20.0)
+    px += rng.uniform(4.0, 12.0)
     obj, w, h = card(f"palms_{px:.0f}", L / f"{palms.pick()}.png", 0, rng.choice([12.0, 12.5, 13.0]),
                      z=-rng.uniform(0.5, 1.0), size=("h", rng.uniform(8.0, 10.0)), mirror=rng.random() < 0.5,
                      col="Backdrop", emission=0.7, fade_bottom=0.12)

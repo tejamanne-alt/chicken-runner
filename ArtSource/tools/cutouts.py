@@ -154,6 +154,12 @@ for src, name in [("C8_lane_mid_layer_2.png", "mid_village_band"), ("C9_lane_mid
         rgb2, a = magenta_cut(load(src))
         ys = np.nonzero((a > 0.5).mean(axis=1) > 0.01)[0]
         save(name, rgb2, a, (0, max(ys.min() - 6, 0), a.shape[1], min(ys.max() + 6, a.shape[0])))
+        if name == "mid_village_band":
+            # Two clusters without the band's water tower, so G16 can be the only tower on the street. Cut at
+            # columns where the skyline is quiet (fewest leaves and roofs above the houses).
+            top, bot = max(ys.min() - 6, 0), min(ys.max() + 6, a.shape[0])
+            save("mid_village_a", rgb2, a, (0, top, 1049, bot))
+            save("mid_village_b", rgb2, a, (1603, top, a.shape[1], bot))
 
 # ---------------------------------------------------------------- kolam (C7, dark sheet)
 rgb = load("C7_kolam_decals.png")
