@@ -414,7 +414,7 @@ def main():
         if "--no-fbx" not in ARGS:
             export(ob, OUT / folder / f"{name}.fbx")
         index[name] = {"name": name, "folder": folder, "kind": kind, "width": round(w, 3), "height": round(h, 3),
-                       "depth": round(d, 3), "faces": len(ob.data.polygons)}
+                       "depth": round(d, 3), "faces": len(ob.data.polygons), "source": "extruded"}
         built.append(ob)
         ob.hide_render = True
         print(f"built {folder}/{name}: {kind} {w:.2f} x {h:.2f} x {d:.2f} m, {len(ob.data.polygons)} faces")

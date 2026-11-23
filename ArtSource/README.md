@@ -241,6 +241,8 @@ it agrees with the generated colour (sharper than the generated texture; where a
 generated colour stays). It then replaces that piece's extruded model and its `models.json` entry.
 
 They go to `Assets/ChickenRunner/Art/Models/<folder>/<name>.fbx` with a JPEG texture beside each and `models.json`
-listing their sizes. Build Game and Import Art Layouts stand each piece's model where its card would be (same spot,
-size and haze; a building stops short of whatever stands behind it). **Chicken Runner > Use 3D Scenery Models**
-switches back to the flat cards.
+listing their sizes and where each came from (`meshy`, `trellis` or `extruded`). Build Game and Import Art Layouts
+stand a piece's model where its card would be (same spot, size and haze; a building stops short of whatever stands
+behind it) when it is a full model, from Meshy or TRELLIS. A piece with only an extrusion of its one painting stays
+its painted card, which is exactly right from the camera, unless **Chicken Runner > Include Extruded Scenery Models**
+is on. **Use 3D Scenery Models** switches all of them back to cards.

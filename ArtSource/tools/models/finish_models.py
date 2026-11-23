@@ -183,8 +183,7 @@ def finish(folder, name, glb, source="trellis"):
             bpy.data.objects.remove(o, do_unlink=True)
     ob.parent = None
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    target_faces = 20000 if kind == "building" or max(w_m, h_m) > 3 else 9000
-    B.decimate(ob, target_faces)
+    B.decimate(ob, 60000)       # keep the generated detail; only a very heavy mesh is thinned
 
     me = ob.data
     co = np.zeros(len(me.vertices) * 3)
@@ -315,7 +314,7 @@ def finish(folder, name, glb, source="trellis"):
     nt.links.new(paint.outputs["Color"], mix.inputs["B"])
     nt.links.new(mix.outputs["Result"], emit.inputs["Color"])
     nt.links.new(emit.outputs[0], out.inputs["Surface"])
-    size = 2048 if kind == "building" or max(w_m, h_m) > 3 else 1024
+    size = 2048
     baked = bpy.data.images.new(f"{name}_baked", size, size, alpha=False)
     target_node = nt.nodes.new("ShaderNodeTexImage")
     target_node.image = baked

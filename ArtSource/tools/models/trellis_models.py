@@ -89,7 +89,7 @@ def main():
         try:
             prompt = client.predict(handle_file(url), api_name="/preprocess_image")
             seed = SEEDS.get(name, SEED) if "--seed" not in ARGS else SEED
-            result = client.predict(handle_file(prompt), [], seed, 7.5, 12, 3.0, 12, "stochastic", 0.95, 1024,
+            result = client.predict(handle_file(prompt), [], seed, 7.5, 12, 3.0, 12, "stochastic", 0.9, 2048,
                                     api_name="/generate_and_extract_glb")
         except Exception as e:      # quota, queue or a bad picture: note it and carry on (or stop on quota)
             msg = str(e)

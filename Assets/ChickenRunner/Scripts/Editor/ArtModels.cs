@@ -12,7 +12,8 @@ namespace ChickenRunner.EditorTools
     /// Wherever the game or a zone's scenery would stand a painted card, <see cref="Place"/> stands the piece's model
     /// instead: the same spot and size, its painted front facing the camera on the card's plane (a building runs back
     /// from there, a rounded thing sits half in front, half behind), toon-shaded with the card's distance haze.
-    /// Pieces with no model keep their card.
+    /// Pieces with no full model (made in Meshy from four views, or by TRELLIS) keep their card, unless the menu's
+    /// Include Extruded Scenery Models stands their single-painting extrusions in.
     /// </summary>
     internal static class ArtModels
     {
@@ -22,7 +23,7 @@ namespace ChickenRunner.EditorTools
         [Serializable]
         sealed class Entry
         {
-            public string name, folder, kind;
+            public string name, folder, kind, source;
             public float width, height, depth;
         }
 
@@ -55,6 +56,31 @@ namespace ChickenRunner.EditorTools
         {
             Menu.SetChecked(MenuPath, Enabled);
             return true;
+        }
+
+        const string ExtrudedKey = "ChickenRunner.IncludeExtrudedModels";
+        const string ExtrudedMenu = "Chicken Runner/Include Extruded Scenery Models";
+
+        /// <summary>
+        /// Whether pieces that only have a model extruded from their one painting (build_models.py) use it. Off by
+        /// default: such a model can only guess the sides, back and top, so the painted card, which is exactly right
+        /// from the camera, stands in until a full model (Meshy, TRELLIS) of the piece exists.
+        /// </summary>
+        public static bool IncludeExtruded => EditorPrefs.GetBool(ExtrudedKey, false);
+
+        [MenuItem(ExtrudedMenu, priority = 41)]
+        static void ToggleExtruded()
+        {
+            EditorPrefs.SetBool(ExtrudedKey, !IncludeExtruded);
+            Debug.Log(IncludeExtruded ? "Extruded scenery models: used where a piece has no full model. Rebuild the game to see them."
+                : "Extruded scenery models: not used; those pieces are their painted cards. Rebuild the game to see them.");
+        }
+
+        [MenuItem(ExtrudedMenu, true)]
+        static bool ToggleExtrudedCheck()
+        {
+            Menu.SetChecked(ExtrudedMenu, IncludeExtruded);
+            return Enabled;
         }
 
         public static void ClearCache()
@@ -90,6 +116,7 @@ namespace ChickenRunner.EditorTools
         static GameObject Model(Entry entry)
         {
             if (entry == null) return null;
+            if ((string.IsNullOrEmpty(entry.source) || entry.source == "extruded") && !IncludeExtruded) return null;
             if (s_models.TryGetValue(entry.name, out var cached)) return cached;
             string path = $"{Folder}/{entry.folder}/{entry.name}.fbx";
             GameObject model = null;
