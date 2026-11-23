@@ -153,3 +153,29 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 
 `tools/village_kit.py` builds the compound walls and palm-leaf fences. It can also build houses and coconut palms in 3D
 (see `tools/build_house_catalog.py`), but the street doesn't use them: buildings and trees come only from the art.
+
+## 3D characters and pickups
+
+The kid, the rooster and the pickups are 3D models built in Blender from code, in `tools/characters/`:
+
+| File | What it makes |
+| --- | --- |
+| `kid_model.py` | The kid to the A0 turnaround: about 1.08 m, pattu frock with the temple border, wavy bob, hairband, anklets; a Unity Humanoid-named rig plus hair and skirt bones |
+| `kid_anims.py` | Her clips: Idle, Run, JumpUp, Fall, Land, DoubleJump (a tuck somersault), Slide, Vault, Climb, Stumble, Dive, Wade |
+| `rooster_model.py`, `rooster_anims.py` | The rooster to B11-B14, and his clips: Idle (looks about, pecks), Run, Panic, Flutter, Crow, Startled, Tumble |
+| `pickups.py` | The mango, the chilli and the tail feather |
+| `build_character.py` | Keys the clips, exports `Assets/ChickenRunner/Art/Characters/<Name>.fbx` with every clip as a take, and renders contact sheets or every frame |
+
+Run them with the Blender Python (the same venv as the scene builders):
+
+```bash
+python ArtSource/tools/characters/build_character.py kid --sheet kid_clips.png
+python ArtSource/tools/characters/build_character.py rooster --sheet rooster_clips.png
+python ArtSource/tools/characters/pickups.py --sheet pickups.png
+```
+
+Clips are written as functions of time (`run(t)`, `fall(t)`, ...), so loops are seamless and the hair and skirt follow
+through on their own. They are rendered toon-shaded (two tones from a fixed front-left light, ink outlines), and in Unity
+the `ChickenRunner/Toon` shader gives the same look. The colours and faces are painted from code until the M textures
+(M1 faces, M2-M5 frock, border, hair and hairband, M6-M8 plumage, M9 mango, M10 feather) are pushed: then re-run these
+and Build Game, and the models wear them.

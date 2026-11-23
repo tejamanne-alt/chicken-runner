@@ -61,6 +61,7 @@ namespace ChickenRunner.EditorTools
             foreach (var folder in new[] { ConfigFolder, ChunkFolder, LevelFolder, ObstacleFolder, SceneryFolder, MaterialFolder })
                 ArtAssets.EnsureFolder(folder);
             ArtAssets.ClearCache();
+            ClearModelCache();
             if (ArtAssets.CardShader == null || Shader.Find(ArtAssets.GroundShaderName) == null)
             {
                 Debug.LogError("The ChickenRunner/PaintedCard and PaintedGround shaders are missing (Assets/ChickenRunner/Art/Shaders).");
@@ -387,6 +388,7 @@ namespace ChickenRunner.EditorTools
         {
             var root = new GameObject("Kid");
             var kid = root.AddComponent<KidController>();
+            if (KidModel(root, kid)) return kid;   // the 3D kid; the painted flipbook below until she is built
             var run = Pose("run_contact");
             if (run == null)
             {
@@ -413,6 +415,7 @@ namespace ChickenRunner.EditorTools
         {
             var root = new GameObject("Rooster");
             var brain = root.AddComponent<RoosterBrain>();
+            if (RoosterModel(root, brain)) return brain;
             var run = Pose("rooster_run_1");
             if (run == null)
             {

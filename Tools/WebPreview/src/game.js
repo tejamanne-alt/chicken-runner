@@ -573,6 +573,7 @@ class Kid {
       this.jumpBuf = 0; this.slideQueued = false; if (this.pose === 'slide') this.pose = 'air'; this.ev.jumped();
     } else if (!this.doubleUsed) {
       this.vs = JumpMath.double(this.t); this.doubleUsed = true; this.rising = false; this.jumpBuf = 0; this.slideQueued = false; this.ev.jumped();
+      if (this.ev.doubleJumped) this.ev.doubleJumped();
     } else this.jumpBuf -= dt;
   }
   handleSlide(dt) {
@@ -713,7 +714,10 @@ class Rooster {
       }
     }
     if (changed && this.mood === 'taunting') this.ev.bark('cock-a-doodle-doo~', this.x, this.y + 1.1, '#d9331a');
-    if (changed && this.mood === 'panicking') { this.ev.bark('SQUAWK!', this.x, this.y + 1.1, '#d9331a'); this.ev.feathers(this.x, this.y + 0.4, 10); }
+    if (changed && this.mood === 'panicking') {
+      this.ev.bark('SQUAWK!', this.x, this.y + 1.1, '#d9331a'); this.ev.feathers(this.x, this.y + 0.4, 10);
+      if (this.ev.panicked) this.ev.panicked();
+    }
     return this.mood === 'taunting' ? 0 : this.mood === 'panicking' ? t.roosterRunSpeed * t.panicSpeedMultiplier : t.roosterRunSpeed;
   }
   tick(dt, gap, kidX) {

@@ -23,7 +23,7 @@ function sprite(name) {
   let sp = sprites.get(name);
   if (!sp) {
     const s = DATA.sprites[name];
-    sp = { img: image('sheets/' + DATA.sheets[s[0]].file), x: s[1], y: s[2], w: s[3], h: s[4] };
+    sp = { img: image('sheets/' + DATA.sheets[s[0]].file), x: s[1], y: s[2], w: s[3], h: s[4], ox: s[5] || 0, oy: s[6] || 0 };
     sprites.set(name, sp);
   }
   return sp;
@@ -42,7 +42,9 @@ const game = { level: 0, mode: window.CR_DEFAULT_MODE || 'watch', state: 'loadin
 
 const events = {
   jumped() { dust(game.kid.x, game.kid.y, 3); },
-  landed() { dust(game.kid.x, game.kid.y, 4); game.kidFx.squash = 0.2; game.kidFx.land = 0.12; },
+  landed() { dust(game.kid.x, game.kid.y, 4); game.kidFx.squash = 0.2; game.kidFx.land = 0.12; game.anim.land = 0.25; },
+  doubleJumped() { game.anim.double = 0.4; },
+  panicked() { game.anim.startled = 0.3; },
   vaulted() {},
   bounced(b) { if (b.bark) bark(b.bark, (b.x0 + b.x1) / 2, b.y1 + 0.7, '#2f8f4a'); game.kidFx.squash = -0.3; },
   collected(p) {
@@ -58,6 +60,7 @@ const events = {
     if (o.def.reaction === 'smash') { o.gone = true; burst(o.x, o.y + 0.3, o.def.color, 12, 4); }
     if (o.def.reaction === 'splat') burst(o.x, o.y + 0.05, o.def.color, 8, 2.5);
     game.kidFx.wobble = 1;
+    game.anim.stumble = 0.7;
   },
   splash() { if (game.state === 'chase') bark('SPLASH!', game.kid.x, game.kid.y + 1.4, '#2f63b8'); burst(game.kid.x, -0.06, '#8fb4e8', 10, 3); },
   bark: (text, x, y, color) => bark(text, x, y, color),
@@ -102,6 +105,7 @@ function reset() {
   game.auto = game.mode === 'watch' ? new Autopilot(game) : null;
   game.kidFx = { squash: 0, sv: 0, land: 0, wobble: 0, lean: 0, dist: 0, lastX: 0 };
   game.roosterFx = { dist: 0, lastX: game.rooster.x, spin: 0 };
+  game.anim = { land: 0, double: 0, stumble: 0, startled: 0, kid: { clip: null, t: 0 }, rooster: { clip: null, t: 0 } };
   game.acc = 0;
   enter('ready');
   frameCamera(true);
@@ -357,6 +361,20 @@ function reactionFx(cd) {
 }
 
 function drawPickup(p) {
+  const P = DATA.characters && DATA.characters.pickups;
+  if (P) {
+    const frames = P.items[p.kind];
+    const fps = p.kind === 'chilli' ? 16 : p.kind === 'feather' ? 7 : 10;
+    const name = frames[Math.floor(performance.now() / 1000 * fps + p.x * 3) % frames.length];
+    const sp = sprite(name), ppm = P.ppm;
+    let scale = 1, alpha = 1;
+    if (p.pop >= 0) { scale = 1 + p.pop / 0.15; alpha = 1 - p.pop / 0.15; }
+    const bob = 0.03 * Math.sin(performance.now() / 300 + p.x);
+    const cx = p.x + (sp.ox + sp.w / 2 - P.anchor[0]) / ppm;
+    const bottom = p.y + bob + (P.anchor[1] - (sp.oy + sp.h)) / ppm;
+    drawCard(name, cx, bottom, 0, sp.w / ppm, sp.h / ppm, false, scale !== 1 ? { sx: scale, sy: scale, alpha } : null);
+    return;
+  }
   const [sx, sy, zc] = project(p.x, p.y, 0);
   const s = game.cam.F / zc;
   let scale = 1, alpha = 1;
@@ -381,7 +399,63 @@ function drawPickup(p) {
 }
 
 // The kid and the rooster: their poses picked as KidCardVisual and RoosterCardVisual do.
+// One frame of a 3D character's clip, cropped to what it shows: its anchor (the feet) goes at (x, y).
+function frameItem(items, set, name, x, y, z, order, fx) {
+  const sp = sprite(name), ppm = set.ppm;
+  const cx = x + (sp.ox + sp.w / 2 - set.anchor[0]) / ppm;
+  const bottom = y + (set.anchor[1] - (sp.oy + sp.h)) / ppm;
+  items.push({ order, z, x, draw: () => drawCard(name, cx, bottom, z, sp.w / ppm, sp.h / ppm, false, fx) });
+}
+
+// Which clip and frame: the same choices as KidModelVisual and RoosterModelVisual in the Unity build.
+function clipFrame(state, set, clip, dt, rate) {
+  if (state.clip !== clip) { state.clip = clip; state.t = 0; }
+  state.t += dt * rate;
+  const c = set.clips[clip];
+  const n = c.frames.length, f = Math.floor(state.t * c.fps);
+  return c.frames[c.loop ? f % n : Math.min(n - 1, f)];
+}
+
+function characterItems3d(items, alpha) {
+  const k = game.kid, r = game.rooster, dt = game.frameDt, a = game.anim, C = DATA.characters;
+  for (const key of ['land', 'double', 'stumble', 'startled']) a[key] = Math.max(0, a[key] - dt);
+  const kx = lerp(k.px, k.x, alpha), ky = lerp(k.py, k.y, alpha);
+  game.kidDraw = { x: kx, y: ky };
+  let clip, rate = 1;
+  switch (k.pose) {
+    case 'dive': clip = 'Dive'; break;
+    case 'vault': clip = 'Vault'; break;
+    case 'climb': clip = 'Climb'; break;
+    case 'slide': clip = 'Slide'; break;
+    case 'air': clip = a.double > 0 ? 'DoubleJump' : k.vs > 0.5 ? 'JumpUp' : 'Fall'; break;
+    default:
+      if (k.speed < 0.1) clip = 'Idle';
+      else if (a.stumble > 0 && k.stumbling) clip = 'Stumble';
+      else if (a.land > 0) clip = 'Land';
+      else if (k.wading) { clip = 'Wade'; rate = k.speed / (game.t.kidRunSpeed * 0.45); }
+      else { clip = 'Run'; rate = k.speed / 6; }
+  }
+  const kidName = clipFrame(a.kid, C.kid, clip, dt, Math.max(0.3, Math.min(2.5, rate)));
+  const kidFx = {};
+  if (ky < -0.04) kidFx.clipY = project(kx, -0.06, 0)[1];
+  if (k.boosted) kidFx.alpha = 0.85 + 0.15 * Math.sin(performance.now() / 40);
+  frameItem(items, C.kid, kidName, kx, ky, 0, 10, kidFx);
+
+  const rx = lerp(r.px, r.x, alpha), ry = lerp(r.py, r.y, alpha);
+  let rc, rr = 1;
+  if (r.act === 'idle') rc = 'Idle';
+  else if (r.act === 'wriggle') rc = 'Tumble';
+  else if (r.airborne) rc = 'Flutter';
+  else if (r.mood === 'taunting' && r.speed < 1) rc = 'Crow';
+  else if (a.startled > 0) rc = 'Startled';
+  else if (r.mood === 'panicking') { rc = 'Panic'; rr = r.speed / (5.5 * 1.3); }
+  else { rc = 'Run'; rr = r.speed / 5.5; }
+  const roosterName = clipFrame(a.rooster, C.rooster, rc, dt, Math.max(0.4, Math.min(2.5, rr)));
+  frameItem(items, C.rooster, roosterName, rx, ry, 0.01, 10, null);
+}
+
 function characterItems(items, alpha) {
+  if (DATA.characters) return characterItems3d(items, alpha);
   const k = game.kid, r = game.rooster, dt = game.frameDt;
   const kx = lerp(k.px, k.x, alpha), ky = lerp(k.py, k.y, alpha);
   game.kidDraw = { x: kx, y: ky };

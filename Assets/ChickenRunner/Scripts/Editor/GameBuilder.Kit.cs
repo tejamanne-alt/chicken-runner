@@ -483,6 +483,7 @@ namespace ChickenRunner.EditorTools
             public void Mango(float x, float y)
             {
                 var pickup = PickupRoot("Mango", x, y, PickupKind.Mango, 0.25f);
+                if (PickupModel(pickup.visual, "Mango", Quaternion.Euler(0f, 0f, 12f))) return;
                 Prim(PrimitiveType.Sphere, "Fruit", pickup.visual, Vector3.zero, new Vector3(0.22f, 0.28f, 0.22f), Palette.Mango);
                 Prim(PrimitiveType.Cube, "Leaf", pickup.visual, new Vector3(0.04f, 0.15f, 0f), new Vector3(0.1f, 0.03f, 0.05f), Palette.Leaf);
             }
@@ -490,6 +491,8 @@ namespace ChickenRunner.EditorTools
             public void Chilli(float x, float y)
             {
                 var pickup = PickupRoot("Chilli", x, y, PickupKind.Chilli, 0.3f);
+                pickup.spinSpeed = 300f;
+                if (PickupModel(pickup.visual, "Chilli", Quaternion.Euler(0f, 0f, -30f))) return;
                 Prim(PrimitiveType.Capsule, "Pod", pickup.visual, Vector3.zero, new Vector3(0.12f, 0.2f, 0.12f), Palette.Chilli)
                     .transform.localRotation = Quaternion.Euler(0f, 0f, 55f);
                 Prim(PrimitiveType.Cube, "Stalk", pickup.visual, new Vector3(-0.15f, 0.12f, 0f), new Vector3(0.04f, 0.1f, 0.04f), Palette.Leaf);
@@ -502,6 +505,7 @@ namespace ChickenRunner.EditorTools
                 var pickup = PickupRoot("Feather" + index, x, y, PickupKind.Feather, 0.3f);
                 pickup.featherIndex = index;
                 pickup.spinSpeed = 120f;
+                if (PickupModel(pickup.visual, "Feather", Quaternion.identity)) return;
                 Prim(PrimitiveType.Capsule, "Vane", pickup.visual, Vector3.zero, new Vector3(0.12f, 0.3f, 0.04f), Palette.Feather)
                     .transform.localRotation = Quaternion.Euler(0f, 0f, -30f);
                 Prim(PrimitiveType.Cube, "Quill", pickup.visual, new Vector3(-0.08f, -0.2f, 0f), new Vector3(0.02f, 0.16f, 0.02f), Palette.Beak)
