@@ -11,13 +11,20 @@ One image per asset: the asset drawn four times in a 2 by 2 grid (front, left si
 
 Prints, ruts, cracked mud and kolams need no model: they lie flat on the ground as painted.
 
+## What to make first
+
+- **On the lane** (46): The kid runs into, over or past it: make this first.
+- **Beside the lane** (87): Seen up close beside the lane.
+- **Far off** (15): Only ever seen far off: its painting is enough there, so this can wait.
+- **Not in the game yet** (50): No level places it yet: skip it unless it is added to a level.
+
 ## Characters and pickups
 
 The kid and the rooster have their four views already; the pickups have no painting, so their prompts describe them.
 
 ### Mango · `mango`
 
-Save as `mango_views.png` · Square 1:1 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/pickups/mango.glb`
+**On the lane** · Save as `mango_views.png` · Square 1:1 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/pickups/mango.glb`
 
 Note: No painting of it yet: the prompt describes it.
 
@@ -35,7 +42,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Chilli · `chilli`
 
-Save as `chilli_views.png` · Square 1:1 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/pickups/chilli.glb`
+**On the lane** · Save as `chilli_views.png` · Square 1:1 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/pickups/chilli.glb`
 
 Note: No painting of it yet: the prompt describes it.
 
@@ -53,7 +60,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Golden tail feather · `feather`
 
-Save as `feather_views.png` · Square 1:1 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/pickups/feather.glb`
+**On the lane** · Save as `feather_views.png` · Square 1:1 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/pickups/feather.glb`
 
 Note: No painting of it yet: the prompt describes it.
 
@@ -87,7 +94,7 @@ Zone 1: houses, shops, the lane's props and obstacles.
 
 ### Bicycle · `bicycle`
 
-Save as `bicycle_views.png` · Landscape 3:2 · Attach: bicycle.jpg (its painting) · Model: `ArtSource/models_meshy/lane/bicycle.glb`
+**Beside the lane** · Save as `bicycle_views.png` · Landscape 3:2 · Attach: bicycle.jpg (its painting) · Model: `ArtSource/models_meshy/lane/bicycle.glb`
 
 ```text
 Landscape 3:2 image.
@@ -103,7 +110,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Brass pots · `brass_pots`
 
-Save as `brass_pots_views.png` · Landscape 3:2 · Attach: brass_pots.jpg (its painting) · Model: `ArtSource/models_meshy/lane/brass_pots.glb`
+**On the lane** · Save as `brass_pots_views.png` · Landscape 3:2 · Attach: brass_pots.jpg (its painting) · Model: `ArtSource/models_meshy/lane/brass_pots.glb`
 
 ```text
 Landscape 3:2 image.
@@ -119,7 +126,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Bullock cart · `bullock_cart`
 
-Save as `bullock_cart_views.png` · Landscape 3:2 · Attach: bullock_cart.jpg (its painting) · Model: `ArtSource/models_meshy/lane/bullock_cart.glb`
+**On the lane** · Save as `bullock_cart_views.png` · Landscape 3:2 · Attach: bullock_cart.jpg (its painting) · Model: `ArtSource/models_meshy/lane/bullock_cart.glb`
 
 ```text
 Landscape 3:2 image.
@@ -135,7 +142,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cattle shed · `cattle_shed`
 
-Save as `cattle_shed_views.png` · Landscape 3:2 · Attach: cattle_shed.jpg (its painting) · Model: `ArtSource/models_meshy/lane/cattle_shed.glb`
+**Beside the lane** · Save as `cattle_shed_views.png` · Landscape 3:2 · Attach: cattle_shed.jpg (its painting) · Model: `ArtSource/models_meshy/lane/cattle_shed.glb`
 
 ```text
 Landscape 3:2 image.
@@ -151,7 +158,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Chicken basket · `chicken_basket`
 
-Save as `chicken_basket_views.png` · Square 1:1 · Attach: chicken_basket.jpg (its painting) · Model: `ArtSource/models_meshy/lane/chicken_basket.glb`
+**Beside the lane** · Save as `chicken_basket_views.png` · Square 1:1 · Attach: chicken_basket.jpg (its painting) · Model: `ArtSource/models_meshy/lane/chicken_basket.glb`
 
 ```text
 Square 1:1 image.
@@ -167,7 +174,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Clothesline · `clothesline`
 
-Save as `clothesline_views.png` · Landscape 3:2 · Attach: clothesline.jpg (its painting) · Model: `ArtSource/models_meshy/lane/clothesline.glb`
+**On the lane** · Save as `clothesline_views.png` · Landscape 3:2 · Attach: clothesline.jpg (its painting) · Model: `ArtSource/models_meshy/lane/clothesline.glb`
 
 ```text
 Landscape 3:2 image.
@@ -183,7 +190,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Doorway with a garland · `doorway_garland`
 
-Save as `doorway_garland_views.png` · Square 1:1 · Attach: doorway_garland.jpg (its painting) · Model: `ArtSource/models_meshy/lane/doorway_garland.glb`
+**Not in the game yet** · Save as `doorway_garland_views.png` · Square 1:1 · Attach: doorway_garland.jpg (its painting) · Model: `ArtSource/models_meshy/lane/doorway_garland.glb`
 
 ```text
 Square 1:1 image.
@@ -199,7 +206,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cow-dung cake · `dung`
 
-Save as `dung_views.png` · Landscape 3:2 · Attach: dung.jpg (its painting) · Model: `ArtSource/models_meshy/lane/dung.glb`
+**On the lane** · Save as `dung_views.png` · Landscape 3:2 · Attach: dung.jpg (its painting) · Model: `ArtSource/models_meshy/lane/dung.glb`
 
 ```text
 Landscape 3:2 image.
@@ -215,7 +222,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Hand pump · `hand_pump`
 
-Save as `hand_pump_views.png` · Square 1:1 · Attach: hand_pump.jpg (its painting) · Model: `ArtSource/models_meshy/lane/hand_pump.glb`
+**On the lane** · Save as `hand_pump_views.png` · Square 1:1 · Attach: hand_pump.jpg (its painting) · Model: `ArtSource/models_meshy/lane/hand_pump.glb`
 
 ```text
 Square 1:1 image.
@@ -231,7 +238,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### House being built · `house_being_built`
 
-Save as `house_being_built_views.png` · Landscape 3:2 · Attach: house_being_built.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_being_built.glb`
+**Not in the game yet** · Save as `house_being_built_views.png` · Landscape 3:2 · Attach: house_being_built.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_being_built.glb`
 
 ```text
 Landscape 3:2 image.
@@ -247,7 +254,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Thatched house with a porch · `house_hut_porch`
 
-Save as `house_hut_porch_views.png` · Landscape 3:2 · Attach: house_hut_porch.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_hut_porch.glb`
+**Not in the game yet** · Save as `house_hut_porch_views.png` · Landscape 3:2 · Attach: house_hut_porch.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_hut_porch.glb`
 
 ```text
 Landscape 3:2 image.
@@ -263,7 +270,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Indigo house with a veranda · `house_indigo_veranda`
 
-Save as `house_indigo_veranda_views.png` · Square 1:1 · Attach: house_indigo_veranda.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_indigo_veranda.glb`
+**On the lane** · Save as `house_indigo_veranda_views.png` · Square 1:1 · Attach: house_indigo_veranda.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_indigo_veranda.glb`
 
 ```text
 Square 1:1 image.
@@ -279,7 +286,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Lime-washed house · `house_limewash`
 
-Save as `house_limewash_views.png` · Portrait 2:3 · Attach: house_limewash.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_limewash.glb`
+**On the lane** · Save as `house_limewash_views.png` · Portrait 2:3 · Attach: house_limewash.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_limewash.glb`
 
 ```text
 Portrait 2:3 image.
@@ -295,7 +302,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Mud house with a tin roof · `house_mud_tin`
 
-Save as `house_mud_tin_views.png` · Square 1:1 · Attach: house_mud_tin.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_mud_tin.glb`
+**Beside the lane** · Save as `house_mud_tin_views.png` · Square 1:1 · Attach: house_mud_tin.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_mud_tin.glb`
 
 ```text
 Square 1:1 image.
@@ -311,7 +318,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pink house · `house_pink`
 
-Save as `house_pink_views.png` · Portrait 2:3 · Attach: house_pink.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_pink.glb`
+**On the lane** · Save as `house_pink_views.png` · Portrait 2:3 · Attach: house_pink.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_pink.glb`
 
 ```text
 Portrait 2:3 image.
@@ -327,7 +334,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Plank and tin house · `house_plank_sheet`
 
-Save as `house_plank_sheet_views.png` · Landscape 3:2 · Attach: house_plank_sheet.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_plank_sheet.glb`
+**Not in the game yet** · Save as `house_plank_sheet_views.png` · Landscape 3:2 · Attach: house_plank_sheet.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_plank_sheet.glb`
 
 ```text
 Landscape 3:2 image.
@@ -343,7 +350,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Potter's house · `house_potter`
 
-Save as `house_potter_views.png` · Landscape 3:2 · Attach: house_potter.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_potter.glb`
+**Not in the game yet** · Save as `house_potter_views.png` · Landscape 3:2 · Attach: house_potter.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_potter.glb`
 
 ```text
 Landscape 3:2 image.
@@ -359,7 +366,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Thatched hut with a pumpkin vine · `house_thatched_hut`
 
-Save as `house_thatched_hut_views.png` · Square 1:1 · Attach: house_thatched_hut.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_thatched_hut.glb`
+**Not in the game yet** · Save as `house_thatched_hut_views.png` · Square 1:1 · Attach: house_thatched_hut.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_thatched_hut.glb`
 
 ```text
 Square 1:1 image.
@@ -375,7 +382,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tiled house behind a wall · `house_tiled_gate`
 
-Save as `house_tiled_gate_views.png` · Landscape 3:2 · Attach: house_tiled_gate.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_tiled_gate.glb`
+**Beside the lane** · Save as `house_tiled_gate_views.png` · Landscape 3:2 · Attach: house_tiled_gate.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_tiled_gate.glb`
 
 ```text
 Landscape 3:2 image.
@@ -391,7 +398,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Turmeric house with a ladder · `house_turmeric_ladder`
 
-Save as `house_turmeric_ladder_views.png` · Square 1:1 · Attach: house_turmeric_ladder.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_turmeric_ladder.glb`
+**On the lane** · Save as `house_turmeric_ladder_views.png` · Square 1:1 · Attach: house_turmeric_ladder.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_turmeric_ladder.glb`
 
 ```text
 Square 1:1 image.
@@ -407,7 +414,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Village head's house · `house_village_head`
 
-Save as `house_village_head_views.png` · Landscape 3:2 · Attach: house_village_head.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_village_head.glb`
+**Beside the lane** · Save as `house_village_head_views.png` · Landscape 3:2 · Attach: house_village_head.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_village_head.glb`
 
 ```text
 Landscape 3:2 image.
@@ -423,7 +430,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Weaver's house · `house_weaver`
 
-Save as `house_weaver_views.png` · Landscape 3:2 · Attach: house_weaver.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_weaver.glb`
+**Beside the lane** · Save as `house_weaver_views.png` · Landscape 3:2 · Attach: house_weaver.jpg (its painting) · Model: `ArtSource/models_meshy/lane/house_weaver.glb`
 
 ```text
 Landscape 3:2 image.
@@ -439,7 +446,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Jute sacks · `jute_sacks`
 
-Save as `jute_sacks_views.png` · Landscape 3:2 · Attach: jute_sacks.jpg (its painting) · Model: `ArtSource/models_meshy/lane/jute_sacks.glb`
+**Not in the game yet** · Save as `jute_sacks_views.png` · Landscape 3:2 · Attach: jute_sacks.jpg (its painting) · Model: `ArtSource/models_meshy/lane/jute_sacks.glb`
 
 ```text
 Landscape 3:2 image.
@@ -479,7 +486,7 @@ No model needed: it lies flat and is painted on the ground as it is.
 
 ### Lamp pillar · `lamp_pillar`
 
-Save as `lamp_pillar_views.png` · Portrait 2:3 · Attach: lamp_pillar.jpg (its painting) · Model: `ArtSource/models_meshy/lane/lamp_pillar.glb`
+**Far off** · Save as `lamp_pillar_views.png` · Portrait 2:3 · Attach: lamp_pillar.jpg (its painting) · Model: `ArtSource/models_meshy/lane/lamp_pillar.glb`
 
 ```text
 Portrait 2:3 image.
@@ -495,7 +502,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Panchayat office · `panchayat_office`
 
-Save as `panchayat_office_views.png` · Landscape 3:2 · Attach: panchayat_office.jpg (its painting) · Model: `ArtSource/models_meshy/lane/panchayat_office.glb`
+**Beside the lane** · Save as `panchayat_office_views.png` · Landscape 3:2 · Attach: panchayat_office.jpg (its painting) · Model: `ArtSource/models_meshy/lane/panchayat_office.glb`
 
 ```text
 Landscape 3:2 image.
@@ -511,7 +518,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Peepal tree on a platform · `peepal_platform`
 
-Save as `peepal_platform_views.png` · Square 1:1 · Attach: peepal_platform.jpg (its painting) · Model: `ArtSource/models_meshy/lane/peepal_platform.glb`
+**Beside the lane** · Save as `peepal_platform_views.png` · Square 1:1 · Attach: peepal_platform.jpg (its painting) · Model: `ArtSource/models_meshy/lane/peepal_platform.glb`
 
 ```text
 Square 1:1 image.
@@ -527,7 +534,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Stack of clay pots · `pot_stack`
 
-Save as `pot_stack_views.png` · Portrait 2:3 · Attach: pot_stack.jpg (its painting) · Model: `ArtSource/models_meshy/lane/pot_stack.glb`
+**On the lane** · Save as `pot_stack_views.png` · Portrait 2:3 · Attach: pot_stack.jpg (its painting) · Model: `ArtSource/models_meshy/lane/pot_stack.glb`
 
 ```text
 Portrait 2:3 image.
@@ -543,7 +550,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Rope cot · `rope_cot`
 
-Save as `rope_cot_views.png` · Landscape 3:2 · Attach: rope_cot.jpg (its painting) · Model: `ArtSource/models_meshy/lane/rope_cot.glb`
+**On the lane** · Save as `rope_cot_views.png` · Landscape 3:2 · Attach: rope_cot.jpg (its painting) · Model: `ArtSource/models_meshy/lane/rope_cot.glb`
 
 ```text
 Landscape 3:2 image.
@@ -559,7 +566,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Provisions shop · `shop_provisions`
 
-Save as `shop_provisions_views.png` · Square 1:1 · Attach: shop_provisions.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shop_provisions.glb`
+**Beside the lane** · Save as `shop_provisions_views.png` · Square 1:1 · Attach: shop_provisions.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shop_provisions.glb`
 
 ```text
 Square 1:1 image.
@@ -575,7 +582,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tailor and cycle shop · `shop_tailor_cycle`
 
-Save as `shop_tailor_cycle_views.png` · Square 1:1 · Attach: shop_tailor_cycle.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shop_tailor_cycle.glb`
+**Not in the game yet** · Save as `shop_tailor_cycle_views.png` · Square 1:1 · Attach: shop_tailor_cycle.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shop_tailor_cycle.glb`
 
 ```text
 Square 1:1 image.
@@ -591,7 +598,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tea stall · `shop_tea_stall`
 
-Save as `shop_tea_stall_views.png` · Square 1:1 · Attach: shop_tea_stall.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shop_tea_stall.glb`
+**Beside the lane** · Save as `shop_tea_stall_views.png` · Square 1:1 · Attach: shop_tea_stall.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shop_tea_stall.glb`
 
 ```text
 Square 1:1 image.
@@ -607,7 +614,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Stone shrine · `shrine_stone`
 
-Save as `shrine_stone_views.png` · Square 1:1 · Attach: shrine_stone.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shrine_stone.glb`
+**Not in the game yet** · Save as `shrine_stone_views.png` · Square 1:1 · Attach: shrine_stone.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shrine_stone.glb`
 
 ```text
 Square 1:1 image.
@@ -623,7 +630,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tree shrine · `shrine_tree`
 
-Save as `shrine_tree_views.png` · Square 1:1 · Attach: shrine_tree.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shrine_tree.glb`
+**Beside the lane** · Save as `shrine_tree_views.png` · Square 1:1 · Attach: shrine_tree.jpg (its painting) · Model: `ArtSource/models_meshy/lane/shrine_tree.glb`
 
 ```text
 Square 1:1 image.
@@ -639,7 +646,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Mango tree · `tree_mango_1`
 
-Save as `tree_mango_1_views.png` · Square 1:1 · Attach: tree_mango_1.jpg (its painting) · Model: `ArtSource/models_meshy/lane/tree_mango_1.glb`
+**On the lane** · Save as `tree_mango_1_views.png` · Square 1:1 · Attach: tree_mango_1.jpg (its painting) · Model: `ArtSource/models_meshy/lane/tree_mango_1.glb`
 
 ```text
 Square 1:1 image.
@@ -655,7 +662,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Mango tree (2) · `tree_mango_2`
 
-Save as `tree_mango_2_views.png` · Square 1:1 · Attach: tree_mango_2.jpg (its painting) · Model: `ArtSource/models_meshy/lane/tree_mango_2.glb`
+**Far off** · Save as `tree_mango_2_views.png` · Square 1:1 · Attach: tree_mango_2.jpg (its painting) · Model: `ArtSource/models_meshy/lane/tree_mango_2.glb`
 
 ```text
 Square 1:1 image.
@@ -671,7 +678,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tulsi planter · `tulsi_planter`
 
-Save as `tulsi_planter_views.png` · Portrait 2:3 · Attach: tulsi_planter.jpg (its painting) · Model: `ArtSource/models_meshy/lane/tulsi_planter.glb`
+**Beside the lane** · Save as `tulsi_planter_views.png` · Portrait 2:3 · Attach: tulsi_planter.jpg (its painting) · Model: `ArtSource/models_meshy/lane/tulsi_planter.glb`
 
 ```text
 Portrait 2:3 image.
@@ -687,7 +694,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Water pot on a stand · `water_pot_stand`
 
-Save as `water_pot_stand_views.png` · Square 1:1 · Attach: water_pot_stand.jpg (its painting) · Model: `ArtSource/models_meshy/lane/water_pot_stand.glb`
+**On the lane** · Save as `water_pot_stand_views.png` · Square 1:1 · Attach: water_pot_stand.jpg (its painting) · Model: `ArtSource/models_meshy/lane/water_pot_stand.glb`
 
 ```text
 Square 1:1 image.
@@ -707,7 +714,7 @@ Zone 2: field buildings, crops, the canal and field life.
 
 ### Field bund block · `bund_block`
 
-Save as `bund_block_views.png` · Landscape 3:2 · Attach: bund_block.jpg (its painting) · Model: `ArtSource/models_meshy/fields/bund_block.glb`
+**Not in the game yet** · Save as `bund_block_views.png` · Landscape 3:2 · Attach: bund_block.jpg (its painting) · Model: `ArtSource/models_meshy/fields/bund_block.glb`
 
 ```text
 Landscape 3:2 image.
@@ -723,7 +730,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Field bund strip · `bund_strip`
 
-Save as `bund_strip_views.png` · Landscape 3:2 · Attach: bund_strip.jpg (its painting) · Model: `ArtSource/models_meshy/fields/bund_strip.glb`
+**Not in the game yet** · Save as `bund_strip_views.png` · Landscape 3:2 · Attach: bund_strip.jpg (its painting) · Model: `ArtSource/models_meshy/fields/bund_strip.glb`
 
 ```text
 Landscape 3:2 image.
@@ -739,7 +746,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Canal bank · `canal_bank`
 
-Save as `canal_bank_views.png` · Landscape 3:2 · Attach: canal_bank.jpg (its painting) · Model: `ArtSource/models_meshy/fields/canal_bank.glb`
+**Beside the lane** · Save as `canal_bank_views.png` · Landscape 3:2 · Attach: canal_bank.jpg (its painting) · Model: `ArtSource/models_meshy/fields/canal_bank.glb`
 
 ```text
 Landscape 3:2 image.
@@ -755,7 +762,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Canal bridge · `canal_bridge`
 
-Save as `canal_bridge_views.png` · Landscape 3:2 · Attach: canal_bridge.jpg (its painting) · Model: `ArtSource/models_meshy/fields/canal_bridge.glb`
+**Not in the game yet** · Save as `canal_bridge_views.png` · Landscape 3:2 · Attach: canal_bridge.jpg (its painting) · Model: `ArtSource/models_meshy/fields/canal_bridge.glb`
 
 ```text
 Landscape 3:2 image.
@@ -771,7 +778,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Seedbed strip · `crop_strip_1`
 
-Save as `crop_strip_1_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_1.glb`
+**Beside the lane** · Save as `crop_strip_1_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -787,7 +794,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Stubble strip · `crop_strip_2`
 
-Save as `crop_strip_2_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_2.glb`
+**Not in the game yet** · Save as `crop_strip_2_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_2.glb`
 
 ```text
 Landscape 3:2 image.
@@ -803,7 +810,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sorghum strip · `crop_strip_3`
 
-Save as `crop_strip_3_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_3.glb`
+**Beside the lane** · Save as `crop_strip_3_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -819,7 +826,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Groundnut strip · `crop_strip_4`
 
-Save as `crop_strip_4_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_4.glb`
+**Not in the game yet** · Save as `crop_strip_4_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_4.glb`
 
 ```text
 Landscape 3:2 image.
@@ -835,7 +842,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cotton strip · `crop_strip_5`
 
-Save as `crop_strip_5_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_5.glb`
+**Beside the lane** · Save as `crop_strip_5_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_5.glb`
 
 ```text
 Landscape 3:2 image.
@@ -851,7 +858,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Banana strip · `crop_strip_6`
 
-Save as `crop_strip_6_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_6.glb`
+**Beside the lane** · Save as `crop_strip_6_views.png` · Landscape 3:2 · Attach: A1_key_art.png · Model: `ArtSource/models_meshy/fields/crop_strip_6.glb`
 
 ```text
 Landscape 3:2 image.
@@ -867,7 +874,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Well with a bullock water lift · `field_bldg_1`
 
-Save as `field_bldg_1_views.png` · Landscape 3:2 · Attach: field_bldg_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_bldg_1.glb`
+**Far off** · Save as `field_bldg_1_views.png` · Landscape 3:2 · Attach: field_bldg_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_bldg_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -883,7 +890,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Watch hut on stilts · `field_bldg_2`
 
-Save as `field_bldg_2_views.png` · Square 1:1 · Attach: field_bldg_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_bldg_2.glb`
+**Far off** · Save as `field_bldg_2_views.png` · Square 1:1 · Attach: field_bldg_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_bldg_2.glb`
 
 ```text
 Square 1:1 image.
@@ -899,7 +906,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Farm shed with a haystack · `field_bldg_3`
 
-Save as `field_bldg_3_views.png` · Landscape 3:2 · Attach: field_bldg_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_bldg_3.glb`
+**Far off** · Save as `field_bldg_3_views.png` · Landscape 3:2 · Attach: field_bldg_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_bldg_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -915,7 +922,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Farmer ploughing · `field_life_1`
 
-Save as `field_life_1_views.png` · Landscape 3:2 · Attach: field_life_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_1.glb`
+**Beside the lane** · Save as `field_life_1_views.png` · Landscape 3:2 · Attach: field_life_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -931,7 +938,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Women transplanting paddy · `field_life_2`
 
-Save as `field_life_2_views.png` · Landscape 3:2 · Attach: field_life_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_2.glb`
+**Beside the lane** · Save as `field_life_2_views.png` · Landscape 3:2 · Attach: field_life_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_2.glb`
 
 ```text
 Landscape 3:2 image.
@@ -947,7 +954,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Boy herding goats · `field_life_3`
 
-Save as `field_life_3_views.png` · Landscape 3:2 · Attach: field_life_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_3.glb`
+**Beside the lane** · Save as `field_life_3_views.png` · Landscape 3:2 · Attach: field_life_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -963,7 +970,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Buffalo with an egret · `field_life_4`
 
-Save as `field_life_4_views.png` · Landscape 3:2 · Attach: field_life_4.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_4.glb`
+**Beside the lane** · Save as `field_life_4_views.png` · Landscape 3:2 · Attach: field_life_4.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_4.glb`
 
 ```text
 Landscape 3:2 image.
@@ -979,7 +986,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Old man herding ducks · `field_life_5`
 
-Save as `field_life_5_views.png` · Landscape 3:2 · Attach: field_life_5.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_5.glb`
+**Beside the lane** · Save as `field_life_5_views.png` · Landscape 3:2 · Attach: field_life_5.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_5.glb`
 
 ```text
 Landscape 3:2 image.
@@ -995,7 +1002,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Man carrying a paddy sheaf · `field_life_6`
 
-Save as `field_life_6_views.png` · Portrait 2:3 · Attach: field_life_6.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_6.glb`
+**Beside the lane** · Save as `field_life_6_views.png` · Portrait 2:3 · Attach: field_life_6.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_life_6.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1011,7 +1018,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Field shrine · `field_shrine`
 
-Save as `field_shrine_views.png` · Portrait 2:3 · Attach: field_shrine.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_shrine.glb`
+**Not in the game yet** · Save as `field_shrine_views.png` · Portrait 2:3 · Attach: field_shrine.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_shrine.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1027,7 +1034,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Banyan tree · `field_tree_1`
 
-Save as `field_tree_1_views.png` · Square 1:1 · Attach: field_tree_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_1.glb`
+**Far off** · Save as `field_tree_1_views.png` · Square 1:1 · Attach: field_tree_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_1.glb`
 
 ```text
 Square 1:1 image.
@@ -1043,7 +1050,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Gnarled field tree · `field_tree_2`
 
-Save as `field_tree_2_views.png` · Square 1:1 · Attach: field_tree_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_2.glb`
+**Far off** · Save as `field_tree_2_views.png` · Square 1:1 · Attach: field_tree_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1059,7 +1066,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Bamboo clump · `field_tree_3`
 
-Save as `field_tree_3_views.png` · Portrait 2:3 · Attach: field_tree_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_3.glb`
+**Far off** · Save as `field_tree_3_views.png` · Portrait 2:3 · Attach: field_tree_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_3.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1075,7 +1082,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Screw pine bush · `field_tree_4`
 
-Save as `field_tree_4_views.png` · Square 1:1 · Attach: field_tree_4.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_4.glb`
+**Far off** · Save as `field_tree_4_views.png` · Square 1:1 · Attach: field_tree_4.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_4.glb`
 
 ```text
 Square 1:1 image.
@@ -1091,7 +1098,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Casuarina trees · `field_tree_5`
 
-Save as `field_tree_5_views.png` · Portrait 2:3 · Attach: field_tree_5.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_5.glb`
+**Far off** · Save as `field_tree_5_views.png` · Portrait 2:3 · Attach: field_tree_5.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_5.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1107,7 +1114,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cactus and agave · `field_tree_6`
 
-Save as `field_tree_6_views.png` · Landscape 3:2 · Attach: field_tree_6.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_6.glb`
+**Not in the game yet** · Save as `field_tree_6_views.png` · Landscape 3:2 · Attach: field_tree_6.jpg (its painting) · Model: `ArtSource/models_meshy/fields/field_tree_6.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1123,7 +1130,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Granary on stone legs · `granary`
 
-Save as `granary_views.png` · Square 1:1 · Attach: granary.jpg (its painting) · Model: `ArtSource/models_meshy/fields/granary.glb`
+**Far off** · Save as `granary_views.png` · Square 1:1 · Attach: granary.jpg (its painting) · Model: `ArtSource/models_meshy/fields/granary.glb`
 
 ```text
 Square 1:1 image.
@@ -1139,7 +1146,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Haystack · `haystack`
 
-Save as `haystack_views.png` · Square 1:1 · Attach: haystack.jpg (its painting) · Model: `ArtSource/models_meshy/fields/haystack.glb`
+**On the lane** · Save as `haystack_views.png` · Square 1:1 · Attach: haystack.jpg (its painting) · Model: `ArtSource/models_meshy/fields/haystack.glb`
 
 ```text
 Square 1:1 image.
@@ -1155,7 +1162,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Small haystack · `haystack_small`
 
-Save as `haystack_small_views.png` · Square 1:1 · Attach: haystack_small.jpg (its painting) · Model: `ArtSource/models_meshy/fields/haystack_small.glb`
+**On the lane** · Save as `haystack_small_views.png` · Square 1:1 · Attach: haystack_small.jpg (its painting) · Model: `ArtSource/models_meshy/fields/haystack_small.glb`
 
 ```text
 Square 1:1 image.
@@ -1171,7 +1178,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Hut with a goat pen · `hut_with_pen`
 
-Save as `hut_with_pen_views.png` · Landscape 3:2 · Attach: hut_with_pen.jpg (its painting) · Model: `ArtSource/models_meshy/fields/hut_with_pen.glb`
+**Not in the game yet** · Save as `hut_with_pen_views.png` · Landscape 3:2 · Attach: hut_with_pen.jpg (its painting) · Model: `ArtSource/models_meshy/fields/hut_with_pen.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1187,7 +1194,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Ripe paddy row · `paddy_ripe`
 
-Save as `paddy_ripe_views.png` · Landscape 3:2 · Attach: paddy_ripe.jpg (its painting) · Model: `ArtSource/models_meshy/fields/paddy_ripe.glb`
+**Beside the lane** · Save as `paddy_ripe_views.png` · Landscape 3:2 · Attach: paddy_ripe.jpg (its painting) · Model: `ArtSource/models_meshy/fields/paddy_ripe.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1203,7 +1210,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Green paddy row · `paddy_tall`
 
-Save as `paddy_tall_views.png` · Landscape 3:2 · Attach: paddy_tall.jpg (its painting) · Model: `ArtSource/models_meshy/fields/paddy_tall.glb`
+**Beside the lane** · Save as `paddy_tall_views.png` · Landscape 3:2 · Attach: paddy_tall.jpg (its painting) · Model: `ArtSource/models_meshy/fields/paddy_tall.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1219,7 +1226,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Young paddy in water · `paddy_young`
 
-Save as `paddy_young_views.png` · Landscape 3:2 · Attach: paddy_young.jpg (its painting) · Model: `ArtSource/models_meshy/fields/paddy_young.glb`
+**Beside the lane** · Save as `paddy_young_views.png` · Landscape 3:2 · Attach: paddy_young.jpg (its painting) · Model: `ArtSource/models_meshy/fields/paddy_young.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1235,7 +1242,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Palmyra palm · `palmyra_1`
 
-Save as `palmyra_1_views.png` · Portrait 2:3 · Attach: palmyra_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/palmyra_1.glb`
+**Far off** · Save as `palmyra_1_views.png` · Portrait 2:3 · Attach: palmyra_1.jpg (its painting) · Model: `ArtSource/models_meshy/fields/palmyra_1.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1251,7 +1258,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Palmyra palm (2) · `palmyra_2`
 
-Save as `palmyra_2_views.png` · Portrait 2:3 · Attach: palmyra_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/palmyra_2.glb`
+**Far off** · Save as `palmyra_2_views.png` · Portrait 2:3 · Attach: palmyra_2.jpg (its painting) · Model: `ArtSource/models_meshy/fields/palmyra_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1267,7 +1274,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Palmyra palm (3) · `palmyra_3`
 
-Save as `palmyra_3_views.png` · Portrait 2:3 · Attach: palmyra_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/palmyra_3.glb`
+**Far off** · Save as `palmyra_3_views.png` · Portrait 2:3 · Attach: palmyra_3.jpg (its painting) · Model: `ArtSource/models_meshy/fields/palmyra_3.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1283,7 +1290,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pump house · `pump_house`
 
-Save as `pump_house_views.png` · Square 1:1 · Attach: pump_house.jpg (its painting) · Model: `ArtSource/models_meshy/fields/pump_house.glb`
+**Not in the game yet** · Save as `pump_house_views.png` · Square 1:1 · Attach: pump_house.jpg (its painting) · Model: `ArtSource/models_meshy/fields/pump_house.glb`
 
 ```text
 Square 1:1 image.
@@ -1299,7 +1306,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Scarecrow · `scarecrow`
 
-Save as `scarecrow_views.png` · Square 1:1 · Attach: scarecrow.jpg (its painting) · Model: `ArtSource/models_meshy/fields/scarecrow.glb`
+**Beside the lane** · Save as `scarecrow_views.png` · Square 1:1 · Attach: scarecrow.jpg (its painting) · Model: `ArtSource/models_meshy/fields/scarecrow.glb`
 
 ```text
 Square 1:1 image.
@@ -1315,7 +1322,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sluice gate · `sluice_gate`
 
-Save as `sluice_gate_views.png` · Square 1:1 · Attach: sluice_gate.jpg (its painting) · Model: `ArtSource/models_meshy/fields/sluice_gate.glb`
+**Beside the lane** · Save as `sluice_gate_views.png` · Square 1:1 · Attach: sluice_gate.jpg (its painting) · Model: `ArtSource/models_meshy/fields/sluice_gate.glb`
 
 ```text
 Square 1:1 image.
@@ -1331,7 +1338,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sugarcane row · `sugarcane`
 
-Save as `sugarcane_views.png` · Landscape 3:2 · Attach: sugarcane.jpg (its painting) · Model: `ArtSource/models_meshy/fields/sugarcane.glb`
+**Beside the lane** · Save as `sugarcane_views.png` · Landscape 3:2 · Attach: sugarcane.jpg (its painting) · Model: `ArtSource/models_meshy/fields/sugarcane.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1347,7 +1354,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Village well · `well`
 
-Save as `well_views.png` · Square 1:1 · Attach: well.jpg (its painting) · Model: `ArtSource/models_meshy/fields/well.glb`
+**On the lane** · Save as `well_views.png` · Square 1:1 · Attach: well.jpg (its painting) · Model: `ArtSource/models_meshy/fields/well.glb`
 
 ```text
 Square 1:1 image.
@@ -1367,7 +1374,7 @@ Zone 3: stalls, terrace houses, temple pieces and market props.
 
 ### Water tank · `black_tank`
 
-Save as `black_tank_views.png` · Square 1:1 · Attach: black_tank.jpg (its painting) · Model: `ArtSource/models_meshy/market/black_tank.glb`
+**On the lane** · Save as `black_tank_views.png` · Square 1:1 · Attach: black_tank.jpg (its painting) · Model: `ArtSource/models_meshy/market/black_tank.glb`
 
 Note: Your style rules rule out black plastic tanks: make it a plastered terracotta tank, keeping its shape and stand.
 
@@ -1385,7 +1392,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Brass vessels · `brass_vessels`
 
-Save as `brass_vessels_views.png` · Square 1:1 · Attach: brass_vessels.jpg (its painting) · Model: `ArtSource/models_meshy/market/brass_vessels.glb`
+**Not in the game yet** · Save as `brass_vessels_views.png` · Square 1:1 · Attach: brass_vessels.jpg (its painting) · Model: `ArtSource/models_meshy/market/brass_vessels.glb`
 
 ```text
 Square 1:1 image.
@@ -1401,7 +1408,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Bunting · `bunting`
 
-Save as `bunting_views.png` · Landscape 3:2 · Attach: bunting.jpg (its painting) · Model: `ArtSource/models_meshy/market/bunting.glb`
+**Beside the lane** · Save as `bunting_views.png` · Landscape 3:2 · Attach: bunting.jpg (its painting) · Model: `ArtSource/models_meshy/market/bunting.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1417,7 +1424,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Chariot shed · `chariot_shed`
 
-Save as `chariot_shed_views.png` · Landscape 3:2 · Attach: chariot_shed.jpg (its painting) · Model: `ArtSource/models_meshy/market/chariot_shed.glb`
+**Beside the lane** · Save as `chariot_shed_views.png` · Landscape 3:2 · Attach: chariot_shed.jpg (its painting) · Model: `ArtSource/models_meshy/market/chariot_shed.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1433,7 +1440,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Chilli mat · `chilli_mat`
 
-Save as `chilli_mat_views.png` · Landscape 3:2 · Attach: chilli_mat.jpg (its painting) · Model: `ArtSource/models_meshy/market/chilli_mat.glb`
+**On the lane** · Save as `chilli_mat_views.png` · Landscape 3:2 · Attach: chilli_mat.jpg (its painting) · Model: `ArtSource/models_meshy/market/chilli_mat.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1449,7 +1456,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Coconut cart · `coconut_cart`
 
-Save as `coconut_cart_views.png` · Landscape 3:2 · Attach: coconut_cart.jpg (its painting) · Model: `ArtSource/models_meshy/market/coconut_cart.glb`
+**Beside the lane** · Save as `coconut_cart_views.png` · Landscape 3:2 · Attach: coconut_cart.jpg (its painting) · Model: `ArtSource/models_meshy/market/coconut_cart.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1465,7 +1472,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Flower stall · `flower_stall`
 
-Save as `flower_stall_views.png` · Square 1:1 · Attach: flower_stall.jpg (its painting) · Model: `ArtSource/models_meshy/market/flower_stall.glb`
+**Not in the game yet** · Save as `flower_stall_views.png` · Square 1:1 · Attach: flower_stall.jpg (its painting) · Model: `ArtSource/models_meshy/market/flower_stall.glb`
 
 ```text
 Square 1:1 image.
@@ -1481,7 +1488,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Hens in a basket · `hens_basket`
 
-Save as `hens_basket_views.png` · Square 1:1 · Attach: hens_basket.jpg (its painting) · Model: `ArtSource/models_meshy/market/hens_basket.glb`
+**On the lane** · Save as `hens_basket_views.png` · Square 1:1 · Attach: hens_basket.jpg (its painting) · Model: `ArtSource/models_meshy/market/hens_basket.glb`
 
 ```text
 Square 1:1 image.
@@ -1497,7 +1504,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Kite · `kite`
 
-Save as `kite_views.png` · Portrait 2:3 · Attach: kite.jpg (its painting) · Model: `ArtSource/models_meshy/market/kite.glb`
+**Far off** · Save as `kite_views.png` · Portrait 2:3 · Attach: kite.jpg (its painting) · Model: `ArtSource/models_meshy/market/kite.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1513,7 +1520,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Lamp steps · `lamp_step`
 
-Save as `lamp_step_views.png` · Square 1:1 · Attach: lamp_step.jpg (its painting) · Model: `ArtSource/models_meshy/market/lamp_step.glb`
+**On the lane** · Save as `lamp_step_views.png` · Square 1:1 · Attach: lamp_step.jpg (its painting) · Model: `ArtSource/models_meshy/market/lamp_step.glb`
 
 ```text
 Square 1:1 image.
@@ -1529,7 +1536,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Lantern · `lantern`
 
-Save as `lantern_views.png` · Portrait 2:3 · Attach: lantern.jpg (its painting) · Model: `ArtSource/models_meshy/market/lantern.glb`
+**On the lane** · Save as `lantern_views.png` · Portrait 2:3 · Attach: lantern.jpg (its painting) · Model: `ArtSource/models_meshy/market/lantern.glb`
 
 ```text
 Portrait 2:3 image.
@@ -1545,7 +1552,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Mandapam · `mandapam`
 
-Save as `mandapam_views.png` · Landscape 3:2 · Attach: mandapam.jpg (its painting) · Model: `ArtSource/models_meshy/market/mandapam.glb`
+**On the lane** · Save as `mandapam_views.png` · Landscape 3:2 · Attach: mandapam.jpg (its painting) · Model: `ArtSource/models_meshy/market/mandapam.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1561,7 +1568,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Papad mat · `papad_mat`
 
-Save as `papad_mat_views.png` · Landscape 3:2 · Attach: papad_mat.jpg (its painting) · Model: `ArtSource/models_meshy/market/papad_mat.glb`
+**On the lane** · Save as `papad_mat_views.png` · Landscape 3:2 · Attach: papad_mat.jpg (its painting) · Model: `ArtSource/models_meshy/market/papad_mat.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1577,7 +1584,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Roof parapet · `parapet_gap`
 
-Save as `parapet_gap_views.png` · Landscape 3:2 · Attach: parapet_gap.jpg (its painting) · Model: `ArtSource/models_meshy/market/parapet_gap.glb`
+**Not in the game yet** · Save as `parapet_gap_views.png` · Landscape 3:2 · Attach: parapet_gap.jpg (its painting) · Model: `ArtSource/models_meshy/market/parapet_gap.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1593,7 +1600,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### House with a terrace stair · `roof_house_a_1`
 
-Save as `roof_house_a_1_views.png` · Landscape 3:2 · Attach: roof_house_a_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_a_1.glb`
+**Beside the lane** · Save as `roof_house_a_1_views.png` · Landscape 3:2 · Attach: roof_house_a_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_a_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1609,7 +1616,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Mud house with a roof garden · `roof_house_a_2`
 
-Save as `roof_house_a_2_views.png` · Landscape 3:2 · Attach: roof_house_a_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_a_2.glb`
+**Beside the lane** · Save as `roof_house_a_2_views.png` · Landscape 3:2 · Attach: roof_house_a_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_a_2.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1625,7 +1632,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Blue terrace house · `roof_house_b_1`
 
-Save as `roof_house_b_1_views.png` · Landscape 3:2 · Attach: roof_house_b_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_b_1.glb`
+**Beside the lane** · Save as `roof_house_b_1_views.png` · Landscape 3:2 · Attach: roof_house_b_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_b_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1641,7 +1648,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Old house with a roof hut · `roof_house_b_2`
 
-Save as `roof_house_b_2_views.png` · Landscape 3:2 · Attach: roof_house_b_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_b_2.glb`
+**Beside the lane** · Save as `roof_house_b_2_views.png` · Landscape 3:2 · Attach: roof_house_b_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/roof_house_b_2.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1657,7 +1664,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Spice stall · `stall_c_1`
 
-Save as `stall_c_1_views.png` · Landscape 3:2 · Attach: stall_c_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_c_1.glb`
+**On the lane** · Save as `stall_c_1_views.png` · Landscape 3:2 · Attach: stall_c_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_c_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1673,7 +1680,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Vegetable seller under an umbrella · `stall_c_2`
 
-Save as `stall_c_2_views.png` · Square 1:1 · Attach: stall_c_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_c_2.glb`
+**Beside the lane** · Save as `stall_c_2_views.png` · Square 1:1 · Attach: stall_c_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_c_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1689,7 +1696,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cloth stall · `stall_c_3`
 
-Save as `stall_c_3_views.png` · Landscape 3:2 · Attach: stall_c_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_c_3.glb`
+**Beside the lane** · Save as `stall_c_3_views.png` · Landscape 3:2 · Attach: stall_c_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_c_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1705,7 +1712,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Coconut and gourd stall · `stall_d_1`
 
-Save as `stall_d_1_views.png` · Landscape 3:2 · Attach: stall_d_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_d_1.glb`
+**Beside the lane** · Save as `stall_d_1_views.png` · Landscape 3:2 · Attach: stall_d_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_d_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1721,7 +1728,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pot stall · `stall_d_2`
 
-Save as `stall_d_2_views.png` · Square 1:1 · Attach: stall_d_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_d_2.glb`
+**On the lane** · Save as `stall_d_2_views.png` · Square 1:1 · Attach: stall_d_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_d_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1737,7 +1744,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Basket stall · `stall_d_3`
 
-Save as `stall_d_3_views.png` · Landscape 3:2 · Attach: stall_d_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_d_3.glb`
+**Not in the game yet** · Save as `stall_d_3_views.png` · Landscape 3:2 · Attach: stall_d_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_d_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1753,7 +1760,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Vegetable stall · `stall_e_1`
 
-Save as `stall_e_1_views.png` · Landscape 3:2 · Attach: stall_e_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_e_1.glb`
+**Beside the lane** · Save as `stall_e_1_views.png` · Landscape 3:2 · Attach: stall_e_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_e_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1769,7 +1776,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Snack fryer's stall · `stall_e_2`
 
-Save as `stall_e_2_views.png` · Square 1:1 · Attach: stall_e_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_e_2.glb`
+**Beside the lane** · Save as `stall_e_2_views.png` · Square 1:1 · Attach: stall_e_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_e_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1785,7 +1792,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Parrot fortune teller · `stall_e_3`
 
-Save as `stall_e_3_views.png` · Square 1:1 · Attach: stall_e_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_e_3.glb`
+**On the lane** · Save as `stall_e_3_views.png` · Square 1:1 · Attach: stall_e_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_e_3.glb`
 
 ```text
 Square 1:1 image.
@@ -1801,7 +1808,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sweets counter · `stall_f_1`
 
-Save as `stall_f_1_views.png` · Square 1:1 · Attach: stall_f_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_1.glb`
+**On the lane** · Save as `stall_f_1_views.png` · Square 1:1 · Attach: stall_f_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_1.glb`
 
 ```text
 Square 1:1 image.
@@ -1817,7 +1824,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sweets shelves · `stall_f_2`
 
-Save as `stall_f_2_views.png` · Square 1:1 · Attach: stall_f_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_2.glb`
+**Not in the game yet** · Save as `stall_f_2_views.png` · Square 1:1 · Attach: stall_f_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1833,7 +1840,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sugarcane juice stall · `stall_f_3`
 
-Save as `stall_f_3_views.png` · Square 1:1 · Attach: stall_f_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_3.glb`
+**Not in the game yet** · Save as `stall_f_3_views.png` · Square 1:1 · Attach: stall_f_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_3.glb`
 
 ```text
 Square 1:1 image.
@@ -1849,7 +1856,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Broom and mat seller · `stall_f_4`
 
-Save as `stall_f_4_views.png` · Square 1:1 · Attach: stall_f_4.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_4.glb`
+**Beside the lane** · Save as `stall_f_4_views.png` · Square 1:1 · Attach: stall_f_4.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_f_4.glb`
 
 ```text
 Square 1:1 image.
@@ -1865,7 +1872,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Flower seller · `stall_flowers`
 
-Save as `stall_flowers_views.png` · Square 1:1 · Attach: stall_flowers.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_flowers.glb`
+**On the lane** · Save as `stall_flowers_views.png` · Square 1:1 · Attach: stall_flowers.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_flowers.glb`
 
 ```text
 Square 1:1 image.
@@ -1881,7 +1888,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Dried fish stall · `stall_g_1`
 
-Save as `stall_g_1_views.png` · Landscape 3:2 · Attach: stall_g_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_g_1.glb`
+**Beside the lane** · Save as `stall_g_1_views.png` · Landscape 3:2 · Attach: stall_g_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_g_1.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1897,7 +1904,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Bangle stall · `stall_g_2`
 
-Save as `stall_g_2_views.png` · Square 1:1 · Attach: stall_g_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_g_2.glb`
+**On the lane** · Save as `stall_g_2_views.png` · Square 1:1 · Attach: stall_g_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_g_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1913,7 +1920,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Banana stall · `stall_g_3`
 
-Save as `stall_g_3_views.png` · Landscape 3:2 · Attach: stall_g_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_g_3.glb`
+**Beside the lane** · Save as `stall_g_3_views.png` · Landscape 3:2 · Attach: stall_g_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_g_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -1929,7 +1936,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cobbler · `stall_h_1`
 
-Save as `stall_h_1_views.png` · Square 1:1 · Attach: stall_h_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_h_1.glb`
+**On the lane** · Save as `stall_h_1_views.png` · Square 1:1 · Attach: stall_h_1.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_h_1.glb`
 
 ```text
 Square 1:1 image.
@@ -1945,7 +1952,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Barber's pitch · `stall_h_2`
 
-Save as `stall_h_2_views.png` · Square 1:1 · Attach: stall_h_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_h_2.glb`
+**Not in the game yet** · Save as `stall_h_2_views.png` · Square 1:1 · Attach: stall_h_2.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_h_2.glb`
 
 ```text
 Square 1:1 image.
@@ -1961,7 +1968,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Knife grinder · `stall_h_3`
 
-Save as `stall_h_3_views.png` · Square 1:1 · Attach: stall_h_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_h_3.glb`
+**Beside the lane** · Save as `stall_h_3_views.png` · Square 1:1 · Attach: stall_h_3.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_h_3.glb`
 
 ```text
 Square 1:1 image.
@@ -1977,7 +1984,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tall grain stall · `stall_high`
 
-Save as `stall_high_views.png` · Square 1:1 · Attach: stall_high.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_high.glb`
+**Not in the game yet** · Save as `stall_high_views.png` · Square 1:1 · Attach: stall_high.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_high.glb`
 
 Note: Your style rules rule out striped awnings: make its shade plain faded madder-red cotton, keeping its shape.
 
@@ -1995,7 +2002,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Low leaf stall · `stall_low`
 
-Save as `stall_low_views.png` · Square 1:1 · Attach: stall_low.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_low.glb`
+**Not in the game yet** · Save as `stall_low_views.png` · Square 1:1 · Attach: stall_low.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_low.glb`
 
 Note: Your style rules rule out striped awnings: make its shade plain faded turmeric cotton, keeping its shape.
 
@@ -2013,7 +2020,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Potter's pitch · `stall_potter`
 
-Save as `stall_potter_views.png` · Landscape 3:2 · Attach: stall_potter.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_potter.glb`
+**Not in the game yet** · Save as `stall_potter_views.png` · Landscape 3:2 · Attach: stall_potter.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_potter.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2029,7 +2036,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sweet maker · `stall_sweets`
 
-Save as `stall_sweets_views.png` · Landscape 3:2 · Attach: stall_sweets.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_sweets.glb`
+**Not in the game yet** · Save as `stall_sweets_views.png` · Landscape 3:2 · Attach: stall_sweets.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_sweets.glb`
 
 Note: Your style rules rule out striped awnings: make its shade plain undyed cotton, keeping its shape.
 
@@ -2047,7 +2054,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Vegetable heap stall · `stall_veg`
 
-Save as `stall_veg_views.png` · Landscape 3:2 · Attach: stall_veg.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_veg.glb`
+**Not in the game yet** · Save as `stall_veg_views.png` · Landscape 3:2 · Attach: stall_veg.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_veg.glb`
 
 Note: Your style rules rule out striped awnings: make its shade plain faded indigo cotton, keeping its shape.
 
@@ -2065,7 +2072,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Vessel stall · `stall_vessels`
 
-Save as `stall_vessels_views.png` · Landscape 3:2 · Attach: stall_vessels.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_vessels.glb`
+**On the lane** · Save as `stall_vessels_views.png` · Landscape 3:2 · Attach: stall_vessels.jpg (its painting) · Model: `ArtSource/models_meshy/market/stall_vessels.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2081,7 +2088,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Temple tank wall · `tank_wall`
 
-Save as `tank_wall_views.png` · Landscape 3:2 · Attach: tank_wall.jpg (its painting) · Model: `ArtSource/models_meshy/market/tank_wall.glb`
+**Beside the lane** · Save as `tank_wall_views.png` · Landscape 3:2 · Attach: tank_wall.jpg (its painting) · Model: `ArtSource/models_meshy/market/tank_wall.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2097,7 +2104,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Vegetable basket · `veg_basket`
 
-Save as `veg_basket_views.png` · Square 1:1 · Attach: veg_basket.jpg (its painting) · Model: `ArtSource/models_meshy/market/veg_basket.glb`
+**Not in the game yet** · Save as `veg_basket_views.png` · Square 1:1 · Attach: veg_basket.jpg (its painting) · Model: `ArtSource/models_meshy/market/veg_basket.glb`
 
 ```text
 Square 1:1 image.
@@ -2117,7 +2124,7 @@ Every animal that stands or sits about in the three zones.
 
 ### Buffalo in the mud · `buffalo_mud`
 
-Save as `buffalo_mud_views.png` · Landscape 3:2 · Attach: buffalo_mud.jpg (its painting) · Model: `ArtSource/models_meshy/animals/buffalo_mud.glb`
+**On the lane** · Save as `buffalo_mud_views.png` · Landscape 3:2 · Attach: buffalo_mud.jpg (its painting) · Model: `ArtSource/models_meshy/animals/buffalo_mud.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2133,7 +2140,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pair of bullocks · `bullocks`
 
-Save as `bullocks_views.png` · Landscape 3:2 · Attach: bullocks.jpg (its painting) · Model: `ArtSource/models_meshy/animals/bullocks.glb`
+**Beside the lane** · Save as `bullocks_views.png` · Landscape 3:2 · Attach: bullocks.jpg (its painting) · Model: `ArtSource/models_meshy/animals/bullocks.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2149,7 +2156,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Calf · `calf`
 
-Save as `calf_views.png` · Square 1:1 · Attach: calf.jpg (its painting) · Model: `ArtSource/models_meshy/animals/calf.glb`
+**Beside the lane** · Save as `calf_views.png` · Square 1:1 · Attach: calf.jpg (its painting) · Model: `ArtSource/models_meshy/animals/calf.glb`
 
 ```text
 Square 1:1 image.
@@ -2165,7 +2172,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Cat asleep on a wall · `cat_on_wall`
 
-Save as `cat_on_wall_views.png` · Landscape 3:2 · Attach: cat_on_wall.jpg (its painting) · Model: `ArtSource/models_meshy/animals/cat_on_wall.glb`
+**Not in the game yet** · Save as `cat_on_wall_views.png` · Landscape 3:2 · Attach: cat_on_wall.jpg (its painting) · Model: `ArtSource/models_meshy/animals/cat_on_wall.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2181,7 +2188,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### White cow · `cow`
 
-Save as `cow_views.png` · Square 1:1 · Attach: cow.jpg (its painting) · Model: `ArtSource/models_meshy/animals/cow.glb`
+**Beside the lane** · Save as `cow_views.png` · Square 1:1 · Attach: cow.jpg (its painting) · Model: `ArtSource/models_meshy/animals/cow.glb`
 
 ```text
 Square 1:1 image.
@@ -2197,7 +2204,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Crows on a ledge · `crows_on_ledge`
 
-Save as `crows_on_ledge_views.png` · Landscape 3:2 · Attach: crows_on_ledge.jpg (its painting) · Model: `ArtSource/models_meshy/animals/crows_on_ledge.glb`
+**Beside the lane** · Save as `crows_on_ledge_views.png` · Landscape 3:2 · Attach: crows_on_ledge.jpg (its painting) · Model: `ArtSource/models_meshy/animals/crows_on_ledge.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2213,7 +2220,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Barking dog · `dog_barking`
 
-Save as `dog_barking_views.png` · Square 1:1 · Attach: dog_barking.jpg (its painting) · Model: `ArtSource/models_meshy/animals/dog_barking.glb`
+**Not in the game yet** · Save as `dog_barking_views.png` · Square 1:1 · Attach: dog_barking.jpg (its painting) · Model: `ArtSource/models_meshy/animals/dog_barking.glb`
 
 ```text
 Square 1:1 image.
@@ -2229,7 +2236,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sleeping dog · `dog_sleeping`
 
-Save as `dog_sleeping_views.png` · Landscape 3:2 · Attach: dog_sleeping.jpg (its painting) · Model: `ArtSource/models_meshy/animals/dog_sleeping.glb`
+**On the lane** · Save as `dog_sleeping_views.png` · Landscape 3:2 · Attach: dog_sleeping.jpg (its painting) · Model: `ArtSource/models_meshy/animals/dog_sleeping.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2245,7 +2252,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### White duck · `duck_1`
 
-Save as `duck_1_views.png` · Portrait 2:3 · Attach: duck_1.jpg (its painting) · Model: `ArtSource/models_meshy/animals/duck_1.glb`
+**Beside the lane** · Save as `duck_1_views.png` · Portrait 2:3 · Attach: duck_1.jpg (its painting) · Model: `ArtSource/models_meshy/animals/duck_1.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2261,7 +2268,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### White duck, facing left · `duck_2`
 
-Save as `duck_2_views.png` · Portrait 2:3 · Attach: duck_2.jpg (its painting) · Model: `ArtSource/models_meshy/animals/duck_2.glb`
+**Beside the lane** · Save as `duck_2_views.png` · Portrait 2:3 · Attach: duck_2.jpg (its painting) · Model: `ArtSource/models_meshy/animals/duck_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2277,7 +2284,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Goat eating leaves · `goat_eating`
 
-Save as `goat_eating_views.png` · Square 1:1 · Attach: goat_eating.jpg (its painting) · Model: `ArtSource/models_meshy/animals/goat_eating.glb`
+**Beside the lane** · Save as `goat_eating_views.png` · Square 1:1 · Attach: goat_eating.jpg (its painting) · Model: `ArtSource/models_meshy/animals/goat_eating.glb`
 
 ```text
 Square 1:1 image.
@@ -2293,7 +2300,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Goat kid leaping · `goat_kid`
 
-Save as `goat_kid_views.png` · Square 1:1 · Attach: goat_kid.jpg (its painting) · Model: `ArtSource/models_meshy/animals/goat_kid.glb`
+**Beside the lane** · Save as `goat_kid_views.png` · Square 1:1 · Attach: goat_kid.jpg (its painting) · Model: `ArtSource/models_meshy/animals/goat_kid.glb`
 
 ```text
 Square 1:1 image.
@@ -2309,7 +2316,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Goat on a wall · `goat_on_wall`
 
-Save as `goat_on_wall_views.png` · Square 1:1 · Attach: goat_on_wall.jpg (its painting) · Model: `ArtSource/models_meshy/animals/goat_on_wall.glb`
+**Not in the game yet** · Save as `goat_on_wall_views.png` · Square 1:1 · Attach: goat_on_wall.jpg (its painting) · Model: `ArtSource/models_meshy/animals/goat_on_wall.glb`
 
 ```text
 Square 1:1 image.
@@ -2325,7 +2332,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Brown hen pecking · `hen_1`
 
-Save as `hen_1_views.png` · Square 1:1 · Attach: hen_1.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_1.glb`
+**On the lane** · Save as `hen_1_views.png` · Square 1:1 · Attach: hen_1.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_1.glb`
 
 ```text
 Square 1:1 image.
@@ -2341,7 +2348,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Buff hen pecking · `hen_2`
 
-Save as `hen_2_views.png` · Square 1:1 · Attach: hen_2.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_2.glb`
+**On the lane** · Save as `hen_2_views.png` · Square 1:1 · Attach: hen_2.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_2.glb`
 
 ```text
 Square 1:1 image.
@@ -2357,7 +2364,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Dark hen pecking · `hen_3`
 
-Save as `hen_3_views.png` · Square 1:1 · Attach: hen_3.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_3.glb`
+**On the lane** · Save as `hen_3_views.png` · Square 1:1 · Attach: hen_3.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_3.glb`
 
 ```text
 Square 1:1 image.
@@ -2373,7 +2380,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Hen with chicks · `hen_with_chicks`
 
-Save as `hen_with_chicks_views.png` · Landscape 3:2 · Attach: hen_with_chicks.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_with_chicks.glb`
+**Beside the lane** · Save as `hen_with_chicks_views.png` · Landscape 3:2 · Attach: hen_with_chicks.jpg (its painting) · Model: `ArtSource/models_meshy/animals/hen_with_chicks.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2389,7 +2396,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Two parrots on a branch · `parrots`
 
-Save as `parrots_views.png` · Square 1:1 · Attach: parrots.jpg (its painting) · Model: `ArtSource/models_meshy/animals/parrots.glb`
+**Not in the game yet** · Save as `parrots_views.png` · Square 1:1 · Attach: parrots.jpg (its painting) · Model: `ArtSource/models_meshy/animals/parrots.glb`
 
 ```text
 Square 1:1 image.
@@ -2405,7 +2412,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Peacock · `peacock`
 
-Save as `peacock_views.png` · Landscape 3:2 · Attach: peacock.jpg (its painting) · Model: `ArtSource/models_meshy/animals/peacock.glb`
+**Beside the lane** · Save as `peacock_views.png` · Landscape 3:2 · Attach: peacock.jpg (its painting) · Model: `ArtSource/models_meshy/animals/peacock.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2421,7 +2428,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Palm squirrel on a rock · `squirrel`
 
-Save as `squirrel_views.png` · Landscape 3:2 · Attach: squirrel.jpg (its painting) · Model: `ArtSource/models_meshy/animals/squirrel.glb`
+**Not in the game yet** · Save as `squirrel_views.png` · Landscape 3:2 · Attach: squirrel.jpg (its painting) · Model: `ArtSource/models_meshy/animals/squirrel.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2441,7 +2448,7 @@ The villagers going about their day.
 
 ### Kids rolling a tyre · `kids_rolling_tyre`
 
-Save as `kids_rolling_tyre_views.png` · Landscape 3:2 · Attach: kids_rolling_tyre.jpg (its painting) · Model: `ArtSource/models_meshy/people/kids_rolling_tyre.glb`
+**Beside the lane** · Save as `kids_rolling_tyre_views.png` · Landscape 3:2 · Attach: kids_rolling_tyre.jpg (its painting) · Model: `ArtSource/models_meshy/people/kids_rolling_tyre.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2457,7 +2464,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Milkman on a bicycle · `milkman_on_bicycle`
 
-Save as `milkman_on_bicycle_views.png` · Square 1:1 · Attach: milkman_on_bicycle.jpg (its painting) · Model: `ArtSource/models_meshy/people/milkman_on_bicycle.glb`
+**Beside the lane** · Save as `milkman_on_bicycle_views.png` · Square 1:1 · Attach: milkman_on_bicycle.jpg (its painting) · Model: `ArtSource/models_meshy/people/milkman_on_bicycle.glb`
 
 ```text
 Square 1:1 image.
@@ -2473,7 +2480,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Old man in an easy chair · `old_man_on_chair`
 
-Save as `old_man_on_chair_views.png` · Square 1:1 · Attach: old_man_on_chair.jpg (its painting) · Model: `ArtSource/models_meshy/people/old_man_on_chair.glb`
+**Beside the lane** · Save as `old_man_on_chair_views.png` · Square 1:1 · Attach: old_man_on_chair.jpg (its painting) · Model: `ArtSource/models_meshy/people/old_man_on_chair.glb`
 
 ```text
 Square 1:1 image.
@@ -2489,7 +2496,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Vegetable cart seller · `vegetable_seller`
 
-Save as `vegetable_seller_views.png` · Square 1:1 · Attach: vegetable_seller.jpg (its painting) · Model: `ArtSource/models_meshy/people/vegetable_seller.glb`
+**Beside the lane** · Save as `vegetable_seller_views.png` · Square 1:1 · Attach: vegetable_seller.jpg (its painting) · Model: `ArtSource/models_meshy/people/vegetable_seller.glb`
 
 ```text
 Square 1:1 image.
@@ -2505,7 +2512,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Woman carrying a pot · `woman_carrying_pot`
 
-Save as `woman_carrying_pot_views.png` · Portrait 2:3 · Attach: woman_carrying_pot.jpg (its painting) · Model: `ArtSource/models_meshy/people/woman_carrying_pot.glb`
+**Beside the lane** · Save as `woman_carrying_pot_views.png` · Portrait 2:3 · Attach: woman_carrying_pot.jpg (its painting) · Model: `ArtSource/models_meshy/people/woman_carrying_pot.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2521,7 +2528,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Woman drawing a kolam · `woman_drawing_kolam`
 
-Save as `woman_drawing_kolam_views.png` · Square 1:1 · Attach: woman_drawing_kolam.jpg (its painting) · Model: `ArtSource/models_meshy/people/woman_drawing_kolam.glb`
+**Beside the lane** · Save as `woman_drawing_kolam_views.png` · Square 1:1 · Attach: woman_drawing_kolam.jpg (its painting) · Model: `ArtSource/models_meshy/people/woman_drawing_kolam.glb`
 
 ```text
 Square 1:1 image.
@@ -2541,7 +2548,7 @@ Trees, palms, bushes and the big foreground plants.
 
 ### Neem tree · `h1_1`
 
-Save as `h1_1_views.png` · Square 1:1 · Attach: h1_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h1_1.glb`
+**Beside the lane** · Save as `h1_1_views.png` · Square 1:1 · Attach: h1_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h1_1.glb`
 
 ```text
 Square 1:1 image.
@@ -2557,7 +2564,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Young neem tree · `h1_2`
 
-Save as `h1_2_views.png` · Portrait 2:3 · Attach: h1_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h1_2.glb`
+**Not in the game yet** · Save as `h1_2_views.png` · Portrait 2:3 · Attach: h1_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h1_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2573,7 +2580,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tree with a swing · `h1_3`
 
-Save as `h1_3_views.png` · Square 1:1 · Attach: h1_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h1_3.glb`
+**Beside the lane** · Save as `h1_3_views.png` · Square 1:1 · Attach: h1_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h1_3.glb`
 
 ```text
 Square 1:1 image.
@@ -2589,7 +2596,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tamarind tree · `h2_1`
 
-Save as `h2_1_views.png` · Square 1:1 · Attach: h2_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_1.glb`
+**Beside the lane** · Save as `h2_1_views.png` · Square 1:1 · Attach: h2_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_1.glb`
 
 ```text
 Square 1:1 image.
@@ -2605,7 +2612,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Drumstick tree · `h2_2`
 
-Save as `h2_2_views.png` · Portrait 2:3 · Attach: h2_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_2.glb`
+**Not in the game yet** · Save as `h2_2_views.png` · Portrait 2:3 · Attach: h2_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2621,7 +2628,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Young tamarind tree · `h2_3`
 
-Save as `h2_3_views.png` · Square 1:1 · Attach: h2_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_3.glb`
+**Beside the lane** · Save as `h2_3_views.png` · Square 1:1 · Attach: h2_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_3.glb`
 
 ```text
 Square 1:1 image.
@@ -2637,7 +2644,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Young drumstick tree · `h2_4`
 
-Save as `h2_4_views.png` · Portrait 2:3 · Attach: h2_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_4.glb`
+**Not in the game yet** · Save as `h2_4_views.png` · Portrait 2:3 · Attach: h2_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h2_4.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2653,7 +2660,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Peepal on a low platform · `h3_1`
 
-Save as `h3_1_views.png` · Square 1:1 · Attach: h3_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h3_1.glb`
+**Not in the game yet** · Save as `h3_1_views.png` · Square 1:1 · Attach: h3_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h3_1.glb`
 
 ```text
 Square 1:1 image.
@@ -2669,7 +2676,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Coconut palm · `h4_1`
 
-Save as `h4_1_views.png` · Portrait 2:3 · Attach: h4_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_1.glb`
+**Beside the lane** · Save as `h4_1_views.png` · Portrait 2:3 · Attach: h4_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_1.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2685,7 +2692,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Curving coconut palm · `h4_2`
 
-Save as `h4_2_views.png` · Portrait 2:3 · Attach: h4_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_2.glb`
+**Beside the lane** · Save as `h4_2_views.png` · Portrait 2:3 · Attach: h4_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2701,7 +2708,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Twin coconut palms · `h4_3`
 
-Save as `h4_3_views.png` · Portrait 2:3 · Attach: h4_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_3.glb`
+**Beside the lane** · Save as `h4_3_views.png` · Portrait 2:3 · Attach: h4_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_3.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2717,7 +2724,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Bottle palm · `h4_4`
 
-Save as `h4_4_views.png` · Square 1:1 · Attach: h4_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_4.glb`
+**Not in the game yet** · Save as `h4_4_views.png` · Square 1:1 · Attach: h4_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_4.glb`
 
 ```text
 Square 1:1 image.
@@ -2733,7 +2740,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Coconut palm with a climbing loop · `h4_5`
 
-Save as `h4_5_views.png` · Portrait 2:3 · Attach: h4_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_5.glb`
+**Beside the lane** · Save as `h4_5_views.png` · Portrait 2:3 · Attach: h4_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h4_5.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2749,7 +2756,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Banana plant · `h5_1`
 
-Save as `h5_1_views.png` · Portrait 2:3 · Attach: h5_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_1.glb`
+**Not in the game yet** · Save as `h5_1_views.png` · Portrait 2:3 · Attach: h5_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_1.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2765,7 +2772,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Banana plant (2) · `h5_2`
 
-Save as `h5_2_views.png` · Portrait 2:3 · Attach: h5_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_2.glb`
+**Not in the game yet** · Save as `h5_2_views.png` · Portrait 2:3 · Attach: h5_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2781,7 +2788,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Papaya tree · `h5_3`
 
-Save as `h5_3_views.png` · Portrait 2:3 · Attach: h5_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_3.glb`
+**Beside the lane** · Save as `h5_3_views.png` · Portrait 2:3 · Attach: h5_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_3.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2797,7 +2804,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Curry-leaf tree · `h5_4`
 
-Save as `h5_4_views.png` · Square 1:1 · Attach: h5_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_4.glb`
+**Not in the game yet** · Save as `h5_4_views.png` · Square 1:1 · Attach: h5_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_4.glb`
 
 ```text
 Square 1:1 image.
@@ -2813,7 +2820,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Sugarcane clump · `h5_5`
 
-Save as `h5_5_views.png` · Portrait 2:3 · Attach: h5_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_5.glb`
+**Beside the lane** · Save as `h5_5_views.png` · Portrait 2:3 · Attach: h5_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_5.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2829,7 +2836,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pumpkin trellis · `h5_6`
 
-Save as `h5_6_views.png` · Square 1:1 · Attach: h5_6.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_6.glb`
+**Beside the lane** · Save as `h5_6_views.png` · Square 1:1 · Attach: h5_6.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h5_6.glb`
 
 ```text
 Square 1:1 image.
@@ -2845,7 +2852,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Hibiscus bush · `h6_1`
 
-Save as `h6_1_views.png` · Square 1:1 · Attach: h6_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_1.glb`
+**Not in the game yet** · Save as `h6_1_views.png` · Square 1:1 · Attach: h6_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_1.glb`
 
 ```text
 Square 1:1 image.
@@ -2861,7 +2868,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Bougainvillea on a wall · `h6_2`
 
-Save as `h6_2_views.png` · Square 1:1 · Attach: h6_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_2.glb`
+**Not in the game yet** · Save as `h6_2_views.png` · Square 1:1 · Attach: h6_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_2.glb`
 
 ```text
 Square 1:1 image.
@@ -2877,7 +2884,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Flower bed · `h6_3`
 
-Save as `h6_3_views.png` · Landscape 3:2 · Attach: h6_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_3.glb`
+**Not in the game yet** · Save as `h6_3_views.png` · Landscape 3:2 · Attach: h6_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_3.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2893,7 +2900,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Jasmine trellis · `h6_4`
 
-Save as `h6_4_views.png` · Square 1:1 · Attach: h6_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_4.glb`
+**Beside the lane** · Save as `h6_4_views.png` · Square 1:1 · Attach: h6_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_4.glb`
 
 ```text
 Square 1:1 image.
@@ -2909,7 +2916,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Crotons in pots · `h6_5`
 
-Save as `h6_5_views.png` · Square 1:1 · Attach: h6_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_5.glb`
+**Beside the lane** · Save as `h6_5_views.png` · Square 1:1 · Attach: h6_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_5.glb`
 
 ```text
 Square 1:1 image.
@@ -2925,7 +2932,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Oleander bush · `h6_6`
 
-Save as `h6_6_views.png` · Square 1:1 · Attach: h6_6.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_6.glb`
+**Beside the lane** · Save as `h6_6_views.png` · Square 1:1 · Attach: h6_6.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_6.glb`
 
 ```text
 Square 1:1 image.
@@ -2941,7 +2948,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Marigold bed · `h6_7`
 
-Save as `h6_7_views.png` · Landscape 3:2 · Attach: h6_7.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_7.glb`
+**Not in the game yet** · Save as `h6_7_views.png` · Landscape 3:2 · Attach: h6_7.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h6_7.glb`
 
 ```text
 Landscape 3:2 image.
@@ -2957,7 +2964,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Elephant-ear plant · `h7_1`
 
-Save as `h7_1_views.png` · Square 1:1 · Attach: h7_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_1.glb`
+**Beside the lane** · Save as `h7_1_views.png` · Square 1:1 · Attach: h7_1.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_1.glb`
 
 ```text
 Square 1:1 image.
@@ -2973,7 +2980,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Tall wild grass · `h7_2`
 
-Save as `h7_2_views.png` · Portrait 2:3 · Attach: h7_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_2.glb`
+**Beside the lane** · Save as `h7_2_views.png` · Portrait 2:3 · Attach: h7_2.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -2989,7 +2996,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Banana leaves · `h7_3`
 
-Save as `h7_3_views.png` · Portrait 2:3 · Attach: h7_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_3.glb`
+**Not in the game yet** · Save as `h7_3_views.png` · Portrait 2:3 · Attach: h7_3.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_3.glb`
 
 Note: The painting is cut off at its right edge: draw the whole plant.
 
@@ -3007,7 +3014,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Broken wall pillar · `h7_4`
 
-Save as `h7_4_views.png` · Portrait 2:3 · Attach: h7_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_4.glb`
+**Not in the game yet** · Save as `h7_4_views.png` · Portrait 2:3 · Attach: h7_4.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_4.glb`
 
 ```text
 Portrait 2:3 image.
@@ -3023,7 +3030,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Mossy boulder with ferns · `h7_5`
 
-Save as `h7_5_views.png` · Landscape 3:2 · Attach: h7_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_5.glb`
+**Beside the lane** · Save as `h7_5_views.png` · Landscape 3:2 · Attach: h7_5.jpg (its painting) · Model: `ArtSource/models_meshy/plants/h7_5.glb`
 
 ```text
 Landscape 3:2 image.
@@ -3047,7 +3054,7 @@ No model needed: it lies flat and is painted on the ground as it is.
 
 ### Coconut · `coconut`
 
-Save as `coconut_views.png` · Square 1:1 · Attach: coconut.jpg (its painting) · Model: `ArtSource/models_meshy/ground/coconut.glb`
+**Beside the lane** · Save as `coconut_views.png` · Square 1:1 · Attach: coconut.jpg (its painting) · Model: `ArtSource/models_meshy/ground/coconut.glb`
 
 ```text
 Square 1:1 image.
@@ -3079,7 +3086,7 @@ No model needed: it lies flat and is painted on the ground as it is.
 
 ### Coconut husk · `husk`
 
-Save as `husk_views.png` · Landscape 3:2 · Attach: husk.jpg (its painting) · Model: `ArtSource/models_meshy/ground/husk.glb`
+**On the lane** · Save as `husk_views.png` · Landscape 3:2 · Attach: husk.jpg (its painting) · Model: `ArtSource/models_meshy/ground/husk.glb`
 
 ```text
 Landscape 3:2 image.
@@ -3095,7 +3102,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Dry leaf · `leaf_1`
 
-Save as `leaf_1_views.png` · Portrait 2:3 · Attach: leaf_1.jpg (its painting) · Model: `ArtSource/models_meshy/ground/leaf_1.glb`
+**On the lane** · Save as `leaf_1_views.png` · Portrait 2:3 · Attach: leaf_1.jpg (its painting) · Model: `ArtSource/models_meshy/ground/leaf_1.glb`
 
 ```text
 Portrait 2:3 image.
@@ -3111,7 +3118,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Dry leaf (2) · `leaf_2`
 
-Save as `leaf_2_views.png` · Portrait 2:3 · Attach: leaf_2.jpg (its painting) · Model: `ArtSource/models_meshy/ground/leaf_2.glb`
+**On the lane** · Save as `leaf_2_views.png` · Portrait 2:3 · Attach: leaf_2.jpg (its painting) · Model: `ArtSource/models_meshy/ground/leaf_2.glb`
 
 ```text
 Portrait 2:3 image.
@@ -3127,7 +3134,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Dry leaf (3) · `leaf_3`
 
-Save as `leaf_3_views.png` · Portrait 2:3 · Attach: leaf_3.jpg (its painting) · Model: `ArtSource/models_meshy/ground/leaf_3.glb`
+**Beside the lane** · Save as `leaf_3_views.png` · Portrait 2:3 · Attach: leaf_3.jpg (its painting) · Model: `ArtSource/models_meshy/ground/leaf_3.glb`
 
 ```text
 Portrait 2:3 image.
@@ -3143,7 +3150,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pebble cluster · `pebble_cluster`
 
-Save as `pebble_cluster_views.png` · Landscape 3:2 · Attach: pebble_cluster.jpg (its painting) · Model: `ArtSource/models_meshy/ground/pebble_cluster.glb`
+**Beside the lane** · Save as `pebble_cluster_views.png` · Landscape 3:2 · Attach: pebble_cluster.jpg (its painting) · Model: `ArtSource/models_meshy/ground/pebble_cluster.glb`
 
 ```text
 Landscape 3:2 image.
@@ -3159,7 +3166,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Pebbles · `pebbles`
 
-Save as `pebbles_views.png` · Landscape 3:2 · Attach: pebbles.jpg (its painting) · Model: `ArtSource/models_meshy/ground/pebbles.glb`
+**On the lane** · Save as `pebbles_views.png` · Landscape 3:2 · Attach: pebbles.jpg (its painting) · Model: `ArtSource/models_meshy/ground/pebbles.glb`
 
 ```text
 Landscape 3:2 image.
@@ -3175,7 +3182,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Grass tuft · `tuft_1`
 
-Save as `tuft_1_views.png` · Square 1:1 · Attach: tuft_1.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_1.glb`
+**On the lane** · Save as `tuft_1_views.png` · Square 1:1 · Attach: tuft_1.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_1.glb`
 
 ```text
 Square 1:1 image.
@@ -3191,7 +3198,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Grass tuft (2) · `tuft_2`
 
-Save as `tuft_2_views.png` · Square 1:1 · Attach: tuft_2.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_2.glb`
+**On the lane** · Save as `tuft_2_views.png` · Square 1:1 · Attach: tuft_2.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_2.glb`
 
 ```text
 Square 1:1 image.
@@ -3207,7 +3214,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Grass tuft (3) · `tuft_3`
 
-Save as `tuft_3_views.png` · Square 1:1 · Attach: tuft_3.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_3.glb`
+**Beside the lane** · Save as `tuft_3_views.png` · Square 1:1 · Attach: tuft_3.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_3.glb`
 
 ```text
 Square 1:1 image.
@@ -3223,7 +3230,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Grass tuft (4) · `tuft_4`
 
-Save as `tuft_4_views.png` · Square 1:1 · Attach: tuft_4.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_4.glb`
+**Beside the lane** · Save as `tuft_4_views.png` · Square 1:1 · Attach: tuft_4.jpg (its painting) · Model: `ArtSource/models_meshy/ground/tuft_4.glb`
 
 ```text
 Square 1:1 image.
@@ -3239,7 +3246,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Twigs · `twigs`
 
-Save as `twigs_views.png` · Landscape 3:2 · Attach: twigs.jpg (its painting) · Model: `ArtSource/models_meshy/ground/twigs.glb`
+**On the lane** · Save as `twigs_views.png` · Landscape 3:2 · Attach: twigs.jpg (its painting) · Model: `ArtSource/models_meshy/ground/twigs.glb`
 
 ```text
 Landscape 3:2 image.
@@ -3255,7 +3262,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Yellow-flowered weed · `weed_1`
 
-Save as `weed_1_views.png` · Square 1:1 · Attach: weed_1.jpg (its painting) · Model: `ArtSource/models_meshy/ground/weed_1.glb`
+**Beside the lane** · Save as `weed_1_views.png` · Square 1:1 · Attach: weed_1.jpg (its painting) · Model: `ArtSource/models_meshy/ground/weed_1.glb`
 
 ```text
 Square 1:1 image.
@@ -3271,7 +3278,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### Yellow-flowered weed (2) · `weed_2`
 
-Save as `weed_2_views.png` · Portrait 2:3 · Attach: weed_2.jpg (its painting) · Model: `ArtSource/models_meshy/ground/weed_2.glb`
+**Beside the lane** · Save as `weed_2_views.png` · Portrait 2:3 · Attach: weed_2.jpg (its painting) · Model: `ArtSource/models_meshy/ground/weed_2.glb`
 
 ```text
 Portrait 2:3 image.

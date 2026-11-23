@@ -309,6 +309,38 @@ GROUPS = [("lane", "The lane", "Zone 1: houses, shops, the lane's props and obst
                                        "they are painted on the ground as they are.")]
 
 
+PRIORITY = {1: "On the lane", 2: "Beside the lane", 3: "Far off", 4: "Not in the game yet"}
+PRIORITY_NOTE = {1: "The kid runs into, over or past it: make this first.",
+                 2: "Seen up close beside the lane.",
+                 3: "Only ever seen far off: its painting is enough there, so this can wait.",
+                 4: "No level places it yet: skip it unless it is added to a level."}
+
+
+def usage():
+    """How the game uses each piece: 1 on the lane (GameBuilder's obstacles, roofs and stalls), 2 beside it (a zone's
+    near scenery), 3 only far off, 4 nowhere (as ZoneArtBuilder.Keep filters the layouts)."""
+    import re
+    editor = ROOT / "Assets" / "ChickenRunner" / "Scripts" / "Editor"
+    code = (editor / "GameBuilder.Kit.cs").read_text() + (editor / "GameBuilder.Chunks.cs").read_text()
+    lane = set(re.findall(r'"([a-z_0-9]+)"', code))
+    if '"hen_" +' in code:
+        lane |= {"hen_1", "hen_2", "hen_3"}
+    near, far = set(), set()
+    for lay in sorted((ROOT / "Assets" / "ChickenRunner" / "Art" / "Layouts").glob("*.json")):
+        d = json.loads(lay.read_text())
+        zone = d.get("zone", "")
+        for c in d["cards"]:
+            if c["layer"] in ("Characters", "Ground"):
+                continue
+            on_lane = -2.0 < c["z"] < 1.4
+            if (not c["flat"] and on_lane) or (c["flat"] and zone.endswith("2") and on_lane):
+                continue
+            (near if c["z"] < 11 else far).add(pathlib.Path(c["image"]).stem)
+    def level(name):
+        return 1 if name in lane else 2 if name in near else 3 if name in far else 4
+    return level
+
+
 def folder_of(name):
     for folder in sorted(p.name for p in CUT.iterdir() if p.is_dir()):
         if (CUT / folder / f"{name}.png").exists():
@@ -377,6 +409,7 @@ def prompts(name, kind, view, what, extra):
 
 def records():
     out = []
+    level = usage()
     names = {a[0] for a in A}
     for folder in sorted(p.name for p in CUT.iterdir() if p.is_dir()):
         if folder in ("kid", "rooster", "textures"):
@@ -399,18 +432,21 @@ def records():
                 rec["note"] = extra
         if view:      # the crop strips' pictures are placeholders, not paintings to attach
             rec["ref"] = f"refs/{name}.jpg"
+        if kind != "flat":
+            rec["priority"] = level(name)
         out.append(rec)
     for name, kind, view, title, what, extra in PICKUPS:
         rec = {"name": name, "folder": "pickups", "group": "characters", "kind": kind, "title": title, "what": what,
                "view": None, "views": f"{name}_views.png", "model": f"{name}.glb"}
         rec.update(prompts(name, kind, view, what, extra))
         rec["note"] = "No painting of it yet: the prompt describes it."
+        rec["priority"] = 1
         out.append(rec)
     for name, title, files, note in CHARACTERS:
         out.append({"name": name, "folder": "characters", "group": "characters", "kind": "character", "title": title,
                     "existing": files, "model": f"{name}.glb", "note": note,
                     "ref": f"refs/{files[0].replace('.png', '.jpg')}",
-                    "existing_refs": [f"refs/{f.replace('.png', '.jpg')}" for f in files]})
+                    "existing_refs": [f"refs/{f.replace('.png', '.jpg')}" for f in files], "priority": 1})
     return out
 
 
@@ -427,7 +463,10 @@ def markdown(recs):
              "version does this) and give the four to Meshy's multi-image to 3D, each in its slot.",
              "4. Download the model as GLB, named `<name>.glb`, and put it in `ArtSource/models_meshy/<folder>/` "
              "(or upload it in the chat). `finish_models.py` fits it into the game at the painting's size and place.",
-             "", "Prints, ruts, cracked mud and kolams need no model: they lie flat on the ground as painted.", ""]
+             "", "Prints, ruts, cracked mud and kolams need no model: they lie flat on the ground as painted.", "",
+             "## What to make first", ""]
+    counts = {k: sum(1 for r in recs if r.get("priority") == k and r["kind"] not in ("character",)) for k in PRIORITY}
+    lines += [f"- **{PRIORITY[k]}** ({counts[k]}): {PRIORITY_NOTE[k]}" for k in PRIORITY] + [""]
     order = ["characters"] + [g[0] for g in GROUPS]
     names = {"characters": ("Characters and pickups", "The kid and the rooster have their four views already; the "
                                                        "pickups have no painting, so their prompts describe them.")}
@@ -443,8 +482,8 @@ def markdown(recs):
             if r["kind"] == "flat":
                 lines += [r["note"], ""]
                 continue
-            lines += [f"Save as `{r['views']}` · {r['shape']} · Attach: {r['attach']} · Model: "
-                      f"`ArtSource/models_meshy/{r['folder']}/{r['model']}`", ""]
+            lines += [f"**{PRIORITY[r['priority']]}** · Save as `{r['views']}` · {r['shape']} · Attach: {r['attach']} · "
+                      f"Model: `ArtSource/models_meshy/{r['folder']}/{r['model']}`", ""]
             if r.get("note"):
                 lines += [f"Note: {r['note']}", ""]
             lines += ["```text", r["chatgpt"], "```", ""]
