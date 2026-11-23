@@ -35,6 +35,16 @@ and render its previews (Cycles; add `--samples 16` for a quick look, `--only ga
 only build, `--seed 4` for a different street). What the scene builders share (cards, haze, middle layers, light,
 camera, rendering) is in `tools/stage.py`.
 
+## Into Unity
+
+Each scene builder also writes its painted cards to `Assets/ChickenRunner/Art/Layouts/<zone>.json` (position, size,
+mirroring, haze and fades of every card). In Unity, **Chicken Runner > Import Art Layouts** copies the art each layout
+uses into `Assets/ChickenRunner/Art/Textures/`, makes materials with the `ChickenRunner/PaintedCard` shader (the art
+unlit, as painted, faded into the haze like in Blender) and saves a prefab per zone in `Assets/ChickenRunner/Art/Prefabs/`,
+cards grouped by layer. Place it at the origin of a level scene: its lane runs along +X at depth 0, as the grey-box's
+does. Not exported yet: the ground and water (made in Blender's shaders) and the 3D bits (walls, fences, pebbles,
+grass); they need baking to textures or meshes first.
+
 ## Placeholders, and swapping in the real images
 
 Every tool loads a reference through `tools/refs.py`: the real image in `references/` when there is one, else its

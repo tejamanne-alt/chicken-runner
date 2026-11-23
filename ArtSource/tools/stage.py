@@ -191,6 +191,11 @@ def card(name, img_path, x, y, z=0.0, size=None, px_per_m=None, mirror=False, fl
                                         fade_sides))
     obj = bpy.data.objects.new(name, mesh)
     obj.location = (x, y, z)
+    # What the Unity importer needs to rebuild this card (see export_layout).
+    obj["cr_card"] = {"image": str(pathlib.Path(img_path).resolve().relative_to(ROOT)), "w": w, "h": h,
+                      "mirror": bool(mirror), "flat": bool(flat), "shadeless": bool(shadeless),
+                      "haze": 0.0 if shadeless else round(GROUND.haze_amount(y), 3),
+                      "fade_bottom": fade_bottom, "fade_sides": fade_sides}
     if col == "Backdrop":
         # Painted distance layers never cast shadows: the far layer stands between the sun and the village.
         obj.visible_shadow = False
@@ -443,8 +448,32 @@ def frame(kid_x, kid_y_up, gap, ground_screen_y=0.28, kid_screen_x=1 / 3, rooste
     CAM.rotation_euler = (math.radians(90) - pitch, 0, 0)
 
 
+def export_layout(prefix):
+    """Writes every painted card in the scene to Assets/ChickenRunner/Art/Layouts/<prefix>.json, for the Unity
+    importer (Chicken Runner > Import Art Layouts). Axes become Unity's: x along the lane, y up, z away from the camera.
+    Positions are each card's bottom centre. The ground, water and 3D bits (walls, fences, pebbles, grass) are not
+    exported: Unity keeps its own ground for now."""
+    import json
+    cards = []
+    for obj in bpy.data.objects:
+        meta = obj.get("cr_card")
+        if meta is None:
+            continue
+        meta = dict(meta)
+        meta.update({"name": obj.name, "layer": obj.users_collection[0].name,
+                     "x": round(obj.location.x, 4), "y": round(obj.location.z, 4), "z": round(obj.location.y, 4),
+                     "turn": round(math.degrees(obj.rotation_euler[2]), 2)})
+        cards.append(meta)
+    out = ROOT / "Assets" / "ChickenRunner" / "Art" / "Layouts" / f"{prefix}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    haze = [round(c, 4) for c in GROUND.HAZE]
+    out.write_text(json.dumps({"zone": prefix, "hazeColor": haze, "cards": cards}, indent=1) + "\n")
+    print("exported", len(cards), "cards to", out.relative_to(ROOT))
+
+
 def save_and_render(blend_path, prefix, views):
-    """Saves the .blend, then renders each view: (label, frame() arguments)."""
+    """Saves the .blend and the Unity layout, then renders each view: (label, frame() arguments)."""
+    export_layout(prefix)
     blend_path.parent.mkdir(parents=True, exist_ok=True)
     frame(*views[0][1][0], **views[0][1][1])
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), relative_remap=True)
