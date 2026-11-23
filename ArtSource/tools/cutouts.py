@@ -7,6 +7,7 @@ soft transparent shadows, so a prop can stand on any ground.
 """
 import json
 import pathlib
+import sys
 
 import numpy as np
 from PIL import Image
@@ -19,8 +20,16 @@ OUT.mkdir(parents=True, exist_ok=True)
 manifest = {}
 
 
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+import refs  # noqa: E402
+
+PLACEHOLDER_PIECES = set()  # names of pieces cut from placeholders, recorded in the manifest
+
+
 def load(name):
-    return np.asarray(Image.open(REF / name).convert("RGB")).astype(np.float32)
+    """A reference image: the real one, or its placeholder until the real one arrives (see refs.py)."""
+    load.placeholder = refs.is_placeholder(name)
+    return np.asarray(Image.open(refs.path(name)).convert("RGB")).astype(np.float32)
 
 
 def background(rgb):
@@ -54,6 +63,8 @@ def save(name, rgb, alpha, box=None, pad=6):
     rgba = np.dstack([rgb[y0:y1, x0:x1], alpha[y0:y1, x0:x1] * 255]).clip(0, 255).astype(np.uint8)
     Image.fromarray(rgba, "RGBA").save(OUT / f"{name}.png")
     manifest[name] = {"px": [x1 - x0, y1 - y0]}
+    if getattr(load, "placeholder", False):
+        manifest[name]["placeholder"] = True
     return box
 
 
@@ -272,6 +283,7 @@ G_BUILDINGS = {
     "G14_panchayat_office": ("panchayat_office", 1374, 220),     # door 2.1 m
     "G15_village_shrine": ("shrine_tree", 1387, 257),            # shrine opening 1.5 m
     "G16_water_tank_tower": ("water_tank", 1376, 92),            # tower 12 m
+    "H3_peepal_platform": ("peepal_platform", None, ("h", 12.0)),  # tree 12 m tall: the platform's centre is the door
 }
 GROUND_ROW = {"G13_cattle_shed": 1173,  # no drawn ground line: the shed's posts stand here
               "G16_water_tank_tower": "foot"}  # the fence is wider than the line: stand on the drawing's lowest row
@@ -307,7 +319,9 @@ def painted_alpha(rgb, plain_sheet=True, openings=True, drop_sheet=False):
     lab, n = ndimage.label(sheet)
     sizes = ndimage.sum(sheet, lab, range(1, n + 1))
     holes = ndimage.binary_dilation(np.isin(lab, [i + 1 for i, a in enumerate(sizes) if a > 3000]), iterations=2)
-    solid = ndimage.binary_erosion(region, iterations=8) & ~(holes if openings else False)
+    solid = ndimage.binary_erosion(region, iterations=8)
+    if openings:
+        solid &= ~holes
     alpha = np.maximum(keyed, solid.astype(np.float32)) * ndimage.binary_dilation(region, iterations=4)
     if drop_sheet:
         mx, mn = rgb.max(axis=2), rgb.min(axis=2)
@@ -373,16 +387,72 @@ for src, (name, door_x, px_per_m) in G_BUILDINGS.items():
         alpha[bottom + 4:, 900:1110] = below[:, 900:1110]  # the tulsi planter stands in front, below the line
     alpha = alpha * grounded_parts(alpha > 0.5)
     box = save(name, rgb, alpha)
+    if isinstance(px_per_m, tuple):  # scaled by the whole drawing's height above the ground
+        px_per_m = round((top - box[1]) / px_per_m[1], 1)
+    if door_x is None:
+        door_x = (box[0] + box[2]) / 2
     # Anything drawn below the ground (G5's tulsi planter stands in front of the house) sinks under it, so the
     # building itself stands on the ground.
     manifest[name].update({"px_per_m": px_per_m, "door": round((door_x - box[0]) / (box[2] - box[0]), 3),
                            "below_ground_px": int(max(0, box[3] - top))})
     print(name, manifest[name])
 
+# ---------------------------------------------------------------- sheets of several pieces (animals, villagers, ...)
+def sheet_pieces(src, plain_sheet=True, min_area=6000, merge=6, ground_line=False):
+    """Splits a sheet of separate drawings into pieces, in reading order (rows by bottom edge, then left to right).
+    Drops anything touching the image's edge (cropped scenery, dust clouds) and the watermark.
+    Returns (rgb, [(alpha piece, (x0, y0, x1, y1))])."""
+    rgb = load(src)
+    alpha = painted_alpha(rgb, plain_sheet=plain_sheet, drop_sheet=True)
+    if ground_line:  # buildings on one drawn ground line: clear the line where nothing stands on it
+        top, bottom = ground_band(alpha)
+        above = alpha[max(top - 12, 0)] > 0.5
+        for y in range(top - 3, bottom + 4):
+            alpha[y, ~above] = 0
+        alpha[bottom + 4:] = 0
+    lab, n = ndimage.label(ndimage.binary_dilation(alpha > 0.5, iterations=merge))
+    h, w = alpha.shape
+    found = []
+    for i, sl in enumerate(ndimage.find_objects(lab), 1):
+        if sl is None or (lab[sl] == i).sum() < min_area:
+            continue
+        y0, y1, x0, x1 = sl[0].start, sl[0].stop, sl[1].start, sl[1].stop
+        if x0 <= 2 or y0 <= 2 or x1 >= w - 2 or y1 >= h - 2:
+            continue
+        found.append((alpha * (lab == i), (x0, y0, x1, y1)))
+    rows = []
+    for piece in sorted(found, key=lambda p: p[1][3]):
+        if rows and piece[1][3] - rows[-1][-1][1][3] < 0.12 * h:
+            rows[-1].append(piece)
+        else:
+            rows.append([piece])
+    return rgb, [p for row in rows for p in sorted(row, key=lambda p: p[1][0])]
+
+
+def cut_sheet(src, prefix, folder, **kw):
+    """Saves every piece of a sheet as <prefix>_<k> in folder; returns their names."""
+    global OUT
+    rgb, pieces = sheet_pieces(src, **kw)
+    if pieces:  # a row of buildings: drop bits much shorter than the tallest (washing, a label, a stray leaf)
+        tallest = max(b[3] - b[1] for _, b in pieces)
+        pieces = [p for p in pieces if p[1][3] - p[1][1] > 0.3 * tallest]
+    saved, OUT = OUT, folder
+    folder.mkdir(exist_ok=True)
+    names = []
+    for k, (piece, (x0, y0, x1, y1)) in enumerate(pieces, 1):
+        name = f"{prefix}_{k}"
+        save(name, rgb, piece)
+        manifest[name]["src_box"] = [int(x0), int(y0), int(x1), int(y1)]
+        names.append(name)
+    OUT = saved
+    print(src, "->", len(names), "pieces:", [(nm, manifest[nm]["px"]) for nm in names])
+    return names
+
+
 # ---------------------------------------------------------------- trees and plants (H1-H7), several per sheet
 PLANTS = OUT.parent / "plants"
 PLANTS.mkdir(exist_ok=True)
-H_SHEETS = ["H1_neem_trees", "H2_tamarind_drumstick", "H3_peepal_platform", "H4_coconut_palms", "H5_garden_plants",
+H_SHEETS = ["H1_neem_trees", "H2_tamarind_drumstick", "H4_coconut_palms", "H5_garden_plants",
             "H6_flowering_bushes", "H7_foreground_plants"]
 _out = OUT
 OUT = PLANTS
@@ -400,6 +470,107 @@ for src in H_SHEETS:
         manifest[name].update({"centre": [int((sl[1].start + sl[1].stop) / 2), int((sl[0].start + sl[0].stop) / 2)]})
         print(name, manifest[name])
 OUT = _out
+
+# ---------------------------------------------------------------- animals, birds, villagers (B8-B10)
+def cut_groups(src, folder, groups, heights=None, split=None, **kw):
+    """Saves pieces of a sheet under names: groups maps name -> 1-based piece numbers merged into it (as found by
+    sheet_pieces, in reading order). split: {piece number: [(name, mask function of (ys, xs))]} cuts a piece that
+    holds two drawings. heights: name -> real height in metres, stored in the manifest for the scenes."""
+    global OUT
+    rgb, pieces = sheet_pieces(src, **kw)
+    saved, OUT = OUT, folder
+    folder.mkdir(exist_ok=True)
+    ys, xs = np.mgrid[0:rgb.shape[0], 0:rgb.shape[1]]
+    for name, numbers in groups.items():
+        if any(k > len(pieces) for k in numbers):
+            print(f"  {src}: no piece {numbers} for {name} (found {len(pieces)}); skipped")
+            continue
+        save(name, rgb, np.maximum.reduce([pieces[k - 1][0] for k in numbers]))
+    for k, parts in (split or {}).items():
+        if k <= len(pieces):
+            for name, fn in parts:
+                save(name, rgb, pieces[k - 1][0] * fn(ys, xs))
+    for name, metres in (heights or {}).items():
+        if name in manifest:
+            manifest[name]["height_m"] = metres
+    OUT = saved
+
+
+ANIMALS = OUT.parent / "animals"
+PEOPLE = OUT.parent / "people"
+GROUNDBITS = OUT.parent / "ground"
+cut_groups("B8_cows_goats.png", ANIMALS, {"cow": [1], "calf": [2], "goat_on_wall": [3], "goat_kid": [4],
+                                          "goat_eating": [6]},
+           heights={"cow": 1.45, "calf": 0.95, "goat_on_wall": 1.35, "goat_kid": 0.55, "goat_eating": 0.95})
+cut_groups("B9_small_animals.png", ANIMALS, {"cat_on_wall": [1], "crows_on_ledge": [2], "parrots": [3],
+                                             "hen_with_chicks": [4, 5, 6, 7, 8], "duck_1": [9], "duck_2": [10],
+                                             "peacock": [11], "squirrel": [12]},
+           heights={"cat_on_wall": 0.55, "crows_on_ledge": 0.45, "parrots": 0.5, "hen_with_chicks": 0.45,
+                    "duck_1": 0.55, "duck_2": 0.55, "peacock": 1.05, "squirrel": 0.3})
+# The two kids with their tyre stand just above the vegetable seller, the boy's front foot beside the seller's head.
+cut_groups("B10_villagers.png", PEOPLE, {"woman_drawing_kolam": [1], "old_man_on_chair": [2],
+                                         "milkman_on_bicycle": [3], "woman_carrying_pot": [5]},
+           split={4: [("kids_rolling_tyre", lambda y, x: (y < 980) | ((x > 505) & (y < 1012))),
+                      ("vegetable_seller", lambda y, x: ~((y < 980) | ((x > 505) & (y < 1012))))]},
+           heights={"woman_drawing_kolam": 1.0, "old_man_on_chair": 1.35, "milkman_on_bicycle": 1.75,
+                    "woman_carrying_pot": 1.95, "kids_rolling_tyre": 1.15, "vegetable_seller": 1.65})
+
+# ---------------------------------------------------------------- ground details (C10), seen from above
+cut_groups("C10_ground_details.png", GROUNDBITS, {
+    "pebbles": [1, 2, 3, 4, 5], "pebble_cluster": [6], "leaf_1": [7], "leaf_2": [8], "leaf_3": [9], "husk": [10],
+    "coconut": [11], "twigs": [12, 13], "tuft_1": [14], "tuft_2": [15], "tuft_3": [16], "tuft_4": [17],
+    "weed_1": [18], "weed_2": [19], "cart_rut": [20], "footprints": [21, 22, 23, 24, 25],
+    "hoof_prints": [26, 27, 28, 29, 30, 31, 32], "hen_prints": [33, 34, 35, 36, 37, 38, 39], "cracked_mud": [40]},
+    min_area=1500, merge=10)
+# Sizes on the ground, in metres across.
+for name, metres in {"pebbles": 0.6, "pebble_cluster": 0.35, "leaf_1": 0.12, "leaf_2": 0.12, "leaf_3": 0.12,
+                     "husk": 0.3, "coconut": 0.22, "twigs": 0.45, "cart_rut": 2.6, "footprints": 1.4,
+                     "hoof_prints": 1.2, "hen_prints": 0.9, "cracked_mud": 1.6, "tuft_1": 0.3, "tuft_2": 0.22,
+                     "tuft_3": 0.2, "tuft_4": 0.16, "weed_1": 0.3, "weed_2": 0.3}.items():
+    if name in manifest:
+        manifest[name]["width_m"] = metres
+
+# ---------------------------------------------------------------- zone 2: field props (D3), buildings (D5), crops (D6)
+FIELDS = OUT.parent / "fields"
+cut_groups("D3_fields_props.png", FIELDS, {"haystack": [1], "canal_bridge": [2], "well": [3], "scarecrow": [4],
+                                           "sluice_gate": [5], "bund_block": [6]},
+           heights={"haystack": 2.6, "canal_bridge": 1.1, "well": 2.4, "scarecrow": 2.1, "sluice_gate": 1.7,
+                    "bund_block": 0.7})
+cut_groups("D5_field_buildings.png", FIELDS, {"pump_house": [1], "hut_with_pen": [2], "granary": [3],
+                                              "field_shrine": [4]}, ground_line=True,
+           heights={"pump_house": 2.9, "hut_with_pen": 3.8, "granary": 4.6, "field_shrine": 4.2})
+cut_groups("D6_crops_field_edges.png", FIELDS, {"paddy_young": [1], "paddy_tall": [2], "paddy_ripe": [3],
+                                                "bund_strip": [4], "canal_bank": [5], "sugarcane": [6],
+                                                "haystack_small": [7], "palmyra_1": [8], "palmyra_2": [9],
+                                                "palmyra_3": [10]},
+           heights={"paddy_young": 0.55, "paddy_tall": 1.0, "paddy_ripe": 1.0, "bund_strip": 0.55,
+                    "canal_bank": 1.3, "sugarcane": 2.8, "haystack_small": 1.8, "palmyra_1": 9.0, "palmyra_2": 9.5,
+                    "palmyra_3": 9.0})
+# The fields' middle layer (D7, or its placeholder): a strip on magenta, like C8.
+save("mid_fields_band", *magenta_cut(load("D7_fields_mid_layer.png")))
+# The two halves of the water texture (T6): paddy water with seedlings, and open canal water.
+t6 = load("T6_tex_water.png")
+save_tile("paddy_water", t6[:, 8: t6.shape[1] // 2 - 8])
+save_tile("canal_water", t6[:, t6.shape[1] // 2 + 8: -8])
+
+# ---------------------------------------------------------------- zone 3 (E6-E10): rows of front-on buildings
+# Each sheet's pieces are scaled by the tallest one, whose real height is given: rooftop houses about 8 m with what
+# stands on their roofs, market stalls about 3.2 m, the temple street about 5 m.
+MARKET = OUT.parent / "market"
+for src, prefix, tallest in [("E6_rooftop_houses_1.png", "roof_house_a", 8.0), ("E7_rooftop_houses_2.png", "roof_house_b", 8.0),
+                             ("E8_market_stalls_1.png", "stall_a", 3.2), ("E9_market_stalls_2.png", "stall_b", 3.2),
+                             ("E10_temple_street.png", "temple_street", 5.0)]:
+    names = cut_sheet(src, prefix, MARKET, ground_line=True)
+    if names:
+        tallest_px = max(manifest[nm]["px"][1] for nm in names)
+        for nm in names:
+            manifest[nm]["px_per_m"] = round(tallest_px / tallest, 1)
+
+# ---------------------------------------------------------------- textures still to come (T10-T12): only real ones
+for src, tile_name in [("T10_tex_bare_brick.png", "bare_brick"), ("T11_tex_coconut_leaf_fence.png", "coconut_leaf_fence"),
+                       ("T12_tex_plain_red_earth.png", "plain_red_earth")]:
+    if refs.is_real(src):  # the scenes keep their own stand-ins until the real texture arrives
+        save_tile(tile_name, load(src))
 
 (OUT / "manifest.json").write_text(json.dumps(manifest, indent=1))
 print(f"{len(manifest) - 1} pieces in {OUT.relative_to(ROOT)}")

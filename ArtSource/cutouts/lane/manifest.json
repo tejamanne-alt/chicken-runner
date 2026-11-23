@@ -474,6 +474,16 @@
   "door": 0.501,
   "below_ground_px": 10
  },
+ "peepal_platform": {
+  "px": [
+   1306,
+   1380
+  ],
+  "placeholder": true,
+  "px_per_m": 114.0,
+  "door": 0.5,
+  "below_ground_px": 12
+ },
  "h1_1": {
   "px": [
    1239,
@@ -542,16 +552,6 @@
   "centre": [
    2479,
    915
-  ]
- },
- "h3_1": {
-  "px": [
-   1743,
-   1468
-  ],
-  "centre": [
-   1356,
-   772
   ]
  },
  "h4_1": {
@@ -783,5 +783,670 @@
    2416,
    936
   ]
+ },
+ "cow": {
+  "px": [
+   696,
+   579
+  ],
+  "height_m": 1.45
+ },
+ "calf": {
+  "px": [
+   476,
+   395
+  ],
+  "height_m": 0.95
+ },
+ "goat_on_wall": {
+  "px": [
+   533,
+   523
+  ],
+  "height_m": 1.35
+ },
+ "goat_kid": {
+  "px": [
+   316,
+   302
+  ],
+  "height_m": 0.55
+ },
+ "goat_eating": {
+  "px": [
+   691,
+   625
+  ],
+  "height_m": 0.95
+ },
+ "cat_on_wall": {
+  "px": [
+   760,
+   538
+  ],
+  "height_m": 0.55
+ },
+ "crows_on_ledge": {
+  "px": [
+   797,
+   395
+  ],
+  "height_m": 0.45
+ },
+ "parrots": {
+  "px": [
+   702,
+   538
+  ],
+  "height_m": 0.5
+ },
+ "hen_with_chicks": {
+  "px": [
+   838,
+   423
+  ],
+  "height_m": 0.45
+ },
+ "duck_1": {
+  "px": [
+   354,
+   473
+  ],
+  "height_m": 0.55
+ },
+ "duck_2": {
+  "px": [
+   329,
+   449
+  ],
+  "height_m": 0.55
+ },
+ "peacock": {
+  "px": [
+   1036,
+   497
+  ],
+  "height_m": 1.05
+ },
+ "squirrel": {
+  "px": [
+   585,
+   399
+  ],
+  "height_m": 0.3
+ },
+ "woman_drawing_kolam": {
+  "px": [
+   596,
+   444
+  ],
+  "height_m": 1.0
+ },
+ "old_man_on_chair": {
+  "px": [
+   415,
+   466
+  ],
+  "height_m": 1.35
+ },
+ "milkman_on_bicycle": {
+  "px": [
+   618,
+   580
+  ],
+  "height_m": 1.75
+ },
+ "woman_carrying_pot": {
+  "px": [
+   265,
+   722
+  ],
+  "height_m": 1.95
+ },
+ "kids_rolling_tyre": {
+  "px": [
+   615,
+   372
+  ],
+  "height_m": 1.15
+ },
+ "vegetable_seller": {
+  "px": [
+   645,
+   511
+  ],
+  "height_m": 1.65
+ },
+ "pebbles": {
+  "px": [
+   429,
+   192
+  ],
+  "width_m": 0.6
+ },
+ "pebble_cluster": {
+  "px": [
+   194,
+   133
+  ],
+  "width_m": 0.35
+ },
+ "leaf_1": {
+  "px": [
+   159,
+   247
+  ],
+  "width_m": 0.12
+ },
+ "leaf_2": {
+  "px": [
+   100,
+   254
+  ],
+  "width_m": 0.12
+ },
+ "leaf_3": {
+  "px": [
+   95,
+   234
+  ],
+  "width_m": 0.12
+ },
+ "husk": {
+  "px": [
+   301,
+   215
+  ],
+  "width_m": 0.3
+ },
+ "coconut": {
+  "px": [
+   223,
+   237
+  ],
+  "width_m": 0.22
+ },
+ "twigs": {
+  "px": [
+   299,
+   199
+  ],
+  "width_m": 0.45
+ },
+ "tuft_1": {
+  "px": [
+   153,
+   175
+  ],
+  "width_m": 0.3
+ },
+ "tuft_2": {
+  "px": [
+   110,
+   123
+  ],
+  "width_m": 0.22
+ },
+ "tuft_3": {
+  "px": [
+   101,
+   123
+  ],
+  "width_m": 0.2
+ },
+ "tuft_4": {
+  "px": [
+   96,
+   91
+  ],
+  "width_m": 0.16
+ },
+ "weed_1": {
+  "px": [
+   166,
+   171
+  ],
+  "width_m": 0.3
+ },
+ "weed_2": {
+  "px": [
+   122,
+   179
+  ],
+  "width_m": 0.3
+ },
+ "cart_rut": {
+  "px": [
+   790,
+   208
+  ],
+  "width_m": 2.6
+ },
+ "footprints": {
+  "px": [
+   770,
+   153
+  ],
+  "width_m": 1.4
+ },
+ "hoof_prints": {
+  "px": [
+   646,
+   182
+  ],
+  "width_m": 1.2
+ },
+ "hen_prints": {
+  "px": [
+   704,
+   176
+  ],
+  "width_m": 0.9
+ },
+ "cracked_mud": {
+  "px": [
+   725,
+   303
+  ],
+  "width_m": 1.6
+ },
+ "haystack": {
+  "px": [
+   483,
+   440
+  ],
+  "height_m": 2.6
+ },
+ "canal_bridge": {
+  "px": [
+   543,
+   291
+  ],
+  "height_m": 1.1
+ },
+ "well": {
+  "px": [
+   515,
+   394
+  ],
+  "height_m": 2.4
+ },
+ "scarecrow": {
+  "px": [
+   366,
+   446
+  ],
+  "height_m": 2.1
+ },
+ "sluice_gate": {
+  "px": [
+   419,
+   323
+  ],
+  "height_m": 1.7
+ },
+ "bund_block": {
+  "px": [
+   718,
+   216
+  ],
+  "height_m": 0.7
+ },
+ "pump_house": {
+  "px": [
+   532,
+   374
+  ],
+  "height_m": 2.9
+ },
+ "hut_with_pen": {
+  "px": [
+   823,
+   478
+  ],
+  "height_m": 3.8
+ },
+ "granary": {
+  "px": [
+   566,
+   568
+  ],
+  "height_m": 4.6
+ },
+ "field_shrine": {
+  "px": [
+   346,
+   532
+  ],
+  "height_m": 4.2
+ },
+ "paddy_young": {
+  "px": [
+   806,
+   268
+  ],
+  "height_m": 0.55
+ },
+ "paddy_tall": {
+  "px": [
+   741,
+   308
+  ],
+  "height_m": 1.0
+ },
+ "paddy_ripe": {
+  "px": [
+   776,
+   296
+  ],
+  "height_m": 1.0
+ },
+ "bund_strip": {
+  "px": [
+   1135,
+   182
+  ],
+  "height_m": 0.55
+ },
+ "canal_bank": {
+  "px": [
+   1198,
+   373
+  ],
+  "height_m": 1.3
+ },
+ "sugarcane": {
+  "px": [
+   954,
+   475
+  ],
+  "height_m": 2.8
+ },
+ "haystack_small": {
+  "px": [
+   366,
+   392
+  ],
+  "height_m": 1.8
+ },
+ "palmyra_1": {
+  "px": [
+   237,
+   459
+  ],
+  "height_m": 9.0
+ },
+ "palmyra_2": {
+  "px": [
+   242,
+   487
+  ],
+  "height_m": 9.5
+ },
+ "palmyra_3": {
+  "px": [
+   239,
+   494
+  ],
+  "height_m": 9.0
+ },
+ "mid_fields_band": {
+  "px": [
+   3168,
+   900
+  ],
+  "placeholder": true
+ },
+ "roof_house_a_1": {
+  "px": [
+   813,
+   1021
+  ],
+  "placeholder": true,
+  "src_box": [
+   144,
+   369,
+   957,
+   1390
+  ],
+  "px_per_m": 167.0
+ },
+ "roof_house_a_2": {
+  "px": [
+   723,
+   1186
+  ],
+  "placeholder": true,
+  "src_box": [
+   1064,
+   204,
+   1787,
+   1390
+  ],
+  "px_per_m": 167.0
+ },
+ "roof_house_a_3": {
+  "px": [
+   753,
+   1336
+  ],
+  "placeholder": true,
+  "src_box": [
+   1894,
+   54,
+   2647,
+   1390
+  ],
+  "px_per_m": 167.0
+ },
+ "roof_house_b_1": {
+  "px": [
+   753,
+   1291
+  ],
+  "placeholder": true,
+  "src_box": [
+   144,
+   99,
+   897,
+   1390
+  ],
+  "px_per_m": 161.4
+ },
+ "roof_house_b_2": {
+  "px": [
+   783,
+   1059
+  ],
+  "placeholder": true,
+  "src_box": [
+   1004,
+   331,
+   1787,
+   1390
+  ],
+  "px_per_m": 161.4
+ },
+ "roof_house_b_3": {
+  "px": [
+   723,
+   1021
+  ],
+  "placeholder": true,
+  "src_box": [
+   1894,
+   369,
+   2617,
+   1390
+  ],
+  "px_per_m": 161.4
+ },
+ "stall_a_1": {
+  "px": [
+   583,
+   525
+  ],
+  "placeholder": true,
+  "src_box": [
+   124,
+   865,
+   707,
+   1390
+  ],
+  "px_per_m": 164.1
+ },
+ "stall_a_2": {
+  "px": [
+   523,
+   489
+  ],
+  "placeholder": true,
+  "src_box": [
+   774,
+   901,
+   1297,
+   1390
+  ],
+  "px_per_m": 164.1
+ },
+ "stall_a_3": {
+  "px": [
+   523,
+   508
+  ],
+  "placeholder": true,
+  "src_box": [
+   1364,
+   882,
+   1887,
+   1390
+  ],
+  "px_per_m": 164.1
+ },
+ "stall_a_4": {
+  "px": [
+   553,
+   478
+  ],
+  "placeholder": true,
+  "src_box": [
+   1954,
+   912,
+   2507,
+   1390
+  ],
+  "px_per_m": 164.1
+ },
+ "stall_b_1": {
+  "px": [
+   513,
+   485
+  ],
+  "placeholder": true,
+  "src_box": [
+   124,
+   905,
+   637,
+   1390
+  ],
+  "px_per_m": 154.1
+ },
+ "stall_b_2": {
+  "px": [
+   553,
+   493
+  ],
+  "placeholder": true,
+  "src_box": [
+   684,
+   897,
+   1237,
+   1390
+  ],
+  "px_per_m": 154.1
+ },
+ "stall_b_3": {
+  "px": [
+   553,
+   459
+  ],
+  "placeholder": true,
+  "src_box": [
+   1304,
+   931,
+   1857,
+   1390
+  ],
+  "px_per_m": 154.1
+ },
+ "stall_b_4": {
+  "px": [
+   523,
+   462
+  ],
+  "placeholder": true,
+  "src_box": [
+   1924,
+   928,
+   2447,
+   1390
+  ],
+  "px_per_m": 154.1
+ },
+ "temple_street_1": {
+  "px": [
+   743,
+   646
+  ],
+  "placeholder": true,
+  "src_box": [
+   134,
+   744,
+   877,
+   1390
+  ],
+  "px_per_m": 129.2
+ },
+ "temple_street_2": {
+  "px": [
+   493,
+   578
+  ],
+  "placeholder": true,
+  "src_box": [
+   984,
+   812,
+   1477,
+   1390
+  ],
+  "px_per_m": 129.2
+ },
+ "temple_street_3": {
+  "px": [
+   493,
+   578
+  ],
+  "placeholder": true,
+  "src_box": [
+   1604,
+   812,
+   2097,
+   1390
+  ],
+  "px_per_m": 129.2
+ },
+ "temple_street_4": {
+  "px": [
+   521,
+   376
+  ],
+  "placeholder": true,
+  "src_box": [
+   2224,
+   1014,
+   2745,
+   1390
+  ],
+  "px_per_m": 129.2
  }
 }

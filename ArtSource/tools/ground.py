@@ -169,8 +169,9 @@ def earth_material(grain_image, ruts=(-0.5, 0.75), haze_from=HAZE_FROM, haze_to=
         d = g.math("ABSOLUTE", g.math("SUBTRACT", g.math("SUBTRACT", g.y, c), wobble))
         r = g.remap(d, 0.05, 0.2, 1.0, 0.0)
         rut_total = r if rut_total is None else g.math("MAXIMUM", rut_total, r)
-    rut = g.math("MULTIPLY", g.math("MULTIPLY", rut_total, breaks), 0.3)
-    col = g.mix(rut, col, (0.50, 0.22, 0.12))
+    if rut_total is not None:
+        rut = g.math("MULTIPLY", g.math("MULTIPLY", rut_total, breaks), 0.3)
+        col = g.mix(rut, col, (0.50, 0.22, 0.12))
 
     # Grassy, darker patches toward the houses and walls, never on the lane.
     band = g.math("MULTIPLY", g.remap(g.y, 2.2, 3.4), g.remap(g.y, 9.0, 7.0))
@@ -278,3 +279,93 @@ def grass_tufts(collection, rng, spots):
     obj = bpy.data.objects.new("GrassTufts", me)
     collection.objects.link(obj)
     return obj
+
+
+def water_material(name, tile_image, metres_per_tile=2.5, darken_near=True):
+    """Flooded paddy or canal water from a painted tile, mapped flat in world space, a little darker toward the
+    camera and fading into the haze with distance like everything else."""
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    g = Graph(mat)
+    bsdf = g.nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 1.0
+    bsdf.inputs["Specular IOR Level"].default_value = 0.0
+    bsdf.inputs["Emission Strength"].default_value = 0.35  # the painted water carries its own sky reflections
+    tiles = []
+    for scale, angle, shift in ((1 / metres_per_tile, 0.0, (0, 0)), (1 / (metres_per_tile * 1.7), 0.5, (0.37, 0.21))):
+        mapping = g.node("ShaderNodeMapping")
+        g.link(g.pos, mapping.inputs["Vector"])
+        mapping.inputs["Scale"].default_value = (scale, scale, scale)
+        mapping.inputs["Rotation"].default_value = (0, 0, angle)
+        mapping.inputs["Location"].default_value = (*shift, 0)
+        tex = g.node("ShaderNodeTexImage")
+        tex.image = tile_image
+        g.link(mapping.outputs["Vector"], tex.inputs["Vector"])
+        tiles.append(tex.outputs["Color"])
+    # Two scales of the tile blended by noise, so its repeat doesn't show across a whole field.
+    col = g.mix(g.remap(g.noise(0.15, 2, 0.5, 3.1), 0.42, 0.58), tiles[0], tiles[1])
+    if darken_near:
+        col = g.mix(1.0, col, g.gray(g.remap(g.y, -14.0, -1.0, 0.75, 1.0, smooth=False)), "MULTIPLY")
+    g.link(col, bsdf.inputs["Base Color"])
+    g.link(col, bsdf.inputs["Emission Color"])
+    fog = g.node("ShaderNodeEmission")
+    fog.inputs["Color"].default_value = lin(HAZE)
+    blend = g.node("ShaderNodeMixShader")
+    g.link(g.math("POWER", g.remap(g.y, HAZE_FROM, HAZE_TO, smooth=False), HAZE_POWER), blend.inputs["Fac"])
+    g.link(bsdf.outputs["BSDF"], blend.inputs[1])
+    g.link(fog.outputs["Emission"], blend.inputs[2])
+    g.link(blend.outputs["Shader"], g.nt.nodes["Material Output"].inputs["Surface"])
+    return mat
+
+
+def paddy_water_material(name="M_paddy_water"):
+    """Flooded paddy, made in the shader so nothing repeats: still water mirroring the warm sky, broken by drifts of
+    darker muddy green and long ripples, darker toward the camera, fading into the haze with distance."""
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    g = Graph(mat)
+    bsdf = g.nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 1.0
+    bsdf.inputs["Specular IOR Level"].default_value = 0.0
+    bsdf.inputs["Emission Strength"].default_value = 0.4
+    # The sky's reflection, golden near the horizon (far) and rosier overhead (near).
+    sky = g.mix(g.remap(g.y, -12.0, 30.0), (0.90, 0.66, 0.50), (0.99, 0.82, 0.56))
+    # Muddy green water where the reflection breaks up, in drifts 2-6 m across.
+    mud = g.remap(g.noise(0.28, 4, 0.55, 2.7), 0.45, 0.66, 0.0, 0.75)
+    col = g.mix(mud, sky, (0.46, 0.50, 0.30))
+    # Long ripples along the wind, as light streaks.
+    warp = g.vec(g.x, g.math("ADD", g.math("MULTIPLY", g.y, 6.0), g.math("MULTIPLY", g.noise(0.6, 2, 0.5, 8.0), 3.0)))
+    rip = g.node("ShaderNodeTexWave", wave_type="BANDS", bands_direction="Y")
+    g.link(warp, rip.inputs["Vector"])
+    rip.inputs["Scale"].default_value = 1.6
+    rip.inputs["Distortion"].default_value = 4.0
+    streak = g.math("MULTIPLY", g.remap(rip.outputs["Fac"], 0.82, 0.98, 0.0, 1.0),
+                    g.remap(g.noise(0.5, 2, 0.5, 5.0), 0.5, 0.7))
+    col = g.mix(g.math("MULTIPLY", streak, 0.5), col, (1.0, 0.93, 0.78))
+    # Rows of seedlings 30 cm apart, running along the fields and broken into tufts. Seen from the low camera they
+    # merge into the paddy's green, with the sky showing between them. Each field (patches 8-15 m across) is its own
+    # green: young and bright, deeper, or turning gold, and a few are bare flooded water.
+    # Seedling clumps: noise stretched along the fields so it reads as rows without a regular, flickering pattern.
+    stretched = g.vec(g.math("MULTIPLY", g.x, 1.5), g.math("MULTIPLY", g.y, 7.0))
+    seedling = g.remap(g.noise(1.0, 3, 0.6, 6.6, stretched), 0.40, 0.52)
+    field = g.noise(0.09, 1, 0.5, 4.2)
+    green = g.node("ShaderNodeValToRGB")
+    els = green.color_ramp.elements
+    els[0].position, els[0].color = 0.38, lin((0.52, 0.70, 0.24))
+    els[1].position, els[1].color = 0.66, lin((0.80, 0.70, 0.32))
+    mid = els.new(0.52)
+    mid.color = lin((0.30, 0.52, 0.17))
+    g.link(field, green.inputs["Fac"])
+    planted = g.remap(g.noise(0.07, 1, 0.5, 9.3), 0.3, 0.36)  # most fields planted, a few left as open water
+    col = g.mix(g.math("MULTIPLY", seedling, planted), col, green.outputs["Color"])
+    col = g.mix(1.0, col, g.gray(g.remap(g.y, -14.0, -1.0, 0.72, 1.0, smooth=False)), "MULTIPLY")
+    g.link(col, bsdf.inputs["Base Color"])
+    g.link(col, bsdf.inputs["Emission Color"])
+    fog = g.node("ShaderNodeEmission")
+    fog.inputs["Color"].default_value = lin(HAZE)
+    blend = g.node("ShaderNodeMixShader")
+    g.link(g.math("POWER", g.remap(g.y, HAZE_FROM, HAZE_TO, smooth=False), HAZE_POWER), blend.inputs["Fac"])
+    g.link(bsdf.outputs["BSDF"], blend.inputs[1])
+    g.link(fog.outputs["Emission"], blend.inputs[2])
+    g.link(blend.outputs["Shader"], g.nt.nodes["Material Output"].inputs["Surface"])
+    return mat
