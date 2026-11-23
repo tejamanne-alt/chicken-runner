@@ -1,0 +1,44 @@
+[
+ {
+  "name": "Idle",
+  "frames": 54,
+  "loop": true,
+  "face": ""
+ },
+ {
+  "name": "Run",
+  "frames": 10,
+  "loop": true,
+  "face": ""
+ },
+ {
+  "name": "Panic",
+  "frames": 8,
+  "loop": true,
+  "face": ""
+ },
+ {
+  "name": "Flutter",
+  "frames": 8,
+  "loop": true,
+  "face": ""
+ },
+ {
+  "name": "Crow",
+  "frames": 36,
+  "loop": false,
+  "face": ""
+ },
+ {
+  "name": "Startled",
+  "frames": 10,
+  "loop": false,
+  "face": ""
+ },
+ {
+  "name": "Tumble",
+  "frames": 18,
+  "loop": true,
+  "face": ""
+ }
+]

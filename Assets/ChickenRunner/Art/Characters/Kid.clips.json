@@ -1,0 +1,74 @@
+[
+ {
+  "name": "Idle",
+  "frames": 72,
+  "loop": true,
+  "face": "neutral"
+ },
+ {
+  "name": "Run",
+  "frames": 16,
+  "loop": true,
+  "face": "neutral"
+ },
+ {
+  "name": "JumpUp",
+  "frames": 9,
+  "loop": false,
+  "face": "grin"
+ },
+ {
+  "name": "Fall",
+  "frames": 12,
+  "loop": true,
+  "face": "shocked"
+ },
+ {
+  "name": "Land",
+  "frames": 8,
+  "loop": false,
+  "face": "neutral"
+ },
+ {
+  "name": "DoubleJump",
+  "frames": 12,
+  "loop": false,
+  "face": "grin"
+ },
+ {
+  "name": "Slide",
+  "frames": 10,
+  "loop": true,
+  "face": "grin"
+ },
+ {
+  "name": "Vault",
+  "frames": 14,
+  "loop": false,
+  "face": "straining"
+ },
+ {
+  "name": "Climb",
+  "frames": 12,
+  "loop": true,
+  "face": "straining"
+ },
+ {
+  "name": "Stumble",
+  "frames": 21,
+  "loop": false,
+  "face": "shocked"
+ },
+ {
+  "name": "Dive",
+  "frames": 15,
+  "loop": false,
+  "face": "straining"
+ },
+ {
+  "name": "Wade",
+  "frames": 24,
+  "loop": true,
+  "face": "straining"
+ }
+]
