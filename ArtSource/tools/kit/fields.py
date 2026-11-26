@@ -831,7 +831,7 @@ def canal_bridge(K):
     earth = K.colour((10, 64, 46, 92), vary=0.2, scale=8)
     under_slab = lambda px, py: 70 <= px <= 466 and 44 <= py <= 99
     relief(K, lambda px, py: opaque(px, py) and not in_channel(px, py) and not under_slab(px, py), depth, earth,
-           step=5, name="banks")
+           step=6, name="banks")
     wtile = K.tile((236, 160, 330, 250), vary=0.04)
     relief(K, lambda px, py: in_channel(px, py) and (opaque(px, py) or py < 100), depth, wtile, step=5,
            box=(170, 90, 470, 291), name="water")

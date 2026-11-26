@@ -662,6 +662,15 @@ def chicken_basket(K):
         axis_lathe(K, [(P.m(10), -P.m(2.5)), (P.m(10.5), 0.0), (P.m(10), P.m(2.5))], tie,
                    (c[0] - math.cos(a) * P.m(1.2), c[1] - math.sin(a) * P.m(1.2), c[2]), (math.cos(a), math.sin(a), 0),
                    segments=12, name="ring_tie")
+    # the shadow inside: a dark wall well inside the far half of the cage, what the gaps show from the front (the
+    # painting's dark interior lands on it), so the near gaps are not see-through to the sky
+    dark = K.colour((150, 130, 170, 140), vary=0.12, scale=12)
+    def lining(u, v):
+        a = math.radians(68 + 224 * u)
+        z = P.z(232) + (P.z(70) - P.z(232)) * v
+        R = rad(z) * 0.86
+        return (X0 + R * math.sin(a), -R * math.cos(a), z)
+    K.sheet(lining, 32, 12, dark, name="inner_shadow", thickness=0.006)
     # straw on the ground inside
     straw_m = K.colour((0.42, 0.25, 0.05), vary=0.2, scale=30)
     K.lathe(prof(P, [(0, 228), (60, 229), (100, 231.5), (118, 233), (118, 236), (0, 236)]), straw_m, segments=40,

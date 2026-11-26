@@ -2002,8 +2002,8 @@ def h7_5(K):
         for yaw in (0, 50, -50):
             blob_card(K, box, (P.x(cx), ybase + rng.uniform(-0.04, 0.04), P.z(cy)), yaw=yaw + rng.uniform(-10, 10),
                       rough=0.25, name="fern", normal=(dx, -0.5, 1))
-    for k in range(14):
-        a = math.radians(rng.uniform(10, 170))
+    for k in range(26):
+        a = math.radians(8 + 164 * (k + rng.uniform(0.1, 0.9)) / 26)
         box = front_clumps[rng.integers(len(front_clumps))]
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         x, y = P.x(320) + math.cos(a) * hw * rng.uniform(0.7, 1.05), math.sin(a) * 0.38

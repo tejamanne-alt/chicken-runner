@@ -148,6 +148,67 @@ def quad_sheet(K, corners, mat, nu=8, nv=6, thick=0.01, sag=0.0, name="mat"):
     return K.sheet(f, nu, nv, mat, name=name, thickness=thick)
 
 
+def straw_keep(rgb):
+    """Card pixels for thatch: straw and palm-leaf (warm, light) and the dark ink round it, not the wall, rags or
+    goods painted behind the fringe."""
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    straw = (r > 118) & (r - b > 58) & (g > b + 15)
+    keep = ndimage.binary_closing(straw, iterations=1)
+    dark = np.maximum(np.maximum(r, g), b) < 85
+    keep |= dark & ndimage.binary_dilation(keep, iterations=2)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
+def fringe_cards(K, band, y_front, y_back, x_left, x_right, keep=None, width=130, pitch=8.0, sides=True,
+                 back=True, z_shift=0.0):
+    """The ragged eave of a thatch as cut-out cards of its painted fringe (band px: the strip of leaf tips under the
+    eave): side by side along the front at y_front, where it is painted, and (the same strips) along the back and
+    down the two ends, so the roof has the painting's ragged edge all round."""
+    P = K.paint
+    x0, y0, x1, y1 = band
+    K.leaves_only(band, keep or straw_keep)
+    cz = P.z((y0 + y1) / 2) + z_shift
+    xs = list(np.arange(x0, x1 - width * 0.5, width * 0.8)) or [x0]
+    boxes = [(a, y0, min(x1, a + width), y1) for a in xs]
+    for bx in boxes:
+        cx = (bx[0] + bx[2]) / 2
+        K.card_from_painting(bx, (P.x(cx), y_front - K.rng.uniform(0.0, 0.02), cz), pitch=-pitch, name="fringe",
+                             normal=(0, -0.6, 0.8))
+        if back:
+            K.card_from_painting(bx, (-P.x(cx), y_back + K.rng.uniform(0.0, 0.02), cz), yaw=180, pitch=-pitch,
+                                 name="fringe", normal=(0, 0.6, 0.8))
+    if sides:
+        depth = y_back - y_front
+        n = max(2, int(depth / P.m(width * 0.8)))
+        for sgn, x in ((-1, x_left), (1, x_right)):
+            for i in range(n):
+                bx = boxes[(i * 3 + (0 if sgn < 0 else 2)) % len(boxes)]
+                yy = y_front + depth * (i + 0.5) / n
+                K.card_from_painting(bx, (x + sgn * K.rng.uniform(0.0, 0.02), yy, cz), yaw=90 * sgn, pitch=-pitch,
+                                     name="fringe", normal=(0.6 * sgn, 0, 0.8))
+
+
+def rag(K, rows, y, mat, bulge=0.015, folds=2, name="rag"):
+    """A rag or cloth hung from a beam, its outline traced off the painting: rows [(py, x0 px, x1 px), ...] from its
+    top down, gently bellied and folded, a little thickness."""
+    P = K.paint
+    ph = K.rng.uniform(0, 6.28)
+
+    def at(v):
+        t = v * (len(rows) - 1)
+        i = min(len(rows) - 2, int(t))
+        f = t - i
+        return [rows[i][k] * (1 - f) + rows[i + 1][k] * f for k in range(3)]
+
+    def f(u, v):
+        py, a, b = at(v)
+        x = P.x(a + (b - a) * u)
+        yy = y - bulge * math.sin(math.pi * u) * (0.3 + v) + 0.008 * math.sin(2 * math.pi * folds * u + ph) * v
+        return (x, yy, P.z(py))
+    return K.sheet(f, 6, max(3, len(rows) * 2), mat, name=name, thickness=0.006)
+
+
 # ====================================================================== stall G1: the fish stall
 @model("stall_g_1", "market", kind="prop", atlas=2048)
 def stall_g_1(K):
@@ -168,14 +229,30 @@ def stall_g_1(K):
     def bed_y(z):
         return yF + (z - zF) / slope
     plank = ktile(K, (172, 480, 214, 545), vary=0.08)
-    plank_side = ktile(K, (560, 470, 640, 520), vary=0.08, soften=0.2)
     xl0, xl1, xr0, xr1 = P.x(60), P.x(290), P.x(1090), P.x(905)
-    hexa(K, [(xl0, yF, 0.0), (xr0, yF, 0.0), (xr1, yB, 0.0), (xl1, yB, 0.0)],
-         [(xl0, yF, zF), (xr0, yF, zF), (xr1, yB, Z(410)), (xl1, yB, Z(410))], plank_side, name="bed")
-    top = K.projected(squeeze=1.0, keep=[(60, 405, 1095, 660)], inset=2)
-    hexa(K, [(xl0, yF, zF - 0.005), (xr0, yF, zF - 0.005), (xr1, yB, Z(410) - 0.005), (xl1, yB, Z(410) - 0.005)],
+    th = 0.05
+    hexa(K, [(xl0, yF, zF - th), (xr0, yF, zF - th), (xr1, yB, Z(410) - th), (xl1, yB, Z(410) - th)],
          [(xl0, yF - 0.004, zF + 0.012), (xr0, yF - 0.004, zF + 0.012), (xr1, yB, Z(410) + 0.012),
           (xl1, yB, Z(410) + 0.012)], plank, name="bed_top")
+    # the bed's frame: bearers down its two sides and its middle, a cross bar under its back edge, bamboo legs
+    leg = K.colour((0.42, 0.3, 0.15), vary=0.1)
+    for k in (0.0, 0.5, 1.0):
+        a = (xl0 + (xr0 - xl0) * k, yF + 0.04, zF - th - 0.035)
+        b = (xl1 + (xr1 - xl1) * k, yB - 0.04, Z(410) - th - 0.035)
+        bamboo(K, a, b, 0.035, leg, node_at=[0.3, 0.65], taper=1.0, name="bearer")
+    for t in (0.35, 0.7, 0.97):
+        yy = yF + (yB - yF) * t
+        zz = zF + (Z(410) - zF) * t - th - 0.075
+        xa, xb = xl0 + (xl1 - xl0) * t, xr0 + (xr1 - xr0) * t
+        bamboo(K, (xa - 0.05, yy, zz), (xb + 0.05, yy, zz), 0.032, leg, node_at=[0.5], taper=1.0, name="cross_bar")
+        for x in (xa, (xa + xb) / 2, xb):
+            bamboo(K, (x, yy, 0.0), (x, yy, zz + 0.03), 0.035, leg, node_at=[], taper=0.95, name="bed_leg")
+            lashing(K, (x, yy, zz), (0, 0, 1), 0.035, rope, turns=2)
+    # baskets stored under the bed (seen from the sides)
+    under_w = ktile(K, (640, 460, 740, 500), vary=0.06)
+    for x_px, yy in ((380, 0.45), (760, 0.4)):
+        K.lathe([(0.2, 0.0), (0.24, 0.12), (0.26, 0.26), (0.0, 0.27)], under_w, segments=20,
+                centre=(P.x(x_px), yy, 0.0), wobble=0.02, name="stored_basket")
     # its bamboo edging down the two raked sides and along the front
     edge = K.colour((60, 640, 100, 655), vary=0.08)
     for a, b in (((xl0, yF, zF + 0.02), (xl1, yB, Z(410) + 0.02)), ((xr0, yF, zF + 0.02), (xr1, yB, Z(410) + 0.02)),
@@ -183,7 +260,7 @@ def stall_g_1(K):
         K.tube([a, b], 0.022, edge, segments=8, name="bed_edge")
     # ---------------------------------------------------------------- the posts, beams and thatch
     ye0, ye1, yr = -1.3, 1.3, 0.0
-    z_eave, z_ridge = Z(222), Z(24)
+    z_eave, z_ridge = Z(208), Z(24)
 
     def roof_under(y):
         t = (y - ye0) / (yr - ye0) if y < yr else (ye1 - y) / (ye1 - yr)
@@ -218,11 +295,25 @@ def stall_g_1(K):
         K.tube([(x, ye0 + 0.1, roof_under(ye0 + 0.1) + 0.04), (x, yr, roof_under(yr) + 0.04),
                 (x, ye1 - 0.1, roof_under(ye1 - 0.1) + 0.04)], P.m(5), bam, segments=6, name="rafter")
     straw = ktile(K, (330, 60, 760, 190), vary=0.06)
-    hip_thatch(K, P.x(-5), P.x(1095), ye0, ye1, z_eave, P.x(198), P.x(915), yr, z_ridge - 0.05, straw, thick=0.12,
-               shag=0.035, fringe=P.m(16), nu=150, nv=9)
+    hip_thatch(K, P.x(22), P.x(1075), ye0, ye1, z_eave, P.x(205), P.x(905), yr, z_ridge - 0.06, straw, thick=0.12,
+               shag=0.035, fringe=P.m(8), nu=150, nv=9)
+    # a roll of straw capping the ridge, the bamboo ridge pole on it
+    K.tube([(P.x(200), yr, z_ridge - 0.03), (P.x(910), yr, z_ridge - 0.03)], 0.07, straw, segments=10, name="ridge_roll")
     ridge = K.projected(squeeze=1.0, keep=[(195, 6, 925, 28)], inset=1)
     bamboo(K, P.pt(195, 17, yr), P.pt(925, 17, yr), P.m(8), ridge, node_at=[0.12, 0.33, 0.55, 0.77], taper=1.0,
            name="ridge_pole")
+    for x_px in (230, 560, 890):
+        lashing(K, P.pt(x_px, 17, yr), (1, 0, 0), P.m(8), rope, turns=2)
+    # the ragged eave: the painted leaf tips as cards all round, and tufts down the two hips
+    fringe_cards(K, (0, 196, 1099, 262), ye0 - 0.02, ye1 + 0.02, P.x(22) - 0.04, P.x(1075) + 0.04, pitch=10)
+    for sgn, (ex, ez), (rx, rz) in ((-1, (0, 226), (200, 28)), (1, (1099, 236), (905, 28))):
+        for t in np.linspace(0.1, 0.85, 5):
+            px_, py_ = ex + (rx - ex) * t, ez + (rz - ez) * t
+            box = (px_ - 45, py_ - 40, px_ + 45, py_ + 40)
+            K.leaves_only(box, straw_keep)
+            yy = ye0 + (yr - ye0) * t
+            K.card_from_painting(box, (P.x(px_), yy - 0.03, P.z(py_)), yaw=-25 * sgn, name="hip_tuft",
+                                 normal=(0.5 * sgn, -0.5, 0.7))
     # ---------------------------------------------------------------- the back wall: planks between the back posts
     wall = ktile(K, (440, 262, 800, 385), vary=0.05, soften=0.3)
     wall_top = roof_under(ybp + 0.06) - 0.02
@@ -234,10 +325,15 @@ def stall_g_1(K):
         bamboo(K, (P.x(285), ybp + 0.07, z), (P.x(834), ybp + 0.07, z), P.m(6), bam, node_at=[], taper=1.0,
                name="wall_rail")
     # ---------------------------------------------------------------- rags hung from the front beam
-    for x0, x1, bot in ((198, 238, 345), (230, 275, 288), (322, 376, 312), (375, 415, 346)):
-        m = K.projected(squeeze=1.0, keep=[(x0 + 2, 245, x1 - 2, bot)], inset=1)
-        hanging_cloth(K, P.x(x0 + 2), P.x(x1 - 2), yfp + 0.02, zb, Z(bot - 3), m, back_drop=0.05, folds=2, amp=0.01,
-                      name="rag")
+    rags = [[(240, 198, 238), (300, 198, 238), (330, 200, 236), (346, 206, 228)],
+            [(240, 228, 276), (268, 232, 272), (286, 246, 262)],
+            [(236, 330, 372), (290, 325, 373), (312, 336, 370)],
+            [(236, 377, 410), (300, 380, 415), (338, 394, 413), (347, 399, 406)]]
+    for k, rows in enumerate(rags):
+        x0 = min(r[1] for r in rows)
+        x1 = max(r[2] for r in rows)
+        m = K.projected(squeeze=1.0, keep=[(x0 + 2, 246, x1 - 2, rows[-1][0])], inset=2)
+        rag(K, rows, yfp - 0.03 - 0.02 * (k % 2), m, name="rag")
     # ---------------------------------------------------------------- mats and fish on the bed
     n = (0.0, -0.5, 0.866)
     weave = ktile(K, (120, 612, 172, 652), vary=0.06)
@@ -294,3 +390,4 @@ def stall_g_1(K):
     # ---------------------------------------------------------------- behind the back wall: empty baskets, nested
     basket_stack(K, P.x(420), ybp + 0.45, 0.0, 0.3, 0.24, 0.55, 4, bweave, flat=1.0)
     basket_stack(K, P.x(700), ybp + 0.42, 0.0, 0.28, 0.22, 0.4, 3, bweave2, flat=1.0, lean=(6, 0))
+    unify_cards(K)
