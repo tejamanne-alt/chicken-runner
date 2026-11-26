@@ -84,8 +84,10 @@ Geometry (metres; every call returns the part, a Blender object):
 ## Conventions
 
 - `kind="building"`: its front wall on y = 0, everything else behind it (+Y), porches, steps and pots out in front
-  (-Y). `kind="prop"`: centred on y = 0. `kind="flat"`: lies on the ground (kolams, prints, ruts: a thin slab, the
-  painting on top, its edges a little rough).
+  (-Y). `kind="prop"`: centred on y = 0. `kind="flat"`: lies on the ground (kolams, prints, ruts, cracked mud).
+  **Build a flat piece standing up like the painting** (the painting on its front, -Y, thin in y): the game lays it down
+  face up. A kolam or prints are a card of the whole painting (`K.card_from_painting((0, 0, P.w, P.h), (0, 0, P.H / 2))`,
+  cards only is fine); cracked mud or a rut can be a thin relief slab whose front is the painting.
 - Real size comes from the painting's frame (`P.W`, `P.H` metres): never rescale. Choose depths that real things have
   (a village house 4-6 m deep, a stall 1.5-2.5 m, a pot as deep as it is wide, a tree crown about 0.75 of its width).
 - `atlas=1024` for props, `2048` for buildings, stalls and trees. Faces: props under about 6k, buildings and stalls

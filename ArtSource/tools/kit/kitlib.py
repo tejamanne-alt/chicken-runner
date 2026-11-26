@@ -999,8 +999,13 @@ def finish(K, spec):
     with its texture(s). Returns the models.json record."""
     P = K.paint
     name, folder, size = K.name, K.folder, spec["atlas"]
-    if not K.parts:
+    if not K.parts and not K.cards_parts:
         raise RuntimeError(f"{name}: no parts")
+    if not K.parts:
+        # a model of cards only (a kolam, prints, a rut, a tuft): one tiny hidden quad carries its name and atlas
+        K.box(-0.001, 0.001, 0.0, 0.002, 0.0, 0.002, K.colour((0.2, 0.2, 0.2), vary=0), name="anchor")
+        K.front_projection = False
+        K.ao = 0.0
     ob = _join(K.parts, name)
     for c in getattr(K, "_cutters", []):
         bpy.data.objects.remove(c)
