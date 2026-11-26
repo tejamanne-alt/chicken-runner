@@ -1305,6 +1305,7 @@ def pump_house(K):
     out of its left wall and pours into a brick trough. Its right side runs back as painted; a barred vent in the
     side and the back."""
     P = K.paint
+    K.front_min = 0.0                                       # its right side, turned a little to us, takes the painting
     D, kx = 2.3, 0.2                                        # depth; the painting sees its right side
     brick = K.tile((156, 104, 250, 300), soften=0.12, vary=0.03)
     side = K.tile((415, 110, 468, 300), soften=0.12, vary=0.03)
@@ -1355,8 +1356,7 @@ def pump_house(K):
     K.box(P.x(4), P.x(146), t0, t1, 0.0, P.z(352), trough, bevel=0.01, name="trough")
     wt = K.tile((30, 338, 130, 356), vary=0.03)
     K.box(P.x(14), P.x(136), t0 + 0.08, t1 - 0.08, P.z(352) - 0.004, P.z(350), wt, name="trough_water")
-    K.leaves_only((50, 226, 125, 356), no_white)
-    K.leaves_only((60, 226, 130, 356), everything) if False else None
+    K.leaves_only((50, 226, 125, 356), everything)
     K.card_from_painting((52, 226, 124, 352), (P.x(88), yp, P.z(289)), name="stream", normal=(0, -1, 0.3))
     K.card_from_painting((52, 226, 124, 352), (P.x(92), yp, P.z(289)), yaw=90, name="stream", normal=(0, -1, 0.3))
     # grass at the foot
@@ -1365,4 +1365,90 @@ def pump_house(K):
     for box, x in (((196, 338, 252, 362), 224), ((440, 336, 494, 362), 467)):
         for y, yaw in ((-0.06, 0), (0.6, 70), (1.4, -60)):
             K.card_from_painting(box, (P.x(x), y, P.z(350)), yaw=yaw, name="grass", normal=(0, -0.3, 1))
+    shear(K, 0.0, 0.0, kx=kx)
+
+
+def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, tile_r=0.035, name="roof"):
+    """A hipped roof of country tiles over the eave rectangle x0..x1, y0..y1: front and back slopes up to a ridge
+    `ridge` metres long (along x) and the two ends sloping up to it (hips), with half-round ridge and hip tiles."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    hw, hd = (x1 - x0) / 2, (y1 - y0) / 2
+    parts = []
+
+    def slope(w_eave, w_ridge, depth, length_dir, name):
+        def surf(u, v):
+            w = w_eave + (w_ridge - w_eave) * v
+            return ((u - 0.5) * 2 * w, -depth * (1 - v), z_eave + (z_ridge - z_eave) * v)
+        n = max(2, int(round(2 * w_eave / tile_w)))
+        nr = max(2, int(round(math.hypot(depth, z_ridge - z_eave) / 0.11)))
+
+        def tiled(u, v):
+            x, y, z = surf(u, v)
+            ripple = tile_r * abs(math.sin(math.pi * u * n)) * (w_eave + (w_ridge - w_eave) * v) / w_eave
+            step = 0.012 * ((v * nr) % 1.0)
+            return (x, y, z + ripple + step)
+        return K.sheet(tiled, n * 6, nr * 2, mat, name=name, smooth=False, thickness=0.03)
+    for side in (0, 90, 180, 270):
+        if side in (0, 180):
+            ob = slope(hw, ridge / 2, hd, "x", name)
+        else:
+            ob = slope(hd, 0.001, hw - ridge / 2, "y", name)
+        rotate(ob, side, "Z", (0, 0, 0))
+        for v in ob.data.vertices:
+            v.co.x += cx
+            v.co.y += cy
+        parts.append(ob)
+    # ridge and hip tiles: half-round tiles along the ridge and down the four hips
+    ridge_pts = [(cx - ridge / 2, cy, z_ridge + 0.04), (cx + ridge / 2, cy, z_ridge + 0.04)]
+    if ridge > 0.01:
+        parts.append(K.tube(ridge_pts, 0.07, mat, segments=10, name="ridge"))
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            parts.append(K.tube([(cx + sx * hw, cy + sy * hd, z_eave + 0.05),
+                                 (cx + sx * ridge / 2, cy, z_ridge + 0.04)], 0.065, mat, segments=8, name="hip"))
+    return parts
+
+
+@fmodel("granary", "fields", kind="building", atlas=2048)
+def granary(K):
+    """A raised village granary: a lime-plastered store with a plank door, on a stone platform carried by four
+    staddle stones (each a rough pillar on a footing stone under a flat cap, so rats cannot climb in), under a
+    hipped roof of half-round country tiles with ridge and hip tiles and rafter ends showing under the eaves. Its
+    right side runs back as painted."""
+    P = K.paint
+    K.front_min = 0.0
+    D, kx = 2.3, 0.41
+    plaster = K.tile((92, 222, 186, 300), soften=0.45, vary=0.04)
+    stone_m = K.tile((52, 350, 160, 372), soften=0.3, vary=0.05)
+    pillar = K.tile((70, 420, 110, 520), soften=0.3, vary=0.05)
+    tiles = K.tile((110, 90, 270, 175), soften=0.15, vary=0.04)
+    body = K.box(P.x(82), P.x(370), 0.0, D, P.z(345), P.z(200) - 0.05, plaster, name="walls")
+    # the platform, the staddle stones under its corners
+    K.box(P.x(50), P.x(398), -0.25, D + 0.25, P.z(388), P.z(345), stone_m, bevel=0.04, name="platform")
+    for x, y in ((88, 0.0), (366, 0.0), (88, D), (366, D)):
+        K.block(P.x(x), y, (P.z(378) + P.z(400)) / 2, P.m(86), 0.62, P.z(378) - P.z(400), stone_m, bevel=0.04,
+                jitter=0.01, name="cap")
+        K.lathe([(P.m(27), P.z(530)), (P.m(25), P.z(470)), (P.m(23), P.z(420)), (P.m(25), P.z(400))], pillar,
+                segments=8, centre=(P.x(x), y, 0), wobble=0.06, name="staddle", smooth=False)
+        K.block(P.x(x), y, P.z(542), P.m(88), 0.6, P.z(530) - P.z(555), stone_m, bevel=0.04, jitter=0.01, name="footing")
+    # the door in its frame
+    K.cut(body, P.x(190), P.x(272), -0.05, 0.2, P.z(345), P.z(206))
+    frame = K.colour((192, 210, 200, 340), vary=0.06)
+    K.box(P.x(198), P.x(264), 0.12, 0.16, P.z(345), P.z(220), K.tile((205, 225, 258, 335), soften=0.1), name="door")
+    for x0, x1 in ((190, 199), (263, 272)):
+        K.box(P.x(x0), P.x(x1), -0.02, 0.12, P.z(345), P.z(206), frame, name="jamb")
+    K.box(P.x(190), P.x(272), -0.02, 0.12, P.z(220), P.z(206), frame, name="frame_head")
+    # a small vent high in the back wall
+    dark = K.colour((0.05, 0.04, 0.03), vary=0.0)
+    K.cut(body, P.x(200), P.x(250), D - 0.1, D + 0.05, P.z(240), P.z(222))
+    K.box(P.x(200), P.x(250), D - 0.1, D - 0.08, P.z(240), P.z(222), dark, name="vent")
+    # the roof: hipped, over a wall plate, with rafter ends under the eaves
+    plate = K.colour((0.22, 0.11, 0.05), vary=0.08)
+    K.box(P.x(76), P.x(376), -0.06, D + 0.06, P.z(206), P.z(198), plate, name="wall_plate")
+    hip_roof(K, P.x(10), P.x(412), -0.62, D + 0.62, P.z(198), P.z(16), tiles, ridge=0.55)
+    rafter = K.colour((0.3, 0.14, 0.06), vary=0.1)
+    for x in (130, 270, 350):
+        K.tube([(P.x(x), 0.2, P.z(203)), (P.x(x), -0.55, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
+    for y in (0.5, 1.15, 1.8):
+        K.tube([(P.x(360), y, P.z(203)), (P.x(405), y, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
     shear(K, 0.0, 0.0, kx=kx)
