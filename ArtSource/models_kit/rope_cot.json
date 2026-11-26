@@ -1,0 +1,10 @@
+{
+ "name": "rope_cot",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 1.9,
+ "height": 1.02,
+ "depth": 1.241,
+ "faces": 4872,
+ "source": "blender"
+}
