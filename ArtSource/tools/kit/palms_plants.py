@@ -82,6 +82,13 @@ def not_ink(rgb, dark=60):
     return (mx > dark) & ~halo(rgb)
 
 
+def brickish(rgb):
+    """Painted brick: red-brown, and the dark mortar lines between."""
+    r, g, b, mx, mn = chan(rgb)
+    br = (r > g + 35) & (r > b + 45) & (r < 230)
+    return br | ((mx < 90) & ndimage.binary_dilation(br, iterations=3))
+
+
 def mask_rule(mask, box):
     """A leaves_only rule that is a precomputed full-painting mask seen through box."""
     x0, y0, x1, y1 = [int(v) for v in box]
@@ -204,6 +211,20 @@ def axis_material(K, ok, centre_px, squeeze=0.88, inset=3, name=None):
             out[py, :, ch] = np.interp(src, xs, a[py, :, ch])
     out[..., 3] = 255
     return straight_material(K, Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA"), name)
+
+
+def patch_decal(K, box, keep_fn, base_box, feather=10):
+    """A decal of the painting inside box (a patch of bare brick, a crack) whose pixels outside keep_fn(rgb) fade
+    into the colour of the plain surface (median of base_box), so the patch has no straight edge on the wall."""
+    P = K.paint
+    crop = np.asarray(P.crop(box).convert("RGB")).astype(np.float32)
+    keep = keep_fn(crop.astype(np.int32))
+    keep = ndimage.binary_closing(keep, iterations=2)
+    d = ndimage.distance_transform_edt(~keep)
+    w = np.clip(1 - d / feather, 0, 1)[..., None]
+    base = np.median(np.asarray(P.crop(base_box).convert("RGB")).reshape(-1, 3), axis=0)
+    out = crop * w + base * (1 - w)
+    return K.decal(None, image=Image.fromarray(out.clip(0, 255).astype(np.uint8)).convert("RGBA"))
 
 
 def masked_material(K, ok, inset=1, name=None):
@@ -849,7 +870,7 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
         X0, Z0 = P.x(cx), P.z(cy)
         dx, dz = X0 - hx, Z0 - hz
         h = math.sqrt(max(0.0, Rc * Rc - dx * dx - dz * dz))
-        y_c = d * max(h, Rc * 0.25)
+        y_c = d * min(max(h, Rc * 0.25), Rc * 0.7)
         s = -1.0 if d <= 0 else 1.0
         n = (Vector((dx, y_c, dz)).normalized() + Vector((0, s * 0.9, 0.15))).normalized()
         fan_card(K, (cx, cy), rad, y_c, n, cup=cup + rng.uniform(0, 0.15))
@@ -878,10 +899,10 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
                 tot += 1
                 good += 0 <= qx < P.w and 0 <= qy < P.h and crown_px[qy, qx]
             return good >= 0.85 * tot
-        if abs(dx) > Rc * side_min:
-            for sgn in (1, -1):
-                deg = (rng.uniform(70, 110)) * sgn
-                for sc in (0.8, 0.65, 0.5):
+        for sgn in ((1, -1) if abs(dx) > Rc * side_min else (rng.choice([1, -1]),)):
+            if True:
+                deg = (rng.uniform(55, 125)) * sgn
+                for sc in (0.85, 0.7, 0.55):
                     xf = turn_about(hx, 0.0, deg, scale=sc)
                     if fits(xf):
                         break
@@ -1219,8 +1240,8 @@ def h5_1(K):
     """A banana plant: a stout green pseudostem of sheathing leaf-bases, eight great arching leaves with torn edges
     all round its top, a heavy bunch of yellow-green bananas hanging from a hooked stalk with its bell below, stones
     and grass at its foot."""
-    banana(K, [(305, 885, 32), (304, 820, 30), (304, 700, 28), (304, 580, 26), (303, 480, 23), (302, 420, 20)],
-           H51_LEAVES, (302, 400), 300, (285, 300, 330, 470),
+    banana(K, [(305, 885, 32), (304, 820, 30), (304, 700, 28), (304, 580, 26), (303, 510, 22), (302, 465, 17)],
+           H51_LEAVES, (302, 468), 300, (285, 300, 330, 470),
            ([(326, 410, 7), (345, 378, 7), (368, 385, 6.5), (383, 420, 6), (388, 500, 6), (395, 585, 5),
              (404, 612, 4)], [(440, 56), (480, 58), (520, 56), (560, 50)], (48, 8), (318, 395, 455, 605),
             (408, 638, 20, 25)),
@@ -1411,8 +1432,8 @@ def h6_1(K):
     opaque = P.rgba[..., 3] > 0.5
     keep = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 660)])
     keep &= ~(box_mask(opaque.shape, [(270, 610, 480, 660)]) & barkish(rgb) & ~((r > 150) & (r > g * 1.6)))
-    crown = bush(K, (0, 0, P.w, 665), (380, 360), P.m(700) * 0.36, (260, 110, 70, 30), (95, 85), keep,
-                 dome=(360, 0, 660), core=0.2)
+    crown = bush(K, (0, 0, P.w, 665), (380, 360), P.m(700) * 0.36, (560, 150, 150, 70), (115, 100), keep,
+                 dome=(360, 0, 660), core=0.25)
     # the woody stems under it
     wood = masked_material(K, opaque & barkish(rgb) & box_mask(opaque.shape, [(280, 610, 470, 760)]), inset=1)
     stems(K, [[(372, 770, 9), (350, 700, 8), (318, 650, 6), (300, 610, 4)],
@@ -1425,7 +1446,7 @@ def h6_1(K):
     stone = masked_material(K, stone_ok, inset=2)
     rock(K, 270, 800, 230, 140, -0.06, stone)
     rock(K, 395, 795, 70, 40, -0.12, stone)
-    rock(K, 470, 790, 110, 70, 0.12, stone)
+    rock(K, 330, 795, 120, 70, 0.14, stone)
     gb = (100, 640, 610, 800)
     gm = (leafy(rgb) | ((r > 120) & (g > 100) & (b < 90) & (mx - mn > 50))) & ~halo(rgb) & opaque
     K.leaves_only(gb, mask_rule(gm, gb))
@@ -1486,11 +1507,14 @@ def h6_2(K):
         w = P.m(x1 - x0)
         xb = P.x(x_back)
         K.quad([(xb + w, t + 0.001, P.z(y1)), (xb, t + 0.001, P.z(y1)), (xb, t + 0.001, P.z(y0)),
-                (xb + w, t + 0.001, P.z(y0))], K.decal(box), name="brick_back")
+                (xb + w, t + 0.001, P.z(y0))], patch_decal(K, box, brickish, (310, 360, 450, 440)),
+               name="brick_back")
     K.quad([(P.x(632) + 0.001, -t, P.z(498)), (P.x(632) + 0.001, t, P.z(498)), (P.x(632) + 0.001, t, P.z(365)),
-            (P.x(632) + 0.001, -t, P.z(365))], K.decal((540, 365, 628, 498)), name="brick_end")
+            (P.x(632) + 0.001, -t, P.z(365))], patch_decal(K, (540, 365, 628, 498), brickish, (310, 360, 450, 440)),
+           name="brick_end")
     K.quad([(P.x(632) + 0.001, -t, P.z(285)), (P.x(632) + 0.001, t, P.z(285)), (P.x(632) + 0.001, t, P.z(178)),
-            (P.x(632) + 0.001, -t, P.z(178))], K.decal((560, 178, 630, 285)), name="brick_end")
+            (P.x(632) + 0.001, -t, P.z(178))], patch_decal(K, (560, 178, 630, 285), brickish, (310, 360, 450, 440)),
+           name="brick_end")
     # ---- the bougainvillea: a heap over the top of the wall, and its sprays hanging down the front and the back
     flower = (plant_pixels(rgb) | ((r > 150) & (b > 100) & (g < 120))) & opaque & ~halo(rgb)
     flower &= ~(box_mask(opaque.shape, [(0, 170, P.w, 538)]) & ~(((r - g > 60) & (b > g)) | ((g > r) & (g > b + 15))
@@ -1501,10 +1525,10 @@ def h6_2(K):
     heap = flower & box_mask(opaque.shape, [(0, 0, P.w, 200)])
     crown = Crown(K, (0, 0, P.w, 200), 0.17, (340, 150), mask=ndimage.binary_fill_holes(
         ndimage.binary_closing(heap, iterations=5)), core=0.6, dome=(150, 0, 205), dome_pow=0.5)
-    bush_cards(K, crown, 150, (70, 60), "volume", yaw=80, pitch=40)
-    bush_cards(K, crown, 60, (80, 70), "front", yaw=25, pitch=15)
-    bush_cards(K, crown, 45, (70, 60), "back", yaw=30, pitch=20)
-    bush_cards(K, crown, 30, (70, 60), "top", yaw=90)
+    bush_cards(K, crown, 280, (75, 65), "volume", yaw=80, pitch=40)
+    bush_cards(K, crown, 80, (80, 70), "front", yaw=25, pitch=15)
+    bush_cards(K, crown, 80, (75, 65), "back", yaw=30, pitch=20)
+    bush_cards(K, crown, 50, (75, 65), "top", yaw=90)
     hang = flower & box_mask(opaque.shape, [(0, 165, P.w, 470)])
     scatter_cards(K, (0, 165, P.w, 470), 90, (65, 55), (-t - 0.09, -t - 0.015), hang, name="spray")
     scatter_cards(K, (0, 165, P.w, 470), 50, (60, 50), (-t - 0.05, -t - 0.02), hang, name="spray", pitch=10)
@@ -1679,9 +1703,11 @@ def h6_5(K):
         cm = ndimage.binary_fill_holes(ndimage.binary_closing(cm, iterations=5))
         crown = Crown(K, region, hd, centre, mask=cm, core=0.25, y0=y0, dome=(centre[1], region[1], region[3]),
                       dome_pow=0.6)
-        bush_cards(K, crown, 70, (80, 70), "volume", yaw=85, pitch=45)
-        bush_cards(K, crown, 35, (95, 85), "front", yaw=25, pitch=15)
-        bush_cards(K, crown, 25, (80, 70), "back", yaw=30, pitch=20)
+        bush_cards(K, crown, 150, (85, 75), "volume", yaw=85, pitch=45)
+        bush_cards(K, crown, 45, (95, 85), "front", yaw=25, pitch=15)
+        bush_cards(K, crown, 50, (85, 75), "back", yaw=30, pitch=20)
+        bush_cards(K, crown, 25, (85, 75), "top", yaw=90, region=(region[0], region[1], region[2],
+                                                                 (region[1] + region[3]) / 2))
     K.leaves_only((0, 0, P.w, 330), mask_rule(leaves, (0, 0, P.w, 330)))
 
 
@@ -1694,7 +1720,7 @@ def h6_6(K):
     rgb = painted_rgb(K)
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
-    keep = opaque & ~halo(rgb) & ~((mn > 150) & (mx - mn < 60))         # not the pale haze painted between stems
+    keep = opaque & ~halo(rgb) & ~((mn > 140) & (mx - mn < 28))         # not the pale haze painted between stems
     keep = ndimage.binary_opening(keep, iterations=1)
     stem = masked_material(K, opaque & box_mask(opaque.shape, [(240, 480, 330, 585)]) & (g > b + 10) & (mx > 70),
                            inset=0)
@@ -1704,7 +1730,7 @@ def h6_6(K):
                [(290, 588, 6), (320, 470, 5), (360, 400, 4), (420, 320, 3), (460, 260, 2)],
                [(283, 588, 6), (300, 480, 5), (330, 350, 4), (350, 200, 3), (360, 120, 2)]]
     stems(K, strokes, stem, ys=[-0.03, 0.02, -0.06, 0.0, 0.04], back=1)
-    crown = bush(K, (0, 0, P.w, 560), (280, 300), P.m(500) * 0.34, (220, 100, 60, 20), (70, 65), keep,
+    crown = bush(K, (0, 0, P.w, 560), (280, 300), P.m(500) * 0.34, (420, 140, 110, 30), (80, 74), keep,
                  dome=(300, 0, 580), core=0.25)
     stone = masked_material(K, opaque & box_mask(opaque.shape, [(192, 555, 248, 592)]) & not_ink(rgb), inset=1)
     rock(K, 220, 592, 55, 34, -0.06, stone)
@@ -1728,7 +1754,7 @@ def h6_7(K):
     keep = ndimage.binary_opening(keep, iterations=1)
     crown_mask = ndimage.binary_fill_holes(ndimage.binary_closing(keep & box_mask(opaque.shape, [(0, 0, P.w, 330)]),
                                                                   iterations=6))
-    bush(K, (0, 0, P.w, 340), (290, 200), P.m(560) * 0.3, (230, 120, 70, 45), (70, 60), keep,
+    bush(K, (0, 0, P.w, 340), (290, 200), P.m(560) * 0.3, (440, 160, 120, 70), (80, 70), keep,
          dome=(220, 0, 345), core=0.35, dome_pow=0.6, crown_mask=crown_mask)
     soil_ok = opaque & box_mask(opaque.shape, [(290, 290, 440, 345)]) & (r > g + 15) & not_ink(rgb)
     soil = masked_material(K, soil_ok, inset=1)
@@ -1978,7 +2004,7 @@ def h7_2(K):
 
 # ====================================================================== h7_3: a banana plant at the edge of the scene
 H73_LEAVES = [
-    ([(470, 250), (390, 150), (290, 92), (180, 56), (45, 45)], 46, 0.15, "leaf"),
+    ([(465, 245), (400, 180), (308, 118), (205, 72), (51, 46)], 52, 0.15, "leaf"),
     ([(470, 262), (380, 215), (280, 205), (150, 232), (15, 275)], 42, 0.1, "leaf"),
     ([(472, 245), (432, 150), (398, 62), (385, 18)], 44, 0.35, "leaf"),
     ([(495, 232), (482, 120), (490, 22)], 24, 0.5, "leaf"),
@@ -2092,10 +2118,156 @@ def h5_4(K):
     # the crown of pinnate leaves
     keep = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 520)]) & ~(barkish(rgb) & (mx < 200))
     keep = ndimage.binary_opening(keep, iterations=1)
-    bush(K, (0, 0, P.w, 500), (255, 260), P.m(480) * 0.38, (250, 110, 70, 30), (85, 75), keep,
+    bush(K, (0, 0, P.w, 500), (255, 260), P.m(480) * 0.38, (480, 150, 130, 50), (100, 88), keep,
          dome=(260, 0, 500), core=0.2)
     gb = (150, 550, 360, 640)
     K.leaves_only(gb, mask_rule(leafy(rgb) & ~halo(rgb) & ~wood_ok, gb))
     tufts(K, [(160, 560, 235, 635), (285, 555, 345, 630)], [-0.04, -0.035])
     tufts(K, [(160, 560, 235, 635), (285, 555, 345, 630)], [0.04, 0.04], yaws=(30, -40))
     earth_disc(K, 255, 110, 0.1, K.colour((0.2, 0.14, 0.08), vary=0.18, scale=40), z=P.z(632) - P.m(3))
+
+
+# ====================================================================== h5_6: pumpkins on a bamboo trellis
+def pumpkin(K, px, py, rx, ry, y, mat, ribs=10, name="pumpkin"):
+    """A pumpkin: a squat ribbed ball with a dimple at its top, at painted (px, py), rx by ry px."""
+    P = K.paint
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=40, v_segments=16, radius=1.0)
+    ph = K.rng.uniform(0, 6.28)
+    a_, b_ = P.m(rx), P.m(ry)
+    for v in bm.verts:
+        d = v.co.normalized()
+        az = math.atan2(d.y, d.x) + ph
+        rib = 1.0 - 0.07 * abs(math.sin(ribs / 2 * az)) ** 0.6
+        k = rib * (1 - 0.25 * max(0.0, d.z) ** 6)                 # the dimple round the stalk
+        v.co = Vector((P.x(px) + d.x * a_ * k, y + d.y * a_ * 0.95 * k, P.z(py) + d.z * b_ * (k if d.z > 0 else 1.0)))
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob
+
+
+H56_PUMPKINS = [(148, 135, 28, 25, -0.06), (320, 160, 52, 42, -0.07), (160, 260, 50, 40, -0.07),
+                (264, 295, 26, 24, -0.05), (340, 347, 28, 22, -0.05), (150, 410, 48, 40, -0.07),
+                (270, 520, 76, 66, -0.13), (150, 555, 52, 45, -0.14), (356, 568, 46, 40, -0.12),
+                (272, 580, 30, 25, -0.2)]
+
+
+@model("h5_6", "plants", kind="prop", atlas=1024, leaves=1024)
+def h5_6(K):
+    """A pumpkin vine on a bamboo trellis: an A-frame of paired bamboo poles and crossbars lashed with rope, the vine
+    climbing all over it with big lobed leaves and curling tendrils, pumpkins hanging from it and heaped at its foot."""
+    P = K.paint
+    rng = K.rng
+    rgb = painted_rgb(K)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    orange = (r > 170) & (r > g + 40) & (g > b + 20)
+    pumps = ellipse_mask(opaque.shape, [(x, y, rx, ry) for x, y, rx, ry, _ in H56_PUMPKINS], -2)
+    bam_ok = bamboo_ok(rgb, opaque) & ~ndimage.binary_dilation(orange, iterations=3) & ~pumps
+    bam = masked_material(K, bam_ok, inset=1)
+    rope = K.colour((90, 75, 105, 95), vary=0.08)
+    pr = 9.0
+    # the trellis: the painted face leaning back to the ridge, and its twin face behind
+    poles = [((65, 605), (86, 30)), ((112, 600), (109, 16)), ((370, 605), (372, 26)), ((415, 605), (395, 20))]
+    bars = [((55, 85), (430, 82)), ((58, 312), (415, 308)), ((55, 456), (432, 454))]
+    yf, yr = -0.1, -0.012
+    zt, zg = P.z(20), P.z(605)
+
+    def yy(py, side):
+        f = (P.z(py) - zg) / (zt - zg)
+        return side * (yf + (yr - yf) * f)
+    for side in (1, -1):
+        for a, b_ in poles:
+            pole(K, a, b_, pr, bam, y=(yy(a[1], side), yy(b_[1], side)), nodes=(0.25, 0.5, 0.75))
+        for a, b_ in bars:
+            yb = yy(a[1], side) - side * P.m(pr * 1.8)
+            pole(K, a, b_, pr * 0.95, bam, y=yb, nodes=(0.3, 0.65))
+            for px in (a[0] + 35, b_[0] - 35):
+                lashing(K, (P.x(px), yb + side * P.m(pr), P.z(a[1])), P.m(pr * 2) * 0.8, rope, P.m(1.8))
+    # ridge pole tying the two faces at the top
+    pole(K, (60, 40), (420, 40), pr * 0.8, bam, y=0.0)
+    # ---- the pumpkins
+    pm = masked_material(K, opaque & orange & not_ink(rgb, 60), inset=1)
+    stalk = K.colour((0.2, 0.3, 0.08), vary=0.12)
+    for px, py, rx, ry, y in H56_PUMPKINS:
+        pumpkin(K, px, py, rx, ry, y, pm)
+        K.tube([P.pt(px, py - ry * 0.75, y), P.pt(px + 4, py - ry - 10, y), P.pt(px + 10, py - ry - 18, y)],
+               [P.m(4), P.m(3), P.m(2)], stalk, segments=6, name="stalk")
+    for px, py, rx, ry, y in H56_PUMPKINS[:6]:                        # and more hanging on the far face
+        pumpkin(K, px + rng.uniform(-30, 30), py + rng.uniform(-20, 20), rx * 0.9, ry * 0.9, -y * 1.1, pm)
+    for px, py, rx, ry, y in H56_PUMPKINS[6:9]:
+        pumpkin(K, px + rng.uniform(-40, 40), 595 - ry * 0.85, rx * 0.8, ry * 0.8, 0.13, pm)
+    # ---- the vine's leaves and tendrils on cards, over both faces
+    leaf = opaque & ~halo(rgb) & ~orange & ~bam_ok & ~((mn > 150) & (mx - mn < 60))
+    leaf = ndimage.binary_opening(leaf, iterations=1)
+    K.leaves_only((0, 0, P.w, P.h), mask_rule(leaf, (0, 0, P.w, P.h)))
+    scatter_cards(K, (0, 0, P.w, 600), 70, (75, 70), (0, 0), leaf, name="vine",
+                  y_of=lambda px, py: yy(py, 1) - P.m(pr * 2.5) - rng.uniform(0.0, 0.04))
+    scatter_cards(K, (0, 0, P.w, 600), 45, (70, 65), (0, 0), leaf, name="vine_back", normal=(0, 0.4, 1),
+                  y_of=lambda px, py: -yy(py, 1) + P.m(pr * 2.5) + rng.uniform(0.0, 0.04))
+    scatter_cards(K, (40, 450, 440, 619), 20, (70, 60), (-0.15, 0.15), leaf, yaw=80, name="vine_ground")
+    earth_disc(K, 240, 230, 0.2, K.colour((0.22, 0.15, 0.08), vary=0.18, scale=40), z=P.z(605) - P.m(4))
+
+
+# ====================================================================== h6_3: the flower bed
+H63_CROTON = [
+    ([(552, 130), (530, 95), (505, 55), (476, 12)], 21, 0.2, "leaf"),
+    ([(556, 135), (550, 100), (545, 65), (540, 48)], 17, -0.5, "leaf"),
+    ([(560, 130), (572, 80), (592, 40), (614, 10)], 23, 0.1, "leaf"),
+    ([(560, 140), (580, 110), (600, 85), (620, 70)], 21, -0.6, "leaf"),
+    ([(575, 150), (610, 110), (650, 90), (695, 82)], 22, 0.3, "leaf"),
+    ([(590, 170), (630, 160), (665, 158), (700, 168)], 19, -0.3, "leaf"),
+    ([(585, 190), (620, 200), (650, 225), (668, 242)], 20, -0.5, "leaf"),
+]
+
+
+@model("h6_3", "plants", kind="prop", atlas=1024, leaves=2048)
+def h6_3(K):
+    """A garden flower bed: a low mound of small-leaved bushes starred with pink and white flowers, a croton with
+    long red, orange and yellow leaves standing at its end, a big mossy boulder half sunk in front of it, small stones
+    and grass along its edge."""
+    P = K.paint
+    rgb = painted_rgb(K)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    boulder = [(372, 380), (380, 335), (410, 295), (450, 272), (500, 265), (550, 272), (585, 290), (610, 320),
+               (622, 355), (615, 380)]
+    stones = [(60, 345, 25, 14), (300, 356, 48, 16)]
+    rock_m = poly_mask(opaque.shape, [boulder]) | ellipse_mask(opaque.shape, stones)
+    keep = opaque & ~halo(rgb) & ~(rock_m & ~((g > r + 15) & (g > b + 25) & ~poly_mask(opaque.shape, [boulder])))
+    keep = ndimage.binary_opening(keep, iterations=1)
+    K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
+    # the flowering bushes: a long low mound of cards
+    cm = ndimage.binary_fill_holes(ndimage.binary_closing(keep & box_mask(opaque.shape, [(0, 20, 560, 340)]),
+                                                         iterations=6))
+    crown = Crown(K, (0, 20, 560, 340), 0.42, (270, 200), mask=cm, core=0.35, dome=(190, 20, 345), dome_pow=0.6)
+    bush_cards(K, crown, 420, (80, 70), "volume", yaw=85, pitch=45)
+    bush_cards(K, crown, 140, (85, 75), "front", yaw=25, pitch=15)
+    bush_cards(K, crown, 110, (80, 70), "back", yaw=30, pitch=20)
+    bush_cards(K, crown, 70, (80, 70), "top", yaw=90, region=(0, 20, 560, 180))
+    # the croton: its long painted leaves on ribbons round its heart, leafy greens below them
+    palm = Palm(K, (560, 165), R=P.m(140) * 0.8)
+    palm.crown(H63_CROTON, back=1.0, extra=3, turn=(50, 160), need=0.85)
+    for ob in K.cards_parts:
+        if ob.name.startswith("frond"):
+            for v in ob.data.vertices:
+                v.co.y += 0.12
+    stalk = K.colour((0.18, 0.26, 0.08), vary=0.1)
+    k0 = len(K.parts)
+    palm.stalks(stalk, 4, 3, frac=0.25, heart=(P.x(560), P.z(200)))
+    for ob in K.parts[k0:]:
+        for v in ob.data.vertices:
+            v.co.y += 0.12
+    cr2 = Crown(K, (450, 140, 711, 340), 0.25, (590, 240), mask=ndimage.binary_fill_holes(ndimage.binary_closing(
+        keep & box_mask(opaque.shape, [(450, 140, 711, 340)]), iterations=5)), core=0.3, y0=0.12)
+    bush_cards(K, cr2, 60, (80, 70), "volume", yaw=80, pitch=40)
+    bush_cards(K, cr2, 25, (85, 75), "front", yaw=25, pitch=15)
+    # the boulder and the stones
+    stone = masked_material(K, opaque & rock_m & not_ink(rgb), inset=2)
+    poly_solid(K, boulder, -0.16, stone, depth=0.55, segments=24, name="boulder")
+    for cx, cy, rx, ry in stones:
+        K.boulder(P.x(cx), -0.36, P.z(cy + ry) + P.m(ry), P.m(rx * 2), P.m(rx * 1.4), P.m(ry * 2.2), stone,
+                  name="stone")
+    soil = K.colour((0.25, 0.18, 0.1), vary=0.18, scale=30)
+    K.lathe([(0.0, 0.0), (P.m(345), 0.0), (P.m(330), 0.02), (P.m(200), 0.04), (0.0, 0.045)], soil, segments=32,
+            centre=(P.x(350), 0.0, P.z(385)), scale_y=0.5 / P.m(345), wobble=0.08, name="earth")
