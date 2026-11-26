@@ -1,0 +1,10 @@
+{
+ "name": "house_turmeric_ladder",
+ "folder": "lane",
+ "kind": "building",
+ "width": 3.512,
+ "height": 3.97,
+ "depth": 5.79,
+ "faces": 1534,
+ "source": "blender"
+}

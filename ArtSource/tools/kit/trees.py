@@ -407,20 +407,33 @@ class Wood:
             (thick if big else thin).append(ob)
         return thick, thin
 
-    def turned_copies(self, mat, picks, rscale=0.85, thick=None, thin=None, fuse_r_px=3.0):
-        """Copies of whole limbs (path i with everything growing from it), turned `deg` about the vertical through
-        the limb's start: picks [(path index, deg, dy)] carry the crown's wood round to the sides and back."""
+    def turned_copies(self, mat, picks, rscale=0.85, thick=None, thin=None, fuse_r_px=3.0, ymax=None, rise=30,
+                      whole=True):
+        """Copies of whole limbs (path i with everything growing from it above its start), turned `deg` about the
+        vertical through the limb's start: picks [(path index, deg, dy)] carry the crown's wood round to the sides
+        and back. ymax: each copy is drawn in towards its pivot so it stays within +-ymax in depth."""
         for i, deg, dy in picks:
             p = self.paths[i]
-            x0, z0 = self.P.x(p["pts"][0][0]), self.P.z(p["pts"][0][1])
+            px0, py0 = p["pts"][0]
+            x0, z0 = self.P.x(px0), self.P.z(py0)
             y0 = float(p["y"][0])
+            only = [j for j in self.subtree(i) if float(np.max(self.paths[j]["pts"][:, 1])) <= py0 + rise] \
+                if whole else [i]
+            if i not in only:
+                only = [i]
             a = math.radians(deg)
             ca, sa = math.cos(a), math.sin(a)
+            shrink = 1.0
+            if ymax is not None:
+                reach = max(abs(y0 + (self.P.x(x) - x0) * sa + (yy - y0) * ca)
+                            for j in only for (x, _), yy in zip(self.paths[j]["pts"], self.paths[j]["y"]))
+                if reach > ymax:
+                    shrink = max(0.3, (ymax - abs(y0)) / max(1e-6, reach - abs(y0)))
 
-            def tf(v, x0=x0, y0=y0, ca=ca, sa=sa, dy=dy):
-                dx, dyy = v[0] - x0, v[1] - y0
-                return (x0 + dx * ca - dyy * sa, y0 + dx * sa + dyy * ca + dy * (abs(dx) > 0), v[2])
-            thick, thin = self.tubes(mat, fuse_r_px, thick, thin, rscale=rscale, only=self.subtree(i), transform=tf,
+            def tf(v, x0=x0, y0=y0, ca=ca, sa=sa, dy=dy, k=shrink):
+                dx, dyy = (v[0] - x0) * k, (v[1] - y0) * k
+                return (x0 + dx * ca - dyy * sa, y0 + dx * sa + dyy * ca + dy, v[2])
+            thick, thin = self.tubes(mat, fuse_r_px, thick, thin, rscale=rscale, only=only, transform=tf,
                                      name="limb_turned")
         return thick, thin
 
@@ -624,3 +637,63 @@ def tree_mango_1(K):
     K.card_from_painting((10, 520, 150, 705), (P.x(80), -0.35, P.z(612)), name="bush_front")
     K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
     earth(K, 260, 300, 2.2, (60, 700, 500, 712))
+
+
+class Crown:
+    """A crown of leaf cards cut from the painting, shaped as a dome in depth: a card at painted spot (px, py) may lie
+    as far forward or back as the crown is deep there (half_depth at its heart, falling off like an ellipsoid to its
+    painted outline), so from the front it is exactly the painting and from the side and above a rounded mass of
+    leaves, not a slab. centre_px is the crown's heart; rx, rz_up, rz_down its reach in px (left/right, up, down)."""
+
+    def __init__(self, K, region_px, half_depth, centre_px, rx, rz_up, rz_down, core=0.15, y0=0.0, rx_right=None):
+        self.K, self.P = K, K.paint
+        self.region, self.hd, self.c = region_px, half_depth, centre_px
+        self.rx, self.rxr, self.rzu, self.rzd, self.core, self.y0 = rx, rx_right or rx, rz_up, rz_down, core, y0
+
+    def reach(self, px, py):
+        cx, cy = self.c
+        ex = (px - cx) / (self.rx if px < cx else self.rxr)
+        ez = (py - cy) / (self.rzu if py < cy else self.rzd)
+        return math.sqrt(max(0.0, 1 - min(1.0, ex * ex + ez * ez)))
+
+    def extent(self, px, py):
+        """How far forward / back of y0 the crown reaches at painted spot (px, py), metres."""
+        return self.hd * (self.core + (1 - self.core) * self.reach(px, py))
+
+    def front_y(self, px, py, k=1.0):
+        return self.y0 - self.extent(px, py) * k
+
+    def cards(self, n, size_px, layer="volume", yaw=40.0, pitch=25.0, region=None, mask=None, name="leaf",
+              squash=1.0):
+        """n cards: layer "volume" (all through the depth), "front" (the shell facing the camera: the painting) or
+        "back" (the shell behind)."""
+        K, P = self.K, self.P
+        x0, y0, x1, y1 = region or self.region
+        alpha = P.rgba[..., 3]
+        cx, cy = self.c
+        placed = tries = 0
+        while placed < n and tries < n * 40:
+            tries += 1
+            px, py = K.rng.uniform(x0, x1), K.rng.uniform(y0, y1)
+            if alpha[int(min(P.h - 1, py)), int(min(P.w - 1, px))] < 0.5:
+                continue
+            if mask is not None and not mask(px, py):
+                continue
+            ext = self.extent(px, py)
+            if layer == "front":
+                yy = self.y0 - ext * K.rng.uniform(0.8, 1.0)
+            elif layer == "back":
+                yy = self.y0 + ext * K.rng.uniform(0.8, 1.0)
+            else:
+                yy = self.y0 + K.rng.uniform(-1, 1) * ext * squash
+            w, h = size_px[0] * K.rng.uniform(0.75, 1.25), size_px[1] * K.rng.uniform(0.75, 1.25)
+            out = Vector((P.x(px) - P.x(cx), (yy - self.y0) * 1.3, P.z(py) - P.z(cy) + P.m(self.rzu) * 0.25))
+            K.card_from_painting((px - w / 2, py - h / 2, px + w / 2, py + h / 2), (P.x(px), yy, P.z(py)),
+                                 yaw=K.rng.uniform(-yaw, yaw), pitch=K.rng.uniform(-pitch, pitch), name=name,
+                                 normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1))
+            placed += 1
+        return placed
+
+    def inside(self, px, py):
+        P = self.P
+        return P.rgba[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1)), 3] > 0.5

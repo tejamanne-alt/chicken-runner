@@ -105,8 +105,16 @@ def grass_pixels(rgb):
 
 
 def everything(rgb):
-    """A leaf rule that keeps every opaque pixel (straw tufts cut from a stack's ragged edge)."""
+    """A leaf rule that keeps every opaque pixel."""
     return np.ones(rgb.shape[:2], bool)
+
+
+def no_halo(rgb):
+    """A leaf rule for straw tufts cut from a stack's ragged edge: every opaque pixel but the pale, greyish halo the
+    cut-out keeps round its outline (it would show as white scratches all over the sides)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    return ~((mx - mn < 60) & (mx > 140))
 
 
 def straw_fringe(K, axis_px, axis_y, rpx, rows, n, size=(56, 44), inset=0.35, sectors=None, exact_rows=None,
@@ -213,7 +221,7 @@ def haystack(K):
                  (r * 0.82, P.z(py) + P.m(3.5))], rope, segments=24, centre=(P.x((px0 + px1) / 2), 0.0, 0.0),
                 name="rope", cap=False)
     # the ragged straw all round (cut from the stack's own painted edges): the sides, the skirt and the crown
-    K.leaves_only((0, 60, 483, 366), everything)
+    K.leaves_only((0, 60, 483, 366), no_halo)
     straw_fringe(K, ax, 0.0, rpx, (110, 360), 110, size=(58, 46), inset=0.4, exact_rows=(104, 362),
                  sources=(110, 360), sectors=[(-25, 0), (0, 180), (-180, -155)])
     straw_fringe(K, ax, 0.0, rpx, (372, 418), 40, size=(64, 50), inset=0.3, sources=(320, 345),
@@ -263,12 +271,13 @@ def haystack_small(K):
                   (200, 129), (220, 141), (240, 143), (260, 145), (280, 152), (300, 155), (320, 157), (340, 165),
                   (350, 168), (360, 170), (380, 172)])
     straw = turned(K, P.x(ax), (90, 150, 270, 330), squeeze=0.92, keep=[(0, 62, 366, 392)])
-    prof = [(P.m(rpx(py)) * 0.97, P.z(py)) for py in (384, 362, 345, 320, 300, 280, 260, 240, 220, 200, 180, 160, 140,
-                                                     120, 100, 90, 80, 72)]
+    prof = [(P.m(160), P.z(378)), (P.m(168), P.z(368))]
+    prof += [(P.m(rpx(py)) * 0.97, P.z(py)) for py in (356, 345, 320, 300, 280, 260, 240, 220, 200, 180, 160, 140,
+                                                      120, 100, 90, 80, 72)]
     prof.append((P.m(10), P.z(66)))
-    seg = 56
+    seg = 64
     stack = K.lathe(prof, straw, segments=seg, wobble=0.025, name="stack")
-    jag(stack, seg, P.z(388), P.z(368))
+    jag(stack, seg, P.z(381), P.z(374))
     # the pole through the stack, and the wooden cap round it where it comes out
     wood = K.projected(squeeze=1.0, keep=[(166, 4, 194, 60)], inset=2)
     K.tube([P.pt(179, 14), P.pt(179, 60), P.pt(181, 200)], P.m(8), wood, segments=12, name="pole")
@@ -277,13 +286,9 @@ def haystack_small(K):
     K.lathe([(P.m(14), P.z(73)), (P.m(15), P.z(68)), (P.m(14), P.z(62)), (P.m(8), P.z(60))], cap, segments=24,
             centre=(P.x(179), 0, 0), name="cap")
     # the ragged straw round its sides, cut from its own painted outline, and the pointed skirt round the back
-    K.leaves_only((0, 62, 366, 392), everything)
-    straw_fringe(K, ax, 0.0, rpx, (82, 352), 70, size=(44, 36), inset=0.45, exact_rows=(80, 356), sources=(82, 350),
+    K.leaves_only((0, 62, 366, 392), no_halo)
+    straw_fringe(K, ax, 0.0, rpx, (82, 350), 70, size=(44, 36), inset=0.45, exact_rows=(80, 352), sources=(82, 350),
                  sectors=[(-25, 0), (0, 180), (-180, -155)])
-    for i in range(16):
-        th = K.rng.uniform(-10, 190)
-        t = math.radians(th)
-        cx = K.rng.uniform(110, 250)
-        r = P.m(rpx(372)) * 1.0
-        K.card_from_painting((cx - 36, 348, cx + 36, 392), (P.x(ax) + r * math.cos(t), r * math.sin(t), P.z(370)),
-                             yaw=th + 90, name="skirt", normal=(math.cos(t), math.sin(t), 0.2))
+    straw_fringe(K, ax, 0.0, rpx, (352, 366), 30, size=(40, 30), inset=0.5, sources=(330, 352),
+                 sectors=[(-30, 0), (0, 180), (-180, -150)], up=0.1)
+

@@ -339,7 +339,7 @@ def house_turmeric_ladder(K):
     P = K.paint
     depth = 4.5
     K.front_exclude = [(0, 96, 25, 152), (384, 0, 422, 477), (0, 0, 3, 400)]   # the neighbours' bits at the edges
-    wall = K.tile((135, 280, 172, 355), size=0.5, vary=0.05, soften=0.55)   # turmeric plaster between window and door
+    wall = K.tile((135, 280, 172, 355), size=0.6, vary=0.05, soften=0.7)    # turmeric plaster between window and door
     upper = K.tile((190, 18, 300, 74), vary=0.05, soften=0.3)                # the parapet's cream with orange streaks
     ledge = K.colour((100, 82, 280, 92), vary=0.06)
     red = K.tile((35, 405, 120, 470), vary=0.06, soften=0.35)               # the thinnai's red oxide, below its kolam
@@ -375,10 +375,10 @@ def house_turmeric_ladder(K):
         K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(391), P.z(162), teal, bevel=0.008, name="jamb")
     K.box(P.x(175), P.x(292), -0.03, 0.12, P.z(174), P.z(162), teal, bevel=0.008, name="frame_head")
     K.box(P.x(147), P.x(320), -0.22, 0.0, P.z(152), P.z(137), red, bevel=0.01, name="sunshade")
-    flowers = K.colour((205, 185, 260, 200), vary=0.25, scale=40)
-    strings = K.colour((175, 185, 183, 225), vary=0.25, scale=40)
-    pts = [P.pt(x, y, -0.06) for x, y in ((180, 168), (205, 188), (233, 200), (262, 188), (288, 168))]
-    K.tube(pts, P.m(9), flowers, segments=8, name="garland")
+    flowers = K.colour((222, 186, 246, 196), vary=0.25, scale=40)
+    strings = K.colour((178, 185, 183, 225), vary=0.25, scale=40)
+    pts = [P.pt(x, y, -0.06) for x, y in ((183, 172), (207, 192), (233, 202), (259, 192), (285, 172))]
+    K.tube(pts, P.m(11), flowers, segments=8, name="garland")
     for x in (178, 290):
         K.tube([P.pt(x, 166, -0.05), P.pt(x, 228, -0.05)], P.m(6), strings, segments=8, name="garland_string")
     stairs(K, [(171, 294, 390), (154, 308, 410), (143, 320, 431), (135, 332, 456)], red)
