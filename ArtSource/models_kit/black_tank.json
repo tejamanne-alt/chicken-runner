@@ -1,0 +1,10 @@
+{
+ "name": "black_tank",
+ "folder": "market",
+ "kind": "volume",
+ "width": 1.629,
+ "height": 2.0,
+ "depth": 1.779,
+ "faces": 1650,
+ "source": "blender"
+}

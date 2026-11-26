@@ -1,0 +1,10 @@
+{
+ "name": "haystack",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 2.854,
+ "height": 2.6,
+ "depth": 2.759,
+ "faces": 4631,
+ "source": "blender"
+}
