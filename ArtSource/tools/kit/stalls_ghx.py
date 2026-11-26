@@ -295,7 +295,7 @@ def stall_g_1(K):
         K.tube([(x, ye0 + 0.1, roof_under(ye0 + 0.1) + 0.04), (x, yr, roof_under(yr) + 0.04),
                 (x, ye1 - 0.1, roof_under(ye1 - 0.1) + 0.04)], P.m(5), bam, segments=6, name="rafter")
     straw = ktile(K, (330, 60, 760, 190), vary=0.06)
-    hip_thatch(K, P.x(22), P.x(1075), ye0, ye1, z_eave, P.x(205), P.x(905), yr, z_ridge - 0.06, straw, thick=0.12,
+    hip_thatch(K, P.x(38), P.x(1062), ye0, ye1, z_eave, P.x(212), P.x(898), yr, z_ridge - 0.06, straw, thick=0.12,
                shag=0.035, fringe=P.m(8), nu=150, nv=9)
     # a roll of straw capping the ridge, the bamboo ridge pole on it
     K.tube([(P.x(200), yr, z_ridge - 0.03), (P.x(910), yr, z_ridge - 0.03)], 0.07, straw, segments=10, name="ridge_roll")
@@ -305,11 +305,11 @@ def stall_g_1(K):
     for x_px in (230, 560, 890):
         lashing(K, P.pt(x_px, 17, yr), (1, 0, 0), P.m(8), rope, turns=2)
     # the ragged eave: the painted leaf tips as cards all round, and tufts down the two hips
-    fringe_cards(K, (0, 196, 1099, 262), ye0 - 0.02, ye1 + 0.02, P.x(22) - 0.04, P.x(1075) + 0.04, pitch=10)
+    fringe_cards(K, (0, 196, 1099, 262), ye0 - 0.02, ye1 + 0.02, P.x(38) - 0.04, P.x(1062) + 0.04, pitch=10)
     for sgn, (ex, ez), (rx, rz) in ((-1, (0, 226), (200, 28)), (1, (1099, 236), (905, 28))):
-        for t in np.linspace(0.1, 0.85, 5):
+        for t in np.linspace(0.06, 0.9, 7):
             px_, py_ = ex + (rx - ex) * t, ez + (rz - ez) * t
-            box = (px_ - 45, py_ - 40, px_ + 45, py_ + 40)
+            box = (px_ - 40, py_ - 36, px_ + 40, py_ + 36)
             K.leaves_only(box, straw_keep)
             yy = ye0 + (yr - ye0) * t
             K.card_from_painting(box, (P.x(px_), yy - 0.03, P.z(py_)), yaw=-25 * sgn, name="hip_tuft",
@@ -367,12 +367,12 @@ def stall_g_1(K):
         (871, 74, 62, 506, 572, 617, bweave, on_bed, 8, 20),
     ]
     for cx, R, rb, back, front, bottom, wv, gr, nf, fan in baskets:
-        rc, ax, Rm, _ = tipped_basket(K, cx, R, rb, back, front, bottom, wv, goods=fheap, ground=gr, inside=dark,
+        rc, ax, Rm, _ = tipped_basket(K, cx, R - 3, rb, back, front, bottom, wv, goods=fheap, ground=gr, inside=dark,
                                       dome=0.32, name="fish_basket")
         fish_heap(K, rc, ax, Rm, nf, P.m(16), fishm, dome=0.32, fan=fan)
     # on the ground in front: a basket propped against the bed, a tray of fish, a pile of fish
     ground_front = lambda z: -1.62                 # noqa: E731
-    rc, ax, Rm, _ = tipped_basket(K, 550, 90, 80, 560, 612, 672, bweave2, goods=fheap, ground=ground_front,
+    rc, ax, Rm, _ = tipped_basket(K, 550, 85, 76, 562, 612, 672, bweave2, goods=fheap, ground=ground_front,
                                   inside=dark, dome=0.3, name="front_basket")
     fish_heap(K, rc, ax, Rm, 7, P.m(18), fishm, dome=0.3, fan=95)
     tray = K.colour((900, 625, 930, 650), vary=0.08)

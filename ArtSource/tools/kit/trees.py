@@ -628,6 +628,55 @@ def undergrowth(K, region, n, size, ys, yaw=80, name="undergrowth", centre_fn=No
         placed += 1
 
 
+def blob_card(K, box_px, centre, yaw=0.0, pitch=0.0, normal=None, name="leaf", n=9, rag=0.22):
+    """A leaf card like K.card_from_painting, but cut as a ragged rounded blob inscribed in its box instead of a
+    rectangle: its outline is irregular from every side (a rectangle of dense foliage seen from the side or above
+    shows straight cut edges and square corners)."""
+    from kitlib import _obj
+    P = K.paint
+    x0, y0, x1, y1 = box_px
+    cx0, cy0, cx1, cy1 = max(0, x0), max(0, y0), min(P.w, x1), min(P.h, y1)
+    if cx1 - cx0 < 3 or cy1 - cy0 < 3:
+        return None
+    c = Vector(centre) + Vector((P.m((cx0 + cx1) / 2 - (x0 + x1) / 2), 0, -P.m((cy0 + cy1) / 2 - (y0 + y1) / 2)))
+    x0, y0, x1, y1 = cx0, cy0, cx1, cy1
+    hw, hh = P.m(x1 - x0) / 2, P.m(y1 - y0) / 2
+    R = Matrix.Rotation(math.radians(yaw), 3, "Z") @ Matrix.Rotation(math.radians(pitch), 3, "X")
+    ph = K.rng.uniform(0, 2 * math.pi)
+    bm = bmesh.new()
+    vs, uvs = [], []
+    for k in range(n):
+        a = ph + 2 * math.pi * k / n
+        rr = 1.0 - rag * K.rng.uniform(0, 1)
+        u, v = math.cos(a) * rr, math.sin(a) * rr
+        vs.append(bm.verts.new(c + R @ Vector((u * hw, 0, v * hh))))
+        px = x0 + (u + 1) / 2 * (x1 - x0)
+        py = y1 - (v + 1) / 2 * (y1 - y0)
+        uvs.append((px / P.w, 1 - py / P.h))
+    f = bm.faces.new(vs)
+    layer = bm.loops.layers.uv.new("UVMap")
+    for lp, uv in zip(f.loops, uvs):
+        lp[layer].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = list(normal) if normal is not None else [0.0, -0.35, 1.0]
+    K.cards_parts.append(ob)
+    return ob
+
+
+def clear_sky(K, box, exclude=()):
+    """Makes the pale sky and the white cut-out halo painted between a crown's leaves and limbs (inside box, not in
+    the exclude boxes) transparent in the painting the model is projected from and its cards are cut from: wood seen
+    through those gaps then keeps its bark, never a white patch."""
+    P = K.paint
+    a = np.asarray(P.img).copy()
+    r, g, b, mx, mn = chan(a[..., :3].astype(np.int32))
+    sky = (mn > 175) & (mx - mn < 45) & (a[..., 3] > 0) & box_mask(mx.shape, [box])
+    if exclude:
+        sky &= ~box_mask(mx.shape, exclude)
+    a[sky, 3] = 0
+    P.img = Image.fromarray(a, "RGBA")
+
+
 class Crown:
     """A crown of leaf cards cut from the painting, shaped in depth like the painted outline blown up into a cushion:
     a card at painted spot (px, py) may lie as far forward or back as the crown is deep there (half_depth at its
@@ -698,12 +747,21 @@ class Crown:
                 u = K.rng.uniform(-1, 1)
                 yy = self.y0 + math.copysign(abs(u) ** 0.8, u) * ext * squash     # more of them near its surface
             k = 0.6 + 0.4 * self.reach(px, py) if layer != "front" else 1.0      # smaller towards its rim
+            if layer != "front":
+                k *= 1 - 0.35 * min(1.0, abs(yy - self.y0) / max(1e-6, ext))     # and towards its depth's edge
+            if layer == "front":
+                k = 1.2                                    # a blob covers less than its box: the front stays whole
             w, h = size_px[0] * K.rng.uniform(0.75, 1.25) * k, size_px[1] * K.rng.uniform(0.75, 1.25) * k
-            out = Vector((P.x(px) - P.x(cx), (yy - self.y0) * 1.3, P.z(py) - P.z(cy) + P.m(self.rzu) * 0.25))
-            K.card_from_painting((px - w / 2, py - h / 2, px + w / 2, py + h / 2), (P.x(px), yy, P.z(py)),
-                                 yaw=K.rng.uniform(-yaw, yaw),
-                                 pitch=K.rng.uniform(-pitch, pitch) if pitch_k is None else pitch_k, name=name,
-                                 normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1))
+            # the card stays inside the crown's leaf box (beyond it the leaves texture is cut away in a straight line)
+            bx0, by0, bx1, by1 = self.region
+            l, t, r_, b_ = max(px - w / 2, bx0), max(py - h / 2, by0), min(px + w / 2, bx1), min(py + h / 2, by1)
+            if r_ - l < 8 or b_ - t < 8:
+                continue
+            qx, qy = (l + r_) / 2, (t + b_) / 2
+            out = Vector((P.x(qx) - P.x(cx), (yy - self.y0) * 1.3, P.z(qy) - P.z(cy) + P.m(self.rzu) * 0.25))
+            blob_card(K, (l, t, r_, b_), (P.x(qx), yy, P.z(qy)), yaw=K.rng.uniform(-yaw, yaw),
+                      pitch=K.rng.uniform(-pitch, pitch) if pitch_k is None else pitch_k, name=name,
+                      normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1))
             placed += 1
         return placed
 
@@ -737,7 +795,8 @@ def tree_mango_1(K):
     leaves, five mangoes, two rocks and low plants at its foot."""
     P = K.paint
     mask, wood = TRACE["tree_mango_1"](K)
-    crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2, dome=(260, 0, 470), dome_pow=0.85)
+    crown = Crown(K, (0, 0, 789, 470), P.m(770) * 0.36, (400, 300), core=0.2, dome=(260, 0, 470), dome_pow=0.85)
+    clear_sky(K, (0, 0, 789, 470))
     wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.8))
     bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
     thick, thin = wood.tubes(bark, fuse_r_px=8.0, min_r_px=1.5)
@@ -958,7 +1017,7 @@ class Katte:
 
 def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
                  crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
-                 crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360)):
+                 crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360), sky_exclude=()):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves."""
     P = K.paint
@@ -971,6 +1030,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                                      axis_x=P.x(918), squeeze=0.9)
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
                   dome_pow=0.9, y0=y0)
+    clear_sky(K, crown_box, sky_exclude)
     wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
         n = len(pts)
@@ -1312,7 +1372,8 @@ def shrine_tree(K):
         exclude_wood=[SHRINE_TRUNK[3:-2] + [(905, 340, 120)], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2],
                       SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
         crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=6,
-        crown_extra_keep=skein, bark_mat=K.tile((835, 300, 900, 400), vary=0.08, soften=0.35), root_dirs=(55, 125))
+        crown_extra_keep=skein, bark_mat=K.tile((835, 300, 900, 400), vary=0.08, soften=0.35), root_dirs=(55, 125),
+        sky_exclude=[(760, 420, 1085, 820)])
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
@@ -1368,7 +1429,8 @@ def field_tree_1(K):
     P = K.paint
     rng = K.rng
     mask, wood = TRACE["field_tree_1"](K)
-    crown = Crown(K, (0, 0, 938, 505), P.m(900) * 0.38, (470, 300), core=0.18, dome=(300, 0, 510), dome_pow=0.9)
+    crown = Crown(K, (0, 0, 938, 510), P.m(900) * 0.38, (470, 300), core=0.18, dome=(300, 0, 510), dome_pow=0.9)
+    clear_sky(K, (0, 0, 938, 510))
 
     def seed(p, dy):
         return 0.0 if hanging(p) else dy
@@ -1439,7 +1501,8 @@ def field_tree_2(K):
     P = K.paint
     rng = K.rng
     mask, wood = TRACE["field_tree_2"](K)
-    crown = Crown(K, (0, 0, 525, 400), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.9)
+    crown = Crown(K, (0, 0, 525, 410), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.9)
+    clear_sky(K, (0, 0, 525, 410))
     wood.grow(spread=0.6, root_z_px=505, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.85))
     bark = bark_material(K, mask, axis_x=P.x(275), squeeze=0.9)
     thick, thin = wood.tubes(bark, fuse_r_px=6.0, rscale=0.88, min_r_px=1.2)
@@ -1510,7 +1573,8 @@ def field_tree_3(K):
     node = K.colour((0.03, 0.045, 0.02), vary=0.1)
     base_py, cx = 768, 245
     alpha = P.rgba[..., 3]
-    crown = Crown(K, (0, 0, 511, 620), P.m(480) * 0.34, (250, 300), core=0.2, dome=(300, 0, 640), dome_pow=0.6)
+    crown = Crown(K, (0, 0, 511, 640), P.m(480) * 0.34, (250, 300), core=0.2, dome=(300, 0, 640), dome_pow=0.6)
+    clear_sky(K, (0, 0, 511, 640))
     # the culms painted in front, fanning out from the clump, then more all through the clump behind them
     n = 13
     for layer, count, yr in (("front", n, (-0.32, -0.05)), ("mid", 10, (-0.1, 0.15)), ("back", 13, (0.05, 0.4))):
@@ -1824,7 +1888,8 @@ def field_tree_5(K):
     wispy drooping needles."""
     P = K.paint
     rng = K.rng
-    crown = Crown(K, (0, 0, 401, 625), P.m(330) * 0.42, (205, 380), core=0.3, dome=(420, 0, 640), dome_pow=0.6)
+    crown = Crown(K, (0, 0, 401, 640), P.m(330) * 0.42, (205, 380), core=0.3, dome=(420, 0, 640), dome_pow=0.6)
+    clear_sky(K, (0, 0, 401, 640))
     bark = K.tile((198, 700, 212, 840), vary=0.08, soften=0.2)
     ys = [-0.35, 0.05, 0.45, -0.1]
     wood = []
@@ -1978,6 +2043,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     cw = crown_box[2] - crown_box[0]
     crown = Crown(K, crown_box, P.m(cw) * depth_ratio, crown_centre, core=core, dome=dome, dome_pow=dome_pow,
                   mask=crown_mask)
+    clear_sky(K, crown_box)
     floor = P.m(cw) * 0.06
     root_lim = crown.hd * 0.6                          # the roots spread round the foot, whatever the crown does
 

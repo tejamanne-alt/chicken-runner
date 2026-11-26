@@ -631,7 +631,7 @@ def chicken_basket(K):
     front = [-66, -52, -33, -12.5, 6.3, 24.8, 39.5, 57, 76]
     back = [76 + (294 - 76) * k / 13 for k in range(1, 13)]
     for th in front + back:
-        rib(K, th, zs, rad, P.m(11.5), t, cane)
+        rib(K, th, zs, rad, P.m(10), t, cane)
     # the hoops: flat cane bands bound round the ribs (centre py, width px)
     for py, wpx in ((61, 6), (70, 6), (80, 7), (90, 5), (105, 9), (128.5, 5), (147, 11), (184, 12), (209, 10),
                     (224, 8)):
@@ -646,7 +646,7 @@ def chicken_basket(K):
     handle = proj(K, X0, 0.97, keep=[(118, 3, 212, 50)], inset=1)
     loop = [(125, 50), (126, 40), (129, 30), (135, 20), (144, 12), (156, 8), (170, 8), (182, 12), (192, 21),
             (199, 31), (203, 41), (205, 50)]
-    K.tube([P.pt(x, y) for x, y in loop], P.m(6.5), handle, segments=12, name="handle")
+    K.tube([P.pt(x, y) for x, y in loop], P.m(5.3), handle, segments=12, name="handle")
     for x in (125, 205):
         ellipsoid(K, (P.x(x), 0.0, P.z(47)), (P.m(13), P.m(10), P.m(7)), crown, name="lashing")
     # the thick bamboo ring the cage stands in, with its lashings
@@ -694,3 +694,111 @@ def ellipsoid(K, c, r3, mat, rot=(0, 0, 0), seg=14, rings=8, name="ellipsoid"):
     ob = _obj(name, bm, mat, smooth=True)
     K.parts.append(ob)
     return ob
+
+
+def decal_faces(K, box_px, x0, x1, y0, y1, z0, z1, faces=("back", "left", "right"), inset=0.003, mat=None):
+    """The painted picture inside box_px repeated on other faces of a block (x0..x1, y0..y1, z0..z1 metres): a
+    motif or a painted band on the back and the sides, each the right way round seen from outside."""
+    m = mat or K.decal(box_px)
+    for f in faces:
+        if f == "back":
+            y = y1 + inset
+            K.quad([(x1, y, z0), (x0, y, z0), (x0, y, z1), (x1, y, z1)], m, name="decal_back")
+        elif f == "left":
+            x = x0 - inset
+            K.quad([(x, y1, z0), (x, y0, z0), (x, y0, z1), (x, y1, z1)], m, name="decal_left")
+        elif f == "right":
+            x = x1 + inset
+            K.quad([(x, y0, z0), (x, y1, z0), (x, y1, z1), (x, y0, z1)], m, name="decal_right")
+
+
+def tulsi_pixels(rgb):
+    """The tulsi: its leaves, its pink and white flower spikes and their dark ink (not its brown stems: those are
+    modelled)."""
+    import numpy as np
+    from kitlib import plant_pixels
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    pink = (r > 190) & (r - g > 55) & (b > g - 15)
+    return plant_pixels(rgb) | pink
+
+
+def green_only(rgb):
+    """Leaves only: green and yellow-green, and their dark ink."""
+    import numpy as np
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    green = (g > b + 35) & (g >= 0.75 * r) & (g > 80)
+    keep = ndimage.binary_closing(green, iterations=1)
+    keep |= (np.maximum(np.maximum(r, g), b) < 70) & ndimage.binary_dilation(keep, iterations=1)
+    return keep
+
+
+def arch_slab(K, x0_px, x1_px, base_py, top_py, y0, y1, mat, name="horn"):
+    """A slab with a rounded top (a merlon, a horn on a planter's rim) between x0..x1 px, standing from base_py up
+    to top_py, from y0 to y1 deep."""
+    P = K.paint
+    xc, r = (x0_px + x1_px) / 2, (x1_px - x0_px) / 2
+    spring = top_py + r * 0.9
+    pts = [(P.x(x0_px), P.z(base_py)), (P.x(x1_px), P.z(base_py))]
+    for i in range(9):
+        a = math.pi * i / 8
+        pts.append((P.x(xc + r * math.cos(a)), P.z(spring - (spring - top_py) * math.sin(a))))
+    return K.prism(pts, y0, y1, mat, name=name, bevel=0.004)
+
+
+@model("tulsi_planter", "lane", kind="prop")
+def tulsi_planter(K):
+    """A tulsi maadam: a square, lime-plastered planter on two red steps, a red lotus painted on its face, a band of
+    white drops under its yellow cap, horns at its corners, and a bushy holy basil growing from its soil, in flower."""
+    P = K.paint
+    X = P.x
+    red = K.tile((60, 368, 110, 395), vary=0.06, soften=0.3)
+    plaster = K.tile((80, 300, 115, 338), vary=0.05, soften=0.45)
+    yellow = K.tile((70, 206, 140, 222), vary=0.06, soften=0.35)
+    band = K.colour((95, 228, 110, 236), vary=0.06)
+    # (box px of its front, half depth m, own material, faces repeating the front)
+    tiers = [((42, 362, 236, 397), 0.26, red, ("back", "left", "right")),
+             ((61, 340, 218, 362), 0.21, red, ("back", "left", "right")),
+             ((72, 243, 207, 340), 0.18, plaster, ("back",)),
+             ((65, 226, 213, 243), 0.2, band, ("back", "left", "right")),
+             ((55, 202, 223, 226), 0.225, yellow, ("back", "left", "right"))]
+    for (x0, y0, x1, y1), d, mat, faces in tiers:
+        K.box(X(x0), X(x1), -d, d, P.z(y1), P.z(y0), mat, bevel=0.006, name="tier")
+        decal_faces(K, (x0 + 2, y0 + 1, x1 - 2, y1 - 1), X(x0), X(x1), -d, d, P.z(y1), P.z(y0), faces=faces)
+    # the soil inside the rim, and the horns on the rim
+    soil = K.colour((0.06, 0.03, 0.015), vary=0.15, scale=20)
+    K.box(X(64), X(214), -0.2, 0.2, P.z(202), P.z(199), soil, name="soil")
+    horn = K.colour((190, 182, 200, 196), vary=0.08)
+    d = 0.225
+    for x0, x1, y0, y1 in ((68, 92, -d + 0.004, -d + 0.04), (192, 211, -d + 0.004, -d + 0.04),
+                           (91, 109, d - 0.04, d - 0.004), (170, 188, d - 0.04, d - 0.004)):
+        arch_slab(K, x0, x1, 202.5, 177.5, y0, y1, horn)
+    # the tulsi: its woody stems (modelled), its leaves and flower spikes (cards from the painting)
+    bark = K.colour((128, 150, 140, 175), vary=0.1)
+    stems = [
+        ([(135, 201, 0.0), (134, 175, 0.0), (136, 140, -0.01), (139, 110, -0.02), (142, 75, -0.02), (147, 50, -0.03),
+          (149, 40, -0.03)], 4.2),
+        ([(131, 192, 0.0), (118, 172, -0.02), (100, 156, -0.04), (82, 142, -0.06), (63, 124, -0.07), (45, 108, -0.08),
+          (37, 95, -0.08)], 3.0),
+        ([(104, 160, -0.03), (96, 130, 0.02), (88, 100, 0.05), (82, 72, 0.07), (80, 60, 0.08)], 2.2),
+        ([(139, 190, 0.0), (152, 168, 0.03), (168, 148, 0.05), (182, 124, 0.06), (190, 100, 0.07), (198, 80, 0.08),
+          (201, 70, 0.08)], 3.0),
+        ([(170, 146, 0.05), (192, 128, 0.0), (212, 108, -0.04), (230, 94, -0.07)], 2.2),
+        ([(124, 182, 0.0), (112, 168, 0.06), (98, 150, 0.1), (84, 128, 0.12)], 2.0),
+        ([(146, 178, 0.0), (160, 160, -0.06), (172, 140, -0.1), (180, 120, -0.12)], 2.0),
+    ]
+    for pts, r in stems:
+        K.tube([P.pt(x, y, yy) for x, y, yy in pts], P.m(r), bark, segments=7, name="stem", taper=0.4)
+    K.leaves_only((14, 0, 257, 177), tulsi_pixels)
+    K.leaves_only((93, 177, 169, 201), green_only)
+    alpha = P.rgba[..., 3]
+    K.canopy((18, 4, 254, 176), 0.36, n=70, size_px=(42, 36), yaw=65, pitch=30, centre_px=(136, 110),
+             mask=lambda px, py: alpha[int(py), int(px)] > 0.5)
+    for cx_, cy_ in ((112, 188), (160, 188), (136, 186)):
+        for yy, yaw in ((-0.08, 20), (0.08, -30)):
+            K.card_from_painting((cx_ - 20, cy_ - 12, cx_ + 20, cy_ + 13), (X(cx_), yy, P.z(cy_)), yaw=yaw,
+                                 name="low_leaves")
+    K.card_from_painting((14, 0, 257, 201), (X(135.5), -0.16, P.z(100.5)), name="tulsi_front",
+                         normal=(0, -0.6, 0.8))
+    earth(K, 139, 397, 403, 125, 0.36, (160, 398, 200, 404), grass=[(4, 362, 86, 402), (228, 362, 268, 402)],
+          pebble_box=(150, 397, 160, 403))

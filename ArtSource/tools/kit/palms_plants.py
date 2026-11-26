@@ -1797,13 +1797,14 @@ def h7_1(K):
     fan_crown(K, H71_LEAVES, (362, 470), 300, keep, stalk, pet=(6.5, 4.5), side_min=0.3,
               cup=-0.25)
     # the clump of stalk bases standing in the ground
-    for k in range(16):
-        a = 2 * math.pi * (k + K.rng.uniform(-0.3, 0.3)) / 16
-        rr = P.m(K.rng.uniform(10, 45))
-        x, y = P.x(362) + rr * math.cos(a), rr * math.sin(a) * 0.9
-        K.tube([(x, y, P.z(530)), (x + rr * 0.15 * math.cos(a), y + rr * 0.15 * math.sin(a), P.z(470)),
-                (P.x(362) + rr * 0.6 * math.cos(a), rr * 0.6 * math.sin(a), P.z(430))],
-               [P.m(8), P.m(7), P.m(6)], stalk, segments=8, name="stalk_base")
+    for k in range(20):                          # fanning out from a tight foot, as painted
+        a = 2 * math.pi * (k + K.rng.uniform(-0.3, 0.3)) / 20
+        r0 = P.m(K.rng.uniform(8, 50))
+        r1 = r0 + P.m(K.rng.uniform(25, 70))
+        x0, y0 = P.x(362) + r0 * math.cos(a), r0 * math.sin(a) * 0.8
+        x1, y1 = P.x(362) + r1 * math.cos(a), r1 * math.sin(a) * 0.8
+        K.tube([(x0, y0, P.z(532)), ((x0 + x1) / 2, (y0 + y1) / 2, P.z(470)), (x1, y1, P.z(400))],
+               [P.m(8), P.m(7), P.m(5.5)], stalk, segments=8, name="stalk_base")
     earth_disc(K, 362, 120, 0.14, K.colour((0.17, 0.12, 0.07), vary=0.18, scale=40), z=P.z(532) - P.m(3))
 
 
@@ -2279,7 +2280,7 @@ def h5_6(K):
         pumpkin(K, px, py, rx, ry, y, pm)
         K.tube([P.pt(px, py - ry * 0.75, y), P.pt(px + 4, py - ry - 10, y), P.pt(px + 10, py - ry - 18, y)],
                [P.m(4), P.m(3), P.m(2)], stalk, segments=6, name="stalk")
-    for px, py, rx, ry, y in H56_PUMPKINS[:6]:                        # and more hanging on the far face
+    for px, py, rx, ry, y in H56_PUMPKINS[1:6:2] + H56_PUMPKINS[2:3]:  # and more hanging on the far face
         pumpkin(K, px + rng.uniform(-30, 30), py + rng.uniform(-20, 20), rx * 0.9, ry * 0.9, -y * 1.1, pm)
     for px, py, rx, ry, y in H56_PUMPKINS[6:9]:
         pumpkin(K, px + rng.uniform(-40, 40), 595 - ry * 0.85, rx * 0.8, ry * 0.8, 0.13, pm)
