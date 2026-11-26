@@ -14,8 +14,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from kitlib import Mat, _image, _obj, model
-from stalls_cdef import (_smooth, bamboo, basket_stack, beam, hanging_cloth, heap_px, hip_thatch, joint, ktile,
-                         lashing, rib_umbrella, turned, unify_cards)
+from stalls_cdef import (_smooth, bamboo, basket_stack, beam, green_leaves, hanging_cloth, heap_px, hip_thatch, joint,
+                         ktile, lashing, rib_umbrella, turned, unify_cards)
 
 
 # ====================================================================== helpers
@@ -1211,3 +1211,243 @@ def stall_h_2(K):
     soap = K.projected(squeeze=1.0, keep=[(598, 852, 682, 900)], inset=2)
     p = bank.at(P, 640, 880, 0.035)
     K.block(p.x, p.y, p.z, P.m(80), 0.13, 0.06, soap, rot=(slope, 0, 2), bevel=0.012, name="soap")
+
+
+# ====================================================================== stall H3: the knife grinder
+class Ramp(Bank):
+    """A bank of earth with a piecewise straight rise: pts [(y, z), ...] from its front foot (z = 0) up to its
+    crest, then flat for `flat` and rounding down to the ground behind over `back`."""
+
+    def __init__(self, pts, flat=0.25, back=0.45):
+        self.pts = pts
+        self.y0, self.top = pts[0][0], pts[-1][1]
+        self.y1 = pts[-1][0]
+        self.y2 = self.y1 + flat
+        self.y3 = self.y2 + back
+
+    def z(self, y):
+        if y <= self.y0:
+            return 0.0
+        for (ya, za), (yb, zb) in zip(self.pts, self.pts[1:]):
+            if y <= yb:
+                return za + (zb - za) * (y - ya) / (yb - ya)
+        if y <= self.y2:
+            return self.top
+        return self.top * _smooth(self.y3, self.y2, y)
+
+    def y(self, z):
+        if z <= 0:
+            return self.y0
+        for (ya, za), (yb, zb) in zip(self.pts, self.pts[1:]):
+            if z <= zb:
+                return ya + (yb - ya) * (z - za) / (zb - za)
+        return self.y1
+
+    def normal_at(self, y):
+        for (ya, za), (yb, zb) in zip(self.pts, self.pts[1:]):
+            if y <= yb:
+                a = math.atan2(zb - za, yb - ya)
+                return Vector((0, -math.sin(a), math.cos(a)))
+        return Vector((0, 0, 1))
+
+    def at(self, P, px, py, lift=0.0):
+        z = P.z(py)
+        y = self.y(z)
+        n = self.normal_at(y)
+        return Vector((P.x(px), y, z)) + n * lift
+
+    def normal(self):
+        return self.normal_at(self.y0 + 0.01)
+
+
+def blade(K, ramp, path_px, w_px, mat, lift=0.012, taper=0.3, name="blade"):
+    """A flat steel blade (a knife, a sickle's crescent) lying on the ground where it is painted: a thin ribbon
+    along path_px [(px, py), ...] from its tip, w_px wide at its heel, narrowing to `taper` of that at the tip."""
+    P = K.paint
+    pts = [ramp.at(P, px, py, lift) for px, py in path_px]
+    n = len(pts)
+
+    def f(u, v):
+        t = u * (n - 1)
+        i = min(n - 2, int(t))
+        a = t - i
+        p = pts[i].lerp(pts[i + 1], a)
+        d = (pts[i + 1] - pts[i]).normalized()
+        nn = ramp.normal_at(p.y)
+        side = d.cross(nn).normalized()
+        w = P.m(w_px) * (taper + (1 - taper) * u) * 0.5
+        return tuple(p + side * (w * (2 * v - 1)))
+    return K.sheet(f, max(4, n * 3), 1, mat, name=name, thickness=0.004)
+
+
+@model("stall_h_3", "market", kind="prop", atlas=2048)
+def stall_h_3(K):
+    """A knife grinder's pitch: a frame of four bamboo posts with lashed bars, coconut fronds thrown over it, a tin
+    can hung on wires dripping water onto a big round grindstone on a wooden trestle, with its treadle and crank; a
+    wooden box of whetstones, and knives and sickles laid out on an orange mat on a rise of red earth."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.3, 0.2, 0.08), vary=0.1)
+    bam = K.colour((100, 300, 115, 400), vary=0.08)
+    ramp = Ramp([(-1.15, 0.0), (-0.55, Z(800)), (0.75, Z(738)), (1.0, Z(725))], flat=0.25, back=0.45)
+    # ---------------------------------------------------------------- the earth and the mat
+    earth = ktile(K, (8, 760, 60, 850), vary=0.08, soften=0.4)
+    xl, xr = P.x(4), P.x(905)
+
+    def ground(x, y):
+        return ramp.z(y) * _smooth(xl - 0.02, xl + 0.1, x) * _smooth(xr + 0.02, xr - 0.1, x)
+    K.grid_plane(xl - 0.05, xr + 0.05, ramp.y0 - 0.04, ramp.y3 + 0.02, 0.0, 30, 30, earth, height=ground, name="earth")
+    orange = ktile(K, (560, 880, 640, 898), vary=0.06)
+
+    def mat_f(u, v):
+        px_ = 55 + (900 - 55) * u - (1 - v) * 0 + v * (157 - 55) * (1 - u)
+        py_ = 900 - (900 - 788) * v
+        return tuple(ramp.at(P, px_, py_, 0.006))
+    K.sheet(mat_f, 20, 8, orange, name="mat", thickness=0.006)
+    # ---------------------------------------------------------------- posts and frame
+    yfp, ybp = -0.5, 0.75
+    posts = [((105, 12), (110, 805), 13, yfp, [(90, 12, 125, 805)]),
+             ((194, 22), (194, 740), 11, ybp, [(182, 22, 207, 740)]),
+             ((719, 25), (719, 735), 11, ybp, [(706, 25, 732, 735)]),
+             ((825, 12), (825, 735), 13, yfp, [(810, 12, 840, 690)])]
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, z_bot=ramp.z(y) - 0.05, nodes=0.5)
+    ztop = Z(44)
+    bamboo(K, P.pt(80, 44, yfp - P.m(13) - 0.01), P.pt(845, 44, yfp - P.m(13) - 0.01), P.m(11), bam,
+           node_at=[0.17, 0.4, 0.63, 0.82], taper=1.0, name="front_bar")
+    bamboo(K, P.pt(88, 192, yfp - P.m(13) - 0.01), P.pt(835, 192, yfp - P.m(13) - 0.01), P.m(9), bam,
+           node_at=[0.24, 0.5, 0.75], taper=1.0, name="front_rail")
+    bamboo(K, P.pt(170, 40, ybp + P.m(11)), P.pt(745, 40, ybp + P.m(11)), P.m(10), bam, node_at=[0.33, 0.66],
+           taper=1.0, name="back_bar")
+    for (xf, xb_) in ((105, 194), (825, 719)):
+        bamboo(K, (P.x(xf), yfp - 0.12, ztop + P.m(18)), (P.x(xb_), ybp + 0.12, ztop + P.m(18)), P.m(9), bam,
+               node_at=[0.5], taper=1.0, name="side_bar")
+    for x_px, y in ((105, yfp), (825, yfp)):
+        joint(K, P.pt(x_px, 46, y - P.m(13)), (0, 0, 1), (1, 0, 0), P.m(13), rope)
+        lashing(K, P.pt(x_px, 192, y), (0, 0, 1), P.m(13), rope, turns=2)
+    for x_px in (194, 719):
+        lashing(K, P.pt(x_px, 40, ybp), (0, 0, 1), P.m(11), rope, turns=2)
+    for x_px in np.linspace(260, 650, 4):          # sticks across the top that carry the fronds
+        K.tube([(P.x(x_px), yfp - 0.05, ztop + P.m(22)), (P.x(x_px + 15), ybp + 0.05, ztop + P.m(22))], P.m(5), bam,
+               segments=6, name="stick")
+    # ---------------------------------------------------------------- the fronds over the frame
+    region = (20, 28, 925, 280)
+    K.leaves_only(region, green_leaves)
+    K.card_from_painting(region, (P.x((region[0] + region[2]) / 2), yfp - 0.07, P.z((region[1] + region[3]) / 2)),
+                         name="fronds_front", normal=(0, -0.6, 0.8))
+    midrib = K.colour((460, 60, 470, 120), vary=0.08)
+    for pts in (((245, 38), (200, 85), (150, 150), (105, 222)), ((465, 30), (472, 110), (485, 180), (500, 248)),
+                ((648, 30), (700, 60), (760, 105), (815, 150))):
+        K.tube([P.pt(px_, py_, yfp - 0.06 - 0.02 * k) for k, (px_, py_) in enumerate(pts)], P.m(6), midrib,
+               segments=6, name="midrib")
+    for i in range(44):          # lying over the top, front to back
+        px_, py_ = K.rng.uniform(90, 830), K.rng.uniform(70, 220)
+        y = K.rng.uniform(yfp, ybp + 0.1)
+        K.card_from_painting((px_ - 90, py_ - 60, px_ + 90, py_ + 60), (P.x(px_), y, ztop + 0.06 + K.rng.uniform(0, 0.04)),
+                             yaw=K.rng.uniform(-30, 30), pitch=K.rng.uniform(-88, -78), name="frond_top",
+                             normal=(0, 0, 1))
+    for side, x_px in ((-1, 75), (1, 870)):          # hanging down over the ends
+        for i in range(5):
+            py_ = K.rng.uniform(110, 200)
+            src = K.rng.uniform(60, 200) if side < 0 else K.rng.uniform(720, 870)
+            K.card_from_painting((src - 70, py_ - 70, src + 70, py_ + 70),
+                                 (P.x(x_px), yfp + (ybp - yfp) * (i + 0.5) / 5, P.z(py_) + 0.03),
+                                 yaw=90 + K.rng.uniform(-6, 6), pitch=K.rng.uniform(-10, 10), name="frond_side")
+    for i in range(8):           # and over the back
+        px_, py_ = K.rng.uniform(140, 800), K.rng.uniform(110, 230)
+        K.card_from_painting((px_ - 90, py_ - 80, px_ + 90, py_ + 80), (P.x(px_), ybp + 0.12, P.z(py_) + 0.05),
+                             yaw=180 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 20), name="frond_back")
+    # ---------------------------------------------------------------- the trestle and the grindstone
+    wood = ktile(K, (300, 600, 420, 618), vary=0.08)
+    legw = ktile(K, (262, 680, 285, 760), vary=0.08)
+    yt0, yt1 = -0.13, 0.13
+    beam(K, P.pt(255, 604, yt0), P.pt(652, 604, yt0), 0.075, P.m(34), wood, name="rail_front")
+    beam(K, P.pt(258, 600, yt1), P.pt(648, 600, yt1), 0.075, P.m(30), wood, name="rail_back")
+    for x0, x1 in ((255, 322), (552, 652)):
+        K.box(P.x(x0), P.x(x1), yt0 - 0.04, yt1 + 0.04, Z(590), Z(575), wood, bevel=0.006, name="end_board")
+    for x0, x1, top in ((295, 320, 560), (555, 600, 562)):
+        K.box(P.x(x0), P.x(x1), yt0 - 0.03, yt1 + 0.03, Z(578), Z(top), wood, bevel=0.006, name="bearing_block")
+    for (tx, ty), (fx, fy), y in (((290, 622), (252, 785), yt0), ((270, 620), (245, 762), yt1),
+                                  ((560, 622), (640, 785), yt0), ((548, 620), (600, 765), yt1)):
+        zf = P.z(fy)
+        yf_ = ramp.y(zf)
+        beam(K, (P.x(tx), y, P.z(ty)), (P.x(fx), yf_, zf - 0.02), 0.07, 0.06, legw, name="trestle_leg")
+    stone = K.projected(axis_x=P.x(445), squeeze=1.0, keep=[(330, 460, 556, 692)], exclude=[(255, 585, 652, 625)],
+                        inset=2)
+    side = ktile(K, (470, 480, 520, 520), vary=0.06, soften=0.3)
+    R = P.m(113)
+    ax_c = (P.x(445), 0.0, Z(573))
+    wheel = K.lathe([(0.0, -0.05), (R * 0.98, -0.05), (R, -0.04), (R, 0.04), (R * 0.98, 0.05), (0.0, 0.05)], stone,
+                    segments=48, centre=(0, 0, 0), name="grindstone")
+    frame_to(wheel, ax_c, (0, 1, 0), (1, 0, 0))
+    iron = K.colour((0.18, 0.18, 0.2), vary=0.06)
+    axle = K.lathe([(0.03, -0.2), (0.03, 0.2)], iron, segments=12, name="axle")
+    frame_to(axle, ax_c, (0, 1, 0), (1, 0, 0))
+    hub = K.lathe([(P.m(26), -0.07), (P.m(26), 0.07)], K.projected(squeeze=1.0, keep=[(420, 548, 470, 598)], inset=1),
+                  segments=16, name="hub")
+    frame_to(hub, ax_c, (0, 1, 0), (1, 0, 0))
+    _ = side
+    for y in (yt0 - 0.045, yt1 + 0.045):
+        K.tube([P.pt(395, 600, y), P.pt(420, 580, y), P.pt(470, 580, y), P.pt(495, 600, y)], 0.012, iron, segments=6,
+               name="bearing_strap")
+    # the treadle and the crank rod
+    beam(K, P.pt(228, 645, yt0 - 0.2), P.pt(385, 708, yt0 - 0.15), 0.05, P.m(24), wood, name="treadle")
+    K.tube([P.pt(352, 690, yt0 - 0.12), P.pt(432, 595, yt0 - 0.1)], P.m(7), iron, segments=8, name="crank_rod")
+    K.tube([P.pt(432, 595, yt0 - 0.1), P.pt(445, 573, yt0 - 0.1), P.pt(445, 573, 0.0)], P.m(6), iron, segments=8,
+           name="crank")
+    # ---------------------------------------------------------------- the drip can on its wires
+    tin = K.projected(axis_x=P.x(505), squeeze=0.93, keep=[(472, 315, 540, 392)], inset=2)
+    turned(K, 505, [(32, 392), (34, 388), (34, 330), (36, 322), (35, 318)], 0.0, tin, segs=24, name="can")
+    K.lathe([(P.m(32), Z(322)), (P.m(28), Z(340)), (0.0, Z(342))], K.colour((0.25, 0.22, 0.2)), segments=24,
+            centre=(P.x(505), 0.0, 0.0), cap=False, name="can_in")
+    wire = K.colour((0.3, 0.3, 0.32))
+    for s in (-1, 1):
+        K.tube([P.pt(505 + s * 36, 322, 0.0), P.pt(505 + s * 20, 290, 0.0), P.pt(502, 268, 0.0)], 0.0025, wire,
+               segments=4, name="bail")
+    K.tube([P.pt(502, 268, 0.0), (P.x(502), 0.0, ztop + P.m(20))], 0.003, rope, segments=4, name="string")
+    K.lathe([(0.0, Z(414)), (P.m(4), Z(410)), (P.m(3), Z(404)), (0.0, Z(398))], K.colour((0.6, 0.65, 0.7)), segments=8,
+            centre=(P.x(505), 0.0, 0.0), name="drop")
+    # ---------------------------------------------------------------- knives and sickles on the mat
+    steel = K.colour((0.6, 0.62, 0.65), vary=0.08)
+    handle = K.colour((150, 880, 160, 895), vary=0.1)
+    blades = [  # path from the tip to the heel, width at the heel, handle (from, to)
+        ([(185, 797), (160, 830), (128, 860)], 22, ((126, 862), (100, 896))),
+        ([(233, 805), (210, 838), (182, 866)], 20, ((180, 868), (160, 898))),
+        ([(272, 808), (258, 840), (242, 868)], 16, ((240, 870), (226, 898))),
+        ([(292, 812), (330, 812), (348, 835), (340, 860)], 10, ((337, 866), (330, 899))),
+        ([(470, 812), (420, 813), (395, 828), (405, 852), (440, 862)], 12, ((448, 868), (455, 899))),
+        ([(528, 812), (510, 830), (505, 868)], 10, ((505, 870), (515, 899))),
+        ([(550, 832), (580, 815), (615, 818), (640, 845), (648, 866)], 12, ((650, 870), (670, 899))),
+    ]
+    for path, w, (h0, h1) in blades:
+        blade(K, ramp, path, w, steel, taper=0.25)
+        K.tube([tuple(ramp.at(P, h0[0], h0[1], 0.016)), tuple(ramp.at(P, h1[0], h1[1], 0.016))], P.m(8), handle,
+               segments=8, name="handle")
+    K.tube([tuple(ramp.at(P, 553, 862, 0.016)), tuple(ramp.at(P, 560, 899, 0.016))], P.m(8), handle, segments=8,
+           name="handle")
+    # ---------------------------------------------------------------- the box of whetstones, standing on the bank's lip
+    boxw = ktile(K, (700, 800, 760, 860), vary=0.08)
+    a = math.degrees(math.atan2(Z(800), 0.6))
+    zf = Z(882)
+    yf_ = ramp.y(zf)
+    bx0, bx1 = P.x(660), P.x(862)
+    d, hgt = 0.34, 0.31
+    parts = [K.box(bx0, bx1, 0.0, d, 0.0, 0.02, boxw, name="box_floor")]
+    for y0_, y1_ in ((0.0, 0.02), (d - 0.02, d)):
+        parts.append(K.box(bx0, bx1, y0_, y1_, 0.0, hgt, boxw, bevel=0.004, name="box_side"))
+    for x0_, x1_ in ((bx0, bx0 + 0.02), (bx1 - 0.02, bx1)):
+        parts.append(K.box(x0_, x1_, 0.0, d, 0.0, hgt, boxw, bevel=0.004, name="box_end"))
+    parts.append(K.box(P.x(680), P.x(696), -0.008, 0.0, hgt * 0.45, hgt * 0.75, K.colour((0.3, 0.3, 0.3)),
+                       name="latch"))
+    transform(parts, Matrix.Translation((0, yf_, zf)) @ Matrix.Rotation(math.radians(a), 4, "X"))
+    stone1 = K.colour((770, 720, 790, 760), vary=0.08)
+    stone2 = K.colour((800, 735, 830, 770), vary=0.08)
+    ym = yf_ + d * 0.55
+    K.block(P.x(772), ym, Z(745), 0.1, 0.05, 0.34, stone1, rot=(-12, 14, 0), bevel=0.01, name="whetstone")
+    K.block(P.x(808), ym + 0.05, Z(752), 0.13, 0.05, 0.3, stone2, rot=(-12, 24, 0), bevel=0.01, name="whetstone")
+    K.tube([P.pt(700, 762, ym - 0.05), P.pt(760, 790, ym - 0.08)], P.m(9), handle, segments=8, name="loose_handle")
+    flat = K.colour((760, 872, 860, 890), vary=0.06)
+    p = ramp.at(P, 811, 882, 0.03)
+    K.block(p.x, p.y - 0.03, p.z, P.m(122), 0.14, 0.05, flat, rot=(a, 0, 0), bevel=0.006, name="flat_stone")
+    unify_cards(K)

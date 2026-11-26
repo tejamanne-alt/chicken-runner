@@ -1454,7 +1454,7 @@ def bicycle(K):
     gold = K.colour((20, 190, 30, 215), vary=0.08, pct=85)
     fender_m = K.colour((60, 100, 140, 116), vary=0.08)
     dark = K.colour((0.03, 0.02, 0.015), vary=0.05)
-    # the wheels: tyre, rim and hub turning about the axle (the plane's normal), the spokes a card in the plane
+    # the wheels: tyre, rim and hub turning about the axle (the plane's normal)
     wheels = [((89, 208), 97.5), ((347.5, 204), 101.0)]
     a = P.m(5.5)
     for (wx, wy), R in wheels:
@@ -1474,7 +1474,7 @@ def bicycle(K):
     d = Vector((-c, s, 0.0))
     for (wx, wy), R in wheels:
         C = Vector(B(wx, wy))
-        n_sp = 36
+        n_sp = 28
         r_rim, r_hub = P.m(R - 12.5), P.m(8.5)
         for k in range(n_sp):
             ph = 2 * math.pi * k / n_sp
@@ -1571,3 +1571,150 @@ def bicycle(K):
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         for yaw, dy in ((0, -0.1), (70, 0.08), (-60, 0.2)):
             K.card_from_painting(box, (X(bx), yfun(X(bx)) + dy, Z(by)), yaw=yaw, name="grass", normal=(0, -0.4, 1))
+
+
+@model("bullock_cart", "lane", kind="prop", atlas=2048)
+def bullock_cart(K):
+    """A country bullock cart, unhitched and resting on its prop: a blue-painted plank body with white and orange
+    flowers, its slatted rails on knobbed stakes, heaped with hay; two big wooden wheels with twelve spokes, iron
+    tyres and heavy hubs on an iron axle; the beams under it run forward into the long pole, propped up near its end
+    on a forked stick, coils of rope round the pole and a coil hung on the side."""
+    from mathutils import Vector
+    P = K.paint
+    X, Z = P.x, P.z
+    phi = math.radians(18)
+    cphi, sphi = math.cos(phi), math.sin(phi)
+    ax = Vector((cphi, -sphi, 0.0))                  # along the cart, towards the pole (and the camera)
+    nrm = Vector((sphi, cphi, 0.0))                  # across it, towards its far side
+    O = Vector((X(304), 0.0, 0.0))                   # the axle's middle
+
+    def C(px, py, off=0.0):
+        """The point painted at (px, py) on the plane `off` metres across the cart from its middle (negative:
+        the near side): its x and z as painted."""
+        x = X(px)
+        s_ = (x - O.x - nrm.x * off) / ax.x
+        return (x, O.y + ax.y * s_ + nrm.y * off, Z(py))
+    wood = K.tile((150, 95, 230, 108), vary=0.08, soften=0.2)
+    beam_m = K.tile((60, 205, 120, 232), vary=0.08, soften=0.2)
+    blue = K.colour((0.07, 0.11, 0.21), vary=0.12, scale=6)
+    iron = K.colour((0.05, 0.05, 0.06), vary=0.08)
+    straw_m = K.tile((200, 40, 260, 70), vary=0.12, soften=0.1)
+    W = 0.62                                         # the body's half width
+    # the body: floor, side panels, end boards
+
+    def slab(p0, p1, z0, z1, off0, off1, mat, name):
+        """A board between painted x positions p0..p1 along the cart, heights z0..z1 (py), across off0..off1."""
+        from kitlib import _obj
+        import bmesh
+        bm = bmesh.new()
+        vs = []
+        for px in (p0, p1):
+            for off in (off0, off1):
+                for py in (z1, z0):
+                    vs.append(bm.verts.new(C(px, py, off)))
+        idx = [(0, 2, 3, 1), (4, 5, 7, 6), (0, 1, 5, 4), (2, 6, 7, 3), (0, 4, 6, 2), (1, 3, 7, 5)]
+        for f in idx:
+            bm.faces.new([vs[i] for i in f])
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        ob = _obj(name, bm, mat)
+        K.parts.append(ob)
+        return ob
+    # slab() keeps painted x for its corners on each plane; the body is thus a box turned 18 degrees
+    slab(30, 485, 206, 196, -W, W, beam_m, "floor")
+    for off in (-W, W):
+        slab(40, 482, 200, 110, off - 0.02 * (1 if off < 0 else -1), off, blue, "side_panel")
+    for px in (36, 482):
+        slab(px - 4, px + 4, 200, 112, -W, W, blue, "end_board")
+    # flowers on the far side and the back, as painted on the near side
+    flower = K.decal((80, 147, 122, 190))
+    for px in (110, 250, 390):
+        x0, x1 = px - 21, px + 21
+        q = [C(x1, 190, W + 0.004), C(x0, 190, W + 0.004), C(x0, 147, W + 0.004), C(x1, 147, W + 0.004)]
+        K.quad(q, flower, name="flower")
+    # the chassis beams under it, running forward into the pole
+    for off in (-0.5, 0.5):
+        K.tube([C(18, 220, off), C(470, 216, off), C(560, 205, 0.06 * (1 if off > 0 else -1))], P.m(15), beam_m,
+               segments=6, name="beam")
+    K.tube([C(540, 202, 0.0), C(650, 194, 0.0), C(830, 186, 0.0)], [P.m(18), P.m(16), P.m(13)], beam_m, segments=8,
+           name="pole")
+    # the rails along both sides on their knobbed stakes, and the cross bars
+    for off in (-W - 0.03, W + 0.03):
+        for py0, py1 in ((95, 112), (62, 78)):
+            slab(10, 490, py1, py0, off - 0.025, off + 0.025, wood, "rail")
+        stakes = ((48, 45), (108, 30), (309, 12), (478, 22)) if off < 0 else ((48, 45), (108, 30), (413, 7), (478, 22))
+        for px, top in stakes:
+            K.tube([C(px, 232, off), C(px, top + 26, off)], P.m(10), wood, segments=8, name="stake")
+            K.lathe([(P.m(10.5), 0.0), (P.m(11.5), P.m(8)), (P.m(9), P.m(18)), (P.m(4), P.m(25)), (0.0, P.m(26))],
+                    wood, segments=12, centre=(C(px, top, off)[0], C(px, top, off)[1], Z(top + 26)), name="knob")
+            for dz in (0, 7):
+                K.lathe([(P.m(11.2), Z(top + 30 + dz)), (P.m(11.2), Z(top + 33 + dz))], iron, segments=12,
+                        centre=(C(px, top, off)[0], C(px, top, off)[1], 0), name="band", cap=False)
+    for px in (20, 485):
+        slab(px - 5, px + 5, 112, 95, -W - 0.05, W + 0.05, wood, "cross_rail")
+    # the hay heaped in it, above the rails, a few loose straws
+    def hay(u, v):
+        px = 60 + 420 * u
+        top = 30 + 45 * (abs(px - 235) / 175) ** 1.6
+        h = max(0.0, Z(top) - Z(112))
+        a_ = math.pi * v
+        p = Vector(C(px, 112, -(W - 0.06) * math.cos(a_)))
+        return tuple(p + Vector((0, 0, h * math.sin(a_) ** 0.8 * (0.7 + 0.3 * math.sin(math.pi * u)))))
+    K.sheet(hay, 30, 10, straw_m, name="hay")
+    gold = K.colour((230, 40, 260, 60), vary=0.12, pct=80)
+    for (a_, b_) in (((150, 52), (125, 35)), ((175, 45), (160, 22)), ((265, 40), (285, 25)), ((210, 40), (205, 15)),
+                     ((300, 55), (325, 45))):
+        mid = ((a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2 + 3)
+        K.tube([C(*a_, -0.1), C(*mid, -0.13)], P.m(1.2), gold, segments=4, name="straw", taper=0.6)
+    # the wheels: iron tyre, felloe, twelve spokes, the heavy hub with its iron cap; the axle between them
+    wheel_m = K.projected(axis_x=X(243), squeeze=0.95, keep=[(100, 90, 386, 372)], exclude=[(380, 60, 500, 240)],
+                          inset=2)
+    for off, cx_px in ((-0.9, 243), (0.9, 365)):
+        cen = Vector(C(304, 228, 0.0)) + nrm * off
+        cen.x = X(cx_px) if off < 0 else cen.x
+        mat = wheel_m if off < 0 else K.projected(axis_x=cen.x, squeeze=0.95, dx=X(243) - cen.x,
+                                                   keep=[(100, 90, 386, 372)], exclude=[(380, 60, 500, 240)], inset=2)
+        ro, rt, ri, rh = P.m(138), P.m(134), P.m(112), P.m(38)
+        w = 0.1
+        axis_lathe(K, [(rt, -w / 2), (ro, -w / 2 * 0.9), (ro, w / 2 * 0.9), (rt, w / 2), (rt, -w / 2)], iron,
+                   tuple(cen), tuple(nrm), segments=48, name="tyre", smooth=False, cap=False)
+        axis_lathe(K, [(ri, -w / 2), (rt, -w / 2), (rt, w / 2), (ri, w / 2), (ri, -w / 2)], mat, tuple(cen),
+                   tuple(nrm), segments=48, name="felloe", smooth=False, cap=False)
+        hl = 0.42
+        axis_lathe(K, [(0.0, -hl / 2), (rh * 0.7, -hl / 2), (rh * 0.95, -hl * 0.2), (rh, 0.0), (rh * 0.95, hl * 0.2),
+                       (rh * 0.7, hl / 2), (0.0, hl / 2)], mat, tuple(cen), tuple(nrm), segments=20, name="hub")
+        axis_lathe(K, [(0.0, 0.0), (P.m(20), 0.0), (P.m(19), 0.03), (0.0, 0.035)], iron,
+                   tuple(cen - nrm * (hl / 2) * (1 if off < 0 else -1)), tuple(-nrm if off < 0 else nrm),
+                   segments=14, name="axle_cap")
+        up = Vector((0, 0, 1))
+        for k in range(12):
+            a_ = 2 * math.pi * (k + 0.25) / 12
+            d = ax * math.cos(a_) + up * math.sin(a_)
+            K.tube([tuple(cen + d * rh * 0.9), tuple(cen + d * (ri + 0.01))], [P.m(8), P.m(6)], mat, segments=6,
+                   name="spoke")
+    K.tube([C(304, 228, -0.9), C(304, 228, 0.9)], 0.04, iron, segments=10, name="axle")
+    # the prop under the pole, the clamp holding it, the coils of rope
+    K.block(*C(776, 190, 0.0), P.m(46), 0.16, P.m(42), wood, rot=(0, 0, -18), bevel=0.01, name="clamp")
+    K.tube([C(778, 205, 0.0), C(783, 280, 0.0), C(788, 352, 0.0)], [P.m(15), P.m(14), P.m(12)], wood, segments=7,
+           name="prop")
+    rope = K.colour((515, 180, 540, 215), vary=0.1)
+    for px0, n_ in ((514, 4), (694, 3)):
+        for k in range(n_):
+            px = px0 + 8 * k
+            cz = Z(196 - (px - 470) * 0.03)
+            c_ = Vector(C(px, 196, 0.0))
+            c_.z = cz
+            pts = []
+            for i in range(17):
+                a_ = 2 * math.pi * i / 16
+                pts.append(tuple(c_ + nrm * (math.cos(a_) * P.m(21)) + Vector((0, 0, math.sin(a_) * P.m(24)))))
+            K.tube(pts, P.m(3.6), rope, segments=6, name="rope_coil", cap=False)
+    for k, (w_, h_) in enumerate(((16, 52), (20, 46), (13, 40))):
+        top = Vector(C(445 + 3 * k, 88, -W - 0.09))
+        pts = []
+        for i in range(17):
+            a_ = 2 * math.pi * i / 16
+            pts.append(tuple(top + ax * (math.sin(a_) * P.m(w_)) + Vector((0, 0, -(1 - math.cos(a_)) * P.m(h_)))))
+        K.tube(pts, P.m(3.5), rope, segments=6, name="hung_rope", cap=False)
+    earth(K, 420, 352, 362, 410, 0.9, (0.45, 0.22, 0.1),
+          grass=[(98, 318, 148, 358), (300, 336, 352, 372), (444, 322, 522, 352), (735, 318, 832, 355)],
+          pebbles=[(180, 362, 12), (560, 352, 10)], pebble_box=(170, 355, 190, 366))

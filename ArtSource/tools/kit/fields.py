@@ -67,7 +67,10 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     rng = nt.nodes.new("ShaderNodeMapRange")
     rng.inputs["From Min"].default_value = side_from
     rng.inputs["From Max"].default_value = side_to
-    nt.links.new(op("ABSOLUTE", sn.outputs[side.upper()]), rng.inputs["Value"])
+    if side == "noty":                                      # a mound: the tile on its sides and its top too
+        nt.links.new(op("SUBTRACT", 1.0, op("ABSOLUTE", sn.outputs["Y"])), rng.inputs["Value"])
+    else:
+        nt.links.new(op("ABSOLUTE", sn.outputs[side.upper()]), rng.inputs["Value"])
     mix = nt.nodes.new("ShaderNodeMix")
     mix.data_type = "RGBA"
     nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
@@ -1955,9 +1958,10 @@ def field_bldg_3(K):
     small = interp([(300, 8), (303, 20), (309, 35), (315, 50), (319, 65), (328, 80), (340, 95), (350, 110), (372, 125),
                     (382, 140), (399, 155), (413, 170), (429, 185), (462, 195)])
     straw = turned(K, P.x(452), (380, 230, 520, 320), squeeze=0.9, keep=[(316, 160, 600, 466)],
-                   exclude=[(190, 340, 430, 466), (490, 320, 660, 466)])
+                   exclude=[(190, 340, 430, 466), (490, 320, 660, 466)], inset=7, side="noty", side_from=0.3,
+                   side_to=0.6)
     straw2 = turned(K, P.x(198), (40, 360, 180, 430), squeeze=0.9, keep=[(0, 290, 330, 466)],
-                    exclude=[(190, 340, 430, 466)])
+                    exclude=[(190, 340, 430, 466)], inset=7, side="noty", side_from=0.3, side_to=0.6)
     K.leaves_only((0, 285, 318, 350), no_halo)
     K.leaves_only((0, 350, 196, 466), no_halo)
     K.leaves_only((318, 150, 600, 322), no_halo)

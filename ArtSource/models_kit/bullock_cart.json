@@ -1,0 +1,10 @@
+{
+ "name": "bullock_cart",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 3.8,
+ "height": 1.726,
+ "depth": 2.253,
+ "faces": 3859,
+ "source": "blender"
+}
