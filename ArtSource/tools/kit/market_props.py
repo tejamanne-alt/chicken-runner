@@ -1108,11 +1108,11 @@ def coconut_cart(K):
         f = min(1.0, max(0.0, (py - 40) / 170))
         y = -(W - 0.08) * (0.55 + 0.45 * f) + P.m(r) * 0.2
         ellipsoid(K, (X(px), y, Z(py)), (P.m(r) * 1.02, P.m(r) * 0.98, P.m(r) * 0.95), skin, rot=(0, 0, K.rng.uniform(0, 90)),
-                  seg=9, rings=6, lumps=0.04, name="coconut")
+                  seg=8, rings=6, lumps=0.04, name="coconut")
         placed.append(Vector((X(px), y, Z(py))))
     n = 0
     tries = 0
-    while n < 30 and tries < 3000:
+    while n < 27 and tries < 3000:
         tries += 1
         u, v = K.rng.uniform(0.02, 0.98), K.rng.uniform(0.35, 1.0)
         p = Vector(heap(u, v))

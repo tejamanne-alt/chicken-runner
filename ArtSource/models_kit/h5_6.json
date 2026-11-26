@@ -1,0 +1,10 @@
+{
+ "name": "h5_6",
+ "folder": "plants",
+ "kind": "volume",
+ "width": 0.775,
+ "height": 1.0,
+ "depth": 0.466,
+ "faces": 10735,
+ "source": "blender"
+}

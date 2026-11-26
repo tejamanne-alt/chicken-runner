@@ -1787,7 +1787,7 @@ def field_tree_4(K):
         yb, f = tips[k]
         return yb + f * shape.extent(x, y) * (t ** 1.3)
     place_blades(K, found, green, y_of, rolls=15, thick=0.14, fold=0.15)
-    K.ao = 0.25
+    K.ao = 0.12
     # red earth and its stones
     zg = P.z(425)
     earth(K, 265, 150, 1.4, (290, 418, 330, 428), h=0.04, z=zg - 0.03)

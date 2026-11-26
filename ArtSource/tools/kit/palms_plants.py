@@ -901,9 +901,9 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
                 tot += 1
                 good += 0 <= qx < P.w and 0 <= qy < P.h and crown_px[qy, qx]
             return good >= 0.85 * tot
-        for sgn in ((1, -1) if abs(dx) > Rc * side_min else (rng.choice([1, -1]),)):
+        for sgn in ((1, -1, rng.choice([1, -1])) if abs(dx) > Rc * side_min else (1, -1)):
             if True:
-                deg = (rng.uniform(55, 125)) * sgn
+                deg = (rng.uniform(40, 140)) * sgn
                 for sc in (0.85, 0.7, 0.55):
                     xf = turn_about(hx, 0.0, deg, scale=sc)
                     if fits(xf):
@@ -1567,12 +1567,12 @@ def pole(K, a_px, b_px, r_px, mat, y=0.0, nodes=(), node_mat=None, name="bamboo"
     P = K.paint
     ya, yb = (y, y) if not isinstance(y, (list, tuple)) else y
     A, B = Vector(P.pt(a_px[0], a_px[1], ya)), Vector(P.pt(b_px[0], b_px[1], yb))
-    ob = K.tube([tuple(A), tuple(A.lerp(B, 0.5)), tuple(B)], P.m(r_px), mat, segments=12, name=name)
+    ob = K.tube([tuple(A), tuple(B)], P.m(r_px), mat, segments=10, name=name)
     d = (B - A).normalized()
     for f in nodes:
         c = A.lerp(B, f)
         K.tube([tuple(c - d * P.m(r_px) * 0.3), tuple(c + d * P.m(r_px) * 0.3)], P.m(r_px) * 1.1, node_mat or mat,
-               segments=12, name="node")
+               segments=10, name="node")
     return ob
 
 
@@ -2067,26 +2067,20 @@ def h5_5(K):
         p3 = [(P.x(x), y * (0.3 + 0.7 * i / 11), P.z(z)) for i, (x, z) in enumerate(sp)]
         rr = [P.m(10.5 - 2.5 * i / 11) for i in range(12)]
         culm(K, p3, rr, cane_mat, node, node_every=P.m(55), node_r=1.12, segments=10, name="cane")
-    # the blades: found along the painted strokes from the canes' tops, each a ribbon of the painted blade
-    blades_m = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 520)]) & (mx > 60)
-    blades_m = ndimage.binary_opening(blades_m, iterations=1)
-    bases = [(pts[-1][0] - 8, pts[-1][1] - 10, pts[-1][0] + 8, pts[-1][1] + 25) for pts, _ in H55_CANES[:6]]
-    found, cover = blades_cover(K, blades_m, bases, 60, (14, 24), len_px=(60, 520), profile="strap", inside=0.9,
-                                min_gain=40, arch=0.5)
-    leaf_ok = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 530)])
-    K.leaves_only((0, 0, P.w, 530), mask_rule(leaf_ok, (0, 0, P.w, 530)))
-    fronds = []
-    for pts, wd in found:
-        L = sum(math.dist(a, b_) for a, b_ in zip(pts, pts[1:]))
-        d = K.rng.uniform(-0.9, 0.9) * min(1.0, L / 300)
-        fronds.append((pts, [max(3.0, w * 0.75) for w in wd], d, "blade"))
-    palm = Palm(K, (245, 470), R=P.m(260) * 0.8)
-    palm.crown(fronds, back=0.6, extra=6, turn=(50, 170), need=0.85)
-    # grass at the foot
-    gb = (90, 760, 400, 886)
-    K.leaves_only(gb, mask_rule(leafy(rgb) & ~halo(rgb) & ~cane_ok, gb))
-    tufts(K, [(140, 780, 215, 880), (290, 780, 360, 880)], [-0.06, -0.05])
-    tufts(K, [(140, 780, 215, 880), (290, 780, 360, 880)], [0.06, 0.06], yaws=(30, -40))
+    # the blades: the painted head of blades wrapped round the clump's axis (front and back), and turned copies
+    # through it, so it is a full head of blades from every side
+    leaf_ok = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 540)])
+    leaf_ok = ndimage.binary_opening(leaf_ok, iterations=1)
+    K.leaves_only((0, 0, P.w, 540), mask_rule(leaf_ok, (0, 0, P.w, 540)))
+    rfn = lambda py: 70 + 175 * float(np.clip((520 - py) / 260.0, 0, 1))
+    clump(K, (0, 0, P.w, 540), 245, rfn, 0.55, n_cross=6, nx=18, nz=12, name="blades")
+    # grass at the foot, either side of the canes
+    gl = [(95, 770, 168, 886), (335, 770, 405, 886)]
+    gm = opaque & ~halo(rgb) & (mx > 60)
+    for bx in gl:
+        K.leaves_only(bx, mask_rule(gm, bx))
+    tufts(K, gl, [-0.05, -0.05])
+    tufts(K, gl, [0.05, 0.05], yaws=(30, -40))
     earth_disc(K, 245, 130, 0.12, K.colour((0.2, 0.15, 0.08), vary=0.18, scale=40), z=P.z(875) - P.m(3))
 
 
@@ -2138,7 +2132,7 @@ def pumpkin(K, px, py, rx, ry, y, mat, ribs=10, name="pumpkin"):
     """A pumpkin: a squat ribbed ball with a dimple at its top, at painted (px, py), rx by ry px."""
     P = K.paint
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=40, v_segments=16, radius=1.0)
+    bmesh.ops.create_uvsphere(bm, u_segments=30, v_segments=12, radius=1.0)
     ph = K.rng.uniform(0, 6.28)
     a_, b_ = P.m(rx), P.m(ry)
     for v in bm.verts:

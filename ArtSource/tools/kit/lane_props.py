@@ -88,6 +88,53 @@ def straw(K, a_px, b_px, y0, y1, mat, r_px=1.1, sag=0.0, name="straw"):
     return K.tube(pts, P.m(r_px), mat, segments=5, name=name, taper=0.7)
 
 
+def grass_pixels(rgb):
+    """Grass only: green and yellow-green blades and their dark ink, not the earth they grow from."""
+    import numpy as np
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    green = (g > b + 40) & (g >= 0.72 * r) & (g > 70)
+    keep = ndimage.binary_closing(green, iterations=1)
+    keep |= (np.maximum(np.maximum(r, g), b) < 70) & ndimage.binary_dilation(keep, iterations=1)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
+def earth(K, cx_px, foot_py, low_py, rx_px, ry, box, grass=(), pebbles=(), pebble_box=None, name="earth", tilt=0.0):
+    """The patch of earth a prop stands on, as painted from a little above: a low mound whose top is level with the
+    prop's foot (foot_py) and whose rim slopes down towards the camera to where the painted dirt ends (low_py), so
+    the painted dirt in front of the prop lands on it. grass: boxes (px) of painted tufts, stood as cards round
+    their spot (only the blades); pebbles: (px, py, size px) in the painting's own pebble colour. tilt (m per m) lowers
+    the ground towards the camera, where things painted lower stand nearer (z += tilt * y)."""
+    P = K.paint
+    dirt = K.colour(box, vary=0.18, scale=12.0)
+    rx = P.m(rx_px)
+    top, drop = P.z(foot_py), max(0.01, P.m(low_py - foot_py))
+    ob = K.lathe([(0.0, top - drop - 0.004), (rx, top - drop - 0.004), (rx * 1.0, top - drop), (rx * 0.93, top - drop * 0.55),
+             (rx * 0.82, top - drop * 0.12), (rx * 0.7, top), (0.0, top + 0.004)], dirt, segments=36,
+            centre=(P.x(cx_px), 0.0, 0.0), scale_y=ry / rx, wobble=0.08, name=name)
+    if tilt:
+        for v in ob.data.vertices:
+            v.co.z += tilt * v.co.y
+    stone = K.colour(pebble_box, vary=0.12) if pebble_box else K.colour((0.42, 0.33, 0.26), vary=0.15)
+    for px, py, s in pebbles:
+        r = P.m(s) / 2
+        dx = P.x(px) - P.x(cx_px)
+        # on the rim's slope, where it is painted: its depth from how far down the slope it is painted
+        f = min(1.0, max(0.0, (py - foot_py) / max(1.0, low_py - foot_py)))
+        yy = -ry * math.sqrt(max(0.0, 1 - (dx / rx) ** 2)) * (0.75 + 0.25 * f)
+        K.block(P.x(px), yy, P.z(py) + r * 0.3, r * 2, r * 1.6, r * 1.1, stone, rot=(0, 0, K.rng.uniform(0, 90)),
+                bevel=r * 0.4, jitter=r * 0.08, name="pebble")
+    for box_px in grass:
+        K.leaves_only(box_px, grass_pixels)
+        gx, gy = (box_px[0] + box_px[2]) / 2, (box_px[1] + box_px[3]) / 2
+        dx = P.x(gx) - P.x(cx_px)
+        yf = -ry * math.sqrt(max(0.0, 1 - min(1.0, (dx / rx) ** 2))) * 0.8
+        K.card_from_painting(box_px, (P.x(gx), yf, P.z(gy)), name="grass", normal=(0, -0.4, 1))
+        for yaw in (60, -60, 90):
+            K.card_from_painting(box_px, (P.x(gx) + K.rng.uniform(-0.02, 0.02), yf + K.rng.uniform(0.03, 0.08), P.z(gy)),
+                                 yaw=yaw + K.rng.uniform(-15, 15), scale=0.85, name="grass", normal=(0, -0.4, 1))
+
+
 @model("dung", "lane", kind="prop")
 def dung(K):
     """A coiled heap of cow dung, pressed by hand into a round cake: a thick rope of dung wound in on itself, three
@@ -97,60 +144,94 @@ def dung(K):
     P = K.paint
     cx, foot = 156, 99
     X0, Z0 = P.x(cx), P.z(foot)
-    dungm = K.projected(axis_x=X0, squeeze=0.93, keep=[(57, 8, 256, 96)], exclude=[(40, 88, 110, 100)], inset=3)
+    dungm = K.tile((120, 40, 160, 62), vary=0.1, soften=0.3)
     R = P.m(101)                              # the outer coil's radius (across); the heap is as deep as it is wide
     pitch = R / 3.1                           # the dung rope's width: three turns from the rim to the dimple
-    nu, nv = 96, 40
+    nu, nv = 96, 44
     lump = smooth_noise(K, (nv + 1, nu + 1), (1.0, 2.0))
     lump[:, -1] = lump[:, 0]
-    # the heap's height (above its foot) at radius r: from the silhouette (centre 0.184 m, 0.11 m out 0.16, 0.17 m
-    # out 0.136, at the rim 0.09)
-    hr = [(0.0, 0.150), (0.02, 0.17), (0.045, 0.184), (0.11, 0.162), (0.17, 0.136), (0.19, 0.115), (0.2, 0.09),
-          (0.204, 0.05), (0.2, 0.015), (0.19, 0.0)]
+    # the heap's (radius, height above its foot), from the dimple out over the rim and down the outer wall: traced
+    # from the painting's silhouette (half-width at each height)
+    hr = [(0.0, 0.15), (0.02, 0.168), (0.05, 0.174), (0.09, 0.158), (0.125, 0.143), (0.15, 0.128), (0.175, 0.11),
+          (0.19, 0.095), (0.2, 0.075), (0.204, 0.042), (0.2, 0.012), (0.19, 0.0)]
+    rim = 8                                   # hr index of the rim: past it, the outer wall
 
-    def height(s):
-        # s: 0 (centre) .. 1 (rim) .. over the rim and down the outer wall to the foot (1.4): (r, z)
-        k = s * (len(hr) - 1) / 1.4
+    def height(v):
+        k = v * (len(hr) - 1)
         i = min(len(hr) - 2, int(k))
         t = k - i
         (r0, z0), (r1, z1) = hr[i], hr[i + 1]
-        return r0 + (r1 - r0) * t, z0 + (z1 - z0) * t
+        return r0 + (r1 - r0) * t, z0 + (z1 - z0) * t, k
 
     def surf(u, v):
         a = 2 * math.pi * u
-        s = 1.4 * v
-        r, z = height(s)
+        r, z, k = height(v)
         r *= R / 0.2
         # the coil: a groove where the spiral rope's turns meet (the rope winds inwards as it goes round)
         ph = ((r - pitch * u) / pitch) % 1.0
-        groove = math.exp(-((ph - 0.5) / 0.13) ** 2) if 0.03 < r < R * 0.97 else 0.0
+        groove = math.exp(-((ph - 0.5) / 0.12) ** 2) if 0.03 < r and k < rim else 0.0
         j, i = int(round(v * nv)), int(round(u * nu))
-        lobes = 0.25 + 0.75 * min(1.0, max(0.0, (r - R * 0.6) / (R * 0.3)))
-        bump = P.m(3.0) * lump[j, i] * lobes
-        z = z - 0.024 * groove + bump * 0.6 if s < 1.0 else z
+        lobes = 0.2 + 0.8 * min(1.0, max(0.0, (r - R * 0.7) / (R * 0.25)))
+        bump = P.m(2.6) * lump[j, i] * lobes
+        z = z - 0.02 * groove + (bump * 0.4 if k < rim else 0.0)
         r = r + bump
         return (X0 + r * math.cos(a), -r * math.sin(a), Z0 + z)
     K.sheet(surf, nu, nv, dungm, name="heap")
     K.lathe([(0.0, Z0 + 0.0), (R * 0.95, Z0 + 0.0)], K.colour((0.07, 0.035, 0.015), vary=0.05), segments=24,
             centre=(X0, 0, 0), name="heap_floor")
-    # straw: stuck in the dung, and dropped round it on the ground
+    # straw dropped round it on the earth (the painted ones in front land on the earth's rim), and stuck in its sides
     gold = K.colour((200, 40, 230, 50), vary=0.15, pct=80)
-    for a, b, y0, y1 in (((48, 99), (100, 92), -0.13, -0.16), ((160, 96), (226, 108), -0.21, -0.24),
-                         ((184, 96), (151, 118), -0.2, -0.27), ((226, 89), (270, 100), -0.12, -0.16),
-                         ((240, 49), (284, 44), -0.02, -0.03), ((215, 84), (248, 96), 0.05, 0.12),
-                         ((70, 88), (40, 96), 0.08, 0.14), ((150, 99), (120, 104), 0.21, 0.26)):
+    for a, b, y0, y1 in (((48, 98), (100, 98), -0.2, -0.18), ((215, 98), (250, 99), 0.12, 0.2),
+                         ((240, 49), (284, 44), -0.02, -0.03), ((70, 98), (40, 99), 0.1, 0.16),
+                         ((150, 99), (120, 99), 0.22, 0.27), ((260, 98), (232, 99), -0.08, -0.17)):
         straw(K, a, b, y0, y1, gold, r_px=1.3)
-    # bits of straw sticking out of the coil's top and back (painted ones show on the front)
-    for i in range(10):
-        ang = K.rng.uniform(0.15, 0.85) * math.pi            # the back half
-        rr = K.rng.uniform(0.3, 0.95) * R
-        r_, z_ = height(1.4 * min(1.0, rr / R) * 0.7)
-        base = np.array([X0 + rr * math.cos(ang), rr * math.sin(ang), Z0 + z_ - 0.01])
-        d = np.array([math.cos(ang + K.rng.uniform(-1.2, 1.2)), math.sin(ang + K.rng.uniform(-1.2, 1.2)), 0.3])
+    for i in range(12):
+        ang = K.rng.uniform(0.1, 0.9) * math.pi              # round the back half of the outer coil
+        rr = R * 1.0
+        zz = Z0 + K.rng.uniform(0.03, 0.08)
+        base = np.array([X0 + rr * math.cos(ang), rr * math.sin(ang), zz])
+        a2 = ang + K.rng.uniform(-0.9, 0.9)
+        d = np.array([math.cos(a2), math.sin(a2), K.rng.uniform(-0.3, 0.2)])
         d /= np.linalg.norm(d)
-        L = K.rng.uniform(0.04, 0.08)
-        K.tube([tuple(base), tuple(base + d * L * 0.5), tuple(base + d * L)], P.m(1.2), gold, segments=5,
+        L = K.rng.uniform(0.03, 0.06)
+        K.tube([tuple(base - d * 0.01), tuple(base + d * L * 0.5), tuple(base + d * L)], P.m(1.2), gold, segments=5,
                name="straw_in", taper=0.6)
-    ground_patch(K, cx, foot + 1, 128, 0.25, (95, 104, 130, 114),
-                 pebbles=[(62, 107, 14), (100, 117, 12), (205, 116, 14), (248, 104, 12), (283, 104, 8)],
-                 grass=[(0, 58, 48, 98), (256, 66, 292, 100)])
+    earth(K, cx, foot, 114, 128, 0.27, (95, 104, 130, 114), grass=[(0, 58, 48, 98), (256, 66, 292, 100)],
+          pebbles=[(22, 104, 9), (276, 103, 8), (262, 104, 10)], pebble_box=(60, 104, 68, 110))
+
+
+def mouth(K, cx, cy, r_px, top_py, depth_px, mat, segments=32):
+    """The dark inside of a pot's open mouth: a cup going down from its rim."""
+    P = K.paint
+    K.lathe([(P.m(r_px), P.z(top_py)), (P.m(r_px) * 0.95, P.z(top_py + depth_px * 0.4)),
+             (P.m(r_px) * 0.8, P.z(top_py + depth_px)), (0.0, P.z(top_py + depth_px * 1.05))], mat, segments=segments,
+            centre=(P.x(cx), cy, 0), name="mouth", cap=False)
+
+
+@model("brass_pots", "lane", kind="prop")
+def brass_pots(K):
+    """Two polished brass kudams (water pots) set down on the earth: a big one behind, a smaller one in front of it
+    to the right, each with a round belly, a narrow neck and a flared rim, turned bands round their bellies."""
+    P = K.paint
+    inside = K.colour((0.1, 0.045, 0.01), vary=0.1)
+    tilt = 0.115
+    pots = [
+        # centre px, depth y, keep, exclude, profile [(r px, y px)] from the foot up to the rim's top
+        (102, 0.12, [(24, 6, 156, 172), (156, 6, 180, 92)], [(10, 138, 52, 172)],
+         [(0, 170), (42, 170), (48, 167.5), (52, 161), (56, 152), (61, 144), (65, 136), (68, 128), (71, 120),
+          (73, 112), (75, 104), (76.5, 96), (77, 86), (77, 76), (75.5, 68), (71, 61), (64, 53), (57, 48.5), (50, 44.5),
+          (45, 40.5), (41.5, 36.5), (40, 32), (41.5, 28), (47, 25.5), (51, 23.5), (52.5, 20), (52.3, 15), (50.5, 11.5),
+          (46.5, 9.2), (42, 8.4)], (41, 9.0)),
+        (215.5, -0.12, [(157, 57, 276, 184)], [(157, 57, 181, 92), (258, 150, 296, 178)],
+         [(0, 182.5), (18, 182.5), (25, 181), (35, 176), (43, 170.5), (49, 163), (52, 154), (54, 146), (55.5, 138),
+          (56.5, 130), (57, 122), (56.5, 116), (55, 109), (52, 104), (47, 100), (42, 96), (37, 92.5), (32.5, 89.5),
+          (30.5, 86), (30.5, 80), (32.5, 77.5), (36, 75.5), (38.5, 72.5), (38.8, 68), (37.5, 64), (34, 61),
+          (29, 59.5)], (28.5, 60.2)),
+    ]
+    for i, (cx, cy, keep, excl, pr, (mr, mtop)) in enumerate(pots):
+        brass = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=keep, exclude=excl, inset=2)
+        K.lathe(prof(P, pr), brass, segments=40, centre=(P.x(cx), cy, 0), wobble=0.004, name=f"pot{i}", cap=False)
+        mouth(K, cx, cy, mr, mtop, 22, inside, segments=40)
+    earth(K, 155, 176, 190, 150, 0.33, (60, 176, 90, 186), tilt=tilt,
+          grass=[(10, 138, 52, 172), (258, 150, 296, 178)],
+          pebbles=[(130, 177, 8), (290, 180, 6)], pebble_box=(125, 172, 135, 178))
