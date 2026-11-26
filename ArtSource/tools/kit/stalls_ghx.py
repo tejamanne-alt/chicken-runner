@@ -1500,9 +1500,10 @@ def scallop_cloth(K, x0, x1, y_top, z_top, y_bot, z_bot, mat, hem=0.0, n_scallop
             x = x0 + (x1 - x0) * u
             z = z_bot - drop * v
             if v > 0.99 and n_scallop:
-                z -= hem * (1 - abs(math.cos(math.pi * u * n_scallop)) ** 0.6)
+                f_ = (u * n_scallop) % 1.0
+                z -= hem * math.sqrt(max(0.0, 1 - (2 * f_ - 1) ** 2))
             return (x, y_bot - 0.004, z)
-        parts.append(K.sheet(g, n_scallop * 6 if n_scallop else nu, 2, mat, name=name + "_valance", thickness=0.006))
+        parts.append(K.sheet(g, n_scallop * 8 if n_scallop else nu, 2, mat, name=name + "_valance", thickness=0.006))
     return parts
 
 
@@ -1610,3 +1611,90 @@ def stall_high(K):
     m = K.projected(axis_x=p.x, squeeze=0.93, keep=[(44, 184, 75, 212)], inset=1)
     K.lathe([(P.m(12), zc), (P.m(15), Z(196)), (P.m(15), Z(188))], m, segments=20, centre=(p.x, p.y, 0.0), cap=False,
             name="basket")
+
+
+@model("stall_low", "market", kind="prop", atlas=2048)
+def stall_low(K):
+    """A small low stall, painted turned a little to its left: a striped awning on a gable of bamboo poles over
+    four lashed bamboo posts, a low bamboo table with folded banana leaves (for plates) and a cane basket heaped with
+    coconuts."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    T = Turned(P, 16.3, -0.0155)
+    n0 = collect(K)
+    bam = K.colour((60, 100, 66, 140), vary=0.08)
+    rope = K.colour((0.35, 0.2, 0.06), vary=0.1)
+    yf, yb = -0.4, 0.6
+    a_ = 0.805
+    for x, y, top, r in ((-a_, yf, Z(8), 0.055), (a_, yf, Z(8), 0.055), (-a_, yb, Z(52), 0.05), (a_, yb, Z(62), 0.05)):
+        bamboo(K, (x, y, 0.0), (x, y, top), r, bam, nodes=0.45, bend=0.0, taper=0.97, name="post")
+        K.lathe([(r * 1.2, top - 0.02), (r * 1.25, top + 0.02), (r * 0.8, top + 0.05)], bam, segments=10,
+                centre=(x, y, 0.0), name="post_cap")
+    zr = Z(16)
+    bamboo(K, (-a_ - 0.06, yf, zr), (a_ + 0.06, yf, zr), 0.03, bam, node_at=[0.25, 0.5, 0.75], taper=1.0, bend=0.0,
+           name="ridge")
+    for x in (-a_, a_):
+        bamboo(K, (x, yf - 0.06, Z(57)), (x, yb + 0.08, Z(57)), 0.045, bam, node_at=[0.5], taper=1.0, name="side_beam")
+        bamboo(K, (x, yf, zr), (x, yb + 0.06, Z(60)), 0.028, bam, node_at=[0.5], taper=1.0, name="rafter_back")
+        bamboo(K, (x, yf, zr), (x * 1.16, yf - 0.42, Z(58)), 0.024, bam, node_at=[], taper=1.0, name="rafter_front")
+        joint(K, (x, yf, Z(57)), (0, 0, 1), (0, 1, 0), 0.055, rope, rope=0.008)
+        joint(K, (x, yf, zr), (0, 0, 1), (1, 0, 0), 0.055, rope, rope=0.008)
+        for y in (yf, yb):
+            K.tube([(x, y, Z(95)), (x, y + (0.2 if y == yf else -0.2), Z(57) - 0.02)], 0.016, bam, segments=6,
+                   name="brace")
+    bamboo(K, (-a_, yb, Z(60)), (a_, yb, Z(60)), 0.03, bam, node_at=[0.5], taper=1.0, name="back_beam")
+    # ---------------------------------------------------------------- the low table
+    zt = Z(147)
+    slat = K.colour((150, 143, 200, 148), vary=0.08)
+    for k in range(9):
+        y = -0.42 + 1.04 * (k + 0.5) / 9
+        bamboo(K, (-a_ - 0.06, y, zt - 0.02), (a_ + 0.1, y, zt - 0.02), 0.032, slat, node_at=[0.3, 0.7], taper=1.0,
+               name="slat")
+    for y in (-0.47, 0.66):
+        bamboo(K, (-a_ - 0.1, y, zt - 0.05), (a_ + 0.14, y, zt - 0.05), 0.05, bam, node_at=[0.35, 0.7], taper=1.0,
+               name="table_rail")
+    for x in (-a_ - 0.05, a_ + 0.08):
+        bamboo(K, (x, -0.5, zt - 0.08), (x, 0.69, zt - 0.08), 0.045, bam, node_at=[0.5], taper=1.0, name="table_rail")
+        for y in (-0.47, 0.66):
+            K.tube([(x, y, 0.0), (x, y, zt - 0.05)], 0.055, bam, segments=10, name="table_leg")
+            lashing(K, (x, y, zt - 0.05), (0, 0, 1), 0.055, rope, turns=2)
+    T.apply(K.parts[n0:])
+    # ---------------------------------------------------------------- the awning
+    stripes = K.projected(squeeze=1.0, keep=[(48, 14, 242, 73)], exclude=[(30, 0, 60, 25), (195, 0, 220, 25)], inset=1)
+    n1 = collect(K)
+    scallop_cloth(K, -a_ - 0.06, a_ + 0.16, yf, zr + 0.03, yf - 0.42, Z(56), stripes, hem=P.m(6), n_scallop=10,
+                  drop=Z(56) - Z(66), sag=0.02, name="awning")
+    scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), stripes, hem=P.m(5), n_scallop=8,
+                  drop=Z(60) - Z(70), sag=0.02, name="awning_back")
+    T.apply(K.parts[n1:])
+    # ---------------------------------------------------------------- the banana leaves and the coconuts
+    leaf = K.projected(squeeze=1.0, keep=[(40, 113, 146, 156)], inset=1)
+    for (x0, x1, top, yl) in ((42, 112, 120, -0.15), (85, 146, 114, 0.05)):
+        cxp = (x0 + x1) / 2
+        p = T.w(cxp, yl, 0.0)
+        r = (zt + 0.005 - Z(top)) * -0.5
+        r = (Z(top) - zt) / 2
+        ob = K.lathe([(r * 0.9, -P.m(x1 - x0) / 2), (r, -P.m(x1 - x0) * 0.4), (r, P.m(x1 - x0) * 0.4),
+                      (r * 0.85, P.m(x1 - x0) / 2)], leaf, segments=14, name="leaf_roll")
+        frame_to(ob, (p.x, p.y, zt + r), (math.cos(T.t + 0.5), math.sin(T.t + 0.5), 0), (0, 0, 1))
+    n2 = collect(K)
+    K.sheet(lambda u, v: (-a_ + 0.05 + 0.75 * u + 0.03 * math.sin(v * 7), -0.3 + 0.55 * v, zt + 0.006 + 0.01 * math.sin(u * 9)),
+            10, 6, leaf, name="leaf_sheet", thickness=0.004)
+    T.apply(K.parts[n2:])
+    weave = K.projected(axis_x=P.x(165), squeeze=0.93, keep=[(125, 110, 206, 145)], inset=1)
+    p = T.w(165, 0.15, 0.0)
+    K.lathe([(0.0, zt), (P.m(26), zt), (P.m(36), Z(130)), (P.m(41), Z(115)), (P.m(40), Z(112))], weave, segments=28,
+            centre=(p.x, p.y, 0.0), cap=False, wobble=0.01, name="basket")
+    K.tube([(p.x + P.m(40) * math.cos(2 * math.pi * i / 32), p.y + P.m(40) * math.sin(2 * math.pi * i / 32), Z(113))
+            for i in range(33)], P.m(3), weave, segments=6, name="basket_rim")
+    nut = K.projected(squeeze=1.0, keep=[(132, 88, 200, 120)], inset=3)
+    import market_props as MP
+    for cxp, cyp, r, dy in ((148, 106, 17, -0.08), (183, 106, 17, -0.06), (160, 114, 15, -0.12), (162, 94, 16, 0.05),
+                            (172, 112, 15, 0.1), (140, 112, 14, 0.12)):
+        q = T.w(cxp, 0.15 + dy, P.z(cyp))
+        MP.ellipsoid(K, tuple(q), (P.m(r) * 0.9, P.m(r) * 0.86, P.m(r) * 0.84), nut, seg=12, rings=8, lumps=0.05,
+                     name="coconut")
+    shadow = K.colour((60, 182, 180, 188), vary=0.05)
+    K.lathe([(0.0, 0.0), (1.25, 0.0), (1.2, 0.006), (0.0, 0.008)], shadow, segments=32, centre=(T.cx, 0.1, -0.004),
+            scale_y=0.5, cap=False, name="ground")

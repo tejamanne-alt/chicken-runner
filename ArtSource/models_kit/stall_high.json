@@ -1,0 +1,10 @@
+{
+ "name": "stall_high",
+ "folder": "market",
+ "kind": "volume",
+ "width": 3.045,
+ "height": 2.9,
+ "depth": 2.308,
+ "faces": 6166,
+ "source": "blender"
+}

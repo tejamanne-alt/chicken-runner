@@ -954,7 +954,6 @@ def hand_pump(K):
                      (36, 98), (0, 98)]), body, segments=40, centre=(Xc, cy, 0), name="barrel")
     K.lathe(prof(P, [(0, 97.5), (45, 97.5), (46, 95), (46, 83), (44, 80), (0, 80)]), head, segments=6,
             centre=(Xc, cy, 0), name="head", smooth=False)
-    iron = K.colour((240, 300, 270, 320), vary=0.1) if False else K.colour((0.12, 0.2, 0.06), vary=0.1)
     brass = K.colour((248, 50, 258, 75), vary=0.08)
     for bx in (233, 276):
         K.lathe(prof(P, [(0, 81), (6, 81), (6, 76), (4, 74), (0, 74)]), head, segments=12, centre=(X(bx), cy - 0.05, 0),
@@ -1141,8 +1140,6 @@ def rope_cot(K):
     # the frame's rails, wrapped in rope
     wrap = K.tile((150, 114, 250, 146), vary=0.06, soften=0.15)
     rail_r = P.m(17)
-    fz, bz = Z(130) + tilt * yF, Z(90) + tilt * yB
-    fz = Z(130)
     corners = {"FL": (X(54), yF, Z(130)), "FR": (X(473.5), yF, Z(130)), "BL": (X(103.5), yB, Z(92)),
                "BR": (X(437), yB, Z(92))}
     for a, b, r in (("FL", "FR", rail_r), ("BL", "BR", P.m(12)), ("FL", "BL", P.m(13)), ("FR", "BR", P.m(13))):
@@ -1152,7 +1149,6 @@ def rope_cot(K):
     weave_img = weave_src.resize((weave_src.width, weave_src.height * 3), Image.BICUBIC)
     weave = image_tile(K, weave_img, P.m(100) * 0.55, ("weave",), vary=0.06)
     FL, FR, BL, BR = [np.array(corners[k]) for k in ("FL", "FR", "BL", "BR")]
-    inset = 0.045
 
     def bed(u, v):
         a = FL + (FR - FL) * u
@@ -1160,8 +1156,6 @@ def rope_cot(K):
         p = a + (b - a) * v
         sag = 0.045 * math.sin(math.pi * u) * math.sin(math.pi * v) ** 0.8
         p = p + np.array([0, 0, P.m(8) - sag])
-        # pull the edges in to the rails' inner sides
-        p[1] += inset * (1 - 2 * v) * 0.0
         return tuple(p)
     K.sheet(bed, 36, 14, weave, name="bed", thickness=0.014)
     # the patchwork cushion at the head, leaning back against the far rail
@@ -1349,7 +1343,6 @@ def drape(K, top_l, top_r, edges, hem, pole_z, pole_r, back_len, mat, y_pole=0.0
             return (P.x(px), y_pole + pole_r * 1.15 * math.cos(a), zp + pole_r * 1.15 * math.sin(a))
         s = (j - nb - nw) / nf                   # the front, from the pole down to the hem
         px0 = top_l + (top_r - top_l) * u
-        hl, hr = side(hem(px0) - 2)
         xl, xr = side(P.py(pole_z(px0)) + (hem(px0) - P.py(pole_z(px0))) * s)
         px = xl + (xr - xl) * u
         zp = pole_z(px0)
@@ -1415,17 +1408,6 @@ def grass_mask(P, boxes):
         x0, y0, x1, y1 = int(max(0, x0)), int(max(0, y0)), int(min(P.w, x1)), int(min(P.h, y1))
         m[y0:y1, x0:x1] |= grass_pixels(rgb[y0:y1, x0:x1]) & (P.rgba[y0:y1, x0:x1, 3] > 0.4)
     return m
-
-
-def plane_card(K, box_px, yfun, name="card", normal=(0, -1, 0.2)):
-    """A card of the painting inside box_px lying in a vertical plane through the model (y = yfun(x metres)): from the
-    front it covers exactly the painted box (a wheel's spokes in the plane of a bicycle turned from the camera)."""
-    P = K.paint
-    x0, y0, x1, y1 = box_px
-    X0, X1 = P.x(x0), P.x(x1)
-    corners = [(X0, yfun(X0), P.z(y1)), (X1, yfun(X1), P.z(y1)), (X1, yfun(X1), P.z(y0)), (X0, yfun(X0), P.z(y0))]
-    uvs = [(x0 / P.w, 1 - y1 / P.h), (x1 / P.w, 1 - y1 / P.h), (x1 / P.w, 1 - y0 / P.h), (x0 / P.w, 1 - y0 / P.h)]
-    return K.card(corners, uvs, name, normal=normal)
 
 
 @model("bicycle", "lane", kind="prop")
