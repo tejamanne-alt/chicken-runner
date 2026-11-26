@@ -1145,8 +1145,8 @@ def sluice_gate(K):
     for x0, x1, front in ((32, 128, 280), (300, 392, 282)):
         yf = ydep(front)
         top = P.z(170) - k * yf
-        parts.append(K.block((P.x(x0) + P.x(x1)) / 2, (yf - 0.17) / 2, (zg - 0.2 + top) / 2, P.m(x1 - x0), -0.17 - yf,
-                             top - zg + 0.2, wall, bevel=0.03, jitter=0.012, name="wall"))
+        parts.append(K.block((P.x(x0) + P.x(x1)) / 2, (yf - 0.17) / 2, (zg - 0.02 + top) / 2, P.m(x1 - x0), -0.17 - yf,
+                             top - zg + 0.02, wall, bevel=0.03, jitter=0.012, name="wall"))
     # the water: out under the gate and down the channel towards us; and still behind the gate
     wtile = K.tile((150, 252, 300, 300), vary=0.04)
     opaque = alpha_at(K)

@@ -2035,3 +2035,87 @@ def h1_3(K):
     ys, _ = wood.at(470, 495)
     K.block((P.x(383) + P.x(582)) / 2, ys, P.z(882), P.m(200), P.m(62), P.m(22), plank, rot=(0, 3.4, 0),
             bevel=P.m(2), name="seat")
+
+
+def pod_mask(K, box, rule=None):
+    """The painted pods (tamarind: orange-brown) inside box: a bool mask."""
+    P = K.paint
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    m = (r - b > 55) & (r > g + 18) & (r > 100) if rule is None else rule(rgb)
+    m &= (P.rgba[..., 3] > 0.5) & box_mask(m.shape, [box])
+    m = ndimage.binary_closing(m, iterations=2)
+    m = ndimage.binary_fill_holes(m)
+    m = ndimage.binary_opening(m, iterations=1)
+    lab, n = ndimage.label(m)
+    if n:
+        sizes = ndimage.sum(m, lab, range(1, n + 1))
+        m = np.isin(lab, 1 + np.nonzero(sizes >= 40)[0])
+    return m
+
+
+def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0, min_len=10, segments=10,
+              stalk=None):
+    """Pods (tamarind, drumstick) where they hang in the painting: each painted pod's centre line (the skeleton of
+    the pod mask) as a curved, slightly flattened tube, waisted between its seeds, just in front of the crown's
+    leaves; and `copies` more of each hanging at the same place deeper in the crown, so from the side and back the
+    tree is as full of pods as from the front."""
+    P = K.paint
+    rng = K.rng
+    pw = Wood(K, mask, root_px=(0, 0), spur=1.0, min_len=4, smooth=0.8)
+    out = []
+    for p in pw.paths:
+        L = float(np.hypot(*np.diff(p["pts"], axis=0).T).sum())
+        if L < min_len:
+            continue
+        cx, cy = p["pts"].mean(0)
+        r_max = float(np.max(p["r"]))
+        for k in range(1 + copies):
+            if k == 0:
+                y = crown.front_y(cx, cy, 0.85) - P.m(r_max)
+            else:
+                y = crown.y0 + rng.uniform(-0.5, 0.95) * crown.extent(cx, cy)
+            p["y"] = np.full(len(p["pts"]), y)
+            pts, rs = pw.polyline(p)
+            if pts is None or len(pts) < 2:
+                continue
+            ph = rng.uniform(0, 6.28)
+            seg = [0.0] + list(np.cumsum([math.dist(a, b) for a, b in zip(pts, pts[1:])]))
+            rs = [r * rscale * (1 + lump * math.sin(s / max(1e-6, r * 2.2) + ph)) for r, s in zip(rs, seg)]
+            ob = K.tube(pts, rs, mat, segments=segments, name="pod")
+            for v in ob.data.vertices:
+                v.co.y = y + (v.co.y - y) * flatten
+            out.append(ob)
+            if stalk is not None:
+                top = max(pts, key=lambda v: v[2])
+                K.tube([top, (top[0], top[1], top[2] + P.m(r_max) * 2.5)], P.m(r_max) * 0.25, stalk, segments=5,
+                       name="pod_stalk")
+    return out
+
+
+TRACE["h2_1"] = lambda K: _trace_grey(K, [(0, 240, 1120, 1100)], (540, 1060), sat=42,
+                                      exclude=[(255, 995, 420, 1090), (535, 1035, 625, 1085)],
+                                      extra_rule=lambda rgb: ~((chan(rgb)[0] - chan(rgb)[2] > 55)))
+
+
+@model("h2_1", "plants", kind="prop", atlas=2048, leaves=1024)
+def h2_1(K):
+    """An old tamarind: a massive grey trunk twisting up from buttress roots, crooked limbs spreading under a dome of
+    feathery leaves, clusters of brown curved pods hanging all through it, mossy rocks and grass at its foot."""
+    P = K.paint
+    rng = K.rng
+    mask, _ = TRACE["h2_1"](K)
+    wood, crown, bark, thin = traced_tree(K, mask, (540, 1060), (0, 0, 1120, 670), (560, 330), (330, 0, 680),
+                                          sage_leaves, spread=0.5, root_z_px=980, limb_py_max=560, limb_py_min=250,
+                                          n_limbs=7, n_roots=5, root_py=1030, n_cards=(230, 100, 55, 25))
+    pm = pod_mask(K, (150, 220, 1000, 690))
+    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=2, flatten=0.6, lump=0.12,
+              stalk=K.colour((0.12, 0.08, 0.03)))
+    # mossy rocks, grass at the foot
+    stone = K.projected(squeeze=1.0, keep=[(262, 1000, 415, 1085), (540, 1040, 620, 1080)], inset=3)
+    zg = P.z(1085)
+    for px, w, h, y in ((338, 150, 82, -0.12), (580, 80, 40, -0.1), (420, 60, 30, 0.14), (700, 70, 35, 0.12)):
+        K.boulder(P.x(px), y, zg + P.m(h) * 0.5, P.m(w), P.m(w) * 0.7, P.m(h) * 1.1, stone, name="rock")
+    K.leaves_only((240, 920, 860, 1090), plant_pixels)
+    undergrowth(K, (260, 930, 820, 1080), 22, (70, 60), (-0.2, 0.2))
+    earth(K, 555, 330, P.m(600) * 0.35, (420, 1070, 700, 1085), h=P.m(10), z=zg - P.m(8))
