@@ -1037,3 +1037,169 @@ def stall_h_1(K):
               (520, 734), (522, 700), (530, 660), (545, 620), (560, 590), (590, 575), (600, 560), (591, 530),
               (589, 500), (605, 479)], y=bank.y(Z(815)) + 0.02, name="cobbler")
     unify_cards(K)
+
+
+# ====================================================================== stall H2: the barber's pitch
+def transform(parts, M):
+    for p in parts:
+        p.data.transform(M)
+    return parts
+
+
+def palm_roof(K, x_eave, x_ridge, ye, yr, z_eave, z_ridge, weave, fringe_band, keep=None, posts_x=(), rafters=7,
+              under=None):
+    """A hipped roof of woven coconut-leaf mats on a bamboo frame (rafters over the ridge beam), its ragged leaf ends
+    as cards of the painted fringe all round."""
+    P = K.paint
+    bam = K.colour((0.55, 0.45, 0.22), vary=0.08)
+    hip_thatch(K, x_eave[0], x_eave[1], ye[0], ye[1], z_eave, x_ridge[0], x_ridge[1], yr, z_ridge, weave, thick=0.045,
+               shag=0.01, fringe=P.m(5), nu=110, nv=6)
+    for x in np.linspace(x_ridge[0], x_ridge[1], rafters):
+        K.tube([(x, ye[0] + 0.12, z_eave + 0.02), (x, yr, z_ridge - 0.04), (x, ye[1] - 0.12, z_eave + 0.02)], 0.014, bam,
+               segments=6, name="rafter")
+
+    def leaf_ends(rgb, x0=fringe_band[0]):
+        k = straw_keep(rgb)
+        for a, b in posts_x:
+            k[:, max(0, int(a - x0)):max(0, int(b - x0))] = False
+        return k
+    fringe_cards(K, fringe_band, ye[0] - 0.02, ye[1] + 0.02, x_eave[0] - 0.04, x_eave[1] + 0.04, keep=keep or leaf_ends,
+                 pitch=10)
+
+
+@model("stall_h_2", "market", kind="prop", atlas=2048)
+def stall_h_2(K):
+    """A wayside barber's pitch: a hipped roof of woven coconut-leaf mat on four bamboo posts, a bamboo ridge pole on
+    king posts, a mirror in a wooden frame hung by a string from a back post, a wooden stool with a striped towel
+    over it, a brass basin of water and a cake of soap, all on a rise of packed red earth."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.12, 0.09, 0.04), vary=0.1)
+    bam = K.colour((165, 400, 180, 500), vary=0.08)
+    bank = Bank(-1.1, Z(730), 14.2, flat=0.25, back=0.45)
+    slope = math.degrees(math.atan2(bank.top, bank.y1 - bank.y0))
+    # ---------------------------------------------------------------- the earth
+    earth = ktile(K, (250, 745, 600, 800), vary=0.08, soften=0.35)
+    xl, xr = P.x(4), P.x(1046)
+
+    def ground(x, y):
+        return bank.z(y) * _smooth(xl - 0.02, xl + 0.1, x) * _smooth(xr + 0.02, xr - 0.1, x)
+    K.grid_plane(xl - 0.05, xr + 0.05, bank.y0 - 0.04, bank.y3 + 0.02, 0.0, 34, 28, earth, height=ground, name="earth")
+    # ---------------------------------------------------------------- posts, frame and roof
+    yfp = bank.y(Z(880))
+    ybp = bank.y(Z(770))
+    posts = [((165, 250), (170, 880), 15, yfp, [(150, 245, 185, 880)]),
+             ((258, 252), (262, 770), 13, ybp, [(243, 250, 275, 770)]),
+             ((793, 256), (792, 760), 13, ybp, [(778, 256, 808, 318), (778, 548, 808, 760)]),
+             ((895, 250), (893, 880), 15, yfp, [(876, 245, 912, 880)])]
+    zb = Z(236)
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, z_top=zb + 0.06, z_bot=bank.z(y) - 0.05, nodes=0.45)
+    for (xf, xb_) in ((166, 258), (895, 793)):
+        bamboo(K, (P.x(xf), yfp - 0.1, zb), (P.x(xb_), ybp + 0.1, zb), P.m(9), bam, node_at=[0.5], taper=1.0,
+               name="tie")
+        lashing(K, (P.x(xf), yfp, zb), (0, 0, 1), P.m(15), rope, turns=2.5)
+        lashing(K, (P.x(xb_), ybp, zb), (0, 0, 1), P.m(13), rope, turns=2.5)
+    for y in (yfp, ybp):
+        bamboo(K, (P.x(140), y, zb + 0.03), (P.x(920), y, zb + 0.03), P.m(9), bam, node_at=[0.3, 0.7], taper=1.0,
+               name="beam")
+    for (fx, fz), (bx, bz) in (((30, 206), (110, 190)), ((1006, 202), (930, 188))):
+        bamboo(K, (P.x(fx), -1.32, Z(fz)), (P.x(bx), 1.12, Z(bz)), P.m(11), bam, node_at=[0.3, 0.7], taper=1.0,
+               name="eave_pole")
+    yr = (yfp + ybp) / 2
+    weave = ktile(K, (330, 70, 720, 190), vary=0.06)
+    palm_roof(K, (P.x(40), P.x(1000)), (P.x(205), P.x(848)), (-1.28, 1.08), yr, Z(232), Z(50), weave,
+              (0, 212, 1049, 292), posts_x=[(150, 185), (243, 275), (778, 808), (876, 912)])
+    ridge = K.projected(squeeze=1.0, keep=[(188, 30, 858, 50)], inset=1)
+    bamboo(K, P.pt(188, 40, yr), P.pt(858, 40, yr), P.m(9), ridge, node_at=[0.2, 0.35, 0.5, 0.66, 0.8], taper=1.0,
+           name="ridge_pole")
+    for x_px in (250, 790):
+        kp = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=[(x_px - 13, 6, x_px + 13, 32)], inset=1)
+        bamboo(K, (P.x(x_px), yr + 0.04, zb + 0.03), (P.x(x_px), yr + 0.04, Z(8)), P.m(12), kp, node_at=[], taper=1.0,
+               name="king_post")
+        joint(K, P.pt(x_px, 40, yr + 0.04), (0, 0, 1), (1, 0, 0), P.m(11), rope)
+    # ---------------------------------------------------------------- the mirror on the back-right post
+    frame = K.colour((735, 360, 742, 500), vary=0.08)
+    glass = K.colour((0.42, 0.46, 0.5), vary=0.08, scale=5)
+    ym = ybp - P.m(13) - 0.03
+    t = 0.02
+    for (x0, y0, x1, y1) in ((715, 322, 862, 339), (715, 528, 862, 546), (726, 320, 745, 548), (830, 320, 850, 548)):
+        K.box(P.x(x0), P.x(x1), ym - t, ym, P.z(y1), P.z(y0), frame, bevel=0.003, name="mirror_frame")
+    K.box(P.x(742), P.x(833), ym - 0.012, ym - 0.006, Z(528), Z(338), glass, name="mirror_glass")
+    K.box(P.x(742), P.x(833), ym - 0.006, ym, Z(528), Z(338), frame, name="mirror_back")
+    for xa in (745, 835):
+        K.tube([P.pt(xa, 332, ym - 0.01), P.pt(792, 294, ym + 0.01)], 0.003, rope, segments=4, name="mirror_string")
+    K.tube([P.pt(792, 294, ym + 0.01), P.pt(792, 294, ybp)], 0.004, K.colour((0.2, 0.2, 0.2)), segments=4, name="nail")
+    # ---------------------------------------------------------------- the stool, standing on the rise
+    wood = ktile(K, (382, 690, 420, 760), vary=0.08)
+    seat_w = ktile(K, (350, 640, 470, 655), vary=0.08)
+    feet = {"FL": (355, 825), "FR": (442, 860), "BR": (557, 820), "BL": (473, 790)}
+    F = {k: Vector((P.x(px), bank.y(P.z(py)), P.z(py))) for k, (px, py) in feet.items()}
+    c = sum(F.values(), Vector()) / 4
+    ex = ((F["FR"] - F["FL"]) + (F["BR"] - F["BL"])).normalized()
+    n = bank.normal()
+    ey = n.cross(ex).normalized() * -1
+    if ey.y < 0:
+        ey = -ey
+    sx = ((F["FR"] - F["FL"]).length + (F["BR"] - F["BL"]).length) / 2
+    sy = ((F["BL"] - F["FL"]).length + (F["BR"] - F["FR"]).length) / 2
+    h = 0.6
+    M = Matrix(((ex.x, ey.x, n.x, c.x), (ex.y, ey.y, n.y, c.y), (ex.z, ey.z, n.z, c.z), (0, 0, 0, 1)))
+    parts = []
+    seat = (sx * 0.43, sy * 0.43)
+    parts.append(K.box(-seat[0] - 0.02, seat[0] + 0.02, -seat[1] - 0.02, seat[1] + 0.02, h - 0.05, h, seat_w, bevel=0.006,
+                       name="stool_seat"))
+    for s1 in (-1, 1):
+        for s2 in (-1, 1):
+            parts.append(beam(K, (s1 * sx / 2, s2 * sy / 2, 0.0), (s1 * seat[0] * 0.9, s2 * seat[1] * 0.9, h - 0.05),
+                              0.055, 0.055, wood, name="stool_leg"))
+    for s in (-1, 1):
+        parts.append(beam(K, (-sx * 0.47, s * sy * 0.47, 0.2), (sx * 0.47, s * sy * 0.47, 0.2), 0.05, 0.035, wood,
+                          name="stretcher"))
+        parts.append(beam(K, (s * sx * 0.47, -sy * 0.47, 0.25), (s * sx * 0.47, sy * 0.47, 0.25), 0.05, 0.035, wood,
+                          name="stretcher"))
+        parts.append(beam(K, (-seat[0], s * seat[1] * 0.95, h - 0.08), (seat[0], s * seat[1] * 0.95, h - 0.08), 0.04,
+                          0.05, wood, name="apron"))
+    transform(parts, M)
+    # the towel thrown over the seat, hanging down its right-hand side
+    towel = K.projected(squeeze=1.0, keep=[(398, 604, 556, 738)], inset=2)
+
+    def tw(u, v):
+        x = -seat[0] * 0.2 + (seat[0] * 0.9) * u
+        if v < 0.55:
+            yy = seat[1] * (1.0 - 2.0 * v / 0.55)
+            z = h + 0.008
+            p = Vector((x, yy, z))
+        else:
+            t_ = (v - 0.55) / 0.45
+            p = Vector((x, -seat[1] - 0.01 - 0.02 * math.sin(t_ * math.pi), h + 0.008 - 0.26 * t_))
+        p.y += 0.006 * math.sin(u * 9)
+        return tuple(M @ p)
+    K.sheet(tw, 10, 14, towel, name="towel", thickness=0.006)
+    # ---------------------------------------------------------------- the brass basin and the soap
+    brass = K.projected(axis_x=P.x(752), squeeze=0.92, keep=[(645, 780, 860, 888)], inset=2)
+    water = K.projected(squeeze=1.0, keep=[(660, 790, 840, 830)], inset=2)
+    R = P.m(104)
+    hgt = P.m(66)
+    zc = P.z(886) + R * 0.55 * math.sin(math.radians(slope))
+    foot = Vector((P.x(752), bank.y(P.z(886)) + R * 0.55, zc))
+    prof = [(0.0, 0.0), (R * 0.55, 0.0), (R * 0.85, hgt * 0.3), (R * 1.0, hgt * 0.7), (R * 0.98, hgt * 0.92),
+            (R * 1.02, hgt)]
+    parts = [K.lathe(prof, brass, segments=36, centre=tuple(foot), cap=False, name="basin"),
+             K.lathe([(R * 0.98, hgt * 0.98), (R * 0.9, hgt * 0.4), (0.0, hgt * 0.3)], brass, segments=36,
+                     centre=tuple(foot), cap=False, name="basin_in"),
+             K.lathe([(0.0, hgt * 0.78), (R * 0.97, hgt * 0.78)], water, segments=36, centre=tuple(foot), cap=False,
+                     name="water")]
+    rim = [(foot.x + R * 1.02 * math.cos(2 * math.pi * i / 40), foot.y + R * 1.02 * math.sin(2 * math.pi * i / 40),
+            foot.z + hgt) for i in range(41)]
+    parts.append(K.tube(rim, 0.01, brass, segments=6, name="basin_rim"))
+    for s in (-1, 1):
+        cx_ = foot.x + s * (R * 1.08)
+        pts = [(cx_ + s * 0.035 * math.sin(2 * math.pi * i / 16) + s * 0.03, foot.y,
+                foot.z + hgt - 0.005 + 0.035 * math.cos(2 * math.pi * i / 16)) for i in range(17)]
+        parts.append(K.tube(pts, 0.008, brass, segments=6, name="basin_handle"))
+    rot_x(parts, tuple(foot), slope)
+    soap = K.projected(squeeze=1.0, keep=[(598, 852, 682, 900)], inset=2)
+    p = bank.at(P, 640, 880, 0.035)
+    K.block(p.x, p.y, p.z, P.m(80), 0.13, 0.06, soap, rot=(slope, 0, 2), bevel=0.012, name="soap")

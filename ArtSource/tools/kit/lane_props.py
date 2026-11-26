@@ -373,12 +373,12 @@ def stone_block(K, outline_px, y0, y1, mat, bevel=0.012, jitter=0.0, name="stone
     return ob
 
 
-def axis_lathe(K, profile, mat, start, direction, segments=20, name="part", smooth=True, wobble=0.0):
+def axis_lathe(K, profile, mat, start, direction, segments=20, name="part", smooth=True, wobble=0.0, cap=True):
     """A turned part (a nut, a flange, a pipe's collar) about any axis: profile [(r, t), ...] in metres along
     `direction` from `start`."""
     from mathutils import Vector
     d = Vector(direction).normalized()
-    ob = K.lathe(profile, mat, segments=segments, centre=(0, 0, 0), name=name, smooth=smooth, wobble=wobble)
+    ob = K.lathe(profile, mat, segments=segments, centre=(0, 0, 0), name=name, smooth=smooth, wobble=wobble, cap=cap)
     q = Vector((0, 0, 1)).rotation_difference(d)
     from mathutils import Matrix
     ob.data.transform(Matrix.Translation(Vector(start)) @ q.to_matrix().to_4x4())
@@ -1398,3 +1398,171 @@ def clothesline(K):
     earth(K, 276, 372, 380, 276, 0.3, (0.42, 0.2, 0.09),
           grass=[(4, 330, 60, 374), (60, 334, 132, 374), (410, 334, 470, 374), (495, 334, 552, 374)],
           pebbles=[(88, 372, 14), (150, 374, 12), (385, 372, 12), (440, 372, 12)], pebble_box=(80, 368, 95, 376))
+
+
+def card_mask_all(K, mask):
+    """The one rule for all of this model's cards: they show only the painting's pixels where mask (HxW) is set."""
+    full = mask.copy()
+    K.leaves_only((0, 0, K.paint.w, K.paint.h), lambda rgb: full[:rgb.shape[0], :rgb.shape[1]])
+
+
+def grass_mask(P, boxes):
+    """grass_pixels inside each box, as one HxW mask."""
+    import numpy as np
+    m = np.zeros((P.h, P.w), bool)
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    for x0, y0, x1, y1 in boxes:
+        x0, y0, x1, y1 = int(max(0, x0)), int(max(0, y0)), int(min(P.w, x1)), int(min(P.h, y1))
+        m[y0:y1, x0:x1] |= grass_pixels(rgb[y0:y1, x0:x1]) & (P.rgba[y0:y1, x0:x1, 3] > 0.4)
+    return m
+
+
+def plane_card(K, box_px, yfun, name="card", normal=(0, -1, 0.2)):
+    """A card of the painting inside box_px lying in a vertical plane through the model (y = yfun(x metres)): from the
+    front it covers exactly the painted box (a wheel's spokes in the plane of a bicycle turned from the camera)."""
+    P = K.paint
+    x0, y0, x1, y1 = box_px
+    X0, X1 = P.x(x0), P.x(x1)
+    corners = [(X0, yfun(X0), P.z(y1)), (X1, yfun(X1), P.z(y1)), (X1, yfun(X1), P.z(y0)), (X0, yfun(X0), P.z(y0))]
+    uvs = [(x0 / P.w, 1 - y1 / P.h), (x1 / P.w, 1 - y1 / P.h), (x1 / P.w, 1 - y0 / P.h), (x0 / P.w, 1 - y0 / P.h)]
+    return K.card(corners, uvs, name, normal=normal)
+
+
+@model("bicycle", "lane", kind="prop")
+def bicycle(K):
+    """An old black roadster bicycle standing in the lane, turned a little from the camera: two big wheels (tyres,
+    rims, hubs, wire spokes), the frame of tubes with its fork, head and stays, swept-back handlebar with grips and
+    brake levers, a sprung leather saddle, mudguards with a rear reflector, a carrier rack over the back wheel, the
+    chain guard, cranks and pedals, and a side stand."""
+    import numpy as np
+    from mathutils import Vector
+    from scipy import ndimage
+    P = K.paint
+    X, Z = P.x, P.z
+    th = math.radians(28)
+    c, s, t = math.cos(th), math.sin(th), math.tan(th)
+    xref = X(218)
+    yfun = lambda x: (xref - x) * t                  # the bike's own (turned) plane
+    nrm = Vector((-s, -c, 0.0))                      # its side towards the camera
+
+    def B(px, py, off=0.0):
+        """A point as painted, `off` metres out of the bike's plane towards the camera (negative: the far side)."""
+        x = X(px)
+        return (x, yfun(x) - off / c, Z(py))
+    frame = K.colour((150, 72, 240, 86), vary=0.1)
+    tyre = K.colour((10, 190, 25, 230), vary=0.08)
+    gold = K.colour((20, 190, 30, 215), vary=0.08, pct=85)
+    fender_m = K.colour((60, 100, 140, 116), vary=0.08)
+    dark = K.colour((0.03, 0.02, 0.015), vary=0.05)
+    # the wheels: tyre, rim and hub turning about the axle (the plane's normal), the spokes a card in the plane
+    wheels = [((89, 208), 97.5), ((347.5, 204), 101.0)]
+    a = P.m(5.5)
+    for (wx, wy), R in wheels:
+        C = B(wx, wy)
+        Rm = P.m(R)
+        ring = [(Rm - a + a * math.cos(2 * math.pi * k / 10), a * math.sin(2 * math.pi * k / 10)) for k in range(11)]
+        axis_lathe(K, ring, tyre, C, tuple(nrm), segments=56, name="tyre", cap=False)
+        rr = Rm - 2 * a - P.m(1.5)
+        rim = [(rr + P.m(2.2) * math.cos(2 * math.pi * k / 8), P.m(2.6) * math.sin(2 * math.pi * k / 8))
+               for k in range(9)]
+        axis_lathe(K, rim, gold, C, tuple(nrm), segments=56, name="rim", cap=False)
+        hub = [(0.0, -0.055), (P.m(4), -0.055), (P.m(9), -0.035), (P.m(5.5), -0.025), (P.m(5.5), 0.025),
+               (P.m(9), 0.035), (P.m(4), 0.055), (0.0, 0.055)]
+        axis_lathe(K, [(r_, t_ + 0.0) for r_, t_ in hub], gold, C, tuple(nrm), segments=14, name="hub")
+    al = P.rgba[..., 3] > 0.4
+    opened = ndimage.binary_opening(al, structure=np.ones((5, 5)))
+    thin = al & ~ndimage.binary_dilation(opened, iterations=1)
+    yy, xx = np.mgrid[0:P.h, 0:P.w]
+    spokes = np.zeros_like(al)
+    for (wx, wy), R in wheels:
+        ri = R - 13
+        spokes |= ((xx - wx) / (ri * c)) ** 2 + ((yy - wy) / ri) ** 2 < 1
+    grass_boxes = [(10, 285, 46, 302), (120, 280, 170, 302), (255, 275, 305, 300), (370, 280, 412, 302)]
+    card_mask_all(K, (spokes & thin) | grass_mask(P, grass_boxes))
+    for (wx, wy), R in wheels:
+        plane_card(K, (wx - R, wy - R, wx + R, wy + R), yfun, name="spokes", normal=tuple(nrm))
+    # the frame
+    tubes = [([B(128, 60), B(122, 112)], 7.5), ([B(136, 79), B(270, 78)], 5.5), ([B(132, 96), B(222, 206)], 6.5),
+             ([B(272, 70), B(228, 208)], 6.0), ([B(127, 64), B(127, 30)], 4.5), ([B(270, 56), B(271, 74)], 4.5)]
+    for side in (1, -1):
+        tubes += [([B(275, 84, 0.012 * side), B(312, 145, 0.03 * side), B(347.5, 204, 0.042 * side)], 3.8),
+                  ([B(228, 212, 0.03 * side), B(347.5, 204, 0.042 * side)], 4.3),
+                  ([B(122, 114, 0.025 * side), B(112, 148, 0.042 * side), B(99, 182, 0.044 * side),
+                    B(89, 208, 0.044 * side)], 4.4)]
+    for pts, r in tubes:
+        K.tube(pts, P.m(r), frame, segments=10, name="tube")
+    axis_lathe(K, [(0.0, -0.045), (P.m(8.5), -0.045), (P.m(8.5), 0.045), (0.0, 0.045)], gold, B(226, 212),
+               tuple(nrm), segments=16, name="bb")
+    # the handlebar, swept back, its grips and the brake levers with their rods
+    bar_n = [B(127, 30), B(140, 28, 0.08), B(156, 26, 0.16), B(170, 28, 0.21)]
+    bar_f = [B(127, 30), B(117, 26, -0.08), B(106, 19, -0.16), B(97, 14, -0.21)]
+    K.tube(bar_n, P.m(3.6), gold, segments=8, name="bar")
+    K.tube(bar_f, P.m(3.6), gold, segments=8, name="bar")
+    grip = K.colour((165, 22, 195, 38), vary=0.08)
+    K.tube([B(166, 26, 0.2), B(196, 33, 0.25)], P.m(6.5), grip, segments=10, name="grip")
+    K.tube([B(99, 15, -0.2), B(80, 10, -0.24)], P.m(6.5), grip, segments=10, name="grip")
+    for pts in ([B(146, 36, 0.12), B(160, 42, 0.14), B(175, 50, 0.16), B(184, 57, 0.17)],
+                [B(104, 30, -0.12), B(98, 40, -0.14), B(104, 50, -0.15), B(112, 56, -0.15)]):
+        K.tube(pts, P.m(2.2), gold, segments=6, name="lever")
+    K.tube([B(112, 56, -0.12), B(110, 80, -0.05), B(113, 104, -0.02)], P.m(1.6), gold, segments=5, name="brake_rod")
+    # the mudguards over the wheels and the red reflector at the back
+    for (wx, wy), R, a0, a1 in (((89, 208), 97.5, -22, 104), ((347.5, 204), 101.0, -6, 146)):
+        C = Vector(B(wx, wy))
+        d = Vector((-c, s, 0.0))                     # the bike's forward direction
+        Rf = P.m(R + 6)
+
+        def fender(u, v, C=C, d=d, Rf=Rf, a0=a0, a1=a1):
+            ang = math.radians(a1 + (a0 - a1) * u)
+            p = C + d * (-math.cos(ang) * Rf) + Vector((0, 0, math.sin(ang) * Rf))
+            q = p + nrm * (0.03 * (2 * v - 1)) - (C - p).normalized() * 0.0 + Vector((0, 0, 0))
+            bulge = 0.008 * math.sin(math.pi * v)
+            return tuple(q + (p - C).normalized() * bulge)
+        K.sheet(fender, 40, 4, fender_m, name="mudguard", thickness=0.004)
+    refl = K.colour((436, 155, 444, 168), vary=0.05)
+    K.block(*B(441, 161, 0.0), P.m(5), 0.035, P.m(14), refl, rot=(0, 0, -28), bevel=0.003, name="reflector")
+    # the saddle on its springs and post
+    leather = K.colour((250, 32, 320, 52), vary=0.1)
+    fwd = Vector((-c, s, 0.0))
+    sad = axis_lathe(K, [(0.0, 0.0), (P.m(7), P.m(2)), (P.m(10), P.m(14)), (P.m(13), P.m(30)), (P.m(20), P.m(48)),
+                         (P.m(24), P.m(62)), (P.m(23), P.m(72)), (P.m(15), P.m(80)), (0.0, P.m(82))], leather,
+                     B(246, 38), tuple(-fwd), segments=18, name="saddle")
+    cz = Z(40)
+    for v in sad.data.vertices:
+        v.co.z = cz + (v.co.z - cz) * 0.45
+    springs = K.colour((290, 58, 310, 76), vary=0.08)
+    for side in (1, -1):
+        base = Vector(B(298, 76, 0.035 * side))
+        pts = []
+        for k in range(40):
+            ang = 2 * math.pi * k / 8
+            pts.append(tuple(base + fwd * (math.cos(ang) * P.m(7)) + nrm * (math.sin(ang) * P.m(7))
+                             + Vector((0, 0, P.m(22) * k / 39))))
+        K.tube(pts, P.m(1.6), springs, segments=5, name="spring", cap=False)
+    K.tube([B(270, 56), B(285, 54), B(298, 54)], P.m(3), springs, segments=6, name="saddle_frame")
+    # the carrier over the back wheel, on its struts
+    for off in (-0.06, 0.0, 0.06):
+        K.tube([B(306, 90, off), B(404, 88, off)], P.m(2.6), frame, segments=6, name="carrier_rail")
+    for x in (308, 340, 372, 402):
+        K.tube([B(x, 89, -0.065), B(x, 89, 0.065)], P.m(2.2), frame, segments=6, name="carrier_bar")
+    for side in (1, -1):
+        K.tube([B(394, 92, 0.06 * side), B(372, 150, 0.05 * side), B(350, 203, 0.046 * side)], P.m(2.6), frame,
+               segments=6, name="carrier_strut")
+    K.tube([B(310, 92), B(296, 104)], P.m(2.4), frame, segments=6, name="carrier_stay")
+    # the chain guard (its plate stands out on the camera side), the cranks and the pedals
+    guard = K.colour((260, 186, 300, 200), vary=0.08)
+    outline = [(215 + 33 * math.cos(math.radians(a_)), 212 - 33 * math.sin(math.radians(a_))) for a_ in range(90, 271, 15)]
+    outline += [(250, 244), (300, 236), (334, 226), (338, 214), (334, 200), (300, 190), (250, 180)]
+    plate = K.prism([(X(x), Z(y)) for x, y in outline[::-1]], -0.002, 0.002, guard, name="chain_guard", bevel=0.001)
+    for v in plate.data.vertices:
+        v.co.y += yfun(v.co.x) - 0.05 / c
+    for side, (ex, ey) in ((1, (230, 252)), (-1, (222, 172))):
+        K.tube([B(226, 212, 0.06 * side), B(ex, ey, 0.065 * side)], P.m(3.5), gold, segments=8, name="crank")
+        pedal = K.block(*B(ex + 3, ey + 4 * side, 0.1 * side), P.m(30), 0.07, P.m(10), dark, rot=(0, 0, -28),
+                        bevel=0.004, name="pedal")
+    # a side stand folded down on the far side, and the earth
+    K.tube([B(300, 212, -0.04), B(306, 260, -0.11), B(310, 302, -0.17)], P.m(2.8), frame, segments=6, name="stand")
+    earth(K, 220, 304, 310, 214, 0.55, (60, 300, 100, 308))
+    for box in grass_boxes:
+        bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        for yaw, dy in ((0, -0.1), (70, 0.08), (-60, 0.2)):
+            K.card_from_painting(box, (X(bx), yfun(X(bx)) + dy, Z(by)), yaw=yaw, name="grass", normal=(0, -0.4, 1))
