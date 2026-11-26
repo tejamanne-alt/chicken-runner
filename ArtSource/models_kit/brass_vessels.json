@@ -1,0 +1,10 @@
+{
+ "name": "brass_vessels",
+ "folder": "market",
+ "kind": "volume",
+ "width": 0.814,
+ "height": 0.9,
+ "depth": 0.785,
+ "faces": 2563,
+ "source": "blender"
+}

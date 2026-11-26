@@ -140,3 +140,146 @@ def house_pink(K):
         cx, cy = K.rng.uniform(270, 320), K.rng.uniform(60, 260)
         K.card_from_painting((cx - 28, cy - 28, cx + 28, cy + 28), (P.x(312) + 0.03, K.rng.uniform(0.1, 1.2), P.z(cy)),
                              yaw=90 + K.rng.uniform(-25, 25), name="vine_side")
+
+
+# ====================================================================== helpers for the rest of the lane
+def scatter_cards(K, box, n, size, y_range, yaw=60, pitch=20, name="plant", skip=None, x_range=None, z_range=None):
+    """n cards cut from the painting inside box (px), each placed where it is painted, at a depth in y_range (m);
+    `skip(px, py)` leaves a spot out. Masked with leaves_only(box) by the caller."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    xr = x_range or (x0, x1)
+    zr = z_range or (y0, y1)
+    alpha = P.rgba[..., 3]
+    placed, tries = 0, 0
+    while placed < n and tries < n * 30:
+        tries += 1
+        cx, cy = K.rng.uniform(*xr), K.rng.uniform(*zr)
+        if alpha[int(min(P.h - 1, cy)), int(min(P.w - 1, cx))] < 0.5:
+            continue
+        if skip is not None and skip(cx, cy):
+            continue
+        w, h = size[0] * K.rng.uniform(0.8, 1.2), size[1] * K.rng.uniform(0.8, 1.2)
+        K.card_from_painting((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2),
+                             (P.x(cx), K.rng.uniform(*y_range), P.z(cy)), yaw=K.rng.uniform(-yaw, yaw),
+                             pitch=K.rng.uniform(-pitch, pitch), name=name)
+        placed += 1
+    return placed
+
+
+def side_cards(K, box, n, size, x_wall, side, y_range, name="vine_side"):
+    """n cards from the painting inside box hung on a side wall (x_wall, facing side -1/+1), spread over y_range."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    for i in range(n):
+        cx, cy = K.rng.uniform(x0, x1), K.rng.uniform(y0, y1)
+        K.card_from_painting((cx - size[0] / 2, cy - size[1] / 2, cx + size[0] / 2, cy + size[1] / 2),
+                             (x_wall + side * K.rng.uniform(0.02, 0.08), K.rng.uniform(*y_range), P.z(cy)),
+                             yaw=90 + K.rng.uniform(-25, 25), pitch=K.rng.uniform(-15, 15), name=name)
+
+
+def pot(K, cx_px, prof_px, keep, y, exclude=(), name="pot", segments=28, mouth=True, squeeze=0.93, wobble=0.01):
+    """A clay pot turned from its painted outline (radius px, y px from the foot up) at depth y, wearing its own
+    painted bands all round; a dark mouth going into it."""
+    P = K.paint
+    mat = K.projected(axis_x=P.x(cx_px), squeeze=squeeze, keep=keep, exclude=exclude)
+    ob = K.lathe([(P.m(r), P.z(py)) for r, py in prof_px], mat, segments=segments, centre=(P.x(cx_px), y, 0.0),
+                 wobble=wobble, name=name)
+    if mouth:
+        r_top, z_top = P.m(prof_px[-1][0]), P.z(prof_px[-1][1])
+        inside = K.colour((0.06, 0.03, 0.015), vary=0.1)
+        K.lathe([(r_top * 0.92, z_top - 0.002), (r_top * 0.85, z_top - 0.05), (0.0, z_top - 0.07)], inside,
+                segments=segments, centre=(P.x(cx_px), y, 0.0), name=name + "_mouth", cap=False)
+    return ob
+
+
+def back_decal(K, box, depth, x_shift=0.0, name="back_door"):
+    """The painted thing inside box (px) repeated on the back wall (y = depth), mirrored so it reads right from
+    behind; x_shift moves it along the wall (m)."""
+    P = K.paint
+    bx0, by0, bx1, by1 = box
+    mat = K.decal(box)
+    y = depth + 0.004
+    return K.quad([(P.x(bx1) + x_shift, y, P.z(by1)), (P.x(bx0) + x_shift, y, P.z(by1)),
+                   (P.x(bx0) + x_shift, y, P.z(by0)), (P.x(bx1) + x_shift, y, P.z(by0))], mat, name=name)
+
+
+def side_decal(K, box, x_wall, side, y_mid, z0=None, width=None, name="side_decal"):
+    """The painted thing inside box (px) put on a side wall at x_wall (side -1 left, +1 right), centred at y_mid,
+    its bottom at z0 (default where it is painted), `width` m wide (default as painted)."""
+    P = K.paint
+    bx0, by0, bx1, by1 = box
+    w = width or P.m(bx1 - bx0)
+    h = P.m(by1 - by0) * (w / P.m(bx1 - bx0))
+    z0 = P.z(by1) if z0 is None else z0
+    x = x_wall + side * 0.004
+    ya, yb = (y_mid - w / 2, y_mid + w / 2) if side < 0 else (y_mid + w / 2, y_mid - w / 2)
+    # seen from outside: left side looks towards +x, its left hand is +y... keep the picture unmirrored
+    ya, yb = (y_mid + w / 2, y_mid - w / 2) if side < 0 else (y_mid - w / 2, y_mid + w / 2)
+    return K.quad([(x, ya, z0), (x, yb, z0), (x, yb, z0 + h), (x, ya, z0 + h)], K.decal(box), name=name)
+
+
+# ====================================================================== house_limewash
+@model("house_limewash", "lane", kind="building", atlas=2048)
+def house_limewash(K):
+    """A narrow cream lime-washed house: a parapet with three vents and a raised corner, a cornice, a teal door frame
+    with a carved double door under a red kolam sunshade and a marigold garland, red kolam steps, a pot on a red
+    platform, a hibiscus climbing over the left corner and a bush at the right."""
+    P = K.paint
+    depth = 4.0
+    wall = K.tile((214, 240, 252, 395), vary=0.05, soften=0.5)       # cream plaster, right of the door
+    upper = K.tile((132, 84, 198, 106), vary=0.05, soften=0.35)      # the parapet's plaster with its rust streaks
+    ledge = K.colour((130, 112, 200, 122), vary=0.06)
+    red = K.tile((30, 472, 90, 510), vary=0.06, soften=0.3)          # red-oxide platform, below its kolam border
+    teal = K.colour((95, 250, 105, 400), vary=0.05)
+    wood = K.tile((110, 300, 140, 400), P.m(30))
+    X0, X1 = P.x(27), P.x(254)
+    body = flat_roof_house(K, 27, 254, 41, depth, wall, plinth=red, plinth_top_py=440,
+                           cornice=(108, 126, 0.08, ledge), coping=(41, 52, upper), back_door=(92, 181, 212, 425))
+    # the raised right corner of the parapet, front and back
+    for y in (0.0, depth - 0.45):
+        K.box(P.x(200), X1 + 0.03, y - 0.03 * (y == 0), y + 0.45 + 0.03 * (y > 0), P.z(52), P.z(26), upper, bevel=0.02,
+              name="corner_block")
+    K.box(X0 + 0.12, X1 - 0.12, 0.12, depth - 0.12, P.z(41), P.z(41) + 0.01,
+          K.colour((140, 60, 196, 76), vary=0.08, pct=70), name="roof_deck")
+    iron = K.colour((0.025, 0.02, 0.02), vary=0.05)
+    dark = K.colour((0.03, 0.02, 0.025), vary=0.0)
+    for side in (-1, 1):
+        side_window(K, body, side, depth * 0.55, P.z(330), P.z(250), 0.7, teal, iron, dark)
+    # the vents: three recesses with a dark back
+    for x0, x1 in ((118, 130), (147, 158), (175, 186)):
+        K.cut(body, P.x(x0), P.x(x1), -0.05, 0.14, P.z(82), P.z(57))
+        K.box(P.x(x0), P.x(x1), 0.1, 0.12, P.z(82), P.z(57), dark, name="vent_back")
+    # the door, recessed in its teal frame
+    K.cut(body, P.x(106), P.x(200), -0.05, 0.25, P.z(426), P.z(197))
+    K.box(P.x(106), P.x(200), 0.12, 0.17, P.z(426), P.z(197), wood, name="door")
+    for x0, x1 in ((93, 106), (200, 212)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(426), P.z(181), teal, bevel=0.008, name="jamb")
+    K.box(P.x(93), P.x(212), -0.03, 0.12, P.z(197), P.z(181), teal, bevel=0.008, name="frame_head")
+    # the sunshade with its kolam edge
+    K.box(P.x(77), P.x(228), -0.2, 0.0, P.z(181), P.z(165), red, bevel=0.01, name="sunshade")
+    # the garland across the door and its two strings
+    flowers = K.colour((120, 205, 180, 225), vary=0.25, scale=40)
+    strings = K.colour((88, 210, 100, 245), vary=0.25, scale=40)
+    pts = [P.pt(x, y, -0.06) for x, y in ((96, 196), (118, 214), (152, 228), (188, 214), (208, 196))]
+    K.tube(pts, P.m(10), flowers, segments=8, name="garland")
+    for x in (98, 208):
+        K.tube([P.pt(x, 190, -0.05), P.pt(x, 248, -0.05)], P.m(7), strings, segments=8, name="garland_string")
+    # the steps, and the red platforms either side of them
+    stairs(K, [(93, 215, 425), (83, 220, 445), (75, 229, 467), (65, 237, 490)], red)
+    K.box(X0 - 0.03, P.x(93), -0.45, 0.0, 0.0, P.z(440), red, bevel=0.012, name="platform_l")
+    K.box(P.x(215), X1 + 0.03, -0.45, 0.0, 0.0, P.z(446), red, bevel=0.012, name="platform_r")
+    # the pot on the left platform
+    pot(K, 64, [(13, 440), (20, 436), (27, 426), (31, 410), (30, 400), (26, 390), (17, 384), (14, 382), (15, 379),
+                (18, 376), (16, 374)], keep=[(30, 372, 98, 441)], y=-0.22)
+    # the hibiscus climbing over the left corner: cards where it is painted, standing a little off the wall, round
+    # the corner onto the left side and over the parapet onto the roof
+    K.leaves_only((0, 0, 150, 335))
+    scatter_cards(K, (0, 0, 150, 335), 30, (60, 60), (-0.2, -0.02), yaw=45, pitch=25, name="vine")
+    K.card_from_painting((0, 0, 150, 335), (P.x(75), -0.21, P.z(167.5)), name="vine_front")
+    side_cards(K, (0, 40, 60, 320), 12, (55, 55), X0, -1, (0.05, 1.3))
+    scatter_cards(K, (20, 0, 120, 60), 6, (50, 45), (0.1, 0.9), yaw=30, pitch=70, name="vine_roof")
+    # the bush at the bottom right
+    K.leaves_only((216, 395, 254, 512))
+    scatter_cards(K, (216, 395, 254, 512), 10, (40, 45), (-0.45, -0.1), yaw=70, name="bush")
+    K.card_from_painting((216, 395, 254, 512), (P.x(235), -0.47, P.z(453.5)), name="bush_front")

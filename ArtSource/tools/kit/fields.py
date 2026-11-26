@@ -10,10 +10,84 @@ import math
 import numpy as np
 from scipy import ndimage
 
-from kitlib import model, plant_pixels
+from kitlib import Mat, _image, model, plant_pixels, seamless
 
 
 # ====================================================================== helpers
+def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, side_from=0.5, side_to=0.85,
+           tile_size=None, soften=0.2, axis="x", name=None):
+    """A material for a round thing (a stack, a pot, a post) that is the painting projected straight through it
+    (projected()) where it faces the front or the back, and a tile of its own painted surface (tile_box) round its
+    sides, where a straight projection would only stretch the painted outline into streaks; the two blend on how far
+    the surface turns sideways (|normal.x| from side_from to side_to). axis "y" for a thing lying along x (a log):
+    no blend, the tile on its ends."""
+    P = K.paint
+    key = ("turned", round(axis_x, 4), tuple(tile_box), squeeze, tuple(tuple(b) for b in keep) if keep else None,
+           tuple(tuple(b) for b in exclude), inset, side_from, side_to, tile_size, soften)
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(name or f"{K.name}_turned{len(K._mats)}")
+    nt = m.nt
+
+    def op(kind, a, b=None):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if v is None:
+                continue
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    # the projection
+    x = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["X"], axis_x), squeeze), axis_x)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(op("ADD", op("DIVIDE", x, P.W), 0.5), vec.inputs[0])
+    nt.links.new(op("DIVIDE", sep.outputs["Z"], P.H), vec.inputs[1])
+    ptex = nt.nodes.new("ShaderNodeTexImage")
+    ptex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_proj")
+    ptex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], ptex.inputs["Vector"])
+    # the tile
+    x0, y0, x1, y1 = tile_box
+    sw = tile_size or P.m(x1 - x0)
+    sh = sw * (y1 - y0) / max(1, x1 - x0)
+    crop = P.crop(tile_box)
+    if soften:
+        a = np.asarray(crop.convert("RGB")).astype(np.float32)
+        med = np.median(a.reshape(-1, 3), axis=0)
+        from PIL import Image
+        crop = Image.fromarray((a * (1 - soften) + med * soften).clip(0, 255).astype(np.uint8))
+    ttex = nt.nodes.new("ShaderNodeTexImage")
+    ttex.image = _image(seamless(crop, 0.25), f"{m.mat.name}_tile")
+    ttex.projection = "BOX"
+    ttex.projection_blend = 0.3
+    mapping = nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (1 / sw, 1 / sw, 1 / sh)
+    nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    nt.links.new(mapping.outputs[0], ttex.inputs["Vector"])
+    # the blend on the normal
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sn = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], sn.inputs[0])
+    rng = nt.nodes.new("ShaderNodeMapRange")
+    rng.inputs["From Min"].default_value = side_from
+    rng.inputs["From Max"].default_value = side_to
+    nt.links.new(op("ABSOLUTE", sn.outputs["X" if axis == "x" else "Y"]), rng.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(ptex.outputs["Color"], mix.inputs["A"])
+    nt.links.new(ttex.outputs["Color"], mix.inputs["B"])
+    m.set_colour(mix.outputs["Result"])
+    K._mats[key] = m
+    return m
+
+
 def interp(prof):
     """A function py -> value through [(py, value), ...] (any order)."""
     prof = sorted(prof)
@@ -122,8 +196,8 @@ def haystack(K):
         return -P.m(math.sqrt(max(0.0, R * R - (px - ax) ** 2)) + margin)
     grass = [(8, 368, 102, 418), (128, 380, 202, 422), (403, 366, 480, 418)]
     rock_box = (74, 396, 142, 428)
-    straw = K.projected(axis_x=P.x(ax), squeeze=0.92, keep=[(0, 60, 483, 426)],
-                        exclude=grass + [rock_box, (30, 405, 483, 440)])
+    straw = turned(K, P.x(ax), (170, 160, 320, 340), squeeze=0.92, keep=[(0, 60, 483, 426)],
+                   exclude=grass + [rock_box, (30, 405, 483, 440)])
     prof = [(P.m(rpx(py)) * 0.96, P.z(py)) for py in (ground_py, 410, 390, 370, 350, 330, 310, 290, 270, 250, 230, 210,
                                                      190, 170, 150, 130, 115, 105, 98)]
     prof.append((0.0, P.z(94)))
@@ -141,7 +215,7 @@ def haystack(K):
     # the ragged straw all round (cut from the stack's own painted edges): the sides, the skirt and the crown
     K.leaves_only((0, 60, 483, 366), everything)
     straw_fringe(K, ax, 0.0, rpx, (110, 360), 110, size=(58, 46), inset=0.4, exact_rows=(104, 362),
-                 sources=(110, 360))
+                 sources=(110, 360), sectors=[(-25, 0), (0, 180), (-180, -155)])
     straw_fringe(K, ax, 0.0, rpx, (372, 418), 40, size=(64, 50), inset=0.3, sources=(320, 345),
                  z_floor=P.z(ground_py), sectors=[(-30, 0), (0, 180), (-180, -150)])
     straw_fringe(K, ax, 0.0, rpx, (96, 120), 22, size=(48, 30), inset=0.25, sources=(100, 130), up=0.8,

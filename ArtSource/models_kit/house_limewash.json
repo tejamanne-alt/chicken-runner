@@ -1,0 +1,10 @@
+{
+ "name": "house_limewash",
+ "folder": "lane",
+ "kind": "building",
+ "width": 2.118,
+ "height": 4.27,
+ "depth": 5.28,
+ "faces": 1261,
+ "source": "blender"
+}

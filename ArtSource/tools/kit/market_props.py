@@ -69,10 +69,6 @@ def brass_vessels(K):
     inside = K.colour((0.12, 0.05, 0.01), vary=0.1)
     vessels = [
         # centre px, depth y, keep boxes, profile [(r px, y px)] from the foot up, mouth (r px, top py)
-        (71.5, 0.28, [(26, 5, 116, 80), (70, 84, 92, 156)],
-         [(17, 157), (19, 154), (20, 150), (24, 138), (30, 118), (35, 98), (39, 84), (42, 72), (43.5, 58), (43, 48),
-          (40, 38), (34, 30), (26, 25), (21, 22), (20, 17), (22, 14), (28, 12.5), (28.5, 10), (27, 8.5), (24, 8.5)],
-         (23, 9)),
         (48.5, -0.06, [(8, 79, 89, 158)],
          [(20, 157.5), (21, 155), (22, 151), (27, 148), (35, 140), (38.5, 130), (39.5, 118), (38, 108), (35, 100),
           (28, 94), (21, 91), (20, 87), (22, 85), (27.5, 84), (28, 82), (26.5, 80.5), (23, 80.5)], (22, 81)),
@@ -86,6 +82,17 @@ def brass_vessels(K):
         K.lathe([(0.0, P.z(pr[0][1])), (P.m(pr[0][0]), P.z(pr[0][1]))], brass, segments=36, centre=(P.x(cx), cy, 0),
                 name="foot")
         mouth(K, cx, cy, mr, mtop, 18, inside)
+    # the big kudam behind: its painted top, and its lower body (hidden behind the others in the painting) turned in
+    # the front pot's brass
+    cx, cy = 71.5, 0.28
+    top = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(26, 5, 116, 80)], inset=2)
+    low = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(8, 95, 89, 150)], inset=2, dx=P.m(48.5 - 71.5), dz=-P.m(30))
+    K.lathe(prof(P, [(16, 157), (18, 154), (19, 150), (24, 142), (30, 128), (35, 112), (38.5, 96), (41, 82)]), low,
+            segments=36, centre=(P.x(cx), cy, 0), name="kudam_low")
+    K.lathe(prof(P, [(41, 82), (42.5, 72), (43.5, 58), (43, 48), (40, 38), (34, 30), (26, 25), (21, 22), (20, 17),
+                     (22, 14), (28, 12.5), (28.5, 10), (27, 8.5), (24, 8.5)]), top, segments=36,
+            centre=(P.x(cx), cy, 0), name="kudam", cap=False)
+    mouth(K, cx, cy, 23, 9, 18, inside)
     # the lidded canister in front
     cx, cy = 114, -0.1
     can = K.projected(axis_x=P.x(cx), squeeze=0.94, keep=[(88, 111, 140, 159)], inset=2)
@@ -95,5 +102,5 @@ def brass_vessels(K):
     K.lathe(prof(P, [(5, 112.6), (5, 110.5), (3, 109.5), (0, 109.5)]), can, segments=16, centre=(P.x(cx), cy, 0),
             name="knob")
     # the grey stone ledge they stand on
-    ledge = K.colour((30, 155, 120, 160), vary=0.08)
-    K.box(P.x(6), P.x(146), -0.3, 0.55, P.z(161), P.z(157.2), ledge, bevel=0.006, name="ledge")
+    ledge = K.colour((8, 155, 24, 161), vary=0.1, scale=10)
+    K.box(P.x(6), P.x(146), -0.26, 0.5, P.z(161), P.z(157.2), ledge, bevel=0.006, name="ledge")
