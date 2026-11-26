@@ -488,3 +488,108 @@ def scarecrow(K):
         K.card_from_painting(box, P.pt(cx, 394, -0.14), name="grass", normal=(0, -0.3, 1))
     tufts(K, grass[0], [(P.x(140), 0.16, P.z(394)), (P.x(110), -0.02, P.z(394))], yaws=(60, -60, 90))
     tufts(K, grass[1], [(P.x(225), 0.15, P.z(394)), (P.x(250), 0.0, P.z(394))], yaws=(60, -60, 90))
+
+
+# ====================================================================== bunds and banks of earth
+def bank(K, outline, bot_py, sh_py, crest_py, hd_bot, hd_sh, mat, nx=48, rough=0.025, back=None, name="bank",
+         crest_y=0.0, nfront=7, narc=7):
+    """A bank of earth along x: its cross-section a face rising from the ground (bot_py) to the shoulder (sh_py),
+    leaning in from hd_bot to hd_sh metres before (and behind) the middle, a rounded top over to its crest
+    (crest_py, at crest_y); the back the same (or back=(hd_bot, hd_sh) for a different back). outline(py) -> (x0_px,
+    x1_px): the painted ends at each height, so the front is the painting's outline. rough: how much its faces
+    crumble (a smooth random displacement), its ends closed by caps. Returns the part."""
+    P = K.paint
+    hb, hs = back if back else (hd_bot, hd_sh)
+    prof = []                                               # (y, z, ny, nz) round the section, front foot first
+    for k in range(nfront + 1):
+        f = k / nfront
+        py = bot_py + (sh_py - bot_py) * f
+        prof.append((crest_y - (hd_bot + (hd_sh - hd_bot) * f), P.z(py), -1.0, 0.25))
+    for k in range(1, narc + 1):
+        a = math.pi / 2 * k / narc
+        prof.append((crest_y - hd_sh * math.cos(a), P.z(sh_py) + (P.z(crest_py) - P.z(sh_py)) * math.sin(a),
+                     -math.cos(a), math.sin(a)))
+    for k in range(narc - 1, -1, -1):
+        a = math.pi / 2 * k / narc
+        prof.append((crest_y + hs * math.cos(a), P.z(sh_py) + (P.z(crest_py) - P.z(sh_py)) * math.sin(a),
+                     math.cos(a), math.sin(a)))
+    for k in range(nfront - 1, -1, -1):
+        f = k / nfront
+        py = bot_py + (sh_py - bot_py) * f
+        prof.append((crest_y + hb + (hs - hb) * f, P.z(py), 1.0, 0.25))
+    nj = len(prof)
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (nj, nx + 1)), (1.0, 1.5))
+    noise /= max(1e-6, np.abs(noise).max())
+    endn = ndimage.gaussian_filter(K.rng.normal(0, 1, (2, nj)), (0, 1.0))
+    endn /= max(1e-6, np.abs(endn).max())
+    bm = bmesh.new()
+    rings = []
+    for i in range(nx + 1):
+        ring = []
+        for j, (y, z, ny, nz) in enumerate(prof):
+            x0, x1 = outline(P.py(z))
+            x = P.x(x0) + (P.x(x1) - P.x(x0)) * i / nx
+            d = rough * noise[j, i] * (0.4 if (ny < -0.5 and nz < 0.5) else 1.0)   # the painted front crumbles less
+            if i in (0, nx):
+                x += (-1 if i == 0 else 1) * rough * 1.5 * endn[0 if i == 0 else 1, j]
+            zz = z + d * nz if j not in (0, nj - 1) else z
+            ring.append(bm.verts.new((x, y + d * ny, zz)))
+        rings.append(ring)
+    for i in range(nx):
+        for j in range(nj):
+            jj = (j + 1) % nj
+            bm.faces.new([rings[i][j], rings[i][jj], rings[i + 1][jj], rings[i + 1][j]])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob
+
+
+@model("bund_block", "fields", kind="prop", atlas=1024)
+def bund_block(K):
+    """A block of paddy bund: a bank of red earth with a trodden, rounded top, cracked and crumbling faces, weeds and
+    grass along its crest and its foot, vines over its ends and stones on it and round it."""
+    P = K.paint
+    K.front_min = 0.12
+    hb, hs = 0.52, 0.4
+    ends = {95: (44, 698), 120: (40, 702), 150: (40, 702), 200: (42, 698), 80: (52, 690), 57: (66, 676)}
+    outline = lambda py: (interp([(k, v[0]) for k, v in ends.items()])(py), interp([(k, v[1]) for k, v in ends.items()])(py))
+    earth = two_tiles(K, (300, 104, 520, 190), (250, 62, 560, 92), lo=0.5, hi=0.8, soften=0.25)
+    bank(K, outline, 200, 95, 57, hb, hs, earth, nx=56, rough=0.022)
+    # stones on the top and at the foot
+    stone = K.projected(squeeze=1.0, keep=[(68, 48, 138, 80), (22, 178, 72, 202), (272, 168, 332, 202),
+                                           (596, 162, 684, 202)], inset=2)
+    K.boulder(P.x(103), -0.22, P.z(66), P.m(66), P.m(50), P.m(30), stone, name="stone")
+    for px, w, h, y in ((47, 48, 22, -hb - 0.08), (302, 58, 30, -hb - 0.1), (640, 86, 38, -hb - 0.12),
+                        (180, 40, 18, hb + 0.08), (520, 56, 26, hb + 0.1)):
+        K.boulder(P.x(px), y, P.z(200) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.75, P.m(h), stone, name="stone")
+    clod = K.colour((330, 170, 420, 195), vary=0.15)
+    for k in range(14):
+        px = K.rng.uniform(60, 680)
+        y = K.rng.choice([-1, 1]) * (hb + K.rng.uniform(0.02, 0.08))
+        s = K.rng.uniform(0.04, 0.08)
+        K.boulder(P.x(px), y, P.z(200) + s * 0.3, s, s * 0.8, s * 0.6, clod, lumps=0.3, name="clod")
+    # grass and weeds: along the crest, along both feet, and over the two ends
+    K.leaves_only((0, 0, 718, 216), grass_pixels)
+    for cx in range(70, 690, 46):
+        box = (cx - 42, 10, cx + 42, 68)
+        K.card_from_painting(box, P.pt(cx, 39, 0.0), name="grass", normal=(0, -0.3, 1))
+        for y in (-0.22, 0.18, 0.34):
+            K.card_from_painting(box, P.pt(cx + K.rng.uniform(-20, 20), 39 + 22 * abs(y), y),
+                                 yaw=K.rng.uniform(-70, 70), name="grass", normal=(0, -0.2, 1))
+    feet = [(96, 145, 214, 206), (214, 160, 300, 206), (330, 165, 400, 206), (390, 160, 470, 206), (470, 150, 560, 206),
+            (550, 150, 612, 206)]
+    for box in feet:
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, -hb - 0.04), name="weeds", normal=(0, -0.4, 1))
+        K.card_from_painting(box, P.pt(cx + K.rng.uniform(-60, 60), cy, hb + 0.05), yaw=180 + K.rng.uniform(-30, 30),
+                             name="weeds", normal=(0, 0.4, 1))
+    for box, x_end, side in (((0, 92, 118, 206), 42, -1), ((588, 82, 718, 206), 700, 1)):
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, -hb - 0.03), name="vines", normal=(side, -0.5, 0.6))
+        for y in (-0.3, 0.0, 0.3):
+            K.card_from_painting(box, (P.x(x_end) + side * 0.04, y, P.z(cy)), yaw=90 + K.rng.uniform(-20, 20),
+                                 name="vines", normal=(side, 0, 0.6))
+        K.card_from_painting(box, P.pt(cx, cy, hb + 0.03), yaw=180, name="vines", normal=(side, 0.5, 0.6))

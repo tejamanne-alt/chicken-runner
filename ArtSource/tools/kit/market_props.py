@@ -429,11 +429,10 @@ def straws(K, n, cx, cy, r0, r1, z0, z1, mat, length=(0.04, 0.09), radius=0.0018
 
 @model("hens_basket", "market", kind="prop")
 def hens_basket(K):
-    """A wide, low wicker basket with a nest of straw heaped over its rim (the two hens sitting in it are animals:
-    not modelled; the hollow of the nest is there for them)."""
+    """A wide, low wicker basket with a nest of straw heaped over its rim, and the two hens sitting in its hollow
+    (animals: painted cut-outs, not modelled)."""
     P = K.paint
     cx = 86
-    K.front_exclude = [(30, 0, 147, 64)]          # the two hens
     wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(20, 80, 152, 124)], inset=2)
     basket(K, cx, 0.0, [(48, 123.5), (50, 122), (52.5, 118), (56.5, 110), (61.5, 100), (64, 90), (66, 81)],
            (67, 76, 84), 14, wicker)
@@ -446,8 +445,16 @@ def hens_basket(K):
     # loose straws all round the rim, and the ragged fringe at the two ends as painted, carried round the nest
     gold = K.colour((60, 70, 70, 74), vary=0.15, scale=40, pct=85)
     straws(K, 90, P.x(cx), 0.0, P.m(56), P.m(70), P.z(80), P.z(62), gold, length=(P.m(10), P.m(22)), radius=P.m(0.45))
-    K.leaves_only((0, 45, 171, 95), straw_pixels)
-    fringe = [(4, 50, 32, 90), (140, 50, 168, 90)]
+    # the two hens, sitting in the hollow of the nest: the brown one a little in front of the white one
+    K.figure([(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37), (60, 37),
+              (63, 33), (64, 27), (66, 21), (70, 13), (73, 8), (79, 4), (86, 6), (90, 11), (92, 16), (96, 20),
+              (97, 25), (93, 29), (95, 38), (97, 50), (97, 67)], y=-0.03, name="hen_brown")
+    K.figure([(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7), (123, 11),
+              (126, 17), (127, 21), (129, 25), (126, 30), (125, 36), (126, 39), (131, 38), (134, 33), (137, 27),
+              (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)], y=0.03, name="hen_white")
+    K.leaves_only((0, 45, 30, 95), straw_pixels)
+    K.leaves_only((148, 45, 171, 95), straw_pixels)
+    fringe = [(4, 50, 30, 90), (148, 50, 168, 90)]
     for box in fringe:
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, (P.x(bx), -0.02, P.z(by)), name="fringe")
