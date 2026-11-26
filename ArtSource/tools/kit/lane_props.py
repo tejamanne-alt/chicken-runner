@@ -1286,3 +1286,115 @@ def lamp_pillar(K):
                      (0, 1044)]), brass, segments=24, centre=(X(431), -D - 0.06, 0), name="bell")
     K.lathe(prof(P, [(0, 1110), (5, 1108), (5, 1103), (0, 1101)]), brass, segments=10,
             centre=(X(431), -D - 0.06, 0), name="clapper")
+
+
+def bamboo(K, base_px, top_px, r_px, nodes_py, mat, y=0.0, node_mat=None, segments=12, name="bamboo"):
+    """A bamboo post or pole from base to top (px, as painted), radius r_px, with a swollen ring at each node (py on
+    its axis) and its cut end capped."""
+    from mathutils import Vector
+    P = K.paint
+    a, b = Vector(P.pt(*base_px, y)), Vector(P.pt(*top_px, y))
+    K.tube([tuple(a), tuple(b)], P.m(r_px), mat, segments=segments, name=name)
+    d = (b - a).normalized()
+    for py in nodes_py:
+        t = (P.z(py) - a.z) / max(1e-6, (b - a).z)
+        c = a + (b - a) * t
+        axis_lathe(K, [(P.m(r_px) * 0.98, -P.m(2.5)), (P.m(r_px) * 1.12, -P.m(1)), (P.m(r_px) * 1.12, P.m(1)),
+                       (P.m(r_px) * 0.98, P.m(2.5))], node_mat or mat, tuple(c), tuple(d), segments=segments,
+                   name="node")
+
+
+def lashing(K, c, r, rope_r, mat, tilts=(35, -35), rings=(0.9, -0.9), name="lashing"):
+    """Rope lashed round the joint of a post and a pole: crossed loops (tilted about y) and turns round the post
+    above and below the joint (rings: offsets in units of r)."""
+    for tlt in tilts:
+        a = math.radians(tlt)
+        pts = []
+        for i in range(19):
+            ph = 2 * math.pi * i / 18
+            lx, ly = math.cos(ph) * r * 1.25, math.sin(ph) * r
+            pts.append((c[0] + lx * math.cos(a), c[1] + ly, c[2] + lx * math.sin(a)))
+        K.tube(pts, rope_r, mat, segments=6, name=name, cap=False)
+    for off in rings:
+        pts = [(c[0] + math.cos(2 * math.pi * i / 18) * r * 1.02, c[1] + math.sin(2 * math.pi * i / 18) * r * 1.02,
+                c[2] + off * r) for i in range(19)]
+        K.tube(pts, rope_r, mat, segments=6, name=name, cap=False)
+
+
+def drape(K, top_l, top_r, edges, hem, pole_z, pole_r, back_len, mat, y_pole=0.0, folds=4, fold_d=0.025,
+          thickness=0.006, nu=28, name="cloth"):
+    """A cloth hung over a pole: its front falls from the pole to its painted hem, its back hangs down behind the
+    pole a shorter way. edges: [(py, x_left px, x_right px)] its painted sides; hem(x px) -> py its painted hem;
+    pole_z(x px) -> metres the pole's axis height there; back_len the back's length (metres)."""
+    import numpy as np
+    P = K.paint
+    zs = sorted(edges)
+
+    def side(py):
+        return interp([(p, l) for p, l, r in zs], py), interp([(p, r) for p, l, r in zs], py)
+    ph = K.rng.uniform(0, 6.28)
+    nb, nw, nf = 6, 6, 18                     # rows: back, over the pole, front
+
+    def point(u, j):
+        # x across at the top, used for the back and the wrap
+        xl, xr = side(zs[0][0])
+        if j <= nb + nw:
+            px = top_l + (top_r - top_l) * u
+            zp = pole_z(px)
+            if j <= nb:                        # the back, from its hem up to the pole
+                s = j / nb
+                fold = fold_d * 0.6 * math.sin(2 * math.pi * (folds * u) + ph) * (1 - s)
+                return (P.x(px), y_pole + pole_r * 1.15 + 0.015 * (1 - s) + fold, zp - back_len * (1 - s))
+            a = math.pi * (j - nb) / nw          # over the pole
+            return (P.x(px), y_pole + pole_r * 1.15 * math.cos(a), zp + pole_r * 1.15 * math.sin(a))
+        s = (j - nb - nw) / nf                   # the front, from the pole down to the hem
+        px0 = top_l + (top_r - top_l) * u
+        hl, hr = side(hem(px0) - 2)
+        xl, xr = side(P.py(pole_z(px0)) + (hem(px0) - P.py(pole_z(px0))) * s)
+        px = xl + (xr - xl) * u
+        zp = pole_z(px0)
+        z = zp + (P.z(hem(px)) - zp) * s
+        fold = fold_d * math.sin(2 * math.pi * (folds * u) + ph) * s ** 0.8
+        return (P.x(px), y_pole - pole_r * 1.15 - fold - 0.012 * math.sin(math.pi * s), z)
+    nv = nb + nw + nf
+    return K.sheet(lambda u, v: point(u, int(round(v * nv))), nu, nv, mat, name=name, thickness=thickness)
+
+
+@model("clothesline", "lane", kind="prop", atlas=2048)
+def clothesline(K):
+    """A drying line in a yard: two bamboo posts set in the earth, a bamboo pole lashed across their tops with rope,
+    a magenta and a yellow cloth with woven borders hung over it to dry, draped in folds, grass at the posts' feet."""
+    P = K.paint
+    X, Z = P.x, P.z
+    cane = proj(K, X(62), 0.9, keep=[(44, 8, 80, 372)], exclude=[(36, 34, 84, 76)], inset=2)
+    cane_r = proj(K, X(500), 0.9, keep=[(468, 8, 532, 372)], exclude=[(488, 34, 545, 76)], inset=2)
+    bamboo(K, (61.5, 374), (61.5, 10), 13.5, (124, 208, 292), cane, name="post")
+    bamboo(K, (484.5, 374), (515, 10), 13.5, (124, 208, 292), cane_r, name="post")
+    cut = K.colour((60, 12, 66, 18), vary=0.08)
+    for x, y in ((61.5, 10), (515, 10)):
+        K.lathe([(0.0, Z(y) + 0.002), (P.m(12.5), Z(y) + 0.002)], cut, segments=12, centre=(X(x), 0, 0), name="cut")
+    # the cross pole, sagging a little between the posts, lashed at both ends
+    pole_pts = [(26, 52), (60, 57), (100, 64), (150, 69), (200, 72), (250, 75), (300, 77), (350, 76), (400, 72),
+                (450, 65), (490, 57), (520, 51), (542, 47)]
+    pole_m = K.tile((96, 58, 128, 72), vary=0.06, soften=0.2)
+    K.tube([P.pt(x, y, 0.0) for x, y in pole_pts], P.m(8), pole_m, segments=12, name="pole")
+    pole_z = lambda px: Z(interp(pole_pts, px))
+    rope = K.colour((52, 46, 60, 52), vary=0.1, pct=70)
+    lashing(K, (X(61.5), 0.0, Z(56)), P.m(15.5), P.m(2.4), rope)
+    lashing(K, (X(511), 0.0, Z(55)), P.m(15.5), P.m(2.4), rope)
+    # the two cloths, each draped over the pole, wearing its painting on both faces
+    pink = proj(K, X(205), 1.0, keep=[(100, 60, 300, 320)], inset=2)
+    drape(K, 132, 292, [(80, 132, 292), (120, 129, 291), (160, 123, 292), (200, 120, 294), (240, 113, 296),
+                        (262, 107, 297)],
+          lambda x: interp([(108, 268), (120, 273), (135, 285), (145, 296), (170, 297), (180, 309), (200, 313),
+                            (220, 315), (240, 311), (255, 304), (265, 290), (280, 273), (297, 260)], x),
+          pole_z, P.m(8), 0.55, pink, folds=4, name="cloth_pink")
+    yellow = proj(K, X(375), 1.0, keep=[(298, 60, 452, 312)], inset=2)
+    drape(K, 305, 426, [(80, 305, 426), (120, 305, 428), (160, 304, 433), (200, 304, 437), (240, 302, 442),
+                        (280, 301, 447)],
+          lambda x: interp([(301, 296), (320, 298), (335, 302), (345, 306), (370, 306), (385, 302), (400, 298),
+                            (420, 296), (432, 286), (447, 282)], x),
+          pole_z, P.m(8), 0.5, yellow, folds=3, name="cloth_yellow")
+    earth(K, 276, 372, 380, 276, 0.3, (0.42, 0.2, 0.09),
+          grass=[(4, 330, 60, 374), (60, 334, 132, 374), (410, 334, 470, 374), (495, 334, 552, 374)],
+          pebbles=[(88, 372, 14), (150, 374, 12), (385, 372, 12), (440, 372, 12)], pebble_box=(80, 368, 95, 376))

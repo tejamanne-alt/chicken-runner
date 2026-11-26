@@ -78,16 +78,36 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     return m
 
 
-def _tile_socket(K, m, coord, box, size=None, soften=0.2, vary=0.0):
+def squared(crop):
+    """A long thin crop made about square by stacking it with its mirror image along its short side (so a strip of
+    earth or stone box-projected onto a top or a side is not stretched into streaks)."""
+    w, h = crop.size
+    if max(w, h) < 1.4 * min(w, h):
+        return crop
+    n = int(round(max(w, h) / min(w, h)))
+    if w > h:
+        out = Image.new(crop.mode, (w, h * n))
+        for i in range(n):
+            out.paste(crop if i % 2 == 0 else crop.transpose(Image.FLIP_TOP_BOTTOM), (0, i * h))
+    else:
+        out = Image.new(crop.mode, (w * n, h))
+        for i in range(n):
+            out.paste(crop if i % 2 == 0 else crop.transpose(Image.FLIP_LEFT_RIGHT), (i * w, 0))
+    return out
+
+
+def _tile_socket(K, m, coord, box, size=None, soften=0.2, vary=0.0, square=False):
     """Adds to material m a seamless tile of the painting inside box, box-projected at its painted scale (or `size`
     metres across), sampled twice at different scales and blended by a large noise so it never lines up; returns
-    its colour socket."""
+    its colour socket. square: a thin crop is first stacked with its mirror image into a square (squared())."""
     P = K.paint
     nt = m.nt
     x0, y0, x1, y1 = box
-    sw = size or P.m(x1 - x0)
-    sh = sw * (y1 - y0) / max(1, x1 - x0)
     crop = P.crop(box)
+    if square:
+        crop = squared(crop)
+    sw = size or P.m(x1 - x0)
+    sh = sw * crop.size[1] / max(1, crop.size[0])
     if soften:
         a = np.asarray(crop.convert("RGB")).astype(np.float32)
         med = np.median(a.reshape(-1, 3), axis=0)
@@ -148,6 +168,19 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     nt.links.new(a, mix.inputs["A"])
     nt.links.new(b, mix.inputs["B"])
     m.set_colour(mix.outputs["Result"])
+    K._mats[key] = m
+    return m
+
+
+def sq_tile(K, box, size=None, soften=0.3, vary=0.0, name=None):
+    """K.tile, but a thin crop is stacked with its mirror image into a square first (squared()), so it is not
+    stretched into streaks on the faces its long side does not lie along."""
+    key = ("sqtile", tuple(box), size, soften, vary)
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(name or f"{K.name}_sq{len(K._mats)}")
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    m.set_colour(_tile_socket(K, m, coord, box, size, soften, vary, square=True))
     K._mats[key] = m
     return m
 
@@ -804,72 +837,162 @@ def alpha_at(K, thresh=0.5, close=3):
     return lambda px, py: bool(A[int(py), int(px)])
 
 
+def plan_prism(K, pts_xy, z0, z1, mat, name="plan_prism"):
+    """A solid whose plan is the polygon pts_xy [(x, y), ...], from z0 up to z1 (water in a channel, a slab)."""
+    bm = bmesh.new()
+    lo = [bm.verts.new((x, y, z0)) for x, y in pts_xy]
+    hi = [bm.verts.new((x, y, z1)) for x, y in pts_xy]
+    bm.faces.new(list(reversed(lo)))
+    bm.faces.new(hi)
+    n = len(pts_xy)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([lo[i], lo[j], hi[j], hi[i]])
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat)
+    K.parts.append(ob)
+    return ob
+
+
+def channel_bank(K, edge, side, width, y0, y1, prof, mat, nu=16, nv=40, rough=0.025, taper=0.35, name="bank"):
+    """An earthen bank along y beside a channel: its inner edge at x = edge(y) (the channel's side), running out to
+    `side` (-1 left, +1 right) over width(y) metres; its surface z = prof(u) (u = 0 at the channel, 1 at its outer
+    foot), a little uneven; its front end cut square at y0 (the painted section), its back end sloping down to the
+    ground over `taper` metres. Returns the part and surface(u, y) -> (x, y, z), a point on it."""
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (nv + 1, nu + 1)), (2.0, 1.2))
+    noise /= max(1e-6, np.abs(noise).max())
+
+    def fall(y):                                            # 1, falling to 0 over the back taper
+        t = (y1 - y) / taper
+        return 1.0 if t >= 1 else 0.5 - 0.5 * math.cos(math.pi * max(0.0, t))
+
+    def surface(u, y, n=0.0):
+        x = edge(y) + side * u * width(y)
+        z = (prof(u) + n * math.sin(math.pi * u)) * fall(y)
+        return (x, y, max(0.0, z))
+    bm = bmesh.new()
+    rows = []
+    for j in range(nv + 1):
+        y = y0 + (y1 - y0) * j / nv
+        rows.append([bm.verts.new(surface(i / nu, y, rough * noise[j, i])) for i in range(nu + 1)])
+    for j in range(nv):
+        for i in range(nu):
+            bm.faces.new([rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]])
+    cap = bm.faces.new(rows[0])                             # the front section, down to the ground line
+    bmesh.ops.triangulate(bm, faces=[cap])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob, surface
+
+
+def lining(K, path, side, y_lo, courses, mat, thick=0.24, batter=0.025, length=(0.26, 0.38), name="lining"):
+    """Dry-stone walling along a channel's side: courses [(z0, z1), ...] of rough blocks laid along the polyline
+    path [(x, y), ...] (the channel's edge), set back `batter` per course, on the `side` (-1 left, +1 right) of it."""
+    parts = []
+    for c, (z0, z1) in enumerate(courses):
+        off = 0.5 * (c % 2)
+        for (ax, ay), (bx, by) in zip(path, path[1:]):
+            L = math.hypot(bx - ax, by - ay)
+            ux, uy = (bx - ax) / L, (by - ay) / L
+            nx, ny = (uy, -ux) if side > 0 else (-uy, ux)   # outward, into the bank
+            if nx * side < 0:
+                nx, ny = -nx, -ny
+            s = -off * length[0]
+            while s < L - 0.02:
+                ln = K.rng.uniform(*length)
+                s0, s1 = max(0.0, s), min(L, s + ln)
+                s = s + ln
+                if s1 - s0 < 0.08:
+                    continue
+                sm = (s0 + s1) / 2
+                d = batter * c + thick / 2
+                parts.append(K.block(ax + ux * sm + nx * d, ay + uy * sm + ny * d, (z0 + z1) / 2,
+                                     s1 - s0 - 0.014, thick * K.rng.uniform(0.9, 1.0), z1 - z0 - 0.012, mat,
+                                     rot=(0, 0, math.degrees(math.atan2(uy, ux)) + K.rng.uniform(-2, 2)),
+                                     jitter=0.008, name=name))
+    return parts
+
+
 @fmodel("canal_bridge", "fields", kind="prop", atlas=1024)
 def canal_bridge(K):
-    """A plank-slab bridge over a field channel: the slabs laid across the two banks, the channel running out from
-    under it towards us between walls of dressed stone, big rocks and ferns on the banks. The painting looks down on
-    the water, so the channel runs a little downhill towards us (its surface faces us as it is painted) and the
-    banks rise either side of it."""
+    """A slab bridge over a field channel: three dressed slabs laid across stone abutments, the channel running out
+    from under it towards us and on back behind it, lined with dry-stone walling, between low earthen banks that slope
+    down into it; big rocks at the banks' ends, ferns and grass all along them. True and level: the banks' painted
+    front ends are their sections, the water's painted surface seen from above is not projected (its own water)."""
     P = K.paint
-    K.front_min = 0.05
-    y_back, y_front, r0, r1 = 0.25, -1.4, 97, 286
+    K.front_min = 0.3
+    y_front, y_b0, y_b1, y_end = -1.1, 0.1, 0.95, 1.45       # the channel's ends, the bridge between y_b0 and y_b1
+    z_w = 0.06                                               # the water's level
     xl, xr = interp([(97, 188), (200, 197), (286, 206)]), interp([(97, 332), (200, 398), (286, 450)])
-
-    def ydep(py):                                          # the depth of a painted row on the slope
-        return y_back + (y_front - y_back) * (py - r0) / (r1 - r0)
-
-    def bankness(px, py):
-        out = max(xl(py) - px, px - xr(py), 0.0)
-        return min(1.0, out / 28.0) if py >= r0 - 4 else 1.0
-
-    def depth(px, py):
-        return ydep(py) - 0.32 * bankness(px, py)
-    opaque = alpha_at(K)
-
-    def in_channel(px, py):
-        return py >= r0 - 2 and xl(py) - 5 <= px <= xr(py) + 5
-    earth = K.colour((10, 64, 46, 92), vary=0.2, scale=8)
-    under_slab = lambda px, py: 70 <= px <= 466 and 44 <= py <= 99
-    relief(K, lambda px, py: opaque(px, py) and not in_channel(px, py) and not under_slab(px, py), depth, earth,
-           step=6, name="banks")
+    water_poly = [(xl(97) - 2, 97)] + [(xl(py) - 3, py) for py in range(110, 272, 20)] + \
+                 [(xr(py) + 3, py) for py in range(270, 100, -20)] + [(xr(97) + 2, 97)]
+    K.front_exclude = [("poly", water_poly)]                 # the water drawn from above: its own surface instead
+    xL = P.x(200)
+    xR = lambda y: P.x(450) + (P.x(332) - P.x(450)) * min(1.0, (y - y_front) / (y_b0 - y_front))
+    earth = sq_tile(K, (466, 84, 520, 102), size=0.45, soften=0.55, vary=0.08)
+    stone_m = K.tile((110, 104, 158, 140), soften=0.3, vary=0.05)
+    rock_m = K.tile((86, 150, 140, 182), soften=0.35, vary=0.05)
+    zs = 0.40                                                # the walling's top, the banks' inner shoulder
+    prof = interp([(0.0, 0.0), (0.05, zs - 0.06), (0.3, zs), (0.45, 0.48), (0.58, 0.52), (0.7, 0.47), (0.82, 0.32),
+                   (0.92, 0.13), (0.97, 0.04), (1.0, 0.0)])
+    _, left = channel_bank(K, lambda y: xL, -1, lambda y: xL - P.x(0), y_front, y_end, prof, earth, rough=0.02,
+                           name="bank")
+    _, right = channel_bank(K, xR, 1, lambda y: P.x(543) - xR(y), y_front, y_end, prof, earth, rough=0.02,
+                            name="bank")
+    # the dry-stone walling lining both sides of the channel, three courses up to the banks' shoulders
+    courses = [(0.0, 0.14), (0.14, 0.27), (0.27, zs)]
+    lining(K, [(xL, y_front), (xL, y_end - 0.08)], -1, y_front, courses, stone_m)
+    lining(K, [(xR(y_front), y_front), (xR(y_b0), y_b0), (xR(y_end), y_end - 0.08)], 1, y_front, courses, stone_m)
+    # the water, level, running from the front right through to the back
     wtile = K.tile((236, 160, 330, 250), vary=0.04)
-    relief(K, lambda px, py: in_channel(px, py) and (opaque(px, py) or py < 100), depth, wtile, step=5,
-           box=(170, 90, 470, 291), name="water")
-    # dressed stone walls lining the channel under the bridge, and the big rocks on the banks
-    walls = [(104, 98, 170, 150), (160, 100, 198, 172), (330, 92, 392, 172), (390, 94, 452, 150),
-             (398, 140, 472, 202), (418, 180, 500, 242)]
-    rocks = [(48, 144, 152, 216), (58, 204, 202, 284), (448, 158, 543, 236), (430, 228, 543, 290)]
-    stone = K.projected(squeeze=1.0, keep=walls + rocks, inset=2)
-    for x0, y0, x1, y1 in walls:
-        cx = (x0 + x1) / 2
-        d = P.m(x1 - x0) * 0.8
-        K.block(P.x(cx), depth(cx, y1) + d * 0.5, (P.z(y1) + P.z(y0)) / 2 - 0.04, P.m(x1 - x0), d,
-                P.m(y1 - y0) + 0.08, stone, bevel=0.02, jitter=0.006, name="wall")
-    for x0, y0, x1, y1 in rocks:
-        cx = (x0 + x1) / 2
-        w, h = P.m(x1 - x0), P.m(y1 - y0)
-        K.boulder(P.x(cx), depth(cx, y1) + w * 0.3, P.z(y1) + h * 0.45, w * 0.88, w * 0.6, h * 0.95, stone,
-                  lumps=0.15, name="rock")
-    # the slabs of the bridge: a front row and a back row laid across on the banks
+    plan_prism(K, [(xL, y_front), (xR(y_front), y_front), (xR(y_b0), y_b0), (xR(y_end), y_end), (xL, y_end)],
+               0.0, z_w, wtile, name="water")
+    # the abutments: big dressed stones on the walling, carrying the slabs' ends
+    zt = P.z(97)
+    for x0, x1 in ((104, 198), (332, 452)):
+        for ya, yb in ((y_b0, (y_b0 + y_b1) / 2), ((y_b0 + y_b1) / 2, y_b1)):
+            K.block((P.x(x0) + P.x(x1)) / 2, (ya + yb) / 2, (zs + zt) / 2, P.m(x1 - x0) - 0.01, yb - ya - 0.01,
+                    zt - zs, stone_m, bevel=0.02, jitter=0.006, name="abutment")
+    # the slabs of the bridge: a front row and a back row laid across the abutments
     slab = K.tile((140, 66, 236, 92), vary=0.05)
-    for x0, x1, t in ((74, 246, 60), (246, 372, 60), (372, 462, 58)):
-        K.block((P.x(x0) + P.x(x1)) / 2, y_back + 0.2, (P.z(97) + P.z(t)) / 2, P.m(x1 - x0) - 0.01, 0.4,
-                P.z(t) - P.z(97), slab, bevel=0.012, jitter=0.004, name="slab")
+    for x0, x1 in ((74, 246), (246, 372), (372, 462)):
+        K.block((P.x(x0) + P.x(x1)) / 2, y_b0 + 0.2, (zt + P.z(52)) / 2, P.m(x1 - x0) - 0.01, 0.4, P.z(52) - zt,
+                slab, bevel=0.012, jitter=0.004, name="slab")
     for x0, x1 in ((92, 300), (300, 430)):
-        K.block((P.x(x0) + P.x(x1)) / 2, y_back + 0.62, (P.z(97) + P.z(51)) / 2, P.m(x1 - x0) - 0.01, 0.42,
-                P.z(51) - P.z(97), slab, bevel=0.012, jitter=0.004, name="slab")
-    # ferns over the banks, where they are painted and on back along them
+        K.block((P.x(x0) + P.x(x1)) / 2, y_b0 + 0.63, (zt + P.z(54)) / 2, P.m(x1 - x0) - 0.01, 0.42, P.z(54) - zt,
+                slab, bevel=0.012, jitter=0.004, name="slab")
+    # the big rocks at the banks' front ends, as big as painted, and smaller ones on back along them
+    for x0, y0, x1, y1 in ((48, 144, 152, 216), (58, 204, 202, 284), (448, 158, 543, 236), (430, 228, 543, 290)):
+        w, h = P.m(x1 - x0) * 0.9, P.m(y1 - y0) * 0.9
+        stone(K, P.x((x0 + x1) / 2), y_front + 0.02, P.z(y1) + h * 0.5, w, min(0.4, w * 0.8), h, rock_m,
+              lumps=0.15, name="rock")
+    for k in range(7):
+        side = -1 if k % 2 == 0 else 1
+        y = K.rng.uniform(y_front + 0.4, y_end - 0.4)
+        u = K.rng.uniform(0.32, 0.85)
+        x, y, z = (left if side < 0 else right)(u, y)
+        w = K.rng.uniform(0.14, 0.26)
+        stone(K, x, y, z + w * 0.2, w, w * 0.8, w * 0.6, rock_m, lumps=0.2, subdiv=1, name="rock")
+    # ferns: where they are painted at the front, and all along both banks to the back
     K.leaves_only((0, 0, 543, 291), grass_pixels)
-    spots = [(40, 8, 165, 64), (350, 8, 470, 60), (22, 92, 132, 152), (150, 120, 215, 182), (84, 178, 200, 252),
-             (110, 230, 212, 291), (456, 92, 543, 160), (470, 196, 543, 262), (2, 52, 60, 112), (470, 40, 543, 100)]
-    for box in spots:
+    for box, y in (((40, 8, 165, 110), y_b1 + 0.08), ((350, 8, 470, 104), y_b1 + 0.08), ((22, 92, 132, 152), y_front + 0.06),
+                   ((150, 120, 215, 182), y_front + 0.08), ((84, 178, 200, 252), y_front - 0.05),
+                   ((110, 230, 212, 291), y_front - 0.08), ((456, 92, 543, 160), y_front + 0.06),
+                   ((470, 196, 543, 262), y_front - 0.05), ((2, 52, 60, 112), y_front + 0.1), ((470, 40, 543, 100), y_front + 0.3)):
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        y = depth(cx, box[3]) - 0.04
         K.card_from_painting(box, P.pt(cx, cy, y), name="fern", normal=(0, -0.3, 1))
-        for k in range(2):
-            dy = K.rng.uniform(0.15, 0.5)
-            K.card_from_painting(box, (P.x(cx + K.rng.uniform(-20, 20)), y + dy, P.z(cy) + dy * 0.43),
-                                 yaw=K.rng.uniform(-80, 80), name="fern", normal=(0, -0.3, 1))
+    ferns = [(22, 92, 132, 152), (150, 120, 215, 182), (456, 92, 543, 160), (40, 8, 165, 64), (350, 8, 470, 60)]
+    for k in range(48):
+        side = -1 if k % 2 == 0 else 1
+        y = K.rng.uniform(y_front + 0.15, y_end - 0.15)
+        u = K.rng.uniform(0.08, 0.3) if k % 3 == 0 else K.rng.uniform(0.3, 0.95)     # over the walling, and the bank
+        x, y, z = (left if side < 0 else right)(u, y)
+        box = ferns[k % len(ferns)]
+        hh = P.m(box[3] - box[1]) / 2
+        K.card_from_painting(box, (x, y, z + hh * 0.8), yaw=K.rng.uniform(-90, 90), scale=K.rng.uniform(0.75, 1.0),
+                             name="fern", normal=(0, -0.3, 1))
 
 
 # ====================================================================== the canal's pieces (the D9 sheet)

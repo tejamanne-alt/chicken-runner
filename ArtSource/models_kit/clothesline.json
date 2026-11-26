@@ -1,0 +1,10 @@
+{
+ "name": "clothesline",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 2.4,
+ "height": 1.693,
+ "depth": 0.735,
+ "faces": 5524,
+ "source": "blender"
+}

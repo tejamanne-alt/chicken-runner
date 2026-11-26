@@ -1067,10 +1067,10 @@ def stall_d_1(K):
     for cx, hw, rim, prof, fruit, y in table:
         basket(K, P.x(cx), y, zc, [(P.m(hw * 0.7), 0.0), (P.m(hw * 0.95), (Z(rim) - zc) * 0.6), (P.m(hw), Z(rim) - zc)],
                weave, sy=0.85)
-        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.6) for r, py in prof[1:]], fruit,
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.85) for r, py in prof[1:]], fruit,
                     sy=0.85, name="heap")
         on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 12, cx + hw, rim - 4), fruit,
-                dark=60 if fruit is dark else 130, min_area=120, max_area=3000, rmax=22, flat=0.95, top_pieces=True)
+                dark=60 if fruit is dark else 130, min_area=120, max_area=3000, rmax=22, flat=0.95)
     # ---------------------------------------------------------------- on the ground in front
     front = [  # (cx, rim half-width, rim py, heap profile, y)
         (120, 80, 662, [(78, 662), (72, 630), (55, 605), (30, 590), (0, 585)], -0.85),
@@ -1080,10 +1080,10 @@ def stall_d_1(K):
     ]
     for cx, hw, rim, prof, y in front:
         basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.85), 0.0), (P.m(hw), Z(rim))], weave, sy=0.85)
-        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.6) for r, py in prof[1:]], nungu,
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.85) for r, py in prof[1:]], nungu,
                     sy=0.85, name="heap")
         on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 15, cx + hw, rim - 4), nungu, dark=130,
-                min_area=150, max_area=4000, rmax=26, flat=0.95, top_pieces=True)
+                min_area=150, max_area=4000, rmax=26, flat=0.95)
     # a cut bunch lying on the ground at the front left
     bunch = K.projected(squeeze=1.0, keep=[(160, 545, 320, 700)], inset=2)
     fruit_bunch(K, (165, 548, 318, 700), -0.6, 0.45, bunch)

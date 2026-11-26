@@ -9,7 +9,6 @@ import collections
 import math
 
 import bmesh
-import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 from PIL import Image
@@ -584,20 +583,6 @@ def pick_limbs(wood, py_max=None, py_min=None, r_min=4.0, r_max=40.0, min_len=50
         out.append((L * rr, i))
     out.sort(reverse=True)
     return [i for _, i in out[:n]]
-
-
-def hang_fruit(K, fruits, y, mat_for, stalk, crown_d, back=1, spread=(40, 30), stalk_len=1.4):
-    """Fruit [(px, py, rx, ry)] where they hang (at depth y), and `back` more of each somewhere behind in the crown,
-    each textured with a real painted fruit (mat_for(i, dx_m, dz_m) -> material shifted onto fruit i)."""
-    P = K.paint
-    for i, (px, py, rx, ry) in enumerate(fruits):
-        yy = y(i) if callable(y) else y
-        fruit(K, px, py, rx, ry, yy, mat_for(i, 0.0, 0.0), stalk)
-        for k in range(back):
-            qx = px + K.rng.uniform(-spread[0], spread[0])
-            qy = py + K.rng.uniform(-spread[1], spread[1])
-            m = mat_for(i, P.x(px) - P.x(qx), P.z(py) - P.z(qy))
-            fruit(K, qx, qy, rx, ry, crown_d * K.rng.uniform(-0.05, 0.42), m, stalk)
 
 
 def earth(K, cx_px, rx_px, ry, colour_box, y=0.0, z=0.0, segments=36, h=0.04, name="earth"):
@@ -1681,25 +1666,6 @@ def stroke_field(K, sigma=1.5, rho=5.0):
     Arr, Arc, Acc = [ndimage.gaussian_filter(v, rho) for v in (gr * gr, gr * gc, gc * gc)]
     th = 0.5 * np.arctan2(2 * Arc, Acc - Arr)              # the gradient's direction, from the x axis
     return np.stack([-np.sin(th), np.cos(th)], -1)          # along the strokes
-
-
-def _stream(field, mask, Q, d0, step=3.0, max_len=500.0, inertia=0.5):
-    H, W = mask.shape
-    pts = [np.array(Q, float)]
-    d = np.array(d0, float)
-    d /= max(1e-9, np.hypot(*d))
-    for _ in range(int(max_len / step)):
-        p = pts[-1]
-        o = field[int(np.clip(p[1], 0, H - 1)), int(np.clip(p[0], 0, W - 1))].copy()
-        if o @ d < 0:
-            o = -o
-        d = (1 - inertia) * o + inertia * d
-        d /= max(1e-9, np.hypot(*d))
-        q = p + d * step
-        if not (0 <= q[0] < W and 0 <= q[1] < H) or not mask[int(q[1]), int(q[0])]:
-            break
-        pts.append(q)
-    return pts
 
 
 def blade_tips(mask, smooth=1.0, min_branch=12):

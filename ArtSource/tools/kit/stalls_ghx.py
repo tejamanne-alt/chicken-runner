@@ -963,7 +963,7 @@ def stall_h_1(K):
     rib = K.colour((600, 196, 640, 206), vary=0.08)
     cy = 0.62
     tilt = 8.8
-    tip, axis = rib_umbrella(K, P.x(498), cy, Z(245), P.m(490), P.m(200) / math.cos(math.radians(tilt)), tilt, black,
+    tip, axis = rib_umbrella(K, P.x(498), cy, Z(232), P.m(488), P.m(188) / math.cos(math.radians(tilt)), tilt, black,
                              under, rib, ribs=10, phase=math.pi / 10, tears=0.0)
     ax = Vector(axis)
     poleshaft = lean_projected(K, (498, 40), (498, 750), 0.85, [(482, 255, 516, 745)])
@@ -985,10 +985,9 @@ def stall_h_1(K):
     toes = []
     for x0, x1 in front_row:
         toes.append(sandal(K, bank, (x0 + 2, 880, x1 - 2, 944), sole, strap))
-    zt = toes[0].z
-    yt = toes[0].y
-    bamboo(K, (P.x(95), yt + 0.03, zt - 0.03), (P.x(985), yt + 0.03, zt - 0.03), 0.013, stick, node_at=[], taper=1.0,
-           name="prop_stick")
+    for a_, b_ in zip(toes[0::2], toes[1::2]):          # each pair leans on a stick laid under its toes
+        bamboo(K, (a_.x - 0.03, a_.y + 0.035, a_.z - 0.035), (b_.x + 0.03, b_.y + 0.035, b_.z - 0.035), 0.011, stick,
+               node_at=[], taper=1.0, name="prop_stick")
     for box in ((168, 828, 209, 874), (198, 830, 259, 880), (822, 822, 875, 874), (866, 825, 927, 880)):
         toe = sandal(K, bank, box, sole, strap, tilt=46)
         bamboo(K, (toe.x - 0.05, toe.y + 0.03, toe.z - 0.03), (toe.x + 0.05, toe.y + 0.03, toe.z - 0.03), 0.011, stick,
@@ -1023,12 +1022,14 @@ def stall_h_1(K):
     p = bank.at(P, 460, 792, 0.03)
     ob = K.lathe([(0.025, -0.06), (0.03, 0.06)], wood, segments=10, centre=tuple(p), name="last")
     frame_to(ob, tuple(p), (0.3, 0.1, 0.95), (1, 0, 0))
-    # ---------------------------------------------------------------- behind him: his tin box and a bundle
+    # ---------------------------------------------------------------- behind him (hidden by him from the front): his tin
+    # box of nails and thread, and a roll of leather on the back slope of the bank
     tin = K.colour((0.3, 0.3, 0.33), vary=0.08)
     zt_ = bank.top
-    K.box(P.x(560), P.x(720), bank.y1 + 0.05, bank.y1 + 0.3, zt_, zt_ + 0.22, tin, bevel=0.01, name="tool_box")
-    bundle = K.colour((0.55, 0.45, 0.3), vary=0.1)
-    K.block(P.x(330), bank.y1 + 0.18, zt_ + 0.1, 0.4, 0.28, 0.2, bundle, bevel=0.06, name="bundle")
+    K.box(P.x(575), P.x(705), bank.y1 + 0.08, bank.y1 + 0.3, zt_, Z(640), tin, bevel=0.01, name="tool_box")
+    K.box(P.x(572), P.x(708), bank.y1 + 0.07, bank.y1 + 0.31, Z(640), Z(632), tin, bevel=0.008, name="tool_box_lid")
+    roll = K.lathe([(0.0, -0.3), (0.07, -0.3), (0.07, 0.3), (0.0, 0.3)], hide, segments=14, name="leather_roll")
+    frame_to(roll, (P.x(330), bank.y2 + 0.2, bank.z(bank.y2 + 0.2) + 0.03), (1, 0, 0), (0, 1, 0))
     # ---------------------------------------------------------------- the cobbler
     K.figure([(630, 471), (656, 478), (672, 500), (668, 540), (660, 565), (700, 580), (722, 600), (736, 630),
               (746, 670), (749, 715), (772, 735), (792, 760), (792, 792), (772, 812), (740, 822), (712, 834),
