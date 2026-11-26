@@ -834,10 +834,10 @@ def palmyra(K, fans, heart_px, crown_r_px, skirt_box, skirt_r_px, trunk_pts, pet
     for k in range(6):                                   # the root flare
         a = 2 * math.pi * (k + rng.uniform(-0.2, 0.2)) / 6
         r0 = P.m(foot[2])
-        K.tube([(P.x(foot[0]) + math.cos(a) * r0 * 0.4, math.sin(a) * r0 * 0.4, P.z(foot[1]) + r0 * 1.2),
-                (P.x(foot[0]) + math.cos(a) * r0 * 1.05, math.sin(a) * r0 * 1.05, P.z(foot[1]) + r0 * 0.25),
-                (P.x(foot[0]) + math.cos(a) * r0 * 1.5, math.sin(a) * r0 * 1.5, P.z(foot[1]))],
-               [r0 * 0.4, r0 * 0.28, r0 * 0.1], bark, segments=8, name="root")
+        K.tube([(P.x(foot[0]) + math.cos(a) * r0 * 0.5, math.sin(a) * r0 * 0.5, P.z(foot[1]) + r0 * 0.9),
+                (P.x(foot[0]) + math.cos(a) * r0 * 0.9, math.sin(a) * r0 * 0.9, P.z(foot[1]) + r0 * 0.25),
+                (P.x(foot[0]) + math.cos(a) * r0 * 1.15, math.sin(a) * r0 * 1.15, P.z(foot[1]))],
+               [r0 * 0.3, r0 * 0.2, r0 * 0.07], bark, segments=8, name="root")
     # ---- the skirt of dead leaf-bases: a solid core and the painted ragged skirt wrapped round it, front and back
     sk_ok = opaque & ~halo(rgb) & (r >= g - 2) & box_mask(opaque.shape, [skirt_box])
     skirt_mat = masked_material(K, sk_ok, inset=1)
@@ -879,16 +879,29 @@ def palmyra(K, fans, heart_px, crown_r_px, skirt_box, skirt_r_px, trunk_pts, pet
         X0, Z0 = P.x(cx), P.z(cy)
         K.tube([(hx, 0.0, hz), (X0, y2, Z0)], [P.m(2.4), P.m(1.6)], stalk, segments=6, name="petiole")
         dx = X0 - hx
+        crown_px = ndimage.binary_closing(leaf_ok, iterations=3)
+
+        def fits(xf, rad=rad, cx=cx, cy=cy, y_c=y_c, n=n, X0=X0, Z0=Z0):
+            good = tot = 0
+            for k in range(13):
+                a = 2 * math.pi * k / 12
+                rr = 0.0 if k == 12 else rad * 0.8
+                px, py = cx + rr * math.cos(a), cy + rr * math.sin(a)
+                x, z = P.x(px), P.z(py)
+                v = xf(Vector((x, relief_y(P, x, z, X0, y_c, Z0, n), z)))
+                qx, qy = int(P.px(v.x)), int(P.py(v.z))
+                tot += 1
+                good += 0 <= qx < P.w and 0 <= qy < P.h and crown_px[qy, qx]
+            return good >= 0.85 * tot
         if abs(dx) > Rc * 0.35:
             for sgn in (1, -1):
                 deg = (rng.uniform(70, 110)) * sgn
-                xf = turn_about(hx, 0.0, deg)
-                c3 = xf(Vector((X0, y_c, Z0)))
-                if c3.y < 0:                      # turned to the front: it must hide behind the painted crown
-                    px_, pz_ = int(P.px(c3.x)), int(P.py(c3.z))
-                    if not (0 <= px_ < P.w and 0 <= pz_ < P.h and leaf_ok[pz_, px_]):
-                        continue
-                    xf = turn_about(hx, 0.0, deg, scale=0.85)
+                for sc in (0.8, 0.65, 0.5):
+                    xf = turn_about(hx, 0.0, deg, scale=sc)
+                    if fits(xf):
+                        break
+                else:
+                    continue
                 fan_card(K, (cx, cy), rad * 0.9, y_c, n, cup=0.3, xform=xf, name="fan_side")
                 c3 = xf(Vector((X0, y_c, Z0)))
                 K.tube([(hx, 0.0, hz), tuple(c3)], [P.m(2.4), P.m(1.6)], stalk, segments=6, name="petiole")
