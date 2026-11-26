@@ -385,7 +385,9 @@ class Kit:
 
     def decal(self, box, name=None, image=None):
         """A material showing the painting inside box (pixels), or a PIL image, on faces given 'decal' UVs (0..1)."""
-        key = ("decal", tuple(int(v) for v in box) if box else id(image))
+        # an image's key is its content (an id() can be reused once a temporary image is freed)
+        key = ("decal", tuple(int(v) for v in box) if box else
+               zlib.crc32(image.tobytes()) ^ (image.width << 16) ^ image.height)
         if key in self._mats:
             return self._mats[key]
         m = Mat(name or f"{self.name}_decal{len(self._mats)}")
