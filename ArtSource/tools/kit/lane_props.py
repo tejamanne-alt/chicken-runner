@@ -620,7 +620,7 @@ def chicken_basket(K):
     outline = [(232, 125), (220, 124.5), (210, 123), (200, 122), (190, 120.5), (180, 118.5), (170, 117),
                (160, 114.5), (150, 112), (140, 110), (130, 106.5), (120, 101.5), (110, 98), (100, 92.5), (90, 87),
                (80, 77.5), (70, 67.5), (60, 57.5), (55, 51)]
-    out_r = [(P.z(py), P.m(r)) for py, r in outline][::-1]       # by z ascending
+    out_r = [(P.z(py), P.m(r)) for py, r in outline]             # by z ascending
 
     def rad(z):
         return interp(out_r, z)

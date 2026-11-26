@@ -30,6 +30,7 @@ import os
 import pathlib
 import sys
 import tempfile
+import zlib
 
 import bpy
 import bmesh
@@ -236,7 +237,7 @@ class Kit:
         self.parts = []
         self.cards_parts = []
         self._mats = {}
-        self.rng = np.random.default_rng(abs(hash(name)) % 2 ** 32)
+        self.rng = np.random.default_rng(zlib.crc32(name.encode()))   # the same every run (hash() is salted)
         self.front_projection = True     # set False for a model whose painting should not be projected
         self.front_min = 0.25            # how squarely a surface must face the camera to take the painting
         self.ao = 0.45                   # how much baked ambient occlusion darkens the sides and back

@@ -1872,20 +1872,45 @@ def h7_4(K):
     slope = (P.z(18) - P.z(45)) / (cs * 1.2)
     slab_plan(K, [(v.x, v.y) for v in cplan], zt, None, cap_mat,
               top=lambda x, y: P.z(45) + max(0.0, (y - Cc.y)) * slope, name="cap")
-    # the broken wall beside it, set back from the pillar's face, its top crumbled in steps
-    w0, t = P.m(14), P.m(62)
+    # the broken wall beside it, set back from the pillar's face, as thick as half the pillar: its plaster stops
+    # short of its crumbled top, where the brick courses stand out in steps through its whole thickness
+    w0, t = P.m(14), s * 0.55
     O = C + R * s + L * w0
-    jag = [(212, 85), (226, 90), (242, 97), (262, 112), (280, 134), (298, 160), (312, 190), (318, 212), (328, 236),
-           (345, 252), (352, 274), (362, 298), (365, 330)]
-    out = [(0.0, zg)] + [(P.m(px - 212) / math.cos(th), P.z(py)) for px, py in jag] + \
-          [(P.m(366 - 212) / math.cos(th), P.z(560)), (P.m(366 - 212) / math.cos(th), zg)]
+    ku = 1.0 / math.cos(th)                       # painted px across -> metres along the wall's face
+
+    def U(px):
+        return P.m(px - 212) * ku
+    plaster_top = [(212, 110), (230, 111), (248, 113), (258, 128), (268, 146), (280, 166), (290, 190), (302, 212),
+                   (311, 236), (320, 256), (334, 276), (346, 292), (352, 300), (364, 302)]
+    out = [(0.0, zg)] + [(U(px), P.z(py)) for px, py in plaster_top] + [(U(366), P.z(560)), (U(366), zg)]
     wall = wall_panel(K, out, O, R, L, t, plaster, name="wall")
-    # where it has crumbled (its broken top and its end) the brick shows
     brick = K.tile((112, 452, 186, 528), vary=0.04, soften=0.1)
     wall.data.materials.append(brick.mat)
-    for f in wall.data.polygons:
+    for f in wall.data.polygons:                  # its broken edges: the brick core
         if abs(Vector(f.normal).dot(L)) < 0.5 and f.center.z > zg + 0.01:
             f.material_index = 1
+    # the courses: (top py, bottom py, painted left x where the plaster stops, painted right x where it ends)
+    courses = [(84, 109, 212, 282), (109, 129, 236, 296), (129, 149, 252, 306), (149, 170, 266, 322),
+               (170, 190, 278, 326), (190, 209, 290, 330), (209, 227, 300, 336), (227, 247, 306, 346),
+               (247, 267, 316, 360), (267, 292, 330, 362), (292, 304, 346, 364)]
+    rng = K.rng
+    for k, (ytop, ybot, xl, xr) in enumerate(courses):
+        z0, z1 = P.z(ybot) + P.m(0.8), P.z(ytop) - P.m(0.8)
+        lo = U(xl) - P.m(18)                      # run back into the plaster
+        hi = U(xr)
+        blen = P.m(34) * ku
+        u = lo - (blen * 0.5 if k % 2 else 0.0)
+        while u < hi - P.m(4):
+            u1 = min(hi + P.m(rng.uniform(-2, 3)), u + blen)
+            if u1 - max(u, lo) > P.m(6):
+                for half in (0, 1):               # two bricks across the wall's thickness
+                    d0 = t * (0.0 if half == 0 else 0.5) - (0.004 if half == 0 else 0.0)
+                    d1 = t * (0.5 if half == 0 else 1.0) + (0.004 if half == 1 else 0.0)
+                    c = O + R * ((max(u, lo) + u1) / 2) + L * ((d0 + d1) / 2 - 0.0015 * (1 if half == 0 else -1))
+                    K.block(c.x, c.y, (z0 + z1) / 2, u1 - max(u, lo) - P.m(1.5), d1 - d0 - 0.003, z1 - z0, brick,
+                            rot=(0, 0, math.degrees(th) + rng.uniform(-2, 2)), bevel=P.m(1.2), jitter=P.m(0.4),
+                            name="brick")
+            u = u1 + P.m(1.5)
     # brick showing on its broken top and its end, plaster patches fallen at the pillar's foot round the back
     back = C + R * s + L * s
     for k, (u0, u1, z0, z1) in enumerate(((0.1, 0.7, P.z(590), P.z(470)), (0.2, 0.8, P.z(300), P.z(250)))):
@@ -1902,6 +1927,19 @@ def h7_4(K):
         K.quad([tuple(a + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z1))),
                 tuple(a + Vector((0, 0, z1)))], patch_decal(K, (100, 420, 190, 520), brickish, (262, 320, 340, 430)),
                name="brick_back")
+    # cracks in the plaster round the back, as painted on its front
+    crack = lambda rgb: chan(rgb)[3] < 125
+    W_ = U(366)
+    for box, (u0, u1, z0, z1), side in (((296, 258, 336, 330), (0.55, 0.8, P.z(330), P.z(258)), "wall"),
+                                        ((92, 190, 130, 290), (0.3, 0.55, P.z(290), P.z(190)), "pillar"),
+                                        ((330, 440, 366, 520), (0.1, 0.32, P.z(520), P.z(440)), "wall")):
+        dec = patch_decal(K, box, crack, (262, 320, 340, 430), feather=6)
+        if side == "wall":
+            a_, b_ = wb + R * W_ * u1 + L * 0.0005, wb + R * W_ * u0 + L * 0.0005
+        else:
+            a_, b_ = back - R * s * u0 + L * 0.0015, back - R * s * u1 + L * 0.0015
+        K.quad([tuple(a_ + Vector((0, 0, z0))), tuple(b_ + Vector((0, 0, z0))), tuple(b_ + Vector((0, 0, z1))),
+                tuple(a_ + Vector((0, 0, z1)))], dec, name="crack_back")
     # ---- weeds, grass and the moss on the cap
     keep = opaque & ~halo(rgb) & (((g > r) & (g > b + 8)) | ((r > 150) & (g > 140) & (b > 100) & (mx - mn < 70)
                                                               & box_mask(opaque.shape, [(0, 480, 100, 610)]))
@@ -1916,6 +1954,14 @@ def h7_4(K):
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         for yaw in (0, 55, -55):
             blob_card(K, box, (P.x(cx), y + K.rng.uniform(-0.01, 0.01), P.z(cy)), yaw=yaw, rough=0.3, name="weeds")
+    # and weeds round the back of its foot
+    for k, (box, f) in enumerate((((10, 480, 110, 610), 0.2), ((200, 440, 280, 600), 0.6), ((330, 540, 400, 600), 0.9),
+                                  ((10, 480, 110, 610), 1.15))):
+        cy = (box[1] + box[3]) / 2
+        pt = O + R * W_ * f + L * (t + 0.03) if f <= 1.0 else back - R * s * 0.5 + L * 0.03
+        for yaw in (0, 60, -60):
+            blob_card(K, box, (pt.x, pt.y, P.z(cy)), yaw=yaw + math.degrees(th), rough=0.3, name="weeds_back",
+                      normal=(L.x, L.y, 1.0))
     earth_disc(K, 210, 200, 0.16, K.colour((0.2, 0.15, 0.09), vary=0.18, scale=40), z=zg - P.m(3), y=0.02)
 
 
@@ -1980,6 +2026,17 @@ def clump(K, box, axis_px, r_px, depth, n_cross=6, y0=0.0, name="clump", nx=16, 
     wrap_card(K, box, axis_px, r_px, y0=y0, depth=depth, nx=nx, nz=nz, name=name)
     wrap_card(K, box, axis_px, r_px, y0=y0, depth=depth, back=True, nx=nx, nz=nz, name=name)
     x0, y0p, x1, y1 = cross_box or box
+    top = None
+    if cross_box is not None and cross_box[1] > box[1]:
+        # the cross cards' top edge runs through the gaps between the painted blades, not straight across them
+        alpha = P.rgba[..., 3]
+        lo, hi = int(box[1] + (cross_box[1] - box[1]) * 0.35), int(cross_box[1])
+        cols = []
+        for i in range(nx + 1):
+            px = int(np.clip(x0 + (x1 - x0) * i / nx, 0, P.w - 1))
+            a = alpha[lo:hi, max(0, px - 4):px + 5].sum(1)
+            cols.append(lo + int(np.argmin(a + np.linspace(0, 0.5, len(a))[::-1])))
+        top = ndimage.uniform_filter1d(np.array(cols, float), 2)
     for k in range(n_cross):
         if cross_yaw == (-90.0, 90.0):
             yaw = 180.0 * (k + 0.5) / n_cross - 90.0 + K.rng.uniform(-8, 8)
@@ -1995,7 +2052,8 @@ def clump(K, box, axis_px, r_px, depth, n_cross=6, y0=0.0, name="clump", nx=16, 
             row = []
             for i in range(nx + 1):
                 px = float(np.clip(x0 + (x1 - x0) * i / nx, 0.5, P.w - 0.5))
-                py = float(np.clip(y0p + (y1 - y0p) * j / nz, 0.5, P.h - 0.5))
+                yt = y0p if top is None else top[i]
+                py = float(np.clip(yt + (y1 - yt) * j / nz, 0.5, P.h - 0.5))
                 v = f(Vector((P.x(px), y0, P.z(py))))
                 row.append((bm.verts.new(v), (px / P.w, 1 - py / P.h)))
             grid.append(row)
