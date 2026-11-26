@@ -386,4 +386,3 @@ def veg_basket(K):
         y = K.rng.uniform(R * 0.55, R * 0.95)
         blob_card(K, (sx - 15, sy - 14, sx + 15, sy + 14), (P.x(px), y, P.z(sy) + P.m(4)), yaw=K.rng.uniform(-80, 80),
                   pitch=K.rng.uniform(-25, 25), name="spinach_back")
-    K.card_from_painting((95, 10, 160, 66), (P.x(127.5), -R * 0.25, P.z(38)), name="spinach_front")
