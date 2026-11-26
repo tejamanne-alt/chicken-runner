@@ -121,7 +121,6 @@ def brass_vessels(K):
     """Four polished brass vessels on a stone ledge: a big kudam behind, a smaller one in front, a little pot and a
     lidded canister."""
     P = K.paint
-    K.front_exclude = [(70, 86, 90, 152)]         # the shadowed gap between the pots: the kudam's own brass there
     inside = K.colour((0.12, 0.05, 0.01), vary=0.1)
     vessels = [
         # centre px, depth y, keep boxes, profile [(r px, y px)] from the foot up, mouth (r px, top py)
@@ -142,7 +141,7 @@ def brass_vessels(K):
     # the front pot's brass
     cx, cy = 71.5, 0.28
     top = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(26, 5, 116, 80)], inset=2)
-    low = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(8, 95, 89, 150)], inset=2, dx=P.m(48.5 - 71.5), dz=-P.m(30))
+    low = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(30, 30, 112, 78)], inset=2, dz=P.m(40))
     K.lathe(prof(P, [(16, 157), (18, 154), (19, 150), (24, 142), (30, 128), (35, 112), (38.5, 96), (41, 82)]), low,
             segments=36, centre=(P.x(cx), cy, 0), name="kudam_low")
     K.lathe(prof(P, [(41, 82), (42.5, 72), (43.5, 58), (43, 48), (40, 38), (34, 30), (26, 25), (21, 22), (20, 17),
