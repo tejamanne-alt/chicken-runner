@@ -1,0 +1,10 @@
+{
+ "name": "tuft_3",
+ "folder": "ground",
+ "kind": "volume",
+ "width": 0.2,
+ "height": 0.244,
+ "depth": 0.167,
+ "faces": 77,
+ "source": "blender"
+}

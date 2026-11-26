@@ -1,0 +1,10 @@
+{
+ "name": "house_weaver",
+ "folder": "lane",
+ "kind": "building",
+ "width": 6.553,
+ "height": 4.482,
+ "depth": 6.39,
+ "faces": 7036,
+ "source": "blender"
+}

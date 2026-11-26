@@ -441,8 +441,11 @@ def heap_px(K, cx_px, y, prof_px, mat, sy=0.85, segs=28, name="heap", z0=None):
     return height
 
 
-def pile(K, height, cx, cy, rx, ry, n, r, mat, squash=0.8, elong=1.15, segs=8, name="nut", front_only=False):
-    """n round pieces (nuts, potatoes, onions, fruit) of radius ~r sitting on a heap's surface height(x, y)."""
+def pile(K, height, cx, cy, rx, ry, n, r, mat, squash=0.8, elong=1.15, segs=8, name="nut", front_only=False,
+         over=0.0):
+    """n round pieces (nuts, potatoes, onions, fruit) of radius ~r sitting on a heap's surface height(x, y); seen
+    from the front none rises more than `over` above the heap's own outline (the painted one, when the heap is
+    traced a little inside it)."""
     for i in range(n):
         ang = K.rng.uniform(0, 2 * math.pi)
         if front_only:
@@ -451,7 +454,7 @@ def pile(K, height, cx, cy, rx, ry, n, r, mat, squash=0.8, elong=1.15, segs=8, n
         x, y = cx + rx * d * math.cos(ang), cy + ry * d * math.sin(ang)
         rr = r * K.rng.uniform(0.8, 1.2)
         z = height(x, y)
-        z = min(z, height(x, cy) - 2.1 * rr * squash)    # never above the heap's painted outline from the front
+        z = min(z, height(x, cy) + over - 1.55 * rr * squash)   # never above the painted outline from the front
         prof = [(0.0, -rr * squash), (rr * 0.7, -rr * squash * 0.72), (rr, 0.0), (rr * 0.7, rr * squash * 0.72),
                 (0.0, rr * squash)]
         ob = K.lathe(prof, mat, segments=segs, centre=(x, y, z + rr * squash * 0.55), name=name)
@@ -468,8 +471,8 @@ def pile(K, height, cx, cy, rx, ry, n, r, mat, squash=0.8, elong=1.15, segs=8, n
 def basket(K, cx, cy, z0, prof, mat, rim=None, sy=1.0, segs=32, name="basket", inside=None):
     """A woven basket: profile [(r, z), ...] metres from its foot (z relative to z0) up to its rim, a rolled rim of
     cane round the top, its inside a darker weave."""
-    K.lathe([(r, z0 + z) for r, z in prof], mat, segments=segs, centre=(cx, cy, 0.0), scale_y=sy, cap=True,
-            wobble=0.01, name=name)
+    K.lathe([(0.0, z0)] + [(r, z0 + z) for r, z in prof], mat, segments=segs, centre=(cx, cy, 0.0), scale_y=sy,
+            cap=False, wobble=0.01, name=name)
     r_top, z_top = prof[-1]
     rim = rim or mat
     pts = [(cx + r_top * math.cos(2 * math.pi * i / 40), cy + r_top * sy * math.sin(2 * math.pi * i / 40), z0 + z_top)
@@ -618,7 +621,7 @@ def stall_c_2(K):
     leafm = ktile(K, (180, 560, 260, 600), vary=0.05)
     heap(K, P.x(172), yb1, P.m(96), P.m(96) * 0.85, Z(610), Z(590) - Z(610), leafm, name="leaves")
     # the brass areca-nut cutter on its base plate
-    brass = K.colour((640, 600, 660, 640), vary=0.08)
+    brass = K.colour((672, 560, 684, 640), vary=0.08)
     brass_d = K.colour((605, 625, 640, 655), vary=0.08)
     yt = 0.24
     zt = top_z(yt)
@@ -626,7 +629,8 @@ def stall_c_2(K):
     K.box(P.x(600), P.x(650), yt - 0.05, yt + 0.06, zt + 0.02, Z(622), brass_d, bevel=0.004, name="cutter_body")
     K.box(P.x(598), P.x(645), yt - 0.06, yt + 0.06, Z(622), Z(598), brass, bevel=0.004, name="cutter_block")
     K.box(P.x(588), P.x(615), yt - 0.06, yt + 0.06, Z(605), Z(598), brass, bevel=0.003, name="cutter_lip")
-    K.lathe([(P.m(4), Z(600)), (P.m(20), Z(575)), (P.m(23), Z(560)), (P.m(15), Z(545)), (P.m(6), Z(540))], brass,
+    K.lathe([(P.m(3), Z(598)), (P.m(5), Z(585)), (P.m(16), Z(578)), (P.m(21), Z(568)), (P.m(21), Z(556)),
+             (P.m(15), Z(548)), (P.m(5), Z(544))], brass,
             segments=14, centre=(P.x(617), yt, 0.0), name="cutter_head")
     K.box(P.x(668), P.x(688), yt - 0.02, yt + 0.02, zt + 0.02, Z(540), brass, bevel=0.003, name="cutter_column")
     K.tube([P.pt(678, 545, yt), P.pt(650, 530, yt)], P.m(7), brass, segments=6, name="cutter_arm")
@@ -658,13 +662,13 @@ def stall_c_2(K):
     basket(K, P.x(318), y3, 0.0, [(P.m(88), 0.0), (P.m(94), Z(815)), (P.m(100), Z(792))], bask3, sy=0.85)
     nutsm = ktile(K, (520, 760, 610, 810), vary=0.06)
     nut = K.colour((560, 760, 580, 780), vary=0.12, scale=30)
-    h3 = heap_px(K, 318, y3, [(95, 795), (88, 780), (72, 762), (50, 750), (20, 744), (0, 742)], nutsm, name="nuts3")
-    pile(K, h3, P.x(318), y3, P.m(85), P.m(72), 30, P.m(15), nut)
+    h3 = heap_px(K, 318, y3, [(92, 795), (82, 780), (64, 764), (42, 755), (16, 750), (0, 749)], nutsm, name="nuts3")
+    pile(K, h3, P.x(318), y3, P.m(88), P.m(75), 40, P.m(15), nut, over=P.m(8))
     banana = K.colour((420, 820, 435, 832), vary=0.1)
     K.grid_plane(P.x(400), P.x(700), -1.2, -0.6, 0.0, 10, 6, banana, height=lambda x, y: 0.006, name="banana_leaf")
-    h4 = heap_px(K, 540, -0.92, [(132, 836), (110, 825), (85, 805), (65, 790), (45, 772), (25, 758), (0, 750)], nutsm,
+    h4 = heap_px(K, 540, -0.92, [(120, 836), (100, 825), (76, 806), (56, 792), (36, 777), (16, 766), (0, 762)], nutsm,
                  sy=0.7, name="nuts_heap", z0=0.0)
-    pile(K, h4, P.x(540), -0.92, P.m(120), P.m(120) * 0.7, 40, P.m(16), nut)
+    pile(K, h4, P.x(540), -0.92, P.m(124), P.m(124) * 0.7, 60, P.m(16), nut, over=P.m(11))
     bask4 = K.projected(axis_x=P.x(693), squeeze=0.92, keep=[(645, 758, 742, 832)], inset=2)
     basket(K, P.x(693), -0.75, 0.0, [(P.m(42), 0.0), (P.m(45), Z(800)), (P.m(48), Z(764))], bask4, sy=1.0)
     K.lathe([(P.m(44), Z(764)), (P.m(30), Z(752)), (0.0, Z(748))], leafm, segments=16, centre=(P.x(693), -0.75, 0.0),

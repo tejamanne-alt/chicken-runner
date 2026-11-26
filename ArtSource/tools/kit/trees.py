@@ -929,7 +929,7 @@ class Katte:
 
 
 def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
-                 crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), wood_y=None):
+                 crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves."""
     P = K.paint
@@ -938,12 +938,12 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     bark = bark_material(K, mask & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]), axis_x=P.x(918),
                          squeeze=0.9)
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
-                  dome_pow=0.9)
-    wood = [limb(K, trunk, bark, y=0.0, segments=24, name="trunk")]
+                  dome_pow=0.9, y0=y0)
+    wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
         n = len(pts)
-        side = rng.choice([-1, 1])
-        ys = [0.0] + [side * rng.uniform(0.1, 0.25) * crown.hd * i / (n - 1) for i in range(1, n)]
+        reach = rng.uniform(0.08, 0.25) if rng.uniform() < 0.75 else -rng.uniform(0.0, 0.08)
+        ys = [y0] + [y0 + reach * crown.hd * i / (n - 1) for i in range(1, n)]
         wood.append(limb(K, pts, bark, y=ys, segments=14, name="limb"))
     # the limbs again, leading off round the trunk (to the sides and back, never across its painted front), holding
     # up the crown all round
@@ -962,7 +962,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                     dist *= 0.85
                 y = dist * math.sin(a)
                 lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
-                y = float(np.clip(y, -lim, lim))
+                y = y0 + float(np.clip(y, -lim, lim))
                 q.append((x, y, P.z(py) + (rng.uniform(-0.1, 0.0) if i else 0.0)))
             wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts], bark, segments=12, name="limb_turned"))
     # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
@@ -992,6 +992,14 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                 q.append((x, y, z))
                 rr.append(P.m(r) * 0.95)
             wood.append(K.tube(q, rr, bark, segments=10, name="root_turned"))
+    # roots spreading over the ground all round the foot (where no platform holds them)
+    for k in range(ground_roots):
+        a = 2 * math.pi * (k + rng.uniform(-0.3, 0.3)) / ground_roots
+        r0 = P.m(trunk[0][2])
+        L = r0 * rng.uniform(1.4, 2.2)
+        q = [(P.x(trunk[0][0]) + math.cos(a) * r0 * f, y0 + math.sin(a) * r0 * f, z)
+             for f, z in ((0.3, r0 * 0.9), (0.8, r0 * 0.35), (1.0 + L / r0 * 0.5, 0.06), (1.0 + L / r0, 0.02))]
+        wood.append(K.tube(q, [r0 * 0.4, r0 * 0.3, r0 * 0.15, r0 * 0.05], bark, segments=10, name="root"))
     trunk_ob = K.fuse(wood, voxel=0.03, faces=11000)
     # the crown: everything painted in its box but the wood modelled there
     excl = raster((P.h, P.w), exclude_wood, grow=4)
@@ -1116,3 +1124,189 @@ def peepal_platform(K):
         y = katte.y_on_top(cx, cy, 0) - 0.04
         K.card_from_painting((cx - 22, cy - 16, cx + 22, cy + 16), (P.x(cx), y, P.z(cy)),
                              yaw=K.rng.uniform(-40, 40), pitch=K.rng.uniform(-60, 10), name="flowers")
+
+
+def wrap_limb(K, a, b, r, mat, n, radius, wobble=0.25, name="thread"):
+    """n threads tied round a limb between points a and b (metres), r its radius there: loops round its axis."""
+    A, B = Vector(a), Vector(b)
+    t = (B - A).normalized()
+    ref = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
+    u = t.cross(ref).normalized()
+    v = t.cross(u).normalized()
+    obs = []
+    for k in range(n):
+        f = (k + K.rng.uniform(-0.3, 0.3)) / max(1, n - 1) if n > 1 else 0.5
+        c = A + (B - A) * float(np.clip(f, 0, 1))
+        tilt = K.rng.uniform(-wobble, wobble)
+        pts = []
+        for i in range(25):
+            ang = 2 * math.pi * i / 24
+            off = u * math.cos(ang) + v * math.sin(ang)
+            pts.append(tuple(c + off * (r * 1.04) + t * (tilt * r * math.sin(ang))))
+        obs.append(K.tube(pts, radius, mat, segments=5, name=name, cap=False))
+    return obs
+
+
+def strand(K, top, length, mat, radius, sway=0.06, name="strand"):
+    """A thread hanging from `top` (metres): a slightly swinging tube `length` long, with a knot at its end."""
+    x, y, z = top
+    dx, dy = K.rng.uniform(-sway, sway), K.rng.uniform(-sway, sway)
+    pts = [(x, y, z), (x + dx * 0.4, y + dy * 0.4, z - length * 0.4), (x + dx, y + dy, z - length)]
+    return K.tube(pts, radius, mat, segments=5, name=name)
+
+
+SHRINE_TRUNK = [(905, 1395, 245), (905, 1150, 225), (905, 900, 212), (905, 700, 205), (905, 520, 200),
+                (905, 400, 195), (905, 320, 175), (905, 280, 150)]
+SHRINE_LIMBS = [
+    [(860, 300, 70), (823, 273, 60), (783, 220, 50), (740, 160, 38), (700, 110, 26)],
+    [(950, 300, 70), (943, 273, 60), (970, 220, 50), (1000, 150, 36), (1030, 90, 22)],
+    [(760, 420, 70), (690, 393, 58), (557, 353, 46), (423, 327, 34), (330, 320, 22)],
+    [(1050, 420, 70), (1103, 380, 58), (1237, 340, 46), (1397, 313, 34), (1500, 300, 22)],
+    [(760, 620, 80), (690, 585, 64), (570, 527, 52), (450, 493, 44), (330, 480, 38), (200, 470, 28), (90, 470, 16)],
+    [(1050, 620, 80), (1103, 593, 64), (1210, 540, 54), (1317, 507, 46), (1423, 487, 40), (1530, 467, 30),
+     (1650, 462, 20), (1740, 465, 12)],
+]
+
+
+@model("shrine_tree", "lane", kind="prop", atlas=2048, leaves=2048)
+def shrine_tree(K):
+    """A small white wayside shrine under a great peepal: a lime-washed cell with a deep niche (its deity, a brass
+    bell, a marigold garland round the opening), two lamp niches in its face, a heavy cornice, a three-tiered tower
+    with finials; behind it the peepal's trunk, its limbs wound with red and orange threads, and its golden crown;
+    a painted kalash by the door."""
+    P = K.paint
+    rng = K.rng
+    yt = 0.55                                     # the trunk's depth: the shrine stands against its front
+    yb0, yb1 = -1.55, 0.25                        # the shrine's front and back
+    # ---- the shrine
+    wall = K.tile((680, 1150, 770, 1340), vary=0.05, soften=0.45)
+    tower_mat = K.tile((795, 715, 860, 790), vary=0.05, soften=0.4)
+    cornice = K.tile((660, 815, 1180, 845), vary=0.05, soften=0.4)
+    body = K.box(P.x(640), P.x(1205), yb0, yb1, 0.0, P.z(910), wall, name="shrine_body")
+    K.box(P.x(620), P.x(1222), yb0 - 0.05, yb1 + 0.05, P.z(910), P.z(880), cornice, bevel=0.01, name="moulding")
+    K.box(P.x(600), P.x(1245), yb0 - 0.12, yb1 + 0.12, P.z(880), P.z(808), cornice, bevel=0.015, name="cornice")
+    # the niche: a deep opening, dark inside, its deity on a pedestal, the bell hanging in its mouth
+    K.cut(body, P.x(815), P.x(1025), yb0 - 0.1, yb0 + 0.75, P.z(1356), P.z(945))
+    dark = K.colour((830, 1000, 860, 1080), vary=0.08)
+    K.box(P.x(815), P.x(1025), yb0 + 0.7, yb0 + 0.8, P.z(1356), P.z(945), dark, name="niche_back")
+    K.box(P.x(815), P.x(1025), yb0 + 0.05, yb0 + 0.75, P.z(1356) - 0.02, P.z(1356), dark, name="niche_floor")
+    for x0, x1 in ((815, 816), (1024, 1025)):
+        K.box(P.x(x0) - 0.005, P.x(x1) + 0.005, yb0 + 0.05, yb0 + 0.75, P.z(1356), P.z(945), dark, name="niche_side")
+    K.box(P.x(815), P.x(1025), yb0 + 0.05, yb0 + 0.75, P.z(945), P.z(945) + 0.01, dark, name="niche_roof")
+    stone = K.colour((880, 1150, 960, 1240), vary=0.08)
+    deity = [(918, 1095), (935, 1105), (940, 1125), (962, 1140), (975, 1175), (965, 1200), (980, 1230), (975, 1255),
+             (862, 1255), (858, 1230), (872, 1200), (862, 1175), (875, 1140), (897, 1125), (902, 1105)]
+    poly_solid(K, deity, yb0 + 0.5, stone, depth=0.55, name="deity")
+    K.box(P.x(862), P.x(978), yb0 + 0.38, yb0 + 0.66, P.z(1356), P.z(1255), stone, bevel=0.01, name="deity_pedestal")
+    brass = K.colour((880, 1010, 910, 1060), vary=0.08)
+    by = yb0 + 0.12
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((58, 1095), (57, 1085), (50, 1070), (38, 1030), (33, 1000), (30, 975),
+                                             (18, 962), (6, 957), (0.5, 956))], brass, segments=24,
+            centre=(P.x(918), by, 0.0), name="bell", cap=False)
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((50, 1093), (36, 1040), (28, 990), (0.5, 980))], dark, segments=24,
+            centre=(P.x(918), by, 0.0), name="bell_inside", cap=True)
+    K.tube([(P.x(922), by, P.z(905)), (P.x(922), by, P.z(958))], P.m(6), brass, segments=6, name="bell_hanger")
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((8, 1112), (9, 1102), (5, 1095))], brass, segments=10,
+            centre=(P.x(918), by, 0.0), name="clapper")
+    # the wooden door frame round the opening and its threshold
+    frame = K.colour((790, 1000, 808, 1200), vary=0.06)
+    for x0, x1 in ((785, 815), (1025, 1055)):
+        K.box(P.x(x0), P.x(x1), yb0 - 0.04, yb0 + 0.12, P.z(1370), P.z(915), frame, bevel=0.006, name="door_post")
+    K.box(P.x(785), P.x(1055), yb0 - 0.04, yb0 + 0.12, P.z(945), P.z(915), frame, bevel=0.006, name="lintel")
+    K.box(P.x(780), P.x(1060), yb0 - 0.18, yb0 + 0.1, 0.0, P.z(1356), wall, bevel=0.01, name="threshold")
+    # the marigold garland round the opening (strings of flowers: a rope of them, with leaf tassels)
+    marigold = K.colour((760, 930, 775, 1060), vary=0.25, scale=60)
+    leaf = K.colour((0.06, 0.16, 0.03), vary=0.1)
+    gy = yb0 - 0.07
+    swag = [(765, 905), (790, 950), (845, 975), (900, 935), (925, 900), (950, 935), (1000, 975), (1055, 950),
+            (1075, 905)]
+    K.tube([P.pt(x, y, gy) for x, y in swag], P.m(11), marigold, segments=8, name="garland")
+    for x in (767, 1075):
+        K.tube([P.pt(x, 900, gy), P.pt(x, 1000, gy - 0.01), P.pt(x, 1085, gy)], P.m(11), marigold, segments=8,
+               name="garland_string")
+        K.lathe([(P.m(7), 0), (P.m(9), P.m(8)), (0.0, P.m(16))], leaf, segments=8,
+                centre=(P.x(x), gy, P.z(1100)), name="garland_leaf")
+    # the two lamp niches in its face, a clay lamp burning in each
+    clay = K.colour((1230, 1320, 1280, 1370), vary=0.08)
+    flame = K.colour((0.95, 0.6, 0.05), vary=0.05)
+    for x0, x1 in ((682, 740), (1105, 1163)):
+        K.cut(body, P.x(x0), P.x(x1), yb0 - 0.1, yb0 + 0.16, P.z(1138), P.z(1045))
+        K.box(P.x(x0), P.x(x1), yb0 + 0.12, yb0 + 0.18, P.z(1138), P.z(1045), K.colour((690, 1060, 700, 1090),
+                                                                                         vary=0.05), name="lamp_niche")
+        cx = (x0 + x1) / 2
+        K.lathe([(P.m(10), 0.0), (P.m(20), P.m(7)), (P.m(22), P.m(12)), (0.0, P.m(9))], clay, segments=16,
+                centre=(P.x(cx), yb0 + 0.06, P.z(1138)), name="lamp")
+        K.lathe([(0.0, 0.0), (P.m(5), P.m(6)), (P.m(4), P.m(14)), (0.0, P.m(26))], flame, segments=8,
+                centre=(P.x(cx), yb0 + 0.06, P.z(1126)), name="flame")
+    # the tower: three tiers stepping in, small domes on each, a front bay with its door, kalasha finials on top
+    ty0, ty1 = yb0 + 0.25, yb1 - 0.35
+    tc = (ty0 + ty1) / 2
+    K.box(P.x(780), P.x(1065), ty0, ty1, P.z(808), P.z(700), tower_mat, bevel=0.01, name="tier1")
+    K.box(P.x(870), P.x(970), ty0 - 0.08, ty1, P.z(808), P.z(640), tower_mat, bevel=0.008, name="bay")
+    K.cut(K.parts[-1], P.x(902), P.x(942), ty0 - 0.2, ty0 + 0.05, P.z(808), P.z(725))
+    K.box(P.x(902), P.x(942), ty0 + 0.0, ty0 + 0.04, P.z(808), P.z(725), dark, name="tower_door")
+    K.box(P.x(802), P.x(1045), ty0 + 0.08, ty1 - 0.08, P.z(700), P.z(600), tower_mat, bevel=0.01, name="tier2")
+    K.box(P.x(825), P.x(1020), ty0 + 0.16, ty1 - 0.16, P.z(600), P.z(470), tower_mat, bevel=0.01, name="tier3")
+    K.box(P.x(815), P.x(1030), ty0 + 0.12, ty1 - 0.12, P.z(478), P.z(462), tower_mat, bevel=0.005, name="tier3_cap")
+
+    def dome(px, top_py, bot_py, r_px, y):
+        K.lathe([(P.m(r_px), 0.0), (P.m(r_px) * 1.05, P.m(bot_py - top_py) * 0.35),
+                 (P.m(r_px) * 0.8, P.m(bot_py - top_py) * 0.7), (P.m(r_px) * 0.25, P.m(bot_py - top_py) * 0.92),
+                 (0.0, P.m(bot_py - top_py))], tower_mat, segments=16, centre=(P.x(px), y, P.z(bot_py)), name="dome")
+    for px in (802, 860, 980, 1042):
+        for y in (ty0 + 0.06, ty1 - 0.06):
+            dome(px, 655, 700, 22, y)
+    dome(920, 645, 700, 28, ty0 - 0.02)
+    for px in (822, 875, 965, 1025):
+        for y in (ty0 + 0.14, ty1 - 0.14):
+            dome(px, 585, 610, 17, y)
+    dome(922, 490, 545, 27, ty0 + 0.12)
+    for px in (862, 892, 922, 952, 984):
+        K.lathe([(P.m(r), P.z(py)) for r, py in ((9, 472), (11, 462), (7, 452), (4, 445), (6, 440), (0.5, 430))],
+                tower_mat, segments=12, centre=(P.x(px), tc, 0.0), name="finial")
+    # ---- the peepal behind it
+    crown, trunk_ob = _peepal_tree(
+        K, (0, 0, 1844, 790), SHRINE_TRUNK, SHRINE_LIMBS, [], None, (300, 200, 1600, 800), P.m(1780) * 0.36,
+        (440, 10, 790),
+        exclude_wood=[SHRINE_TRUNK[3:], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2], SHRINE_LIMBS[2][:3],
+                      SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
+        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=7)
+    # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
+    red = K.colour((0.6, 0.06, 0.02), vary=0.12)
+    orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
+    for limb_pts, segs in ((SHRINE_LIMBS[4], [(1, 3), (4, 5)]), (SHRINE_LIMBS[5], [(1, 3), (5, 6)])):
+        for i0, i1 in segs:
+            a, b = limb_pts[i0], limb_pts[i1]
+            for mat in (red, orange):
+                wrap_limb(K, (P.x(a[0]), yt, P.z(a[1])), (P.x(b[0]), yt, P.z(b[1])), P.m((a[2] + b[2]) / 2), mat,
+                          5, P.m(2.5))
+            for k in range(7):
+                f = rng.uniform(0, 1)
+                x, z = P.x(a[0] + (b[0] - a[0]) * f), P.z(a[1] + (b[1] - a[1]) * f) - P.m((a[2] + b[2]) / 2) * 0.9
+                strand(K, (x, yt + rng.uniform(-0.3, 0.3), z), rng.uniform(0.3, 0.8), rng.choice([red, orange]),
+                       P.m(2.5))
+    for py in range(600, 770, 18):
+        ring_tube(K, P.x(905), yt, P.z(py), P.m(212), P.m(212), rng.choice([red, orange]), P.m(2.5),
+                  tilt=(rng.uniform(-0.05, 0.05), rng.uniform(0.0, 0.08)), wobble=0.03, name="thread")
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    skein = (r > 150) & (r - b > 110) & (g < 0.8 * r) & (P.rgba[..., 3] > 0.5)
+    skein = ndimage.binary_dilation(skein, iterations=1) & (P.rgba[..., 3] > 0.5)
+    for box in ((370, 470, 800, 800), (1020, 490, 1350, 790)):
+        K.leaves_only(box, mask_rule(skein, box))
+        for k in range(16):
+            cx, cy = rng.uniform(box[0] + 40, box[2] - 40), rng.uniform(box[1] + 40, box[3] - 40)
+            K.card_from_painting((cx - 70, cy - 70, cx + 70, cy + 70), (P.x(cx), yt - rng.uniform(0.2, 0.9), P.z(cy)),
+                                 yaw=rng.uniform(-40, 40), name="skein")
+    # ---- the kalash by the door: a painted pot of water, mango leaves and a coconut in its mouth
+    pot = K.projected(axis_x=P.x(1253), squeeze=0.93, keep=[(1214, 1300, 1296, 1392)])
+    prof = [(28, 1393), (36, 1385), (42, 1360), (40, 1330), (30, 1310), (18, 1302), (20, 1296), (16, 1292)]
+    K.lathe([(P.m(r), P.z(py)) for r, py in prof], pot, segments=24, centre=(P.x(1253), yb0 + 0.1, 0.0), name="kalash")
+    coconut = K.colour((0.35, 0.16, 0.05), vary=0.1)
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((14, 1296), (16, 1290), (12, 1280), (4, 1272), (0.5, 1268))], coconut,
+            segments=12, centre=(P.x(1253), yb0 + 0.1, 0.0), name="coconut")
+    K.leaves_only((1215, 1265, 1300, 1300), plant_pixels)
+    for yaw in (0, 60, -60, 120):
+        K.card_from_painting((1215, 1265, 1300, 1300), (P.x(1257), yb0 + 0.1, P.z(1282)), yaw=yaw, name="mango_leaves")
+    # ---- the beaten earth it stands on
+    earth(K, 905, 520, 2.4, (500, 1393, 1600, 1400), y=yt * 0.4, h=0.03)

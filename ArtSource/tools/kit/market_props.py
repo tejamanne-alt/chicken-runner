@@ -514,6 +514,11 @@ class Tray:
         P = self.P
         return Vector((P.x(px), self.y(py), P.z(py))) + self.n * h
 
+    def over(self, px, py, h=0.0):
+        """Like at(), but lifted h off the mat straight towards the camera, so it stays over the painted spot."""
+        P = self.P
+        return Vector((P.x(px), self.y(py) + h / self.n.y, P.z(py)))
+
 
 def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=5.0, height=None, goods=None):
     """The tray T: four bamboo poles along poles = (front-left, front-right, back-right, back-left) corner centres
@@ -554,7 +559,7 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
         h = -drop - 0.004 * math.sin(math.pi * u) * math.sin(math.pi * v)
         if height is not None:
             h += height(px, py)
-        return tuple(T.at(px, py, h))
+        return tuple(T.over(px, py, h))
     K.sheet(surf, nu, nv, top, name="mat", smooth=True)
     weave = K.colour(weave_box, vary=0.12, scale=30)
     K.sheet(lambda u, v: tuple(T.at(*corner_lerp(1 - u, v), -drop - 0.006)), 8, 6, weave, name="mat_under",
@@ -600,9 +605,10 @@ def chilli_mat(K):
     chilli = K.projected(squeeze=1.0, keep=[(30, 15, 220, 118)], inset=1)
     for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
         r = P.m(min(5.0, max(3.6, w * 0.75)))
-        A = T.at(ax, ay, height(ax, ay) - r * 0.1)
-        B = T.at(bx, by, height(bx, by) - r * 0.4)
-        pod(K, tuple(A), tuple(B), r, r * 0.35, chilli, bend=tuple(T.n * r * 0.5), n=6, seg=6, name="chilli")
+        # lying on the heap, whole (half-buried ones read as scribbles of ink)
+        A = T.over(ax, ay, height(ax, ay) + r * 0.5)
+        B = T.over(bx, by, height(bx, by) + r * 0.3)
+        pod(K, tuple(A), tuple(B), r, r * 0.45, chilli, bend=tuple(T.n * r * 0.3), n=6, seg=6, name="chilli")
 
 
 def papad(K, T, px, py, r_px, lift, mat, tilt=(0.0, 0.0), name="papad"):

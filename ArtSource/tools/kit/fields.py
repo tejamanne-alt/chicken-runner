@@ -738,35 +738,43 @@ def yz_prism(K, outline_yz, x0, x1, mat, name="yz_prism"):
     return ob
 
 
-def relief(K, inside, depth, mat, step=6, box=None, skirt=0.0, name="relief"):
-    """Ground painted in a look-down made real: a surface through every opaque painted pixel (inside(px, py) ->
-    bool, sampled every `step` px over box) at depth(px, py) metres, so from the front it is exactly the painting's
-    shape, and from the side its rows run back as a slope or a bank; its outline is walled down to z = skirt (the
-    sides of the mound) so it is solid from every side."""
+def relief(K, inside, depth, mat, step=6, box=None, name="relief"):
+    """Ground painted in a look-down, made real: a surface through every painted pixel inside(px, py) (sampled every
+    `step` px over box) at depth(px, py) metres, so from the front it is exactly the painting's shape, and from the
+    side its rows run back as a slope or a bank. Its outline is walled down as far as the painting reaches below it
+    in that column (never past the painted outline, which stays the model's outline from the front), so it is solid
+    from the sides and back."""
     P = K.paint
     x0, y0, x1, y1 = box or (0, 0, P.w, P.h)
     xs = list(np.arange(x0, x1 + 0.1, step))
     ys = list(np.arange(y0, y1 + 0.1, step))
     ok = np.array([[bool(inside(min(px, P.w - 1), min(py, P.h - 1))) for px in xs] for py in ys])
+    solid = ndimage.binary_closing(P.rgba[..., 3] > 0.5, iterations=3)
+    rows = np.arange(P.h)[:, None] * solid
+    lowest = rows.max(axis=0)                              # the lowest painted row of each column
     bm = bmesh.new()
     vid = {}
 
     def vert(i, j):
         if (i, j) not in vid:
             px, py = min(xs[i], P.w - 1), min(ys[j], P.h - 1)
-            vid[(i, j)] = bm.verts.new((P.x(px), depth(px, py), P.z(py)))
-        return vid[(i, j)]
+            vid[(i, j)] = (bm.verts.new((P.x(px), depth(px, py), P.z(py))), px)
+        return vid[(i, j)][0]
     for j in range(len(ys) - 1):
         for i in range(len(xs) - 1):
             if ok[j, i] and ok[j, i + 1] and ok[j + 1, i] and ok[j + 1, i + 1]:
                 bm.faces.new([vert(i, j + 1), vert(i + 1, j + 1), vert(i + 1, j), vert(i, j)])
+    col = {v: px for v, px in vid.values()}
     bm.edges.ensure_lookup_table()
     low = {}
     for e in [e for e in bm.edges if len(e.link_faces) == 1]:
         a, b = e.verts
-        for v in (a, b):
+        za, zb = [P.z(lowest[int(col[v])]) for v in (a, b)]
+        if a.co.z - za < 0.01 and b.co.z - zb < 0.01:
+            continue                                       # the painted bottom edge: nothing below it
+        for v, z in ((a, za), (b, zb)):
             if v not in low:
-                low[v] = bm.verts.new((v.co.x, v.co.y, skirt))
+                low[v] = bm.verts.new((v.co.x, v.co.y, min(v.co.z, z)))
         f = bm.faces.new([a, b, low[b], low[a]])
         f.normal_update()
         out = (a.co + b.co) / 2 - e.link_faces[0].calc_center_median()
@@ -778,10 +786,10 @@ def relief(K, inside, depth, mat, step=6, box=None, skirt=0.0, name="relief"):
     return ob
 
 
-def alpha_at(K, thresh=0.5):
-    """inside(px, py) for relief(): the painting is opaque there."""
-    A = K.paint.rgba[..., 3]
-    return lambda px, py: A[int(py), int(px)] > thresh
+def alpha_at(K, thresh=0.5, close=3):
+    """inside(px, py) for relief(): the painting is opaque there (its pinholes closed)."""
+    A = ndimage.binary_closing(K.paint.rgba[..., 3] > thresh, iterations=close) if close else K.paint.rgba[..., 3] > thresh
+    return lambda px, py: bool(A[int(py), int(px)])
 
 
 @fmodel("canal_bridge", "fields", kind="prop", atlas=1024)
@@ -808,11 +816,13 @@ def canal_bridge(K):
 
     def in_channel(px, py):
         return py >= r0 - 2 and xl(py) - 5 <= px <= xr(py) + 5
-    earth = two_tiles(K, (10, 64, 46, 92), (10, 64, 46, 92), soften=0.3)
-    relief(K, lambda px, py: opaque(px, py) and not in_channel(px, py), depth, earth, step=5, name="banks")
+    earth = K.colour((10, 64, 46, 92), vary=0.2, scale=8)
+    under_slab = lambda px, py: 70 <= px <= 466 and 44 <= py <= 99
+    relief(K, lambda px, py: opaque(px, py) and not in_channel(px, py) and not under_slab(px, py), depth, earth,
+           step=5, name="banks")
     wtile = K.tile((236, 160, 330, 250), vary=0.04)
     relief(K, lambda px, py: in_channel(px, py) and (opaque(px, py) or py < 100), depth, wtile, step=5,
-           box=(170, 90, 470, 291), skirt=0.0, name="water")
+           box=(170, 90, 470, 291), name="water")
     # dressed stone walls lining the channel under the bridge, and the big rocks on the banks
     walls = [(104, 98, 170, 150), (160, 100, 198, 172), (330, 92, 392, 172), (390, 94, 452, 150),
              (398, 140, 472, 202), (418, 180, 500, 242)]
@@ -821,12 +831,12 @@ def canal_bridge(K):
     for x0, y0, x1, y1 in walls:
         cx = (x0 + x1) / 2
         d = P.m(x1 - x0) * 0.8
-        K.block(P.x(cx), depth(cx, y1) + d * 0.3, (P.z(y1) + P.z(y0)) / 2 - 0.04, P.m(x1 - x0), d,
+        K.block(P.x(cx), depth(cx, y1) + d * 0.5, (P.z(y1) + P.z(y0)) / 2 - 0.04, P.m(x1 - x0), d,
                 P.m(y1 - y0) + 0.08, stone, bevel=0.02, jitter=0.006, name="wall")
     for x0, y0, x1, y1 in rocks:
         cx = (x0 + x1) / 2
         w, h = P.m(x1 - x0), P.m(y1 - y0)
-        K.boulder(P.x(cx), depth(cx, y1) + w * 0.25, P.z(y1) + h * 0.45, w, w * 0.75, h * 1.05, stone,
+        K.boulder(P.x(cx), depth(cx, y1) + w * 0.3, P.z(y1) + h * 0.45, w * 0.88, w * 0.6, h * 0.95, stone,
                   lumps=0.15, name="rock")
     # the slabs of the bridge: a front row and a back row laid across on the banks
     slab = K.tile((140, 66, 236, 92), vary=0.05)

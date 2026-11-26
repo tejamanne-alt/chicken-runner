@@ -1060,8 +1060,7 @@ def house_potter(K):
                thickness=0.25, shag=0.05, fringe=0.1)
     K.tube([P.pt(506, 28, D / 2), P.pt(1414, 28, D / 2)], P.m(17), K.colour((560, 15, 1300, 40), vary=0.06),
            segments=10, name="ridge_pole")
-    K.leaves_only((440, 40, 1310, 470), lambda rgb: (rgb[..., 1].astype(int) > rgb[..., 0].astype(int) - 25) &
-                  (rgb[..., 1].astype(int) > rgb[..., 2].astype(int) + 10))
+    K.leaves_only((440, 40, 1310, 470), olive_leaf_pixels)
     zr, ze = P.z(40), P.z(474)
     ang = math.degrees(math.atan2(zr - ze, D / 2 + 0.55))
     for i, (cx, cy) in enumerate(((640, 250), (860, 260), (1040, 240), (1180, 230))):
@@ -1211,6 +1210,41 @@ def pumpkin(K, px, py, rx_px, ry_px, y, mat, stalk, ribs=8, name="pumpkin"):
     return ob
 
 
+def cover_cards(K, box, keep, step, size, place, thresh=0.2, jitter=0.25, name="leaf"):
+    """Cards over every cell of a step-px grid inside box where the painting's plant (keep(rgb) -> bool) covers more
+    than `thresh` of the cell, so from the front nothing of it is missing; place(cx, cy) -> (y, yaw, pitch) puts
+    each one (on the roof, off its edge, on the wall)."""
+    P = K.paint
+    x0, y0, x1, y1 = [int(v) for v in box]
+    rgb = (P.rgba[y0:y1, x0:x1, :3] * 255).astype(np.uint8)
+    m = keep(rgb) & (P.rgba[y0:y1, x0:x1, 3] > 0.5)
+    n = 0
+    for cy in np.arange(y0 + step / 2, y1, step):
+        for cx in np.arange(x0 + step / 2, x1, step):
+            a, b = int(cy - y0 - step / 2), int(cx - x0 - step / 2)
+            if m[max(0, a):a + step, max(0, b):b + step].mean() < thresh:
+                continue
+            jx, jy = K.rng.uniform(-jitter, jitter) * step, K.rng.uniform(-jitter, jitter) * step
+            px, py = cx + jx, cy + jy
+            y, yaw, pitch = place(px, py)
+            K.card_from_painting((px - size / 2, py - size / 2, px + size / 2, py + size / 2), (P.x(px), y, P.z(py)),
+                                 yaw=yaw, pitch=pitch, name=name)
+            n += 1
+    return n
+
+
+def olive_leaf_pixels(rgb):
+    """Leaves painted in olive and khaki greens (a gourd vine, palm fronds), which plant_pixels takes for straw: by
+    hue (yellow-green and greener, saturated, not near-white), with the dark ink round them."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    span = np.maximum(1, mx - mn)
+    hue = np.where(mx == r, 60.0 * (g - b) / span, np.where(mx == g, 120 + 60.0 * (b - r) / span, 240.0))
+    leaf = (hue > 36) & (hue < 160) & ((mx - mn) > 35) & (mx < 240)
+    leaf = ndimage.binary_opening(ndimage.binary_closing(leaf, iterations=2), iterations=1)
+    return leaf | ((mx < 80) & ndimage.binary_dilation(leaf, iterations=3))
+
+
 @model("house_thatched_hut", "lane", kind="building", atlas=2048)
 def house_thatched_hut(K):
     """A mud hut under a deep hipped thatch with a ridge pole, a pumpkin vine climbing over its right side with five
@@ -1263,24 +1297,9 @@ def house_thatched_hut(K):
         pumpkin(K, px, py, rx, ry, D - fy(px, py + ry * 0.6) + P.m(rx) * 0.8, pk, stalk)
     # the vine: leaves cut from the painting (not the pumpkins), each laid just off the roof where it is painted,
     # down the wall below the eave, round the right corner, and over the ridge onto the back
-    def vine_keep(rgb):
-        from kitlib import plant_pixels
-        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
-        orange = (r > 170) & (g > 80) & (g < 175) & (b < 95) & (r - g > 60)
-        pale = np.minimum(np.minimum(r, g), b) > 175                   # the cut-out's white halo, not a flower
-        return plant_pixels(rgb) & ~orange & ~pale
+    vine_keep = olive_leaf_pixels
     K.leaves_only((460, 10, 1455, 905), vine_keep)
-    alpha = P.rgba[..., 3]
-    placed = 0
-    for i in range(400):
-        if placed >= 46:
-            break
-        cx, cy = K.rng.uniform(470, 1450), K.rng.uniform(20, 895)
-        if alpha[int(cy), int(cx)] < 0.5:
-            continue
-        rgb = (P.rgba[int(cy), int(cx), :3] * 255).astype(int)
-        if not (rgb[1] > rgb[2] + 15 and rgb[1] >= rgb[0] - 20):
-            continue
+    def place(cx, cy):
         v = min(1.0, max(0.0, (P.z(cy) - ze) / (zr - ze)))
         xa, xb = P.px(eave[0] + (ridge[0] - eave[0]) * v), P.px(eave[1] + (ridge[1] - eave[1]) * v)
         on_roof = cy < 600 and xa + 30 < cx < xb - 30
@@ -1288,9 +1307,8 @@ def house_thatched_hut(K):
             y = -0.1 if cx < 1353 else -0.05
         else:
             y = fy(cx, cy) - (0.06 if on_roof else 0.03)
-        K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (P.x(cx), y, P.z(cy)), yaw=K.rng.uniform(-35, 35),
-                             pitch=K.rng.uniform(-15, 15) - (35 if on_roof else 0), name="vine")
-        placed += 1
+        return y, K.rng.uniform(-30, 30), K.rng.uniform(-15, 15) - (35 if on_roof else 0)
+    cover_cards(K, (460, 10, 1455, 905), vine_keep, 70, 110, place, name="vine")
     side_cards(K, (1222, 640, 1450, 880), 8, (100, 100), X1, 1, (0.1, 1.4))
     for i in range(10):
         cx, cy = K.rng.uniform(800, 1250), K.rng.uniform(40, 330)
@@ -1306,3 +1324,128 @@ def house_thatched_hut(K):
         K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (xh + 0.06, K.rng.uniform(ya + 0.2, yb2 - 0.2),
                              ze + (zr - ze) * v), yaw=90 + K.rng.uniform(-30, 30), pitch=K.rng.uniform(-20, 20) + 35,
                              name="vine_hip")
+
+
+def ribbon(K, top, bottom, width_px, y_top, y_bot, mat, sag=0.0, name="ribbon", n=10):
+    """A band of cloth or yarn hanging from top (px, py) to bottom (px, py), width_px wide, at depths y_top..y_bot,
+    bellying out `sag` m in the middle."""
+    P = K.paint
+    (tx, ty), (bx, by) = top, bottom
+
+    def f(u, v):
+        px = tx + (bx - tx) * v + (u - 0.5) * width_px
+        py = ty + (by - ty) * v
+        y = y_top + (y_bot - y_top) * v - sag * math.sin(math.pi * v)
+        return (P.x(px), y, P.z(py))
+    return K.sheet(f, 3, n, mat, name=name, thickness=0.01)
+
+
+@model("house_weaver", "lane", kind="building", atlas=2048)
+def house_weaver(K):
+    """A weaver's lime-washed house under a tall hipped thatch, an indigo skirting, its front opened as a workshop
+    alcove holding a pit loom with a pink saree on it; outside, a drying rack hung with hanks of dyed yarn and a
+    spinning wheel."""
+    P = K.paint
+    D = 4.6
+    K.front_min = 0.15
+    halo_exclude(K, [(0, 0, 1671, 480), (1340, 590, 1671, 1143)])
+    halo_exclude(K, [(1346, 600, 1660, 1080)], near=400)          # the white the cut-out filled in behind the rack
+    white = K.tile((200, 560, 440, 900), size=1.0, vary=0.04, soften=0.45)
+    indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
+    thatch_m = K.tile((500, 120, 800, 380), size=0.8, vary=0.06, soften=0.25)
+    earth = K.tile((200, 1092, 1300, 1130), size=1.0, vary=0.08)
+    brown = K.colour((495, 560, 520, 700), vary=0.06)
+    timber = K.colour((560, 600, 568, 750), vary=0.08)
+    X0, X1 = P.x(152), P.x(1345)
+    body = K.box(X0, X1, 0.0, D, 0.0, P.z(452), white, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(925), indigo, name="skirting")
+    K.box(P.x(150), P.x(1665), -0.9, D + 0.25, 0.0, P.z(1090), earth, bevel=0.04, name="ground")
+    eave = (P.x(5), P.x(1495), -0.62, D + 0.62)
+    ridge = (P.x(375), P.x(1125))
+    hip_thatch(K, eave, ridge, P.z(448), P.z(30), thatch_m, thickness=0.26, shag=0.05, fringe=0.1)
+    K.tube([P.pt(375, 26, D / 2), P.pt(1125, 26, D / 2)], P.m(16), K.colour((600, 15, 900, 38), vary=0.06),
+           segments=10, name="ridge_pole")
+    # the workshop alcove, lined with its dark mud plaster, and its floor
+    ad = 1.7
+    zt = P.z(452)
+    K.cut(body, P.x(491), P.x(1001), -0.05, ad, 0.0, zt + 0.02)
+    xa, xb = P.x(491), P.x(1001)
+    K.box(xa, xa + 0.03, 0.0, ad, 0.0, zt, brown, name="alcove_l")
+    K.box(xb - 0.03, xb, 0.0, ad, 0.0, zt, brown, name="alcove_r")
+    K.box(xa, xb, ad - 0.03, ad, 0.0, zt, brown, name="alcove_back")
+    K.box(xa, xb, 0.0, ad, zt - 0.03, zt, brown, name="alcove_ceiling")
+    K.box(xa, xb, -0.02, ad, P.z(1090), P.z(989), K.colour((520, 960, 980, 985), vary=0.08), name="alcove_floor")
+    # the loom: front legs, back posts, top beam, breast beam with the saree over it, reed and sley, heddle cords,
+    # the cloth beam, a crossbar and the treadle
+    yf, yb = 0.45, 1.35
+    for x0, x1, y, top in ((525, 548, yf, 772), (947, 973, yf, 772), (545, 569, yb, 507), (937, 955, yb, 507)):
+        K.box(P.x(x0), P.x(x1), y - 0.04, y + 0.04, P.z(989), P.z(top), timber, bevel=0.005, name="loom_post")
+    K.box(P.x(535), P.x(970), yb - 0.05, yb + 0.05, P.z(544), P.z(525), timber, bevel=0.005, name="top_beam")
+    for x in (545, 955):
+        K.box(P.x(x) - 0.03, P.x(x) + 0.03, yf, yb, P.z(544), P.z(530), timber, name="top_rail")
+        K.box(P.x(x) - 0.03, P.x(x) + 0.03, yf, yb, P.z(925), P.z(909), timber, name="low_rail")
+    K.box(P.x(522), P.x(975), yf - 0.05, yf + 0.05, P.z(782), P.z(761), timber, bevel=0.005, name="breast_beam")
+    K.box(P.x(577), P.x(924), yf + 0.25, yf + 0.3, P.z(743), P.z(725), timber, bevel=0.004, name="sley")
+    K.box(P.x(592), P.x(908), yf + 0.26, yf + 0.29, P.z(725), P.z(699), K.colour((600, 705, 900, 720), vary=0.1),
+          name="reed")
+    for x in (600, 903):
+        K.box(P.x(x) - 0.012, P.x(x) + 0.012, yf + 0.26, yf + 0.29, P.z(720), P.z(554), timber, name="sley_sword")
+    cord = K.colour((0.55, 0.45, 0.32), vary=0.1)
+    for x in (613, 640, 658, 856, 882):
+        K.tube([P.pt(x, 489, yf + 0.5), P.pt(x, 699, yf + 0.5)], 0.007, cord, segments=5, name="heddle_cord")
+    warp = K.colour((0.6, 0.12, 0.25), vary=0.1)
+    K.box(P.x(610), P.x(877), yf, yb - 0.1, P.z(764), P.z(760), warp, name="warp")
+    saree = K.projected(axis_x=P.x(745), squeeze=1.0, keep=[(612, 756, 875, 871)], inset=2)
+    def cloth(u, v):
+        px = 610 + 267 * u
+        if v < 0.25:
+            t = v / 0.25
+            return (P.x(px), yf + 0.06 - 0.12 * t, P.z(758) + 0.03 * math.sin(math.pi * t))
+        t = (v - 0.25) / 0.75
+        return (P.x(px), yf - 0.07 + 0.01 * math.sin(u * 9), P.z(762) - (P.z(762) - P.z(873)) * t)
+    K.sheet(cloth, 16, 12, saree, name="saree", thickness=0.006)
+    K.tube([P.pt(550, 842, yf + 0.05), P.pt(947, 842, yf + 0.05)], P.m(12), timber, segments=10, name="cloth_beam")
+    K.box(P.x(545), P.x(952), yf - 0.03, yf + 0.03, P.z(925), P.z(909), timber, name="crossbar")
+    K.box(P.x(719), P.x(812), yf + 0.1, yf + 0.6, P.z(940), P.z(924), timber, name="treadle")
+    K.panel((931, 634, 965, 663), yb - 0.06, name="note")
+    # the drying rack outside, with its hanks of dyed yarn, and the spinning wheel
+    yr = -0.55
+    rack = K.colour((1188, 700, 1205, 1000), vary=0.08)
+    for x0, x1, top in ((1183, 1211, 598), (1582, 1605, 619)):
+        for y in (yr - 0.3, yr + 0.3):
+            K.box(P.x(x0), P.x(x1), y - 0.035, y + 0.035, P.z(1074), P.z(top), rack, bevel=0.005, name="rack_post")
+        K.box(P.x(x0) - 0.04, P.x(x1) + 0.04, yr - 0.45, yr + 0.45, P.z(1114), P.z(1074), rack, bevel=0.008,
+              name="rack_foot")
+    for py, xl in ((659, 1150), (816, 1072), (970, 1153)):
+        K.tube([P.pt(xl, py, yr - 0.3), P.pt(1658, py, yr - 0.3)], P.m(8), rack, segments=8, name="rod")
+    K.tube([P.pt(1150, 659, yr + 0.3), P.pt(1658, 659, yr + 0.3)], P.m(8), rack, segments=8, name="rod_back")
+    K.box(P.x(1211), P.x(1582), yr - 0.03, yr + 0.03, P.z(1074), P.z(1053), rack, name="base_rail")
+    yarn = K.projected(squeeze=1.0, keep=[(1222, 650, 1575, 995)], inset=2)
+    for top, bot, w, dy in (((1335, 700), (1305, 955), 45, 0.08), ((1300, 662), (1245, 960), 55, -0.02),
+                            ((1345, 662), (1395, 985), 60, -0.04), ((1387, 665), (1430, 975), 60, -0.05),
+                            ((1440, 665), (1480, 970), 45, -0.06), ((1487, 665), (1540, 970), 55, -0.07)):
+        ribbon(K, top, bot, w, yr - 0.3 + dy * 0.3, yr - 0.3 + dy, yarn, sag=0.04, name="yarn")
+        ribbon(K, top, (bot[0], bot[1] - 10), w * 0.9, yr - 0.24, yr + 0.15, yarn, sag=-0.05, name="yarn_back")
+    wheel = K.colour((1120, 760, 1140, 900), vary=0.08)
+    hub = P.pt(1132, 827, yr - 0.45)
+    for ex, ey in ((1077, 767), (1135, 725), (1158, 733), (1227, 754), (1056, 851), (1103, 943), (1145, 956),
+                   (1227, 890)):
+        K.tube([hub, P.pt(ex, ey, yr - 0.45)], P.m(5), wheel, segments=6, name="spoke")
+        K.tube([(hub[0], hub[1] + 0.14, hub[2]), P.pt(1132 + (ex - 1132) * 0.95, 827 + (ey - 827) * 0.95, yr - 0.31)],
+               P.m(5), wheel, segments=6, name="spoke_back")
+    pts = [P.pt(1132 + 88 * math.cos(a), 827 + 88 * math.sin(a), yr - 0.38) for a in np.linspace(0, 2 * math.pi, 25)]
+    K.tube(pts, 0.006, cord, segments=4, cap=False, name="drive_string")
+    K.tube([P.pt(1053, 824, yr - 0.38), P.pt(1192, 824, yr - 0.38)], P.m(8), wheel, segments=8, name="axle_beam")
+    for y in (yr - 0.5, yr - 0.26):
+        K.box(P.x(1072), P.x(1098), y - 0.025, y + 0.025, P.z(1074), P.z(820), wheel, name="wheel_leg")
+    K.box(P.x(1060), P.x(1110), yr - 0.55, yr - 0.2, P.z(1090), P.z(1074), wheel, name="wheel_base")
+    # the back and the sides: a plank back door, small barred windows
+    door = K.colour((0.2, 0.1, 0.045), vary=0.1)
+    K.box(P.x(700), P.x(880), D - 0.02, D + 0.03, P.z(925), P.z(560), door, name="back_door")
+    for x0, x1 in ((688, 700), (880, 892)):
+        K.box(P.x(x0), P.x(x1), D - 0.02, D + 0.05, P.z(925), P.z(548), timber, name="back_door_frame")
+    K.box(P.x(688), P.x(892), D - 0.02, D + 0.05, P.z(560), P.z(548), timber, name="back_door_frame")
+    iron = K.colour((0.04, 0.03, 0.03), vary=0.05)
+    dark = K.colour((0.04, 0.03, 0.03), vary=0.0)
+    for side in (-1, 1):
+        side_window(K, body, side, D * 0.55, P.z(820), P.z(640), 0.6, timber, iron, dark)

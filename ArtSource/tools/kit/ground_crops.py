@@ -671,7 +671,7 @@ def tuft(K, n=5):
                          normal=(0, -0.4, 0.8))
     yaws = [180 / n * (k + 0.5) + K.rng.uniform(-8, 8) for k in range(n)]
     ring_cards(K, box, foot, yaws, y=P.m(4), scale=(0.78, 0.94), spread=P.m(box[2] - box[0]) * 0.08, name="tuft")
-    crown(K, foot, P.m(box[2] - box[0]) * 0.13, P.m(box[3] - box[1]) * 0.09)
+    crown(K, foot, P.m(box[2] - box[0]) * 0.07, P.m(box[3] - box[1]) * 0.07)
 
 
 def crown(K, foot, r, h):
@@ -679,10 +679,10 @@ def crown(K, foot, r, h):
     ground, hidden behind the painted blades from the front."""
     P = K.paint
     fx, fy = foot
-    base = K.colour((fx - 12, fy - 14, fx + 12, fy - 2), vary=0.12, pct=35)
+    base = K.colour((fx - 12, fy - 14, fx + 12, fy - 2), vary=0.12, pct=12)
     z0 = P.z(fy)
-    K.lathe([(r, 0.0), (r * 1.05, z0 * 0.5), (r, z0), (r * 0.75, z0 + h * 0.6), (r * 0.3, z0 + h), (0.0, z0 + h * 1.05)],
-            base, segments=14, centre=(P.x(fx), r * 1.15, 0.0), wobble=0.12, name="crown")
+    K.lathe([(r * 1.2, 0.0), (r, z0 * 0.6), (r * 0.9, z0), (r * 0.6, z0 + h * 0.6), (r * 0.2, z0 + h), (0.0, z0 + h * 1.05)],
+            base, segments=12, centre=(P.x(fx), r * 0.8, 0.0), wobble=0.12, name="crown")
 
 
 @model("tuft_1", "ground", kind="prop")
@@ -840,3 +840,172 @@ def cart_rut(K):
              for x in range(4, P.w, 14)]
     earth = K.colour((300, 160, 500, 180), vary=0.12, scale=20)
     tri_sheet(K, a, 20, yfn, earth, eps=2.5, back_y=back, extra=extra, name="earth")
+
+
+# ====================================================================== crop strips: the field and its rows
+def field_bed(K, x0, x1, top_py, depth, top_box=None, top_rgb=None, ridges=0.0, rows=(), wet=False, name="bed"):
+    """A strip of field `depth` metres deep under its crop: a slab of the painted soil (or water) from the ground up
+    to the painted bed's top edge (top_py), its front the painting, its cut ends and back the same layers of soil
+    carried through, its top a sheet of the painted soil (or water) cut from the painting, raised in low ridges along
+    the rows (`rows`: their y; `ridges`: how high)."""
+    P = K.paint
+    side = K.projected(squeeze=1.0, keep=[(x0 + 4, top_py, x1 - 4, P.h)], inset=3)
+    top_z = P.z(top_py)
+    X0, X1 = P.x(x0), P.x(x1)
+    K.box(X0, X1, -depth / 2, depth / 2, 0.0, top_z - 0.004, side, name=name)
+    top = (K.tile(top_box, vary=0.08, soften=0.35) if top_box else
+           K.colour(top_rgb, vary=0.1, scale=3.0))
+    nx = max(8, int((X1 - X0) / 0.12))
+    ny = max(6, int(depth / 0.05))
+
+    def height(x, y):
+        h = 0.0
+        if ridges and rows:
+            d = min(abs(y - r) for r in rows)
+            h += ridges * max(0.0, 1 - (d / 0.12) ** 2)
+        if not wet:
+            h += 0.006 * math.sin(x * 9.1 + y * 3.3) * math.sin(y * 13.0 + 1.0)
+        # no lift at the slab's front edge, so it meets the painted front cleanly
+        return h * min(1.0, (y + depth / 2) / 0.06)
+    K.grid_plane(X0 + 0.002, X1 - 0.002, -depth / 2 + 0.001, depth / 2 - 0.002, top_z - 0.003, nx, ny, top,
+                 height=height, name=name + "_top")
+    return top_z
+
+
+def plant_band_cards(K, x0, x1, top_py, base_py, y, n, yaw=12.0, name="crop"):
+    """The front row of a crop: the painted plants from x0 to x1 px cut into n slices that tile it exactly, each a
+    card standing where it is painted at depth y (turned a little), so from the front the row is the painting."""
+    P = K.paint
+    edges = np.linspace(x0, x1, n + 1)
+    out = []
+    for a, b in zip(edges, edges[1:]):
+        cx = (a + b) / 2
+        c = K.card_from_painting((a - 1, top_py, b + 1, base_py), P.pt(cx, (top_py + base_py) / 2, y + K.rng.uniform(-0.03, 0.03)),
+                                 yaw=K.rng.uniform(-yaw, yaw), name=name, normal=(0, -0.5, 0.8))
+        out.append(c)
+    return out
+
+
+def plant_rows_cards(K, src_x, width_px, top_py, base_py, rows, x_range, step_px, scale=(0.82, 0.98), yaw=40.0,
+                     cross=True, name="crop"):
+    """Rows of plants behind the front one: along each row (y in `rows`), every step_px across x_range, a card of
+    a plant cut from the painting (width_px wide, from a random spot among src_x), turned up to `yaw` degrees, a
+    little smaller than the painted ones (so the row behind does not rise over the painted outline), and a second
+    card crossed with it, so each plant is a plant from the side too."""
+    P = K.paint
+    for y in rows:
+        x = x_range[0] + K.rng.uniform(0, step_px)
+        while x < x_range[1]:
+            for k in range(2 if cross else 1):
+                sx = float(K.rng.choice(src_x)) + K.rng.uniform(-step_px * 0.2, step_px * 0.2)
+                sx = float(np.clip(sx, x_range[0] + width_px / 2, x_range[1] - width_px / 2))
+                box = (sx - width_px / 2, top_py, sx + width_px / 2, base_py)
+                s = K.rng.uniform(*scale)
+                h = P.m(base_py - top_py) * s
+                a = K.rng.uniform(-yaw, yaw) + (90 if k else 0)
+                cen = (P.x(x) + K.rng.uniform(-0.02, 0.02), y + K.rng.uniform(-0.04, 0.04), P.z(base_py) + h / 2)
+                K.card_from_painting(box, cen, yaw=a, scale=s, name=name, normal=(0, -0.3, 0.9))
+            x += step_px * K.rng.uniform(0.8, 1.2)
+
+
+def head_tube(K, pts_px, radii_px, y, mat, segments=8, name="head"):
+    """A grain head (a sorghum head, a paddy panicle) or any fat, curved, tapering shape: a tube along painted points
+    with a radius at each, closed at both ends."""
+    P = K.paint
+    return K.tube([P.pt(px, py, y) for px, py in pts_px], [P.m(r) for r in radii_px], mat, segments=segments,
+                  name=name)
+
+
+def components(mask, min_area=0):
+    """Bounding boxes, pixel counts and masks of the connected pieces of a boolean mask (largest first)."""
+    lab, n = ndimage.label(mask)
+    out = []
+    for i, sl in enumerate(ndimage.find_objects(lab), 1):
+        if sl is None:
+            continue
+        m = lab[sl] == i
+        area = int(m.sum())
+        if area < min_area:
+            continue
+        out.append(((sl[1].start, sl[0].start, sl[1].stop, sl[0].stop), area, m, sl))
+    return sorted(out, key=lambda c: -c[1])
+
+
+def pca_axis(m, offset):
+    """The long axis of a piece of mask: its two ends (px), and its half-width across that axis."""
+    ys, xs = np.nonzero(m)
+    pts = np.stack([xs + offset[0], ys + offset[1]], 1).astype(float)
+    c = pts.mean(0)
+    _, _, vt = np.linalg.svd(pts - c, full_matrices=False)
+    d = vt[0]
+    if d[1] < 0:
+        d = -d                                              # pointing down the picture
+    t = (pts - c) @ d
+    w = np.abs((pts - c) @ np.array((-d[1], d[0])))
+    return c + d * t.min(), c + d * t.max(), d, float(np.percentile(w, 90))
+
+
+# ====================================================================== the strips
+@model("crop_strip_3", "fields", kind="prop", atlas=2048)
+def crop_strip_3(K):
+    """A strip of tall sorghum (cholam) heavy with grain: rows of plants 1.5 m deep on a bed of red earth, each a
+    stalk with its long arching leaves and a compact grain head at the top, nodding."""
+    P = K.paint
+    depth = 1.5
+    clean_front(K, plant_mask(P) | (np.arange(P.h)[:, None] > 380) & alpha_mask(P))
+    rgb = P.rgba[..., :3] * 255
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    a = alpha_mask(P)
+    gold = a & (r > 140) & (r - b > 85) & (r > g) & (np.arange(P.h)[:, None] < 230)
+    gold = ndimage.binary_opening(ndimage.binary_closing(gold, iterations=2), iterations=2)
+    heads = [c for c in components(gold, 300)]
+    top_py, base_py = 398, 399
+    rows_y = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
+    field_bed(K, 28, 1197, top_py, depth, top_box=(300, 386, 420, 396), ridges=0.03, rows=rows_y)
+    # the grain heads, the stalks under them, the leaves
+    grain = K.tile((515, 15, 545, 95), vary=0.08, soften=0.15)
+    stalk = K.colour((172, 300, 182, 390), vary=0.06)
+    card_mask(K, plant_mask(P) & ~ndimage.binary_dilation(gold, iterations=2))
+    painted = []
+    for box, area, m, sl in heads:
+        top_end, bot_end, d, hw = pca_axis(m, (box[0], box[1]))
+        painted.append((top_end, bot_end, hw))
+    for k, y in enumerate(rows_y):
+        for (te, be, hw) in painted:
+            dx = 0.0 if k == 0 else K.rng.uniform(-45, 45)
+            dz = 0.0 if k == 0 else K.rng.uniform(-25, 15)
+            if k > 0 and K.rng.uniform() < 0.25:
+                continue
+            t0, t1 = te + (dx, dz), be + (dx, dz)
+            mid = (t0 + t1) / 2 + np.array((K.rng.uniform(-3, 3), 0))
+            pts = [t0, t0 + (t1 - t0) * 0.15, mid, t0 + (t1 - t0) * 0.85, t1]
+            rad = [hw * 0.3, hw * 0.8, hw * 0.95, hw * 0.8, hw * 0.45]
+            yy = y + (0 if k == 0 else K.rng.uniform(-0.06, 0.06))
+            head_tube(K, pts, rad, yy, grain, segments=8)
+            # the stalk: from under the head down to the soil, leaning a little
+            foot = (t1[0] + K.rng.uniform(-12, 12), base_py + 2)
+            sp = [t1 + (0, 2), (t1 + np.array(foot)) / 2 + (K.rng.uniform(-4, 4), 0), foot]
+            K.tube([P.pt(px, py, yy) for px, py in sp], [P.m(3.2), P.m(3.8), P.m(4.5)], stalk, segments=6,
+                   name="stalk")
+    # leaves: the front row is the painting, the rows behind it its plants mixed and turned
+    plant_band_cards(K, 28, 1197, 70, base_py, rows_y[0], 22, yaw=10)
+    src = list(range(120, 1110, 30))
+    plant_rows_cards(K, src, 110, 120, base_py, rows_y[1:], (40, 1185), 80, scale=(0.75, 0.95), yaw=35)
+
+
+@model("crop_strip_1", "fields", kind="prop", atlas=2048)
+def crop_strip_1(K):
+    """A paddy seedbed under water: a bed of mud flooded a hand deep, the water's front the painting (the mud, the
+    water, the submerged stems), its top the water's surface, and clumps of young paddy standing in it in rows
+    1.5 m deep."""
+    P = K.paint
+    depth = 1.5
+    clean_front(K, no_halo(P))
+    top_py, base_py = 104, 112
+    rows_y = [-depth / 2 + 0.18 + k * 0.28 for k in range(5)]
+    field_bed(K, 8, 1183, top_py, depth, top_rgb=(100, 106, 128, 116), wet=True)
+    plants = plant_mask(P) & (np.arange(P.h)[:, None] < base_py + 4)
+    card_mask(K, plants)
+    plant_band_cards(K, 30, 1170, 0, base_py, rows_y[0], 18, yaw=10)
+    src = [75, 150, 250, 310, 370, 435, 500, 570, 640, 735, 810, 880, 960, 1040, 1110]
+    plant_rows_cards(K, src, 70, 0, base_py, rows_y[1:], (30, 1170), 72, scale=(0.8, 1.0), yaw=40)
