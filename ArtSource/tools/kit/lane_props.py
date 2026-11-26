@@ -68,6 +68,49 @@ def prof(P, pts):
     return [(P.m(r), P.z(y)) for r, y in pts]
 
 
+def mirrored(K, axis_x, side=-1, squeeze=0.93, keep=None, exclude=(), inset=4, dz=0.0):
+    """Like K.projected, for a round thing whose other half is hidden on the painting (behind a neighbour): it wears
+    only the painting's `side` half (-1 left, +1 right of axis_x, metres), mirrored onto the hidden half, so the hidden
+    side shows the same bands and highlights instead of the neighbour's shadow."""
+    from kitlib import Mat, _image
+    key = ("mirror", round(axis_x, 4), side, squeeze, tuple(tuple(b) for b in keep) if keep else None,
+           tuple(tuple(b) for b in exclude), inset, round(dz, 4))
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(f"{K.name}_mirror{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=None):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if v is None:
+                continue
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    off = op("MULTIPLY", op("ABSOLUTE", op("SUBTRACT", sep.outputs["X"], axis_x)), squeeze * side)
+    x = op("ADD", off, axis_x)
+    u = op("ADD", op("DIVIDE", x, P.W), 0.5)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], dz), P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
 def smooth_noise(K, shape, sigma, wrap_u=True):
     """A smooth random field (rows v, columns u) of unit spread; wrap_u makes it seamless round a turned thing."""
     from scipy import ndimage
@@ -229,9 +272,13 @@ def brass_pots(K):
           (29, 59.5)], (28.5, 60.2)),
     ]
     for i, (cx, cy, keep, excl, pr, (mr, mtop)) in enumerate(pots):
-        brass = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=keep, exclude=excl, inset=2)
+        if i == 0:
+            # the big pot's right side is hidden behind the small one: it wears its left half all round
+            brass = mirrored(K, P.x(cx), -1, squeeze=0.93, keep=keep, exclude=excl, inset=2)
+        else:
+            brass = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=keep, exclude=excl, inset=2)
         K.lathe(prof(P, pr), brass, segments=40, centre=(P.x(cx), cy, 0), wobble=0.004, name=f"pot{i}", cap=False)
         mouth(K, cx, cy, mr, mtop, 22, inside, segments=40)
-    earth(K, 155, 176, 190, 150, 0.33, (60, 176, 90, 186), tilt=tilt,
+    earth(K, 155, 176, 189, 138, 0.33, (60, 176, 90, 186), tilt=tilt,
           grass=[(10, 138, 52, 172), (258, 150, 296, 178)],
           pebbles=[(130, 177, 8), (290, 180, 6)], pebble_box=(125, 172, 135, 178))
