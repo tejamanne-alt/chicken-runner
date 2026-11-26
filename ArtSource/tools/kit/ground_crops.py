@@ -174,37 +174,6 @@ def clean_front(K, mask):
     P.rgba = a.astype(np.float32) / 255
 
 
-def dome(K, poly_px, height, y_back, mat, rings=((1.0, 0.0), (0.94, 0.42), (0.74, 0.82), (0.42, 1.0)), top=None,
-         jitter=0.06, name="stone"):
-    """A faceted stone on a painted outline: the outline (px) is its foot on the back plane y_back, and it rises
-    towards the front (-y) through rings shrunk towards `top` (px, default the outline's middle) to a flat top face
-    `height` metres out. Lying face up in the game it is a stone resting on the ground."""
-    P = K.paint
-    pts = np.array(poly_px, float)
-    c = np.array(top) if top is not None else pts.mean(0)
-    bm = bmesh.new()
-    ring_vs = []
-    for k, (s, f) in enumerate(rings):
-        ring = []
-        for i, (px, py) in enumerate(pts):
-            j = 1 + (K.rng.uniform(-jitter, jitter) if 0 < k < len(rings) - 1 else 0)
-            qx, qy = c + (np.array((px, py)) - c) * s * j
-            ring.append(bm.verts.new((P.x(qx), y_back - height * f * (1 + K.rng.uniform(-jitter, jitter) * (k > 0)),
-                                      P.z(qy))))
-        ring_vs.append(ring)
-    n = len(pts)
-    for r0, r1 in zip(ring_vs, ring_vs[1:]):
-        for i in range(n):
-            j = (i + 1) % n
-            bm.faces.new([r0[i], r0[j], r1[j], r1[i]])
-    bm.faces.new(ring_vs[0])
-    bm.faces.new(list(reversed(ring_vs[-1])))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    ob = _obj(name, bm, mat, smooth=False)
-    K.parts.append(ob)
-    return ob
-
-
 # ====================================================================== stones
 def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="stone"):
     """A faceted stone whose front outline is a painted one (px), set down by `lift` metres onto the ground, `depth`
@@ -1002,26 +971,12 @@ def crop_strip_3(K):
 @model("crop_strip_1", "fields", kind="prop", atlas=2048)
 def crop_strip_1(K):
     """A paddy seedbed under water: a bed of mud flooded a hand deep, the water's front the painting (the mud, the
-    water, the submerged stems), its top the water's surface, and clumps of young paddy standing in it in rows
-    1.5 m deep."""
-    P = K.paint
+    water, the submerged stems), its top the water's surface, and clumps of young paddy standing in it, planted on a
+    grid 1.5 m deep."""
     depth = 1.5
-    clean_front(K, no_halo(P, haze=False))
-    top_py, base_py = 104, 112
-    rows_y = [-depth / 2 + 0.18 + k * 0.28 for k in range(5)]
-    field_bed(K, 8, 1183, top_py, depth, top_rgb=(100, 106, 128, 116), wet=True)
-    plants = plant_mask(P) & (np.arange(P.h)[:, None] < base_py + 4)
-    card_mask(K, plants)
-    plant_band_cards(K, 30, 1170, 0, base_py, rows_y[0], 18, yaw=10)
-    src = [75, 150, 250, 310, 370, 435, 500, 570, 640, 735, 810, 880, 960, 1040, 1110]
-    plant_rows_cards(K, src, 70, 0, base_py, rows_y[1:], (30, 1170), 72, scale=(0.8, 1.0), yaw=40)
-
-
-# stooks of crop_strip_2: (axis px, top of the ears py, tie py, painted foot py, foot radius px); a tie of None is a
-# stook thatched to a point (a spike of straw at its top) instead of tied under a fan of ears
-STOOKS = [(150, 8, 45, 158, 54), (236, 38, 60, 142, 42), (305, 28, 50, 126, 38), (450, 10, 42, 140, 56),
-          (545, 50, None, 122, 28), (606, 10, 45, 150, 54), (750, 38, None, 132, 48), (863, 38, 55, 138, 41),
-          (912, 18, 40, 118, 34), (964, 28, 50, 140, 46), (1042, 10, 45, 150, 50)]
+    rows = [-depth / 2 + 0.18 + k * 0.28 for k in range(5)]
+    seedbed(K, 8, 1183, 104, 112, depth, rows, (100, 106, 128, 116),
+            [75, 150, 190, 250, 310, 370, 435, 500, 570, 640, 735, 810, 880, 960, 1040, 1110], 70, 72, 18)
 
 
 def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=1.0):
@@ -1142,7 +1097,7 @@ def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", no
 
 
 def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_px, features=(), make=None,
-              scale=(0.8, 0.97), yaw=35.0, cross=True, front_yaw=8.0, src=None, name="crop"):
+              scale=(0.8, 0.97), yaw=35.0, cross=True, front_yaw=8.0, src=None, at=None, name="crop"):
     """A crop in rows: the front row (rows[0]) is the painting from x0 to x1 cut into `slices` cards standing where
     they are painted; each row behind has a plant every ~step_px: a card of a random painted plant (width_px wide)
     with a second crossed through it, a little smaller. Solid parts (features) go wherever their card puts them."""
@@ -1154,8 +1109,12 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
                    K.rng.uniform(-front_yaw, front_yaw), 1.0, features, make, name=name)
     src = src if src is not None else list(np.arange(x0 + width_px / 2, x1 - width_px / 2, 10))
     for y in rows[1:]:
+        # planted on a grid (each plant behind a painted one: `at`), or every ~step_px along the row
+        spots = ([a + K.rng.uniform(-0.08, 0.08) * step_px for a in at] if at is not None else None)
         x = x0 + K.rng.uniform(0, step_px)
-        while x < x1:
+        while (spots and len(spots)) or (spots is None and x < x1):
+            if spots is not None:
+                x = spots.pop(0)
             base_yaw = K.rng.uniform(-yaw, yaw)
             s = K.rng.uniform(*scale)
             for k in range(2 if cross else 1):
@@ -1164,7 +1123,10 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
                 plant_card(K, box, (P.x(x) + K.rng.uniform(-0.03, 0.03), y + K.rng.uniform(-0.05, 0.05), z_foot),
                            base_yaw + (90 + K.rng.uniform(-20, 20) if k else 0), s * (0.92 if k else 1.0),
                            features, make, name=name)
-            x += step_px * K.rng.uniform(0.8, 1.2)
+            if spots is None:
+                x += step_px * K.rng.uniform(0.8, 1.2)
+            elif not spots:
+                break
 
 
 def blobs(P, mask, min_area, max_py=None):
@@ -1354,3 +1316,60 @@ def paddy_tall(K):
     """A row of tall green paddy, 1.2 m deep: dense clumps of blades with green heads arching out of them."""
     rows = [-0.6 + 0.15 + k * 0.22 for k in range(5)]
     paddy(K, 0, 294, 294, rows, 9, 110, 85, (300, 292, 360, 298))
+
+
+def seedbed(K, x0, x1, top_py, base_py, depth, rows, water_box, src, width_px, step_px, slices):
+    """Young paddy in a flooded bed: a slab of mud and water (its front the painting: the mud, the water and the
+    stems under it), its top the water's surface, clumps of seedlings standing in it in rows."""
+    P = K.paint
+    clean_front(K, no_halo(P, haze=False))
+    field_bed(K, x0, x1, top_py, depth, top_rgb=water_box, wet=True)
+    card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < base_py + 4))
+    crop_rows(K, x0 + 10, x1 - 10, 0, base_py, rows, P.z(base_py), slices, width_px, step_px, src=src, at=src,
+              scale=(0.8, 0.95), yaw=40)
+
+
+@model("paddy_young", "fields", kind="prop")
+def paddy_young(K):
+    """Young paddy just transplanted: clumps of bright seedlings standing in rows 1 m deep in a flooded bed (mud
+    under a hand of clear water)."""
+    P = K.paint
+    rows = [-0.5 + 0.14 + k * 0.18 for k in range(5)]
+    seedbed(K, 9, 796, 140, 150, 1.0, rows, (560, 140, 600, 148),
+            [95, 200, 320, 420, 530, 625, 710], 105, 105, 8)
+
+
+@model("sugarcane", "fields", kind="prop", atlas=2048)
+def sugarcane(K):
+    """A stand of sugarcane 1.5 m deep: tall jointed canes, yellow ringed with brown at every node, leaning a little
+    every way, their long arching leaves in a tangle over the top."""
+    P = K.paint
+    clean_front(K, plant_mask(P) | (np.arange(P.h)[:, None] > 462) & alpha_mask(P))
+    depth = 1.5
+    rows = [-depth / 2 + 0.15 + k * 0.3 for k in range(5)]
+    bed_py = 464
+    field_bed(K, 128, 834, bed_py, depth, top_rgb=(0.12, 0.07, 0.035), ridges=0.05, rows=rows)
+    z0 = P.z(bed_py)
+    cane = K.tile((292, 380, 299, 455), vary=0.06, soften=0.1)
+    leafy_py = 300
+    # the canes: the painted ones where they are painted (jointed: swollen a little at every node), and more in
+    # every row behind
+    xs = [114, 123, 133, 150, 171, 192, 212, 231, 240, 262, 294, 312, 328, 337, 365, 385, 412, 441, 465, 488, 503,
+          514, 528, 552, 572, 597, 621, 643, 665, 693, 714, 751, 776, 797, 820]
+    node = 25
+    for k, y in enumerate(rows):
+        for x in (xs if k == 0 else list(np.arange(120, 830, 26) + K.rng.uniform(-10, 10, len(np.arange(120, 830, 26))))):
+            top = K.rng.uniform(250, 295)
+            lean = K.rng.uniform(-16, 16)
+            yy = y + (K.rng.uniform(-0.03, 0.03) if k else 0.0)
+            dy = K.rng.uniform(-0.08, 0.08)
+            n = max(2, int((bed_py - top) / node * 2)) if k == 0 else 3
+            pts, rad = [], []
+            for i in range(n + 1):
+                t = i / n
+                pts.append(P.pt(x + lean * t, bed_py + 2 + (top - bed_py - 2) * t, yy + dy * t))
+                rad.append(P.m(4.6) * (1.12 if (k == 0 and i % 2 == 0) else 1.0) * (1 - 0.15 * t))
+            K.tube(pts, rad, cane, segments=6, name="cane")
+    # the leaves: the painted tangle in front, and rows of it behind, on top of the canes
+    card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < 330))
+    crop_rows(K, 8, 946, 0, leafy_py + 30, rows, P.z(leafy_py + 30), 12, 120, 90, scale=(0.85, 1.0), yaw=35)

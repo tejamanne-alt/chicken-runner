@@ -1609,6 +1609,23 @@ def finial(K, px, top_py, base_py, y, mat, r_px=10, name="finial"):
                    centre=(P.x(px), y, 0.0), name=name)
 
 
+def drop_ground_faces(K, below=0.004):
+    """Removes the downward faces of parts standing on the ground (never seen, but they take atlas space), on every
+    part without a boolean cut."""
+    import bmesh
+    for ob in K.parts:
+        if any(m.type == "BOOLEAN" for m in ob.modifiers):
+            continue
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        bm.normal_update()
+        kill = [f for f in bm.faces if f.normal.z < -0.99 and max(v.co.z for v in f.verts) < below]
+        if kill:
+            bmesh.ops.delete(bm, geom=kill, context="FACES")
+            bm.to_mesh(ob.data)
+        bm.free()
+
+
 PILLAR_VH = [(33, 1172), (32, 1163), (22, 1146), (22, 1140), (18, 1135), (18, 1125), (25, 1118), (28, 1100),
              (27, 1075), (25, 1058), (23, 1000), (20, 950), (18, 920), (21.5, 915), (20, 895), (19.5, 890),
              (19.5, 882), (18, 878), (18, 862)]
@@ -1778,3 +1795,4 @@ def house_village_head(K):
     for yaw in (0, 45, -45, 90):
         K.card_from_painting((695, 990, 895, 1176), (P.x(795), yt + K.rng.uniform(-0.04, 0.04), P.z(1083)),
                              yaw=yaw, name="tulsi")
+    drop_ground_faces(K)

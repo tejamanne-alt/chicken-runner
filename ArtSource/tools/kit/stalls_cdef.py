@@ -695,8 +695,8 @@ def stall_c_2(K):
     unify_cards(K)
 
 
-def hip_thatch(K, x0, x1, y0, y1, z_eave, rx0, rx1, yr, z_ridge, mat, thick=0.12, shag=0.04, fringe=0.07, nu=180,
-               nv=10, name="thatch"):
+def hip_thatch(K, x0, x1, y0, y1, z_eave, rx0, rx1, yr, z_ridge, mat, thick=0.12, shag=0.04, fringe=0.07, nu=140,
+               nv=8, name="thatch"):
     """A hipped thatch: its eave the rectangle x0..x1, y0..y1 at z_eave, its ridge the segment rx0..rx1 at (yr,
     z_ridge); every eave point rises straight to the nearest ridge point, so the long sides are slopes and the ends
     hipped triangles. Lumpy straw (shag), a ragged fringe hanging at the eave (fringe), thick enough to read."""
@@ -760,7 +760,7 @@ def hanging_cloth(K, x0, x1, y, z_top, z_bot, mat, back_drop=0.06, folds=3, amp=
             z = z_top - (z_top - zb) * v
             yy = y + sgn * (r + 0.004 + wave + 0.01 * v)
             return (x, yy, z)
-        return K.sheet(f, 24, 6, mat, name=name, thickness=0.004)
+        return K.sheet(f, 14, 4, mat, name=name, thickness=0.004)
     side(-1, z_bot)
     side(1, z_bot + back_drop)
     # over the rail
@@ -768,7 +768,7 @@ def hanging_cloth(K, x0, x1, y, z_top, z_bot, mat, back_drop=0.06, folds=3, amp=
         x = x0 + (x1 - x0) * u
         a = math.pi * v
         return (x, y - (r + 0.004) * math.cos(a), z_top + (r + 0.004) * math.sin(a))
-    K.sheet(top, 12, 4, mat, name=name + "_fold", thickness=0.004)
+    K.sheet(top, 8, 2, mat, name=name + "_fold", thickness=0.004)
 
 
 def mirror_y(K, ob, y0):
@@ -804,8 +804,8 @@ def stall_c_3(K):
     # ---------------------------------------------------------------- the roof
     straw = ktile(K, (250, 30, 450, 100), vary=0.06)
     y_e0, y_e1, yr = -0.66, 1.46, 0.4
-    hip_thatch(K, P.x(25), P.x(945), y_e0, y_e1, Z(168), P.x(122), P.x(868), yr, Z(20), straw, thick=0.1,
-               shag=0.035, fringe=P.m(14))
+    hip_thatch(K, P.x(38), P.x(932), y_e0, y_e1, Z(152), P.x(132), P.x(858), yr, Z(34), straw, thick=0.1,
+               shag=0.03, fringe=P.m(13))
     pole = K.projected(axis_x=P.x(142), squeeze=0.9, keep=[(128, 175, 158, 470), (130, 525, 156, 580)], inset=2)
     pole2 = K.projected(axis_x=P.x(838), squeeze=0.9, keep=[(824, 175, 852, 420)], inset=2)
     bam = K.colour((132, 300, 152, 400), vary=0.08)
@@ -816,7 +816,7 @@ def stall_c_3(K):
             t = (y - y_e0) / (yr - y_e0)
         else:
             t = (y_e1 - y) / (y_e1 - yr)
-        return Z(168) + (Z(20) - Z(168)) * max(0.0, min(1.0, t)) - 0.07
+        return Z(152) + (Z(34) - Z(152)) * max(0.0, min(1.0, t)) - 0.09
     for x_px, mat in ((142, pole), (838, pole2)):
         x = P.x(x_px)
         bamboo(K, (x, yr, ground(x, yr) - 0.04), (x, yr, roof_under(x, yr) - 0.06), P.m(12), mat, nodes=0.45,
@@ -881,8 +881,8 @@ def stall_c_3(K):
         w = ax.cross(u)
         n = int(L / 0.11)
         pts = []
-        for i in range(n * 10 + 1):
-            t = i / (n * 10)
+        for i in range(n * 6 + 1):
+            t = i / (n * 6)
             ang = 2 * math.pi * n * t
             pts.append(tuple(a + ax * (L * t) + (u * math.cos(ang) + w * math.sin(ang)) * (rr + 0.006)))
         K.tube(pts, 0.007, cord, segments=5, name="cord")

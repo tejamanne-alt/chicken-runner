@@ -886,3 +886,147 @@ def lamp_step(K):
     diya(K, 54.5, -0.38, 200, 221, 24.5, (44, 172, 58, 199), (30, 199, 80, 221))
     diya(K, 97.5, -0.15, 162, 180, 22.5, (90, 136, 100, 161), (75, 161, 121, 180))
     diya(K, 138.5, 0.18, 125, 144, 21.5, (131, 103, 141, 125), (117, 124, 161, 144))
+
+
+def cartwheel(K, cx_px, cy_px, y, r_out_px, r_tyre_px, r_in_px, hub_px, n_spokes, wood, spoke_mat, iron, width=0.09,
+              hub_len=0.32, name="wheel"):
+    """A spoked cartwheel turning about the y axis: an iron tyre, the wooden felloe, n spokes and a long hub."""
+    P = K.paint
+    c = Vector((P.x(cx_px), y, P.z(cy_px)))
+
+    def about_y(ob):
+        return orient(ob, (90, 0, 0), pivot=tuple(c))
+    ro, rt, ri, rh = P.m(r_out_px), P.m(r_tyre_px), P.m(r_in_px), P.m(hub_px)
+    w = width
+    about_y(K.lathe([(rt, -w / 2), (ro, -w / 2 * 0.95), (ro, w / 2 * 0.95), (rt, w / 2), (rt, -w / 2)], iron,
+                    segments=40, centre=tuple(c), name="tyre", smooth=False, cap=False))
+    about_y(K.lathe([(ri, -w / 2), (rt, -w / 2), (rt, w / 2), (ri, w / 2), (ri, -w / 2)], wood, segments=40,
+                    centre=tuple(c), name="felloe", smooth=False, cap=False))
+    about_y(K.lathe([(0.0, -hub_len / 2), (rh * 0.75, -hub_len / 2), (rh, -hub_len * 0.25), (rh * 1.05, 0.0),
+                     (rh, hub_len * 0.25), (rh * 0.75, hub_len / 2), (0.0, hub_len / 2)], wood, segments=20,
+                    centre=tuple(c), name="hub"))
+    for k in range(n_spokes):
+        a = 2 * math.pi * (k + 0.5) / n_spokes
+        d = Vector((math.cos(a), 0, math.sin(a)))
+        K.tube([tuple(c + d * rh * 0.9), tuple(c + d * (ri + 0.01))], [P.m(6.5), P.m(5.0)], spoke_mat, segments=6,
+               name="spoke")
+
+
+@model("coconut_cart", "market", kind="prop", atlas=2048)
+def coconut_cart(K):
+    """A bullock cart heaped with tender coconuts: a plank bed with posts and rails on two big spoked wheels with
+    iron tyres, its beams running forward into the pole and the yoke, two coconuts cut open on top; the pair of
+    bullocks are painted cut-outs standing in the yoke."""
+    P = K.paint
+    X, Z = P.x, P.z
+    # the bullocks (animals: painted cut-outs): the near one hides the pole's end with its hump
+    K.figure([(498, 530), (496, 480), (503, 440), (508, 400), (510, 340), (515, 330), (715, 330), (710, 300),
+              (716, 278), (728, 262), (748, 256), (765, 262), (778, 278), (790, 262), (792, 235), (797, 226),
+              (808, 248), (818, 268), (832, 274), (842, 262), (846, 240), (850, 226), (858, 248), (860, 268),
+              (872, 280), (880, 335), (910, 350), (912, 395), (880, 410), (855, 440), (850, 470), (848, 574),
+              (500, 574)], y=-0.38, name="bullock_near")
+    K.figure([(848, 574), (850, 470), (855, 440), (880, 410), (912, 395), (910, 350), (880, 335), (872, 280),
+              (880, 270), (895, 262), (902, 240), (905, 225), (915, 240), (925, 262), (940, 270), (955, 262),
+              (962, 240), (964, 225), (975, 250), (980, 270), (1000, 290), (1012, 330), (1030, 352), (1036, 375),
+              (1028, 394), (1000, 397), (985, 410), (975, 440), (962, 455), (952, 500), (962, 574)],
+             y=0.36, name="bullock_far")
+    wood = K.tile((85, 238, 140, 296), vary=0.08, soften=0.2)
+    beam_m = K.tile((60, 302, 125, 326), vary=0.08, soften=0.2)
+    dark = K.colour((0.07, 0.04, 0.03), vary=0.08)
+    iron = K.colour((0.06, 0.06, 0.07), vary=0.1)
+    W = 0.6                                    # the bed's half width
+    # the bed: floor, side boards, top rails, posts, end boards
+    K.box(X(28), X(600), -W, W, Z(306), Z(300), wood, name="floor")
+    for s in (-1, 1):
+        y0, y1 = sorted((s * W, s * (W + 0.04)))
+        K.box(X(38), X(597), y0, y1, Z(300), Z(232), wood, name="side")
+        y0, y1 = sorted((s * (W - 0.02), s * (W + 0.07)))
+        K.box(X(28), X(598), y0, y1, Z(232), Z(218), beam_m, bevel=0.01, name="top_rail")
+        for x in (44, 77, 145, 210, 275, 340, 415, 480, 545, 594):
+            y0, y1 = sorted((s * W, s * (W + 0.065)))
+            K.box(X(x - 5), X(x + 5), y0, y1, Z(300), Z(232), beam_m, bevel=0.006, name="post")
+        y0, y1 = sorted((s * (W - 0.04), s * (W + 0.06)))
+        K.box(X(8), X(605), y0, y1, Z(328), Z(300), beam_m, bevel=0.012, name="beam")
+        # the beams run forward and meet in the pole
+        a, b = Vector((X(600), s * (W + 0.01), Z(314))), Vector((X(700), s * 0.06, Z(314)))
+        mid, d = (a + b) / 2, b - a
+        K.block(mid.x, mid.y, mid.z, d.length + 0.06, 0.1, P.m(28), beam_m,
+                rot=(0, 0, math.degrees(math.atan2(d.y, d.x))), bevel=0.012, name="pole_arm")
+    for x0, x1 in ((28, 38), (590, 600)):
+        K.box(X(x0), X(x1), -W, W, Z(300), Z(225), wood, name="end_board")
+    K.box(X(690), X(800), -0.07, 0.07, Z(326), Z(302), beam_m, bevel=0.012, name="pole")
+    # the yoke across the two necks, its pegs
+    yoke = K.tile((768, 292, 800, 322), vary=0.06)
+    K.tube([(X(792), -0.62, Z(306)), (X(792), 0.62, Z(306))], P.m(14), yoke, segments=12, name="yoke")
+    for yy in (-0.58, -0.18, 0.18, 0.58):
+        K.tube([(X(792), yy, Z(325)), (X(792), yy, Z(285))], P.m(3.5), beam_m, segments=6, name="peg")
+    # the axle and the two wheels
+    K.tube([(X(285), -0.86, Z(402)), (X(285), 0.86, Z(402))], 0.045, dark, segments=10, name="axle")
+    spoke = K.colour((300, 300, 330, 330), vary=0.1)
+    for y in (-0.8, 0.8):
+        cartwheel(K, 285, 402, y, 156, 148, 113, 32, 14, wood, spoke, iron)
+    # the heap of coconuts: a lumpy core, the painted ones in front where they are, more over its top and back
+    skin = K.tile((200, 100, 228, 128), vary=0.12, soften=0.15)
+    top = [(40, 215), (60, 170), (100, 120), (150, 75), (200, 38), (260, 34), (310, 28), (360, 55), (420, 62),
+           (480, 92), (540, 125), (600, 215)]
+
+    def top_py(px):
+        for (x0, y0), (x1, y1) in zip(top, top[1:]):
+            if x0 <= px <= x1:
+                return y0 + (y1 - y0) * (px - x0) / (x1 - x0)
+        return 215.0
+    bed = Z(225)
+    rr = P.m(26)
+
+    def heap(u, v):
+        px = 34 + 562 * u
+        H = max(0.0, Z(top_py(px)) - bed - rr * 1.3)
+        th = math.pi * v
+        return (X(px), -(W - 0.05) * math.cos(th), bed + H * math.sin(th) ** 0.7)
+    K.sheet(heap, 28, 10, skin, name="heap_core", smooth=True)
+    front = [(202, 58, 25), (257, 61, 29), (310, 52, 28), (212, 97, 29), (271, 116, 29), (163, 95, 24),
+             (313, 93, 27), (130, 115, 18), (168, 148, 28), (225, 148, 28), (110, 156, 28), (318, 153, 26),
+             (273, 160, 20), (75, 197, 25), (127, 199, 26), (181, 196, 28), (240, 199, 28), (288, 200, 22),
+             (318, 198, 24), (366, 77, 26), (426, 84, 27), (395, 125, 26), (447, 130, 27), (482, 112, 25),
+             (345, 140, 26), (525, 148, 27), (485, 162, 24), (453, 182, 26), (378, 200, 27), (435, 205, 25),
+             (490, 210, 22), (575, 212, 25)]
+    placed = []
+    for px, py, r in front:
+        # the bottom row stands at the bed's near edge, the higher ones further in, on the heap
+        f = min(1.0, max(0.0, (py - 40) / 170))
+        y = -(W - 0.08) * (0.55 + 0.45 * f) + P.m(r) * 0.2
+        ellipsoid(K, (X(px), y, Z(py)), (P.m(r) * 1.02, P.m(r) * 0.98, P.m(r) * 0.95), skin, rot=(0, 0, K.rng.uniform(0, 90)),
+                  seg=10, rings=7, lumps=0.04, name="coconut")
+        placed.append(Vector((X(px), y, Z(py))))
+    n = 0
+    tries = 0
+    while n < 48 and tries < 3000:
+        tries += 1
+        u, v = K.rng.uniform(0.02, 0.98), K.rng.uniform(0.35, 1.0)
+        p = Vector(heap(u, v))
+        r = P.m(K.rng.uniform(22, 28))
+        nrm = Vector((0, -math.cos(math.pi * v) * 0.6, 0.8)).normalized()
+        c = p + nrm * r * 0.55
+        if any((c - q).length < r * 1.75 for q in placed):
+            continue
+        placed.append(c)
+        ellipsoid(K, tuple(c), (r * 1.02, r * 0.98, r * 0.95), skin, rot=(0, 0, K.rng.uniform(0, 90)), seg=8, rings=6,
+                  lumps=0.05, name="coconut")
+        n += 1
+    # two coconuts cut open on top, their white flesh to the sky and the camera
+    flesh = K.colour((0.85, 0.82, 0.7), vary=0.05)
+    for px, py, r in ((513, 183, 26), (564, 178, 26)):
+        c = Vector((X(px), -(W - 0.12), Z(py)))
+        R = P.m(r)
+        cup = K.lathe([(0.0, -R * 0.75), (R * 0.6, -R * 0.62), (R * 0.95, -R * 0.25), (R, 0.0), (R * 0.82, 0.0),
+                       (R * 0.75, -R * 0.2), (0.0, -R * 0.35)], skin, segments=16, centre=tuple(c), name="cut_coconut",
+                      cap=False)
+        orient(cup, (-58, 0, 0), pivot=tuple(c))
+        disc = K.lathe([(R * 0.82, 0.0), (R * 0.75, -R * 0.2), (0.0, -R * 0.35)], flesh, segments=16,
+                       centre=tuple(c), name="flesh", cap=False)
+        orient(disc, (-58, 0, 0), pivot=tuple(c))
+    # a few dry stalks sticking out of the heap
+    stalk = K.colour((0.25, 0.2, 0.1), vary=0.1)
+    for a, b in (((207, 42), (200, 10)), ((398, 75), (394, 40)), ((505, 110), (530, 68)), ((515, 118), (540, 92)),
+                 ((105, 125), (75, 110)), ((110, 112), (80, 95))):
+        K.tube([P.pt(*a, -0.3), P.pt(*b, -0.32)], P.m(2.2), stalk, segments=5, name="stalk", taper=0.5)

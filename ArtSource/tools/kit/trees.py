@@ -1282,7 +1282,7 @@ def shrine_tree(K):
         exclude_wood=[SHRINE_TRUNK[3:-2] + [(905, 340, 120)], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2],
                       SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
         crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=6,
-        crown_extra_keep=skein, bark_mat=K.tile((700, 330, 775, 440), vary=0.08, soften=0.15), root_dirs=(25, 155))
+        crown_extra_keep=skein, bark_mat=K.tile((1105, 362, 1158, 400), vary=0.1, soften=0.2), root_dirs=(55, 125))
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
@@ -1377,3 +1377,145 @@ def field_tree_1(K):
         a = rng.uniform(0, 2 * math.pi)
         K.boulder(P.x(455) + math.cos(a) * rng.uniform(1.0, 3.0), math.sin(a) * rng.uniform(1.0, 2.6), 0.06,
                   0.18, 0.14, 0.12, stone)
+
+
+def _trace_field_tree_2(K):
+    def rule(rgb):
+        r, g, b, mx, mn = chan(rgb)
+        return (mx - mn < 45) & (mx < 170) & (mx > 25) & ~((g > r + 3) & (g > b + 12)) & (r >= b)
+    mask = wood_mask(K, rule, boxes=[(0, 0, 525, 528)], exclude=[(160, 478, 208, 530), (312, 488, 352, 530),
+                                                                 (150, 518, 400, 560)], close=1, hole=300, min_area=40)
+    return mask, Wood(K, mask, root_px=(255, 525), spur=1.3, min_len=5)
+
+
+TRACE["field_tree_2"] = _trace_field_tree_2
+
+
+def sage_leaves(rgb):
+    """The pale sage-green leaves of the fields' trees (and their dark outlines), not their white cut-out halo."""
+    r, g, b, mx, mn = chan(rgb)
+    green = (g >= r - 4) & (g > b + 8) & (mx < 235)
+    keep = ndimage.binary_opening(ndimage.binary_closing(green, iterations=1), iterations=1)
+    keep |= (mx < 80) & ndimage.binary_dilation(keep, iterations=2)
+    return keep
+
+
+@model("field_tree_2", "fields", kind="prop", atlas=2048, leaves=1024)
+def field_tree_2(K):
+    """A gnarled old tree: a twisting, knotted trunk leaning one way then the other, crooked limbs splitting into
+    knobbly twigs, sprays of feathery sage leaves at their ends, grass tufts and stones on a patch of red earth."""
+    P = K.paint
+    rng = K.rng
+    mask, wood = TRACE["field_tree_2"](K)
+    crown = Crown(K, (0, 0, 525, 400), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.7)
+    wood.grow(spread=0.6, root_z_px=505, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.85))
+    bark = bark_material(K, mask, axis_x=P.x(275), squeeze=0.9)
+    thick, thin = wood.tubes(bark, fuse_r_px=4.0)
+    limbs = pick_limbs(wood, py_max=330, r_min=5, min_len=50, n=7)
+    picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 130), 0.0) for k, i in enumerate(limbs)]
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.85, fuse_r_px=4.0)
+    # the foot flares into roots round the back
+    for k in range(5):
+        a = math.radians(rng.uniform(20, 160) * (1 if k % 3 else -1))
+        x0, r0 = P.x(258), P.m(48)
+        K.tube([(x0 + math.cos(a) * r0 * 0.2, math.sin(a) * r0 * 0.2, P.z(470)),
+                (x0 + math.cos(a) * r0 * 0.9, math.sin(a) * r0 * 0.9, P.z(505)),
+                (x0 + math.cos(a) * r0 * 1.9, math.sin(a) * r0 * 1.9, P.z(522))],
+               [r0 * 0.45, r0 * 0.3, r0 * 0.1], bark, segments=10, name="root")
+        thick.append(K.parts[-1])
+    K.fuse(thick, voxel=0.025, faces=9000)
+    # the sprays of leaves
+    K.leaves_only((0, 0, 525, 410), sage_leaves)
+    crown.cards(220, (70, 60), "volume", yaw=85, pitch=45)
+    crown.cards(110, (80, 70), "front", yaw=30, pitch=20)
+    crown.cards(50, (70, 60), "back", yaw=30, pitch=20)
+    # grass tufts, stones, red earth
+    K.leaves_only((150, 470, 360, 530), plant_pixels)
+    for box, cx in (((160, 470, 210, 528), 185), ((312, 485, 352, 528), 332)):
+        for yaw in (0, 60, -60):
+            K.card_from_painting(box, (P.x(cx), rng.uniform(-0.5, -0.2), P.z((box[1] + box[3]) / 2)), yaw=yaw,
+                                 name="grass")
+    for k in range(5):
+        cx = rng.uniform(150, 360)
+        K.card_from_painting((cx - 20, 488, cx + 20, 528), (P.x(cx), rng.uniform(0.2, 0.9), P.z(508)),
+                             yaw=rng.uniform(-80, 80), name="grass")
+    stone = K.tile((250, 528, 272, 542), vary=0.08)
+    for px, w, h, y in ((170, 26, 16, -0.55), (212, 30, 18, -0.7), (258, 30, 20, -0.6), (310, 22, 14, -0.65),
+                        (360, 24, 14, -0.4), (230, 22, 14, 0.7), (300, 26, 16, 0.8), (190, 18, 12, 0.3)):
+        rock(K, px, 545, w, h, y, stone)
+    earth(K, 262, 128, 1.1, (180, 538, 340, 548), h=0.05)
+
+
+def culm(K, pts, radius, mat, node_mat, node_every=0.55, node_r=1.18, segments=8, name="culm"):
+    """A bamboo culm: a tube along pts (metres) with radii, and a raised ring at every node (node_every metres)."""
+    ob = K.tube(pts, radius, mat, segments=segments, name=name)
+    rr = list(radius) if isinstance(radius, (list, tuple)) else [radius] * len(pts)
+    seg = [(Vector(b) - Vector(a)).length for a, b in zip(pts, pts[1:])]
+    total = sum(seg)
+    s = node_every * K.rng.uniform(0.3, 0.9)
+    while s < total - 0.05:
+        acc, i = 0.0, 0
+        while i < len(seg) - 1 and acc + seg[i] < s:
+            acc += seg[i]
+            i += 1
+        t = (s - acc) / max(1e-6, seg[i])
+        c = Vector(pts[i]).lerp(Vector(pts[i + 1]), t)
+        d = (Vector(pts[i + 1]) - Vector(pts[i])).normalized()
+        r = (rr[i] + (rr[i + 1] - rr[i]) * t) * node_r
+        K.tube([tuple(c - d * r * 0.25), tuple(c + d * r * 0.25)], r, node_mat, segments=segments, name="node")
+        s += node_every * K.rng.uniform(0.85, 1.15)
+    return ob
+
+
+@model("field_tree_3", "fields", kind="prop", atlas=2048, leaves=1024)
+def field_tree_3(K):
+    """A clump of bamboo: a sheaf of tall jointed green culms rising from a knot of roots, fanning out and arching
+    over at the top under sprays of narrow leaves."""
+    P = K.paint
+    rng = K.rng
+    green = K.colour((250, 600, 258, 700), vary=0.12, scale=20)
+    node = K.colour((0.03, 0.045, 0.02), vary=0.1)
+    base_py, cx = 752, 245
+    crown = Crown(K, (0, 0, 511, 620), P.m(480) * 0.34, (250, 300), core=0.2, dome=(300, 0, 640), dome_pow=0.6)
+    # the culms painted in front, fanning out from the clump, then more all through the clump behind them
+    n = 13
+    for layer, count, yr in (("front", n, (-0.32, -0.05)), ("mid", 10, (-0.1, 0.15)), ("back", 13, (0.05, 0.4))):
+        for i in range(count):
+            f = (i + rng.uniform(-0.3, 0.3)) / (count - 1)
+            xb = 196 + 96 * f
+            x5 = 176 + 140 * f
+            y_base = rng.uniform(*yr)
+            spread = (f - 0.5) * 2
+            top_py = rng.uniform(140, 330) - 80 * (1 - abs(spread))
+            xt = x5 + spread * rng.uniform(40, 120)
+            yt = y_base * 2.5 + rng.uniform(-0.5, 0.5)
+            yt = float(np.clip(yt, -crown.extent(xt, top_py + 60) * 0.9, crown.extent(xt, top_py + 60) * 0.9))
+            pts_px = [(xb, base_py), (xb + (x5 - xb) * 0.5, 640), (x5, 520), (x5 + (xt - x5) * 0.45, 420),
+                      (x5 + (xt - x5) * 0.8, (420 + top_py) / 2), (xt, top_py)]
+            ys = [y_base, y_base + (yt - y_base) * 0.1, y_base + (yt - y_base) * 0.3, y_base + (yt - y_base) * 0.55,
+                  y_base + (yt - y_base) * 0.8, yt]
+            pts = [(P.x(px), y, P.z(py)) for (px, py), y in zip(pts_px, ys)]
+            r0 = P.m(rng.uniform(4.5, 5.8))
+            culm(K, pts, [r0, r0 * 0.95, r0 * 0.88, r0 * 0.75, r0 * 0.55, r0 * 0.3], green, node, node_every=0.6)
+    # the knot of roots at the foot: a low mound of earth and root, and the fibrous roots on cards round it
+    soil = K.colour((225, 780, 240, 800), vary=0.15)
+    K.lathe([(P.m(70), 0.0), (P.m(66), P.m(15)), (P.m(52), P.m(35)), (P.m(30), P.m(48)), (0.0, P.m(52))], soil,
+            segments=20, centre=(P.x(cx), 0.0, 0.0), scale_y=0.8, wobble=0.12, name="root_mound")
+
+    def roots_rule(rgb):
+        r, g, b, mx, mn = chan(rgb)
+        return (mx < 175) & (mx > 20) & (r >= g - 4)
+    K.leaves_only((100, 745, 420, 837), roots_rule)
+    for k in range(10):
+        a = rng.uniform(0, 360)
+        px = rng.uniform(140, 360)
+        K.card_from_painting((px - 50, 760, px + 50, 837), (P.x(px), rng.uniform(-0.4, 0.4), P.z(798)), yaw=a,
+                             name="roots")
+    K.card_from_painting((100, 755, 400, 837), (P.x(250), -0.3, P.z(796)), name="roots_front")
+    # the leaves
+    K.leaves_only((0, 0, 511, 640), sage_leaves)
+    crown.cards(200, (70, 60), "volume", yaw=85, pitch=45)
+    crown.cards(110, (80, 70), "front", yaw=30, pitch=20)
+    crown.cards(50, (70, 60), "back", yaw=30, pitch=20)
+    crown.cards(20, (70, 60), "top", yaw=90, region=(0, 0, 511, 250))
+    earth(K, 245, 120, 0.9, (225, 780, 240, 800), h=0.04)

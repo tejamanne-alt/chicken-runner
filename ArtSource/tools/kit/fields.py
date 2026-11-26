@@ -969,25 +969,72 @@ def canal_piece_2(K):
         return y0 + P.z(py) / k
     stone = K.tile((36, 212, 118, 272), soften=0.25, vary=0.04)
     slab_mat = K.tile((300, 84, 430, 118), soften=0.3, vary=0.04)
-    # the four piers: (painted x0, x1, bottom row, top row)
-    piers = [(166, 316, 320, 204), (22, 160, 285, 188), (506, 640, 195, 88), (402, 492, 166, 120)]
-    tops = []
-    for x0, x1, b, t in piers:
-        w = P.m(x1 - x0) * 0.9
-        h = P.z(t) - P.z(b)
-        d = 0.7
-        cy = ydep(b) + d / 2
-        cx = (P.x(x0) + P.x(x1)) / 2
-        stack(K, cx, cy, w, d, max(h, 0.55), 4, stone, z0=0.0)
-        tops.append((cx, cy, max(h, 0.55)))
-    # the two slabs laid from pier to pier: (painted top-middle of the near end, of the far end, width)
-    t = 0.26
-    H = max(h for _, _, h in tops) + t
-    for (nx, ny), (fx, fy), wid in (((192, 163), (596, 50), 0.56), ((58, 130), (478, 24), 0.54)):
-        a = (P.x(nx), y0 + (P.z(ny) - H) / k)
-        b = (P.x(fx), y0 + (P.z(fy) - H) / k)
-        L = math.hypot(b[0] - a[0], b[1] - a[1])
-        yaw = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
-        K.block((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, H - t / 2, L, wid, t, slab_mat, rot=(0, 0, yaw), bevel=0.07,
+    t, H, pd = 0.26, 0.86, 0.66
+    # each slab from its painted near end to its far end (top middle), and a pier under each end:
+    # (near end, far end, width, near pier (x0, x1, bottom row), far pier)
+    for (nx, ny), (fx, fy), wid, near, far in (
+            ((192, 163), (596, 50), 0.56, (166, 316, 320), (506, 640, 195)),
+            ((58, 130), (478, 24), 0.54, (22, 160, 285), (402, 492, 166))):
+        a_ = (P.x(nx), y0 + (P.z(ny) - H) / k)
+        b_ = (P.x(fx), y0 + (P.z(fy) - H) / k)
+        L = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+        yaw = math.degrees(math.atan2(b_[1] - a_[1], b_[0] - a_[0]))
+        K.block((a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2, H - t / 2, L, wid, t, slab_mat, rot=(0, 0, yaw), bevel=0.07,
                 jitter=0.008, name="slab")
+        for (x0, x1, bot), yf in ((near, a_[1] + 0.02), (far, b_[1] - pd - 0.05)):
+            zb = P.z(bot) - k * (yf - y0)                     # the bank it stands on, so its foot is where painted
+            stack(K, (P.x(x0) + P.x(x1)) / 2, yf + pd / 2, P.m(x1 - x0) * 0.9, pd, H - t - zb, 4, stone, z0=zb)
     shear(K, k, y0)
+
+
+def plan_box(K, origin, ua, up, a0, a1, p0, p1, z0, z1, mat, bevel=0.03, jitter=0.0, name="block"):
+    """A block in a plan turned along unit vector ua (and up, square to it): a0..a1 along ua, p0..p1 along up,
+    z0..z1, from origin (x, y)."""
+    ca, cp = (a0 + a1) / 2, (p0 + p1) / 2
+    cx = origin[0] + ua[0] * ca + up[0] * cp
+    cy = origin[1] + ua[1] * ca + up[1] * cp
+    yaw = math.degrees(math.atan2(ua[1], ua[0]))
+    return K.block(cx, cy, (z0 + z1) / 2, a1 - a0, p1 - p0, z1 - z0, mat, rot=(0, 0, yaw), bevel=bevel,
+                   jitter=jitter, name=name)
+
+
+@fmodel("canal_piece_3", "fields", kind="prop", atlas=1024)
+def canal_piece_3(K):
+    """Ghat steps down to the canal: three tiers of big dressed stone blocks, each tier set back and up from the
+    one below, a shallow stone washing tray on the ground before the lowest step and a brass pot beside it. Built
+    true and level, then raised towards the back as the painting looks down on it."""
+    P = K.paint
+    K.front_min = 0.1
+    k, al = 0.36, math.radians(28)
+    ua = (math.cos(al), math.sin(al))                      # along the steps (receding to the right)
+    up = (-math.sin(al), math.cos(al))                     # up the steps (back and to the left)
+    O = (P.x(132), -0.55)                                  # the lowest tier's near corner, on the ground
+    y0 = O[1] - P.z(300) / k
+    stone = K.tile((30, 150, 92, 236), soften=0.3, vary=0.05)
+    top = K.tile((230, 110, 330, 140), soften=0.3, vary=0.05)
+    T, h = 0.6, 0.4
+    blocks = []
+    for i, cuts in enumerate(((0.0, 0.62, 1.28, 2.08), (0.0, 0.95, 1.5, 2.1), (0.0, 0.92, 2.02))):
+        for a0, a1 in zip(cuts, cuts[1:]):
+            for c in range(i + 1):                          # its courses, from the ground up
+                blocks.append(plan_box(K, O, ua, up, a0 + 0.008, a1 - 0.008, i * T + 0.01, (i + 1) * T - 0.01,
+                                       c * h + 0.006, (c + 1) * h - 0.006, stone if c < i else top, bevel=0.045,
+                                       jitter=0.01, name="step"))
+    # the washing tray on the ground before the lowest step: a rim round a sunk floor
+    tray = K.tile((300, 262, 440, 296), soften=0.35, vary=0.04)
+    ta0, ta1, tp0, tp1, th, rim = 0.62, 2.2, -0.86, -0.08, 0.13, 0.09
+    blocks.append(plan_box(K, O, ua, up, ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor"))
+    for a0, a1, p0, p1 in ((ta0, ta1, tp0, tp0 + rim), (ta0, ta1, tp1 - rim, tp1), (ta0, ta0 + rim, tp0, tp1),
+                           (ta1 - rim, ta1, tp0, tp1)):
+        blocks.append(plan_box(K, O, ua, up, a0, a1, p0, p1, 0.0, th, tray, bevel=0.02, name="tray_rim"))
+    shear(K, k, y0, parts=blocks)
+    # the brass pot standing on the ground at the right (upright, not raised with the look-down)
+    pot = K.projected(axis_x=P.x(497), squeeze=0.9, keep=[(440, 146, 558, 266)], inset=3)
+    yp = O[1] + 0.95
+    zb = k * (yp - y0)
+    prof = [(32, 262), (44, 255), (53, 238), (56, 215), (52, 198), (40, 186), (27, 178), (25, 170), (33, 163),
+            (37, 156), (35, 151)]
+    K.lathe([(P.m(r), P.z(y) - P.z(262) + zb) for r, y in prof], pot, segments=32, centre=(P.x(497), yp, 0),
+            name="pot", cap=False)
+    K.lathe([(P.m(33), P.z(151) - P.z(262) + zb), (P.m(26), P.z(160) - P.z(262) + zb), (0.0, P.z(178) - P.z(262) + zb)],
+            K.colour((0.12, 0.07, 0.01), vary=0.1), segments=32, centre=(P.x(497), yp, 0), name="pot_mouth", cap=False)
