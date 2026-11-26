@@ -1,0 +1,10 @@
+{
+ "name": "water_pot_stand",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 0.96,
+ "height": 1.1,
+ "depth": 0.834,
+ "faces": 3407,
+ "source": "blender"
+}

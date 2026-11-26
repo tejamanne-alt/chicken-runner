@@ -906,7 +906,8 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
                 deg = (rng.uniform(40, 140)) * sgn
                 for sc in (0.85, 0.7, 0.55):
                     xf = turn_about(hx, 0.0, deg, scale=sc)
-                    if fits(xf):
+                    # behind the painted fans (never over them from the front), and inside the painted crown
+                    if xf(Vector((X0, y_c, Z0))).y > -Rc * 0.1 and fits(xf):
                         break
                 else:
                     continue
@@ -1689,7 +1690,7 @@ def h6_5(K):
     inside = K.colour((0.06, 0.03, 0.015), vary=0.1)
     for cx, prof, top, front, y, box in pots:
         ok = opaque & box_mask(opaque.shape, [box]) & not_ink(rgb, 60) & (r > g + 10)
-        clay = axis_material(K, ok, lambda py, cx=cx: float(cx), squeeze=0.9, inset=2)
+        clay = axis_material(K, ok, lambda py, cx=cx: float(cx), squeeze=0.8, inset=4)
         clay_pot(K, cx, prof, top, front, y, clay, inside)
     # ---- the crotons: woody stems out of the soil, leaves on cards through each clump
     leaves = opaque & ~halo(rgb) & ~(box_mask(opaque.shape, [(66, 318, 242, 480), (222, 275, 402, 445)])
@@ -1761,11 +1762,10 @@ def h6_7(K):
     crown_mask = ndimage.binary_fill_holes(ndimage.binary_closing(keep & box_mask(opaque.shape, [(0, 0, P.w, 330)]),
                                                                   iterations=6))
     bush(K, (0, 0, P.w, 340), (290, 200), P.m(560) * 0.3, (440, 160, 120, 70), (80, 70), keep,
-         dome=(220, 0, 345), core=0.35, dome_pow=0.6, crown_mask=crown_mask)
-    soil_ok = opaque & box_mask(opaque.shape, [(290, 290, 440, 345)]) & (r > g + 15) & not_ink(rgb)
-    soil = masked_material(K, soil_ok, inset=1)
-    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((285, 352), (280, 342), (240, 330), (120, 325), (0.0, 324))], soil,
-            segments=32, centre=(P.x(290), 0.0, 0.0), scale_y=0.3 / P.m(285), wobble=0.08, name="earth")
+         dome=(230, 0, 345), core=0.2, dome_pow=0.85, crown_mask=crown_mask)
+    soil = K.colour((330, 300, 420, 330), vary=0.18, scale=30)
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((285, 356), (280, 348), (240, 338), (120, 333), (0.0, 332))], soil,
+            segments=32, centre=(P.x(290), 0.0, 0.0), scale_y=0.42 / P.m(285), wobble=0.08, name="earth")
     stone = masked_material(K, opaque & box_mask(opaque.shape, [(55, 285, 200, 352)]) & not_ink(rgb), inset=2)
     rock(K, 115, 350, 110, 62, -0.2, stone)
     rock(K, 172, 352, 46, 32, -0.25, stone)

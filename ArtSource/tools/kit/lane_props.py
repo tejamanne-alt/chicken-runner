@@ -152,8 +152,9 @@ def earth(K, cx_px, foot_py, low_py, rx_px, ry, box, grass=(), pebbles=(), pebbl
     dirt = K.colour(box, vary=0.18, scale=12.0)
     rx = P.m(rx_px)
     top, drop = P.z(foot_py), max(0.01, P.m(low_py - foot_py))
-    ob = K.lathe([(0.0, top - drop - 0.004), (rx, top - drop - 0.004), (rx * 1.0, top - drop), (rx * 0.93, top - drop * 0.55),
-             (rx * 0.82, top - drop * 0.12), (rx * 0.7, top), (0.0, top + 0.004)], dirt, segments=36,
+    # the rim is steep enough (over its last few percent) to face the camera and take the painted dirt
+    ob = K.lathe([(0.0, top - drop - 0.004), (rx, top - drop - 0.004), (rx * 1.0, top - drop), (rx * 0.965, top - drop * 0.45),
+                  (rx * 0.92, top - drop * 0.08), (rx * 0.86, top), (0.0, top + 0.004)], dirt, segments=36,
             centre=(P.x(cx_px), 0.0, 0.0), scale_y=ry / rx, wobble=0.08, name=name)
     if tilt:
         for v in ob.data.vertices:
@@ -282,3 +283,87 @@ def brass_pots(K):
     earth(K, 155, 176, 189, 138, 0.33, (60, 176, 90, 186), tilt=tilt,
           grass=[(10, 138, 52, 172), (258, 150, 296, 178)],
           pebbles=[(130, 177, 8), (290, 180, 6)], pebble_box=(125, 172, 135, 178))
+
+
+def stone_block(K, outline_px, y0, y1, mat, bevel=0.012, jitter=0.0, name="stone"):
+    """A rough-hewn stone: its front outline [(px, py), ...] (as painted) extruded from y0 to y1, its edges
+    rounded, its faces a little uneven."""
+    P = K.paint
+    ob = K.prism([(P.x(x), P.z(y)) for x, y in outline_px], y0, y1, mat, name=name, bevel=bevel)
+    if jitter:
+        import bmesh
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=2, use_grid_fill=True)
+        for v in bm.verts:
+            v.co.x += K.rng.normal(0, jitter)
+            v.co.y += K.rng.normal(0, jitter)
+            v.co.z += K.rng.normal(0, jitter) * 0.5
+        bm.to_mesh(ob.data)
+        bm.free()
+    return ob
+
+
+def axis_lathe(K, profile, mat, start, direction, segments=20, name="part", smooth=True):
+    """A turned part (a nut, a flange, a pipe's collar) about any axis: profile [(r, t), ...] in metres along
+    `direction` from `start`."""
+    from mathutils import Vector
+    d = Vector(direction).normalized()
+    ob = K.lathe(profile, mat, segments=segments, centre=(0, 0, 0), name=name, smooth=smooth)
+    q = Vector((0, 0, 1)).rotation_difference(d)
+    from mathutils import Matrix
+    ob.data.transform(Matrix.Translation(Vector(start)) @ q.to_matrix().to_4x4())
+    return ob
+
+
+@model("water_pot_stand", "lane", kind="prop")
+def water_pot_stand(K):
+    """A big clay water pot (a matka with a painted band of zigzags) with a brass tap low on its belly, set on a
+    rough stone slab carried by two stone blocks, grass at their feet."""
+    P = K.paint
+    cx = 126.5
+    X0 = P.x(cx)
+    clay = K.projected(axis_x=X0, squeeze=0.93, keep=[(34, 5, 219, 194)], exclude=[(136, 134, 186, 200)], inset=3)
+    pot = [(0, 197), (40, 197), (52, 195), (62, 190), (67, 184), (72.5, 175), (76, 169), (79.5, 163), (82.5, 157),
+           (84.5, 151), (86.5, 145), (88, 139), (89.5, 130), (90.5, 124), (91.5, 115), (91.5, 106), (90.5, 100),
+           (89, 94), (87.5, 88), (85.5, 82), (82.5, 76), (78.5, 70), (74, 64), (68.5, 58), (62.5, 52), (58, 49),
+           (54, 46), (50, 43), (44.5, 40), (39.5, 37), (36, 34), (35.5, 31), (36.5, 28), (39.5, 25.5), (44.5, 23),
+           (47, 20), (47.5, 16), (46.5, 12.5), (42.5, 9.8), (37, 8.2), (31.5, 7.6)]
+    K.lathe(prof(P, pot), clay, segments=48, centre=(X0, 0, 0), wobble=0.008, name="pot", cap=False)
+    mouth(K, cx, 0.0, 31.5, 8.0, 26, K.colour((0.07, 0.025, 0.01), vary=0.08), segments=48)
+    # the brass tap low on the belly: its union nut against the pot, the body, the spout and the cross handle
+    brass = K.colour((165, 172, 178, 188), vary=0.08)
+    brass_dark = K.colour((140, 168, 150, 182), vary=0.08)
+    ys = -P.m(72.5)                                     # the pot's face where the tap goes in
+    nut_d = (0.55, -0.83, 0.0)
+    axis_lathe(K, [(0.0, -0.02), (P.m(9), -0.02), (P.m(11.5), 0.0), (P.m(12), 0.008), (P.m(10.5), 0.016),
+                   (P.m(7), 0.02), (P.m(6), 0.03), (0.0, 0.03)], brass_dark,
+               (P.x(151), ys + 0.004, P.z(172)), nut_d, segments=18, name="tap_nut")
+    E = (P.x(170.5), ys - 0.05, P.z(171))
+    K.tube([(P.x(155), ys - 0.02, P.z(171)), (P.x(163), ys - 0.04, P.z(171)), E], P.m(7.0), brass, segments=12,
+           name="tap_body")
+    K.tube([E, (P.x(171.5), E[1], P.z(180)), (P.x(172), E[1], P.z(197.5))], [P.m(7.5), P.m(7.2), P.m(7.6)], brass,
+           segments=12, name="tap_spout")
+    axis_lathe(K, [(0.0, 0.0), (P.m(8.6), 0.0), (P.m(8.6), P.m(2.5)), (0.0, P.m(2.5))], brass_dark,
+               (P.x(172), E[1], P.z(190.5)), (0, 0, 1), segments=14, name="tap_ring")
+    K.tube([(P.x(167), E[1] + 0.005, P.z(166)), (P.x(167), E[1] + 0.005, P.z(149))], P.m(4.5), brass, segments=10,
+           name="tap_stem")
+    axis_lathe(K, [(0.0, 0.0), (P.m(9), 0.0), (P.m(9), P.m(3)), (P.m(5), P.m(4)), (0.0, P.m(4))], brass_dark,
+               (P.x(167), E[1] + 0.005, P.z(159)), (0, 0, 1), segments=14, name="tap_collar")
+    hz = P.z(144.5)
+    K.tube([(P.x(150), E[1] + 0.005, hz), (P.x(183), E[1] + 0.005, hz)], P.m(4.0), brass, segments=10, name="handle")
+    K.tube([(P.x(167), E[1] + 0.005 - P.m(16), hz), (P.x(167), E[1] + 0.005 + P.m(16), hz)], P.m(4.0), brass,
+           segments=10, name="handle")
+    K.tube([(P.x(167), E[1] + 0.005, hz), (P.x(167), E[1] + 0.005, P.z(138.5))], P.m(3.0), brass, segments=8,
+           name="handle_knob")
+    # the stone slab and the two blocks carrying it
+    slab = K.tile((150, 228, 205, 262), vary=0.06, soften=0.4)
+    leg = K.tile((60, 232, 105, 262), vary=0.06, soften=0.35)
+    D = 0.31
+    stone_block(K, [(39, 224), (215, 224), (216, 211), (214, 196), (40, 196), (38, 210)], -D, D, slab, bevel=0.012,
+                jitter=0.0025, name="slab")
+    for ol in ([(41, 269), (115, 269), (111, 226), (48, 226)], [(144, 268), (215, 268), (212, 226), (147, 226)]):
+        stone_block(K, ol, -D + 0.04, D - 0.07, leg, bevel=0.01, jitter=0.003, name="block")
+    earth(K, 130, 268, 289, 124, 0.42, (60, 278, 100, 286), grass=[(5, 250, 62, 288), (114, 254, 146, 282),
+                                                                     (215, 252, 258, 286)],
+          pebbles=[(52, 284, 14), (100, 287, 10), (200, 284, 12)], pebble_box=(45, 278, 60, 287))

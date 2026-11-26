@@ -1034,7 +1034,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         q = [(P.x(trunk[0][0]) + math.cos(a) * r0 * f, y0 + math.sin(a) * r0 * f, z)
              for f, z in ((0.3, r0 * 0.9), (0.8, r0 * 0.35), (1.0 + L / r0 * 0.5, 0.06), (1.0 + L / r0, 0.02))]
         wood.append(K.tube(q, [r0 * 0.4, r0 * 0.3, r0 * 0.15, r0 * 0.05], bark, segments=10, name="root"))
-    trunk_ob = K.fuse(wood, voxel=0.03, faces=11000)
+    trunk_ob = K.fuse(wood, voxel=P.H / 180, faces=8500)
     # the crown: everything painted in its box but the wood modelled there
     excl = raster((P.h, P.w), exclude_wood, grow=4)
     if crown_extra_exclude is not None:
@@ -1312,7 +1312,7 @@ def shrine_tree(K):
         exclude_wood=[SHRINE_TRUNK[3:-2] + [(905, 340, 120)], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2],
                       SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
         crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=6,
-        crown_extra_keep=skein, bark_mat=K.tile((1105, 362, 1158, 400), vary=0.1, soften=0.2), root_dirs=(55, 125))
+        crown_extra_keep=skein, bark_mat=K.tile((835, 300, 900, 400), vary=0.08, soften=0.35), root_dirs=(55, 125))
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
