@@ -1823,11 +1823,14 @@ def ladder(K, top_l, top_r, bot_l, bot_r, rungs, mat, r_rail=0.035, r_rung=0.025
 def field_bldg_2(K):
     """A crop-watcher's machan: a little hut of woven bamboo matting on a deck of bamboo logs, raised on four tall
     bamboo stilts, under a steep thatched gable roof with bamboo battens over its front; a doorway in front with a coil
-    of rope hung beside it, a bamboo rail along its side, and a bamboo ladder leaning up to the deck. Its right side
-    runs back as painted."""
+    of rope hung beside it, a bamboo rail along its sides, and a bamboo ladder leaning up to the deck. Square to us:
+    its right side, the roof's long slope and the far stilt the painting shows in perspective are not projected onto
+    the front; the real ones are the same matting, thatch and bamboo."""
     P = K.paint
-    K.front_min = 0.05
-    D, kx = 2.0, 0.47
+    K.front_min = 0.2
+    K.front_exclude = [("poly", [(208, 0), (544, 0), (544, 696), (440, 696), (440, 402), (372, 402), (372, 352),
+                                 (340, 352), (340, 236), (392, 236)])]
+    D = 2.0
     bamboo = K.tile((80, 520, 98, 660), soften=0.2, vary=0.05)
     mat_wall = K.tile((92, 250, 152, 355), soften=0.25, vary=0.04)
     thatch = K.tile((300, 90, 470, 190), soften=0.2, vary=0.04)
@@ -1875,8 +1878,8 @@ def field_bldg_2(K):
     for (ax, az), (bx, bz) in ((((x0 + x1) / 2, zr), (x0 - 0.3, ze - 0.12)), (((x0 + x1) / 2, zr), (x1 + 0.3, ze - 0.12)),
                                 ((P.x(120), P.z(140)), (P.x(250), P.z(140))), ((P.x(95), P.z(196)), (P.x(285), P.z(196))),
                                 ((P.x(150), P.z(85)), (P.x(225), P.z(85)))):
-        K.tube([(ax, -0.47, az), (bx, -0.47, bz)], P.m(5), bamboo, segments=6, name="batten")
-    shear(K, 0.0, 0.0, kx=kx)
+        for yb in (-0.47, D + 0.47):                       # on the front gable, and the same on the back one
+            K.tube([(ax, yb, az), (bx, yb, bz)], P.m(5), bamboo, segments=6, name="batten")
     # the ladder leaning up to the deck (in front, where the painting has it)
     ladder(K, (P.x(176), -0.1, P.z(360)), (P.x(256), -0.1, P.z(360)), (P.x(100), -1.25, 0.0), (P.x(206), -1.25, 0.0),
            (0.18, 0.34, 0.51, 0.67, 0.84), bamboo, r_rail=P.m(8), r_rung=P.m(7))
