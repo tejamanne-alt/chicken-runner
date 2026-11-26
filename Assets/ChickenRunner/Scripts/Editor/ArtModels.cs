@@ -110,6 +110,14 @@ namespace ChickenRunner.EditorTools
         /// <summary>True if this cut-out (a name, or a path such as ArtSource/cutouts/lane/house_pink.png) has a model.</summary>
         public static bool Has(string piece) => Model(Find(PieceName(piece))) != null;
 
+        /// <summary>True if the piece's model lies on the ground (a kolam, prints, a leaf: built standing like its painting,
+        /// laid face up when placed); false for one that stands up (a tuft, a pebble, a husk), or has no model.</summary>
+        public static bool LiesFlat(string piece)
+        {
+            var entry = Find(PieceName(piece));
+            return entry != null && Model(entry) != null && entry.kind == "slab";
+        }
+
         public static string PieceName(string imageOrName) =>
             string.IsNullOrEmpty(imageOrName) ? imageOrName : Path.GetFileNameWithoutExtension(imageOrName);
 

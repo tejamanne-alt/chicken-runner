@@ -641,7 +641,7 @@ def bund_strip(K):
     bank(K, outline, 166, 56, 16, hb, hs, earth, nx=64, rough=0.02)
     # the grass: its ragged crest, its fringe over the front and back faces
     K.leaves_only((0, 0, 1135, 70), grass_pixels)
-    for cx in range(110, 1060, 44):
+    for cx in range(130, 1030, 44):
         top = (cx - 40, 4, cx + 40, 30)
         K.card_from_painting(top, P.pt(cx, 17, 0.0), name="grass", normal=(0, -0.2, 1))
         K.card_from_painting(top, P.pt(cx + 20, 22, 0.12), yaw=K.rng.uniform(-40, 40), name="grass", normal=(0, 0.2, 1))
@@ -655,3 +655,76 @@ def bund_strip(K):
                      (860, 32, hb + 0.06)):
         K.block(P.x(px), y, P.z(167) + P.m(w) * 0.2, P.m(w), P.m(w) * 0.8, P.m(w) * 0.5, stone,
                 rot=(0, 0, K.rng.uniform(0, 60)), jitter=P.m(w) * 0.1, bevel=P.m(w) * 0.15, name="stone")
+
+
+def no_white(rgb):
+    """A leaf rule for reeds and rushes: every opaque pixel but the white haze and halo painted round them."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    return ~((mn > 165) & (mx - mn < 50))
+
+
+def section(K, outline_px, y0, y1, mat, name="section"):
+    """A solid whose front is a painted cross-section: outline [(px, py), ...] (the painting's pixels, any winding)
+    extruded from y0 to y1 (a bank and its channel, cut where the picture is)."""
+    P = K.paint
+    pts = [(P.x(px), P.z(py)) for px, py in outline_px]
+    return K.prism(pts, y0, y1, mat, name=name)
+
+
+@fmodel("canal_bank", "fields", kind="prop", atlas=2048)
+def canal_bank(K):
+    """A stretch of irrigation canal between its banks: the left bank sloping down into the channel through a clump
+    of reeds and cattails, the water in the channel with lotus leaves and a flower, the right bank rising out of it;
+    the banks and the channel run on back, the earth cut where the picture cuts it."""
+    P = K.paint
+    d = 1.2                                                   # the stretch runs 2.4 m back
+    ground = [(2, 145), (40, 140), (80, 148), (120, 153), (160, 154), (200, 166), (250, 190), (300, 218), (340, 240),
+              (400, 265), (440, 287), (480, 288), (560, 303), (640, 322), (720, 327), (800, 310), (880, 296),
+              (960, 266), (1000, 257), (1040, 225), (1080, 190), (1120, 173), (1160, 160), (1196, 152)]
+    earth = turned(K, 0.0, (60, 156, 200, 196), squeeze=1.0, keep=[(0, 120, 1198, 373)],
+                   exclude=[(225, 0, 500, 250), (420, 190, 840, 310)], side="z", side_from=0.45, side_to=0.7,
+                   soften=0.3)
+    section(K, ground + [(1196, 364), (2, 364)], -d, d, earth, name="banks")
+    # the water: its surface level with the banks' edges, its body down to the bed
+    bed = [p for p in ground if 330 <= p[0] <= 1045]
+    surface = [(336, 241), (1036, 241)]
+    wtop = K.paint.colour((700, 244, 900, 262))
+    water = turned(K, 0.0, (640, 246, 990, 262), squeeze=1.0, keep=[(330, 238, 1040, 330)],
+                   exclude=[(420, 190, 840, 300)], side="z", side_from=0.4, side_to=0.7, soften=0.4)
+    section(K, [surface[0]] + bed[1:-1] + [surface[1]], -d + 0.01, d - 0.01, water, name="water")
+    # the reeds and cattails along the left bank's slope, all the way back
+    K.leaves_only((225, 0, 500, 246), no_white)
+    K.card_from_painting((225, 0, 500, 246), P.pt(362, 123, -d + 0.05), name="reeds", normal=(0, -0.5, 1))
+    for k in range(16):
+        cx = K.rng.uniform(260, 450)
+        w = K.rng.uniform(90, 150)
+        box = (cx - w / 2, 0, cx + w / 2, 246)
+        y = K.rng.uniform(-d + 0.15, d - 0.1)
+        K.card_from_painting(box, (P.x(cx + K.rng.uniform(-20, 20)), y, P.z(123)), yaw=K.rng.uniform(-70, 70),
+                             name="reeds", normal=(0, -0.3, 1))
+    # lotus leaves standing out of the water, the flower, and more leaves floating on back along the channel
+    K.leaves_only((424, 196, 830, 241), no_halo)
+    for box in ((426, 198, 578, 240), (584, 200, 652, 240), (676, 200, 830, 240)):
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, -d + 0.12), pitch=-15, name="lotus", normal=(0, -0.3, 1))
+    pad = K.colour((470, 212, 540, 228), vary=0.12)
+    for k in range(14):
+        px = K.rng.uniform(470, 960)
+        r = P.m(K.rng.uniform(26, 44))
+        K.lathe([(0.0, 0.0), (r, 0.0), (r * 1.02, 0.006), (0.0, 0.01)], pad, segments=14,
+                centre=(P.x(px), K.rng.uniform(-d + 0.35, d - 0.2), P.z(241) + 0.004), name="pad")
+    for k in range(3):
+        y = K.rng.uniform(-0.4, d - 0.3)
+        px = K.rng.uniform(560, 900)
+        K.card_from_painting((584, 200, 652, 240), (P.x(px), y, P.z(225)), yaw=K.rng.uniform(0, 180), name="lotus",
+                             normal=(0, -0.3, 1))
+    # grass along the banks' tops
+    K.leaves_only((0, 112, 60, 150), grass_pixels)
+    K.leaves_only((1130, 140, 1198, 168), grass_pixels)
+    for k in range(10):
+        y = K.rng.uniform(-d + 0.1, d - 0.1)
+        K.card_from_painting((0, 112, 60, 150), (P.x(K.rng.uniform(20, 180)), y, P.z(140)),
+                             yaw=K.rng.uniform(-80, 80), name="grass", normal=(0, -0.3, 1))
+        K.card_from_painting((1130, 140, 1198, 168), (P.x(K.rng.uniform(1090, 1170)), y, P.z(160)),
+                             yaw=K.rng.uniform(-80, 80), name="grass", normal=(0, -0.3, 1))

@@ -1,0 +1,10 @@
+{
+ "name": "bund_strip",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 3.43,
+ "height": 0.55,
+ "depth": 1.112,
+ "faces": 2738,
+ "source": "blender"
+}

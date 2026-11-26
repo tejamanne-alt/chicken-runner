@@ -857,3 +857,241 @@ def ring_tube(K, cx, cy, cz, rx, ry, mat, radius, tilt=(0.0, 0.0), segments=48, 
         pts.append((x, y, z))
     pts[-1] = pts[0]
     return K.tube(pts, radius, mat, segments=6, name=name, cap=False)
+
+
+# ====================================================================== the peepal katte (and the shrine's tree)
+PEEPAL_TRUNK = [(915, 1125, 200), (916, 1040, 188), (918, 960, 168), (920, 880, 160), (918, 780, 150),
+                (915, 650, 132), (915, 520, 114), (918, 430, 104), (915, 350, 92), (915, 300, 84)]
+PEEPAL_LIMBS = [
+    # up into the crown
+    [(870, 400, 62), (800, 330, 52), (720, 260, 42), (650, 190, 32), (590, 130, 22)],
+    [(900, 330, 56), (885, 250, 46), (872, 180, 36), (870, 110, 26), (880, 60, 16)],
+    [(940, 330, 56), (960, 250, 46), (982, 180, 36), (1000, 110, 26), (1010, 70, 16)],
+    [(990, 400, 60), (1060, 340, 50), (1140, 300, 42), (1250, 240, 32), (1350, 190, 22)],
+    # out to the sides, under the crown's tiers
+    [(840, 440, 56), (720, 385, 46), (620, 355, 40), (500, 375, 34), (400, 430, 28), (300, 482, 22), (190, 500, 15)],
+    [(1000, 470, 56), (1150, 440, 46), (1250, 432, 40), (1400, 458, 32), (1520, 470, 24), (1640, 482, 15)],
+    [(850, 560, 46), (700, 580, 38), (550, 600, 31), (420, 618, 24), (290, 615, 15)],
+    [(990, 580, 46), (1150, 590, 38), (1300, 600, 32), (1420, 622, 26), (1560, 650, 17)],
+]
+PEEPAL_ROOTS = [
+    [(735, 1005, 48), (680, 1035, 38), (620, 1062, 30), (520, 1110, 20), (430, 1148, 9)],
+    [(760, 1050, 44), (700, 1085, 34), (650, 1112, 26), (550, 1155, 15), (488, 1166, 7)],
+    [(790, 1090, 36), (740, 1125, 26), (690, 1150, 16), (640, 1160, 8)],
+    [(860, 1030, 44), (856, 1080, 34), (850, 1120, 22), (846, 1150, 10)],
+    [(985, 1030, 44), (990, 1080, 34), (996, 1120, 22), (1000, 1150, 10)],
+    [(1080, 1005, 48), (1140, 1035, 38), (1190, 1062, 30), (1285, 1110, 20), (1390, 1145, 11), (1440, 1150, 5)],
+    [(1070, 1055, 44), (1130, 1085, 34), (1190, 1112, 26), (1280, 1145, 15), (1340, 1156, 7)],
+    [(1050, 1100, 36), (1100, 1132, 26), (1150, 1155, 14), (1185, 1162, 6)],
+]
+
+
+class Katte:
+    """The stone platform round a sacred tree: a plinth, a body, a coping slab, a gently raised top (in the painting
+    seen from a little above; here it rises from its edges to the trunk, so from the front it fills the same band)
+    and a flight of steps between string walls in front."""
+
+    def __init__(self, K, x0, x1, half_depth, z_edge_py, z_top_py, xc_px):
+        P = K.paint
+        self.K, self.P = K, P
+        self.X0, self.X1, self.hy = P.x(x0), P.x(x1), half_depth
+        self.xc, self.hx = P.x(xc_px), (P.x(x1) - P.x(x0)) / 2
+        self.zf, self.h = P.z(z_edge_py), P.z(z_top_py) - P.z(z_edge_py)
+
+    def top(self, x, y):
+        """The height of the platform's top at (x, y) metres."""
+        a, b = abs(x - self.xc) / self.hx, abs(y) / self.hy
+        d = min(1.0, (a ** 4 + b ** 4) ** 0.25)
+        return self.zf + self.h * (1 - d)
+
+    def y_on_top(self, px, py, r_px=0.0, side=-1):
+        """The depth at which a thing painted at (px, py) (its centre r px above the surface) lies on the top's
+        slope facing the camera (side -1) or its back (+1)."""
+        P = self.P
+        z = P.z(py) - P.m(r_px) * 0.6
+        t = (z - self.zf) / max(1e-6, self.h)
+        return side * self.hy * float(np.clip(1 - t, 0.0, 1.0))
+
+    def surface(self, mat, n=40):
+        K = self.K
+
+        def f(u, v):
+            x = self.xc + (2 * u - 1) * self.hx
+            y = (2 * v - 1) * self.hy
+            return (x, y, self.top(x, y))
+        return K.sheet(f, n, n, mat, name="katte_top", thickness=0.0)
+
+
+def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
+                 crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), wood_y=None):
+    """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
+    the painting's heart-shaped leaves."""
+    P = K.paint
+    rng = K.rng
+    mask = raster((P.h, P.w), [trunk] + limbs + roots)
+    bark = bark_material(K, mask & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]), axis_x=P.x(918),
+                         squeeze=0.9)
+    crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.18, dome=dome)
+    wood = [limb(K, trunk, bark, y=0.0, segments=24, name="trunk")]
+    for k, pts in enumerate(limbs):
+        n = len(pts)
+        side = rng.choice([-1, 1])
+        ys = [0.0] + [side * rng.uniform(0.1, 0.25) * crown.hd * i / (n - 1) for i in range(1, n)]
+        wood.append(limb(K, pts, bark, y=ys, segments=14, name="limb"))
+    # the limbs again, turned round the trunk, holding up the crown at the sides and back
+    tx = P.x(trunk[-1][0])
+    for k, pts in enumerate(limbs):
+        for deg in ((70, 115, 180, -110) if k >= 4 else (rng.choice([-1, 1]) * rng.uniform(80, 140),)):
+            a = math.radians(deg + rng.uniform(-15, 15))
+            q = []
+            for i, (px, py, r) in enumerate(pts):
+                dx = P.x(px) - P.x(pts[0][0])
+                x = P.x(pts[0][0]) + dx * math.cos(a)
+                y = dx * math.sin(a) * 0.9
+                lim = crown.hd * 0.85
+                y = float(np.clip(y, -lim, lim))
+                q.append((x, y, P.z(py) + (rng.uniform(-0.15, 0.15) if i else 0.0)))
+            wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts], bark, segments=12, name="limb_turned"))
+    # roots lying on the platform: the painted ones on the slope facing the camera, the same again round the back
+    # and sides
+    for pts in roots:
+        q, rr = [], []
+        for i, (px, py, r) in enumerate(pts):
+            y = katte.y_on_top(px, py, r) if i else 0.0
+            q.append((P.x(px), y, P.z(py)))
+            rr.append(P.m(r))
+        # the root's first point is in the trunk: ease it from the trunk's middle out to where it lies
+        q[0] = (q[0][0], q[1][1] * 0.3, q[0][2])
+        wood.append(K.tube(q, rr, bark, segments=12, name="root"))
+    xt = P.x(trunk[0][0])
+    for k, pts in enumerate(roots):
+        for deg in (180 + rng.uniform(-25, 25), rng.choice([-1, 1]) * rng.uniform(70, 110)):
+            a = math.radians(deg)
+            q, rr = [], []
+            for i, (px, py, r) in enumerate(pts):
+                dx = P.x(px) - xt
+                dy = katte.y_on_top(px, py, r) if i else 0.0
+                x, y = xt + dx * math.cos(a) - dy * math.sin(a), dx * math.sin(a) + dy * math.cos(a)
+                y = float(np.clip(y, -katte.hy * 0.95, katte.hy * 0.95))
+                x = float(np.clip(x, katte.X0 + 0.1, katte.X1 - 0.1))
+                z = max(P.z(py), katte.top(x, y) + P.m(r) * 0.4) if i else P.z(py)
+                if i == len(pts) - 1:
+                    z = katte.top(x, y) + P.m(r) * 0.4
+                q.append((x, y, z))
+                rr.append(P.m(r) * 0.95)
+            wood.append(K.tube(q, rr, bark, segments=10, name="root_turned"))
+    trunk_ob = K.fuse(wood, voxel=0.03, faces=11000)
+    # the crown: everything painted in its box but the wood modelled there
+    excl = raster((P.h, P.w), exclude_wood, grow=4)
+    if crown_extra_exclude is not None:
+        excl |= crown_extra_exclude
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    halo = (mn > 175) & (mx - mn < 45)
+    leaves = (P.rgba[..., 3] > 0.5) & ~excl & ~halo
+    leaves = ndimage.binary_opening(leaves, iterations=1)
+    box = tuple(int(v) for v in crown_box)
+    K.leaves_only(box, mask_rule(leaves, box))
+    nv, nf, nb = n_cards
+    crown.cards(nv, card_px, "volume", yaw=85, pitch=35)
+    crown.cards(nf, (card_px[0] * 1.1, card_px[1] * 1.1), "front", yaw=30, pitch=20)
+    crown.cards(nb, card_px, "back", yaw=30, pitch=20)
+    return crown, trunk_ob
+
+
+@model("peepal_platform", "lane", kind="prop", atlas=2048, leaves=2048)
+def peepal_platform(K):
+    """A great peepal on its stone katte: a stepped platform with a coping, a flight of three steps between string
+    walls, the trunk on roots spreading over the top, red and yellow threads tied round it with tassels and a bell,
+    Ganesha idols, a small stone and a Nandi at its foot, clay lamps and heaps of flowers, under a vast umbrella of
+    golden heart-shaped leaves."""
+    P = K.paint
+    hy = 2.1
+    katte = Katte(K, 206, 1644, hy, 1197, 1122, 925)
+    # ---- the platform
+    face = K.tile((300, 1245, 640, 1330), vary=0.05, soften=0.35)
+    plinth = K.tile((260, 1345, 640, 1385), vary=0.05, soften=0.3)
+    coping = K.tile((300, 1201, 640, 1228), vary=0.05, soften=0.3)
+    top = K.tile((230, 1150, 420, 1190), vary=0.06, soften=0.4)
+    K.box(P.x(177), P.x(1669), -hy - 0.11, hy + 0.11, 0.0, P.z(1337), plinth, bevel=0.01, name="plinth")
+    K.box(P.x(206), P.x(1644), -hy, hy, P.z(1337), P.z(1231), face, name="body")
+    K.box(P.x(181), P.x(1662), -hy - 0.09, hy + 0.09, P.z(1231), P.z(1197), coping, bevel=0.012, name="coping")
+    katte.surface(top)
+    # the steps, between their string walls
+    yf = -hy - 0.09
+    for k, top_py in enumerate((1231, 1287, 1341)):
+        K.box(P.x(769), P.x(1075), yf - 0.3 * (k + 1), yf + 0.05, 0.0, P.z(top_py), face, bevel=0.01, name=f"step{k}")
+    for x0, x1 in ((681, 769), (1075, 1162)):
+        prism_x(K, [(yf + 0.05, 0.0), (yf - 0.95, 0.0), (yf - 0.95, P.z(1337)), (yf + 0.05, P.z(1197))],
+                P.x(x0), P.x(x1), coping, name="string")
+    # ---- the tree
+    crown, trunk_ob = _peepal_tree(
+        K, (0, 0, 1844, 900), PEEPAL_TRUNK, PEEPAL_LIMBS, PEEPAL_ROOTS, katte, (380, 250, 1480, 1200),
+        P.m(1780) * 0.37, (470, 15, 900),
+        exclude_wood=[PEEPAL_TRUNK[2:], PEEPAL_LIMBS[0][:3], PEEPAL_LIMBS[1][:2], PEEPAL_LIMBS[2][:2],
+                      PEEPAL_LIMBS[3][:3], [(300, 482, 22), (400, 430, 28)], [(1250, 432, 40), (1520, 470, 24)]])
+    # ---- the threads tied round the trunk, their tassels and the bell
+    red = K.colour((780, 870, 800, 878), vary=0.1)
+    yellow = K.colour((800, 893, 820, 899), vary=0.1)
+    tx = P.x(918)
+    for py_l, py_c, py_r, mat in ((867, 887, 862, red), (875, 895, 866, red), (885, 905, 868, yellow),
+                                  (891, 911, 872, yellow), (897, 917, 877, red), (908, 925, 895, red),
+                                  (915, 930, 905, yellow)):
+        zc = P.z((py_l + py_r) / 2)
+        rr = P.m(166)
+        ring_tube(K, tx, 0.0, zc, rr, rr, mat, P.m(3.5), tilt=(P.m(py_l - py_r) / 2 * -1, P.m(py_c - (py_l + py_r) / 2)),
+                  wobble=0.015, name="thread")
+    for px, top_py, bot_py in ((892, 918, 950), (900, 920, 958), (930, 918, 955), (940, 917, 948), (756, 900, 942),
+                               (1080, 882, 936)):
+        dx = P.x(px) - tx
+        yy = -math.sqrt(max(0.0, (P.m(170)) ** 2 - dx * dx)) - 0.02
+        K.tube([(P.x(px), yy, P.z(top_py)), (P.x(px) + 0.01, yy - 0.03, P.z((top_py + bot_py) / 2)),
+                (P.x(px), yy - 0.02, P.z(bot_py))], P.m(3.5), red, segments=6, name="tassel")
+    brass = K.colour((0.42, 0.25, 0.05), vary=0.1)
+    by = -P.m(172) - 0.04
+    K.tube([(P.x(916), by + 0.02, P.z(925)), (P.x(916), by, P.z(952))], P.m(2), brass, segments=5, name="bell_cord")
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((11, 983), (10, 978), (7, 965), (6, 957), (3, 952), (0.5, 951))], brass,
+            segments=16, centre=(P.x(916), by, 0.0), name="bell")
+    # ---- the idols at its foot (stone, carved: their fronts are the painting, sides and backs plain stone)
+    stone = K.colour((920, 1120, 940, 1130), vary=0.08)
+    idols = [
+        ([(912, 1017), (928, 1017), (940, 1035), (952, 1050), (967, 1062), (967, 1100), (962, 1140), (967, 1145),
+          (967, 1162), (875, 1162), (875, 1145), (880, 1140), (874, 1100), (874, 1062), (890, 1050), (900, 1035)], 0.6),
+        ([(812, 1050), (826, 1050), (835, 1065), (845, 1072), (855, 1080), (855, 1130), (850, 1150), (857, 1155),
+          (857, 1167), (782, 1167), (782, 1155), (788, 1150), (782, 1130), (782, 1080), (795, 1072), (803, 1065)], 0.6),
+        ([(749, 1097), (762, 1102), (770, 1115), (772, 1140), (774, 1177), (726, 1177), (728, 1140), (730, 1115),
+          (737, 1102)], 0.45),
+        ([(990, 1064), (1000, 1070), (1012, 1070), (1022, 1064), (1025, 1080), (1030, 1095), (1060, 1092),
+          (1080, 1105), (1088, 1125), (1089, 1150), (1092, 1165), (972, 1165), (974, 1148), (985, 1140), (992, 1110),
+          (986, 1090)], 0.5),
+    ]
+    for poly, depth in idols:
+        bot = max(p[1] for p in poly)
+        cx = (min(p[0] for p in poly) + max(p[0] for p in poly)) / 2
+        y = katte.y_on_top(cx, bot, 0) + P.m(30) * depth
+        poly_solid(K, poly, y, stone, depth=depth, name="idol", rows=None)
+        # its pedestal: a squared block under it
+        x0, x1 = min(p[0] for p in poly), max(p[0] for p in poly)
+        K.box(P.x(x0), P.x(x1), y - P.m(x1 - x0) * depth * 0.5, y + P.m(x1 - x0) * depth * 0.5,
+              katte.top(P.x(cx), y) - 0.05, P.z(bot - 12), stone, bevel=0.008, name="pedestal")
+    # ---- clay lamps with their flames
+    clay = K.colour((660, 1168, 685, 1178), vary=0.08)
+    flame = K.colour((668, 1148, 674, 1156), vary=0.05)
+    for x0, x1, top_py, bot_py, fx in ((654, 690, 1163, 1182, 672), (695, 741, 1168, 1191, 718),
+                                       (1076, 1123, 1168, 1191, 1099), (1126, 1156, 1166, 1185, 1141)):
+        cx, rw = (x0 + x1) / 2, (x1 - x0) / 2
+        y = katte.y_on_top(cx, bot_py, 0)
+        zb = katte.top(P.x(cx), y)
+        hh = P.m(bot_py - top_py)
+        K.lathe([(P.m(rw) * 0.45, 0.0), (P.m(rw) * 0.85, hh * 0.45), (P.m(rw), hh), (P.m(rw) * 0.88, hh * 0.95),
+                 (P.m(rw) * 0.5, hh * 0.7), (0.0, hh * 0.65)], clay, segments=18, centre=(P.x(cx), y, zb),
+                name="lamp")
+        K.lathe([(0.0, 0.0), (P.m(4), P.m(4)), (P.m(3.5), P.m(10)), (0.0, P.m(19))], flame, segments=10,
+                centre=(P.x(fx), y, zb + hh * 0.85), name="flame")
+    # ---- the flowers heaped in front of the idols: marigolds, jasmine, roses (cards of the painted ones, lying)
+    K.leaves_only((770, 1140, 1180, 1212), plant_pixels)
+    for i in range(26):
+        cx, cy = K.rng.uniform(780, 1170), K.rng.uniform(1150, 1205)
+        y = katte.y_on_top(cx, cy, 0) - 0.04
+        K.card_from_painting((cx - 22, cy - 16, cx + 22, cy + 16), (P.x(cx), y, P.z(cy)),
+                             yaw=K.rng.uniform(-40, 40), pitch=K.rng.uniform(-60, 10), name="flowers")

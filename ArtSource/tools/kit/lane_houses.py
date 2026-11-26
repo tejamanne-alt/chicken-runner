@@ -8,6 +8,7 @@ from the painting, with a door or window repeated where a real house would have 
 import math
 
 import numpy as np
+from scipy import ndimage
 
 from kitlib import model
 
@@ -937,3 +938,221 @@ def house_plank_sheet(K):
             segments=28, centre=(P.x(902), -0.45, 0.0), name="basin")
     K.lathe([(P.m(74), P.m(44)), (P.m(60), P.m(20)), (0.0, P.m(16))], K.colour((0.05, 0.25, 0.25), vary=0.05),
             segments=28, centre=(P.x(902), -0.45, 0.0), name="basin_water", cap=False)
+
+
+def straw_pixels(rgb):
+    """Straw and dry palm leaf (tan, ochre, olive), not the shadowed mud wall behind a thatch's fringe."""
+    from kitlib import plant_pixels
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    straw = (r > 120) & (g > 0.6 * r) & (g > 90)
+    dark = np.maximum(np.maximum(r, g), b) < 70
+    keep = straw | plant_pixels(rgb)
+    return keep | (dark & ndimage.binary_dilation(keep, iterations=2))
+
+
+def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch"):
+    """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
+    and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
+    ragged fringe `fringe` m deep."""
+    ex0, ex1, ey0, ey1 = eave
+    rx0, rx1 = ridge
+    ym = (ey0 + ey1) / 2
+    rng = K.rng
+    nu, nv = 48, 14
+
+    def lumps(n_u):
+        noise = ndimage.gaussian_filter(rng.normal(0, 1, (nv + 1, n_u + 1)), 1.2)
+        tips = ndimage.gaussian_filter(rng.normal(0, 1, n_u + 1), 0.7)
+        return noise, tips
+
+    def slope(front):
+        noise, tips = lumps(nu)
+        def f(u, v):
+            xa, xb = ex0 + (rx0 - ex0) * v, ex1 + (rx1 - ex1) * v
+            x = xa + (xb - xa) * u
+            y0 = ey0 if front else ey1
+            y = y0 + (ym - y0) * v
+            iu, iv = int(round(u * nu)), int(round(v * nv))
+            z = ze + (zr - ze) * v + shag * noise[iv, iu]
+            if v < 0.09:
+                z -= fringe * (0.6 + 0.8 * abs(tips[iu]))
+            return (x, y, z)
+        return K.sheet(f, nu, nv, mat, name=name, smooth=True, thickness=thickness)
+
+    def end(left):
+        n_u = 24
+        noise, tips = lumps(n_u)
+        def f(u, v):
+            ya, yb = ey0 + (ym - ey0) * v, ey1 + (ym - ey1) * v
+            y = ya + (yb - ya) * u
+            x0, r = (ex0, rx0) if left else (ex1, rx1)
+            iu, iv = int(round(u * n_u)), int(round(v * nv))
+            z = ze + (zr - ze) * v + shag * noise[iv, iu]
+            if v < 0.09:
+                z -= fringe * (0.6 + 0.8 * abs(tips[iu]))
+            return (x0 + (r - x0) * v, y, z)
+        return K.sheet(f, n_u, nv, mat, name=name + "_end", smooth=True, thickness=thickness)
+    slope(True)
+    slope(False)
+    if ends:
+        end(True)
+        end(False)
+
+
+def round_pot(K, cx_px, top_py, bot_py, r_px, y, mat, segments=20, name="pot", rim=0.64, open_mouth=True):
+    """A round-bellied clay pot with a short neck and rolled rim, its outline fitted to the painted one (centre x,
+    top and bottom py, belly radius px), standing at depth y."""
+    P = K.paint
+    h = bot_py - top_py
+    prof = [(0.45, 0.0), (0.8, 0.08), (0.98, 0.3), (1.0, 0.45), (0.93, 0.65), (0.74, 0.82), (rim - 0.04, 0.9),
+            (rim + 0.02, 0.95), (rim, 1.0)]
+    pts = [(P.m(r_px * a), P.z(bot_py - h * b)) for a, b in prof]
+    ob = K.lathe(pts, mat, segments=segments, centre=(P.x(cx_px), y, 0.0), wobble=0.015, name=name)
+    if open_mouth:
+        inside = K.colour((0.05, 0.03, 0.02), vary=0.1)
+        K.lathe([(P.m(r_px * (rim - 0.06)), P.z(top_py) - 0.003), (P.m(r_px * 0.3), P.z(top_py) - 0.06),
+                 (0.0, P.z(top_py) - 0.07)], inside, segments=segments, centre=(P.x(cx_px), y, 0.0), cap=False,
+                name=name + "_mouth")
+    return ob
+
+
+@model("house_potter", "lane", kind="building", atlas=2048)
+def house_potter(K):
+    """A potter's mud hut under a hipped thatch with palm fronds laid on it, a carved plank door and a shuttered
+    window, a lime skirting; at its side a thatched lean-to on bamboo posts over the potter's wheel in its frame,
+    stacks of red pots, a heap of clay and a painted pot; rows of grey pots drying along the front."""
+    P = K.paint
+    D = 4.5
+    K.front_min = 0.15
+    mud = K.tile((480, 640, 660, 900), size=1.2, vary=0.05, soften=0.5)
+    lime = K.tile((500, 930, 970, 980), size=1.0, vary=0.04, soften=0.4)
+    thatch_m = K.tile((1290, 150, 1420, 420), size=0.6, vary=0.06)
+    earth = K.tile((300, 1110, 1300, 1128), size=1.0, vary=0.08)
+    wood = K.tile((1010, 660, 1220, 900), size=0.6, vary=0.04)
+    frame = K.colour((985, 700, 1000, 1000), vary=0.06)
+    dark = K.colour((0.05, 0.03, 0.025), vary=0.0)
+    X0, X1 = P.x(467), P.x(1427)
+    body = K.box(X0, X1, 0.0, D, 0.0, P.z(470), mud, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(921), lime, name="skirting")
+    K.box(P.x(0), P.x(2190), -1.25, D + 0.4, 0.0, P.z(1108), earth, bevel=0.03, name="ground")
+    # the hut's thatch, its ridge pole, palm fronds weighting it front (painted) and back (cards)
+    hip_thatch(K, (P.x(334), P.x(1500), -0.55, D + 0.55), (P.x(506), P.x(1414)), P.z(474), P.z(40), thatch_m,
+               thickness=0.25, shag=0.05, fringe=0.1)
+    K.tube([P.pt(506, 28, D / 2), P.pt(1414, 28, D / 2)], P.m(17), K.colour((560, 15, 1300, 40), vary=0.06),
+           segments=10, name="ridge_pole")
+    K.leaves_only((440, 40, 1310, 470), lambda rgb: (rgb[..., 1].astype(int) > rgb[..., 0].astype(int) - 25) &
+                  (rgb[..., 1].astype(int) > rgb[..., 2].astype(int) + 10))
+    zr, ze = P.z(40), P.z(474)
+    ang = math.degrees(math.atan2(zr - ze, D / 2 + 0.55))
+    for i, (cx, cy) in enumerate(((640, 250), (860, 260), (1040, 240), (1180, 230))):
+        u = 0.35 + 0.2 * (i % 2)
+        z = ze + (zr - ze) * u
+        y = D + 0.55 - (D / 2 + 0.55) * u + 0.14
+        K.card_from_painting((cx - 130, cy - 200, cx + 130, cy + 200), (P.x(cx) + K.rng.uniform(-0.3, 0.3), y, z),
+                             yaw=180, pitch=-(90 - ang) * 0.95, name="frond_back")
+    # straw fringe cards round the sides and back, cut from the painted fringe
+    K.leaves_only((560, 400, 1300, 520), straw_pixels)
+    for i in range(16):
+        side = i % 4
+        cx = K.rng.uniform(600, 1260)
+        box = (cx - 60, 410, cx + 60, 518)
+        if side == 0:
+            pos, yaw = (K.rng.uniform(X0 + 0.3, X1 - 0.3), D + 0.58, P.z(464)), 180
+        elif side == 1:
+            pos, yaw = (K.rng.uniform(X0 + 0.3, X1 - 0.3), D + 0.58, P.z(464)), 180
+        elif side == 2:
+            pos, yaw = (P.x(334) - 0.02, K.rng.uniform(-0.3, D + 0.3), P.z(464)), 90
+        else:
+            pos, yaw = (P.x(1500) + 0.02, K.rng.uniform(1.0, D + 0.3), P.z(464)), -90
+        K.card_from_painting(box, pos, yaw=yaw + K.rng.uniform(-8, 8), pitch=K.rng.uniform(-10, 10), name="fringe")
+    # the door, the shuttered window
+    K.cut(body, P.x(1003), P.x(1230), -0.05, 0.25, P.z(1071), P.z(647))
+    K.box(P.x(1003), P.x(1230), 0.12, 0.17, P.z(1071), P.z(647), wood, name="door")
+    for x0, x1 in ((981, 1003), (1230, 1251)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(1071), P.z(615), frame, bevel=0.008, name="jamb")
+    K.box(P.x(981), P.x(1251), -0.03, 0.12, P.z(647), P.z(615), frame, bevel=0.008, name="frame_head")
+    K.cut(body, P.x(699), P.x(797), -0.05, 0.12, P.z(771), P.z(638))
+    K.box(P.x(699), P.x(797), 0.07, 0.1, P.z(771), P.z(638), wood, name="shutters")
+    for a, b, c, d in ((681, 699, 621, 784), (797, 813, 621, 784), (699, 797, 621, 638), (699, 797, 771, 784)):
+        K.box(P.x(a), P.x(b), -0.03, 0.07, P.z(d), P.z(c), frame, bevel=0.006, name="window_frame")
+    back_decal(K, (981, 615, 1251, 1071), D)
+    side_decal(K, (681, 621, 813, 784), X0, -1, D * 0.5, name="side_window")
+    side_decal(K, (681, 621, 813, 784), X1, 1, D * 0.6, name="side_window")
+    # the lean-to: a thatch slab falling away from the hut's side, its thick cut end at the front as painted
+    top = [(1430, 222), (1497, 233), (1600, 262), (1700, 300), (1800, 340), (1900, 385), (2000, 440), (2100, 500),
+           (2165, 572)]
+    bottom = [(2100, 602), (2040, 578), (1990, 562), (1880, 556), (1800, 540), (1700, 542), (1600, 526),
+              (1500, 522), (1430, 502)]
+    lean = K.tile((1550, 270, 1750, 330), size=0.6, vary=0.06)
+    yb = 3.0
+    K.prism([(P.x(x), P.z(y)) for x, y in top + bottom], -0.5, -0.22, lean, name="lean_to_end")
+    th = 0.24
+    def lean_top(x):
+        for (xa, za), (xb, zb) in zip(top, top[1:]):
+            if xa <= x <= xb:
+                return P.z(za + (zb - za) * (x - xa) / (xb - xa))
+        return P.z(top[-1][1])
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (13, 31)), 1.0)
+    def lean_surf(u, v):
+        px = 1430 + (2140 - 1430) * u
+        return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - 0.02 + 0.03 * noise[int(v * 12), int(u * 30)])
+    K.sheet(lean_surf, 30, 12, lean, name="lean_to", thickness=th)
+    bamboo = K.projected(axis_x=P.x(2010), squeeze=0.9, keep=[(1985, 600, 2034, 1030)], inset=2)
+    bamboo2 = K.projected(axis_x=P.x(1918), squeeze=0.9, keep=[(1903, 600, 1932, 965)], inset=2)
+    for y in (-0.1, 0.9, 1.9, 2.8):
+        K.tube([(P.x(1430), y, lean_top(1430) - th - 0.03), (P.x(2120), y, lean_top(2120) - th - 0.03)], 0.035, bamboo,
+               segments=8, name="rafter")
+    # posts: the two painted at the front (one behind the clay heap), two more at the back
+    for x, y, top_py, m in ((2010, -0.3, 529, bamboo), (1918, 0.35, 560, bamboo2), (2010, yb - 0.25, 560, bamboo),
+                            (1918, yb - 0.25, 560, bamboo2)):
+        K.tube([P.pt(x, 1105, y), P.pt(x, top_py, y)], P.m(17), m, segments=10, name="post")
+    K.tube([P.pt(1891, 563, 0.35), P.pt(2042, 563, -0.3)], P.m(11), bamboo, segments=8, name="beam")
+    K.tube([P.pt(1891, 575, yb - 0.25), P.pt(2042, 575, yb - 0.25)], P.m(11), bamboo, segments=8, name="beam")
+    K.tube([P.pt(2010, 560, -0.3), P.pt(2010, 560, yb - 0.25)], P.m(11), bamboo, segments=8, name="plate")
+    K.tube([P.pt(1972, 562, -0.25), P.pt(2008, 654, -0.28)], P.m(7), bamboo, segments=6, name="brace")
+    # the potter's wheel: a frame of posts and rails, the stone flywheel, spindle, head and a lump of clay
+    yw = 0.55
+    tw = K.colour((1540, 820, 1565, 950), vary=0.08)
+    for x0, x1 in ((1536, 1569), (1815, 1858)):
+        for y in (yw - 0.6, yw + 0.6):
+            K.box(P.x(x0), P.x(x1), y - 0.05, y + 0.05, P.z(1105), P.z(759), tw, bevel=0.006, name="frame_post")
+    for y in (yw - 0.6, yw + 0.6):
+        K.box(P.x(1526), P.x(1881), y - 0.045, y + 0.045, P.z(821), P.z(798), tw, bevel=0.006, name="rail")
+        K.box(P.x(1536), P.x(1858), y - 0.04, y + 0.04, P.z(976), P.z(956), tw, bevel=0.006, name="rail_low")
+    for x0, x1 in ((1536, 1569), (1815, 1858)):
+        K.box(P.x(x0), P.x(x1), yw - 0.6, yw + 0.6, P.z(821), P.z(798), tw, bevel=0.006, name="rail_side")
+    K.box(P.x(1600), P.x(1800), yw - 0.6, yw + 0.6, P.z(976), P.z(958), tw, bevel=0.006, name="cross_bar")
+    stone = K.projected(axis_x=P.x(1699), squeeze=0.95, keep=[(1572, 876, 1826, 925)], inset=2)
+    K.lathe([(P.m(128), P.z(923)), (P.m(130), P.z(905)), (P.m(126), P.z(880)), (P.m(40), P.z(877))], stone,
+            segments=40, centre=(P.x(1699), yw, 0.0), name="flywheel")
+    clay = K.projected(axis_x=P.x(1690), squeeze=0.95, keep=[(1640, 730, 1755, 890)], inset=2)
+    K.lathe([(P.m(15), P.z(949)), (P.m(15), P.z(923))], tw, segments=12, centre=(P.x(1690), yw, 0.0), name="axle")
+    K.lathe([(P.m(18), P.z(880)), (P.m(14), P.z(850)), (P.m(10), P.z(810)), (P.m(52), P.z(801)), (P.m(54), P.z(793)),
+             (P.m(20), P.z(789))], clay, segments=24, centre=(P.x(1692), yw, 0.0), name="head")
+    K.boulder(P.x(1697), yw, P.z(760), P.m(70), P.m(60), P.m(58), clay, name="clay_lump")
+    K.box(P.x(1674), P.x(1730), yw - 0.08, yw + 0.08, P.z(1105), P.z(976), tw, name="foot")
+    # rows of grey pots drying along the front: a back row against the wall, a front row before it
+    grey = K.colour((60, 1000, 110, 1060), vary=0.1, scale=8)
+    for cx, top_, bot, r in ((106, 967, 1077, 47), (238, 967, 1085, 45), (371, 967, 1085, 53), (476, 975, 1089, 47),
+                             (595, 999, 1089, 45), (700, 1003, 1089, 43), (804, 1009, 1089, 38)):
+        round_pot(K, cx, top_, bot, r, -0.32, grey, name="pot_back")
+    for cx, top_, bot, r in ((72, 987, 1109, 65), (208, 987, 1109, 63), (342, 987, 1109, 63), (457, 1018, 1109, 47),
+                             (561, 1024, 1109, 44), (663, 1030, 1109, 43), (787, 1030, 1105, 39),
+                             (890, 1005, 1097, 41)):
+        round_pot(K, cx, top_, bot, r, -0.82, grey, name="pot_front")
+    # stacks of red pots by the wheel
+    red = K.colour((1400, 1030, 1450, 1080), vary=0.1, scale=8)
+    for cx, y, pots in ((1351, 0.0, ((936, 1010, 30), (1010, 1094, 32))),
+                        (1421, -0.6, ((877, 945, 45), (940, 1020, 48), (1020, 1107, 52))),
+                        (1528, -0.25, ((916, 1000, 48), (995, 1097, 50)))):
+        for t, b, r in pots:
+            round_pot(K, cx, t, b, r, y, red, name="red_pot", rim=0.8, open_mouth=t == pots[0][0])
+    # the heap of clay and the painted pot
+    heap = K.projected(squeeze=1.0, keep=[(1766, 972, 2049, 1100)], inset=2)
+    for px, py, w, h in ((1830, 1060, 130, 80), (1920, 1040, 150, 110), (2000, 1065, 90, 70), (1880, 1085, 120, 40),
+                         (1960, 1080, 110, 45)):
+        K.boulder(P.x(px), -0.5 + K.rng.uniform(-0.15, 0.15), P.z(py), P.m(w), P.m(w) * 0.9, P.m(h), heap, name="clay")
+    deco = K.projected(axis_x=P.x(2116), squeeze=0.93, keep=[(2045, 959, 2187, 1104)])
+    K.lathe([(P.m(r), P.z(y)) for r, y in ((40, 1104), (58, 1095), (69, 1070), (71, 1045), (64, 1010), (48, 985),
+                                           (40, 975), (46, 966), (44, 960))], deco, segments=28,
+            centre=(P.x(2116), -0.55, 0.0), name="painted_pot")

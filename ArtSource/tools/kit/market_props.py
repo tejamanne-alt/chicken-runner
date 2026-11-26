@@ -551,8 +551,8 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
         c = T.at(fl[0] + (fr[0] - fl[0]) * t, fl[1])
         zs = c.z - pr
         if zs > 0.003:
-            K.block(c.x, c.y, zs / 2, 0.07, 0.06, zs, stone, rot=(0, 0, K.rng.uniform(0, 40)), bevel=zs * 0.3,
-                    jitter=0.002, name="stone")
+            K.block(c.x, c.y + pr * 0.6, zs / 2, 0.045, 0.04, zs, stone, rot=(0, 0, K.rng.uniform(0, 30)),
+                    bevel=zs * 0.3, jitter=0.002, name="stone")
 
 
 @model("chilli_mat", "market", kind="prop")
@@ -583,20 +583,20 @@ def chilli_mat(K):
     stalk = K.colour((0.1, 0.16, 0.02), vary=0.1)
     placed = []
     tries = 0
-    while len(placed) < 70 and tries < 4000:
+    while len(placed) < 48 and tries < 4000:
         tries += 1
-        px, py = K.rng.uniform(35, 215), K.rng.uniform(20, 114)
-        if not red[int(py), int(px)] or any((px - qx) ** 2 + (py - qy) ** 2 < 11 ** 2 for qx, qy in placed):
+        px, py = K.rng.uniform(38, 212), K.rng.uniform(24, 112)
+        if not red[int(py), int(px)] or any((px - qx) ** 2 + (py - qy) ** 2 < 13 ** 2 for qx, qy in placed):
             continue
         placed.append((px, py))
         ang = 0.5 * math.atan2(2 * jxy[int(py), int(px)], jxx[int(py), int(px)] - jyy[int(py), int(px)]) + math.pi / 2
-        L = K.rng.uniform(13, 19)
+        L = K.rng.uniform(13, 18)
         dx, dy = math.cos(ang) * L, math.sin(ang) * L
-        r = P.m(K.rng.uniform(3.2, 4.2))
+        r = P.m(K.rng.uniform(4.0, 5.0))
         h0 = height(px, py)
-        A = T.at(px - dx, py - dy, h0 + r * 0.7)
-        B = T.at(px + dx, py + dy, h0 + r * 0.5)
+        A = T.at(px - dx, py - dy, h0 + r * 0.2)
+        B = T.at(px + dx, py + dy, h0)
         pod(K, tuple(A), tuple(B), r, r * 0.25, chilli, bend=tuple(T.n * r * 0.8), n=6, seg=6, name="chilli")
-        if K.rng.uniform() < 0.4:
+        if K.rng.uniform() < 0.4 and min(py - dy, py + dy) > 26:
             d = (A - B).normalized()
             K.tube([tuple(A), tuple(A + d * P.m(5) + T.n * P.m(2))], P.m(1.0), stalk, segments=4, name="stalk")

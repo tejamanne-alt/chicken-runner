@@ -1,0 +1,10 @@
+{
+ "name": "house_potter",
+ "folder": "lane",
+ "kind": "building",
+ "width": 8.745,
+ "height": 4.542,
+ "depth": 6.375,
+ "faces": 12641,
+ "source": "blender"
+}

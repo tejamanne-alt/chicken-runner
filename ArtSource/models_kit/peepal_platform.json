@@ -1,0 +1,10 @@
+{
+ "name": "peepal_platform",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 6.932,
+ "height": 5.327,
+ "depth": 5.823,
+ "faces": 26385,
+ "source": "blender"
+}

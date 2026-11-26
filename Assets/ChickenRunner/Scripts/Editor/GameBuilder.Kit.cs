@@ -145,7 +145,10 @@ namespace ChickenRunner.EditorTools
                 if (texture == null) return null;
                 var real = ArtAssets.SizeOf(piece, texture, 1f);
                 var size = new Vector2(width, width * real.y / Mathf.Max(0.001f, real.x));
-                var card = ArtModels.Enabled ? ArtModels.Place(_root, piece, new Vector3(x, 0f, z), size, false, true, turn) : null;
+                // A model that lies flat (prints, a leaf) is laid face up; one that stands (a tuft, pebbles, a husk) stands,
+                // turned at random.
+                var card = ArtModels.Enabled ? ArtModels.Place(_root, piece, new Vector3(x, 0f, z), size, false,
+                    ArtModels.LiesFlat(piece) || !ArtModels.Has(piece), turn) : null;
                 if (card == null) card = ArtAssets.Card(_root, piece, ArtAssets.CardMaterial(texture), new Vector3(x, 0.004f, z), size, false, true, turn);
                 foreach (var renderer in card.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder - 1;
                 return card;
