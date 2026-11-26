@@ -952,6 +952,13 @@ def straw_pixels(rgb):
     return keep | (dark & ndimage.binary_dilation(keep, iterations=2))
 
 
+def straw_clean(rgb):
+    """straw_pixels away from the cut-out's white halo (and the pale edge blending into it)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    pale = np.minimum(np.minimum(r, g), b) > 175
+    return straw_pixels(rgb) & ~ndimage.binary_dilation(pale, iterations=4)
+
+
 def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch"):
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
@@ -1072,7 +1079,7 @@ def house_potter(K):
         K.card_from_painting((cx - 130, cy - 200, cx + 130, cy + 200), (P.x(cx) + K.rng.uniform(-0.3, 0.3), y, z),
                              yaw=180, pitch=-(90 - ang) * 0.95, name="frond_back")
     # straw fringe cards round the sides and back, cut from the painted fringe
-    K.leaves_only((560, 400, 1300, 520), straw_pixels)
+    K.leaves_only((560, 400, 1300, 520), straw_clean)
     for i in range(16):
         side = i % 4
         cx = K.rng.uniform(600, 1260)
@@ -1910,7 +1917,7 @@ def house_being_built(K):
                          (310, 990, 160, 70), (420, 990, 300, 90)):
         K.boulder(P.x(px), -0.9 + K.rng.uniform(-0.3, 0.3), P.z(py), P.m(w), P.m(w) * 0.9, P.m(h) * 1.1, mudm,
                   name="mud")
-    K.leaves_only((150, 690, 1560, 1050), straw_pixels)
+    K.leaves_only((150, 690, 1560, 1050), straw_clean)
     for i in range(16):
         cx, cy = K.rng.uniform(250, 780), K.rng.uniform(710, 900)
         K.card_from_painting((cx - 60, cy - 45, cx + 60, cy + 45), (P.x(cx), K.rng.uniform(-1.5, -0.4), P.z(cy)),
@@ -2245,8 +2252,8 @@ def cattle_shed(K):
     for px, py, w, h, y in ((1320, 590, 300, 260, D - 0.75), (1240, 640, 220, 170, D - 0.9), (1120, 640, 260, 150, 1.85),
                             (1410, 720, 150, 130, 1.6), (990, 790, 190, 170, 1.45), (930, 830, 120, 90, 1.3)):
         K.boulder(P.x(px), y, P.z(py) - P.m(h) * 0.05, P.m(w), P.m(w) * 0.8, P.m(h), hay, lumps=0.12, name="hay")
-    K.leaves_only((870, 440, 1480, 880), straw_pixels)
-    K.leaves_only((220, 690, 830, 870), straw_pixels)
+    K.leaves_only((870, 440, 1480, 880), straw_clean)
+    K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
     for i in range(140):
         cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
@@ -2541,10 +2548,11 @@ def shop_tailor_cycle(K):
     for x, py in ((850, 405), (965, 405), (1120, 418), (1035, 620), (1180, 618)):
         K.tube([P.pt(x, py - 15, ya - 0.05), P.pt(x, py - 15, 0.3), P.pt(x, py + 2, 0.3)], P.m(3), iron, segments=5,
                name="hook")
-    hanging_ring(K, 855, 528, 50, 127, 13, 0.35, rubber, name="tyre")
-    hanging_ring(K, 965, 505, 45, 105, 6, 0.4, rubber, name="tube")
-    hanging_ring(K, 1120, 512, 85, 98, 7, 0.45, rubber, loops=3, spread=0.03, name="coil")
-    hanging_ring(K, 1033, 705, 67, 87, 6, 0.4, rubber, loops=3, spread=0.03, name="coil")
+    hanging_ring(K, 855, 528, 50, 127, 11, 0.35, rubber, name="tyre")
+    hanging_ring(K, 870, 528, 40, 120, 9, 0.45, rubber, name="tyre")
+    hanging_ring(K, 965, 505, 45, 105, 5, 0.4, rubber, name="tube")
+    hanging_ring(K, 1120, 512, 85, 98, 4, 0.45, rubber, loops=4, spread=0.025, name="coil")
+    hanging_ring(K, 1033, 705, 67, 87, 4, 0.4, rubber, loops=4, spread=0.025, name="coil")
     K.tube([P.pt(1185, 625, 0.4), P.pt(1160, 650, 0.38), P.pt(1155, 700, 0.36), P.pt(1165, 730, 0.36)], P.m(7), rubber,
            segments=8, name="bent_tube")
     pump = K.projected(axis_x=P.x(877), squeeze=0.95, keep=[(800, 760, 935, 1055)], inset=1)
@@ -2553,8 +2561,11 @@ def shop_tailor_cycle(K):
     K.tube([P.pt(877, 795, yp), P.pt(877, 772, yp)], P.m(3), pump, segments=6, name="pump_rod")
     K.tube([P.pt(835, 770, yp), P.pt(922, 770, yp)], P.m(5), pump, segments=8, name="pump_handle")
     K.box(P.x(840), P.x(910), yp - 0.06, yp + 0.06, P.z(1052), P.z(1040), pump, name="pump_foot")
-    K.tube([P.pt(887, 820, yp), P.pt(925, 880, yp - 0.05), P.pt(915, 980, yp - 0.1), P.pt(870, 1000, yp - 0.12),
-            P.pt(815, 968, yp - 0.1)], P.m(2.5), iron, segments=6, name="pump_hose")
+    K.tube([P.pt(x, y, yp + 0.03) for x, y in ((890, 808), (898, 827), (916, 874), (925, 918), (923, 954),
+                                                (910, 985), (892, 1007), (884, 1015))], P.m(3), iron, segments=6,
+           name="pump_hose")
+    K.tube([P.pt(x, y, yp - 0.03) for x, y in ((868, 1035), (863, 1005), (842, 982), (812, 968))], P.m(3), iron,
+           segments=6, name="pump_hose")
     bench = K.colour((1030, 850, 1200, 880), vary=0.06)
     yb0, yb1 = 0.15, 0.75
     K.box(P.x(1005), P.x(1212), yb0, yb1, P.z(852), P.z(836), bench, bevel=0.006, name="bench_top")
@@ -2601,10 +2612,9 @@ def shop_tea_stall(K):
     eave = (P.x(15), P.x(1450), -0.6, D + 0.6)
     ridge = (P.x(232), P.x(1228))
     hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12)
-    K.box(P.x(228), P.x(1232), -0.1, 0.1, P.z(55), P.z(10), beam, bevel=0.01, name="front_beam")
-    K.box(P.x(228), P.x(1232), D / 2 - 0.1, D / 2 + 0.1, zr - 0.05, P.z(10), beam, bevel=0.01, name="ridge_beam")
+    K.box(P.x(228), P.x(1232), D / 2 - 0.12, D / 2 + 0.12, P.z(55), P.z(10), beam, bevel=0.01, name="ridge_beam")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
-    K.leaves_only((0, 55, 1465, 330), straw_pixels)
+    K.leaves_only((0, 55, 1465, 330), straw_clean)
     for i in range(46):
         cx, cy = K.rng.uniform(60, 1410), K.rng.uniform(150, 260)
         side = i % 4

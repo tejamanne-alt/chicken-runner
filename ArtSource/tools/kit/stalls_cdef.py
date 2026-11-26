@@ -1358,6 +1358,28 @@ def scatter_on(K, box, spacing, place, rng_jitter=0.35):
     return n
 
 
+def blobs(K, box, dark=70, min_area=60, max_area=1e9):
+    """The painted pieces inside box (each tomato, onion, lime, nut, brinjal...): regions of the painting between
+    its dark ink lines. Returns [(cx, cy, length, width, angle_deg), ...] in pixels (angle of the long axis, from
+    +x towards +py), so a modelled piece can sit exactly where each painted one is."""
+    from scipy import ndimage
+    P = K.paint
+    x0, y0, x1, y1 = [int(v) for v in box]
+    s = P.rgba[y0:y1, x0:x1] * 255
+    lum = s[..., :3] @ np.array([0.3, 0.59, 0.11])
+    m = ndimage.binary_erosion((lum > dark) & (s[..., 3] > 128), iterations=1)
+    lab, n = ndimage.label(m)
+    out = []
+    for i in range(1, n + 1):
+        ys, xs = np.nonzero(lab == i)
+        if not (min_area <= len(xs) <= max_area):
+            continue
+        ev, evec = np.linalg.eigh(np.cov(np.vstack([xs, ys])))
+        L, W = 4 * math.sqrt(max(ev[1], 1e-6)), 4 * math.sqrt(max(ev[0], 1e-6))
+        out.append((x0 + xs.mean(), y0 + ys.mean(), L + 3, W + 3, math.degrees(math.atan2(evec[1, 1], evec[0, 1]))))
+    return out
+
+
 # ====================================================================== stall E1: the vegetable stall
 @model("stall_e_1", "market", kind="prop", atlas=2048)
 def stall_e_1(K):
@@ -1429,33 +1451,49 @@ def stall_e_1(K):
                 pod(K, (P.x(px_), y, zc), r, r * elong, mat, yaw=K.rng.uniform(-yaw_jit, yaw_jit) + (0 if kind == "pod" else 90),
                     pitch=K.rng.uniform(-15, 15), segs=7)
         return scatter_on(K, box, spacing or P.px(0) * 0 + (2 * r * P.ppm * 0.92), place)
+    slope = (zB - zF) / (bB - bF)
+
+    def on_board(box, mat, dark=70, min_area=60, long=False, rmax=30):
+        """A piece of produce on the board for every painted one in box, where it is painted."""
+        for cx, cy, L, W, ang in blobs(K, box, dark, min_area):
+            r = min(rmax, W / 2)
+            zc = Z(cy)
+            y = board_y(zc - P.m(r) * 0.8)
+            if long and L > W * 1.6:
+                a = math.radians(ang)
+                dx, dz = math.cos(a), -math.sin(a)
+                d = Vector((dx, dz / slope * 0.5, dz)).normalized()
+                pod(K, (P.x(cx), y, zc), P.m(r), P.m(L) * 0.95, mat, yaw=math.degrees(math.atan2(d.y, d.x)),
+                    pitch=math.degrees(math.asin(max(-1.0, min(1.0, d.z)))), segs=7)
+            else:
+                ball(K, (P.x(cx), y, zc), P.m(r), mat, squash=0.9, segs=8, rings=4)
     tom = K.projected(squeeze=1.0, keep=[(205, 500, 330, 650)], inset=1)
-    on_board((215, 505, 325, 645), P.m(17), tom)
+    on_board((205, 500, 330, 652), tom)
     brin = K.projected(squeeze=1.0, keep=[(262, 505, 445, 650)], inset=1)
-    on_board((270, 515, 435, 645), P.m(13), brin, elong=3.4, kind="pod", spacing=30)
+    on_board((262, 505, 445, 652), brin, dark=40, min_area=120, long=True, rmax=16)
     oni = K.projected(squeeze=1.0, keep=[(420, 500, 590, 652)], inset=1)
-    on_board((430, 505, 585, 648), P.m(16), oni)
+    on_board((425, 500, 590, 652), oni)
     lime = K.projected(squeeze=1.0, keep=[(585, 555, 722, 652)], inset=1)
-    on_board((590, 565, 718, 648), P.m(17), lime)
+    on_board((585, 560, 722, 652), lime)
     cuc = K.projected(squeeze=1.0, keep=[(580, 495, 860, 655), (1060, 520, 1240, 650)], inset=1)
-    on_board((590, 505, 760, 560), P.m(18), cuc, elong=5.0, kind="pod", spacing=40)
-    on_board((725, 490, 855, 645), P.m(18), cuc, elong=5.5, kind="pod_up", spacing=34, yaw_jit=10)
-    on_board((1065, 530, 1235, 640), P.m(22), cuc, elong=4.0, kind="pod", spacing=46)
+    on_board((585, 495, 860, 562), cuc, long=True, min_area=200, rmax=22)
+    on_board((722, 488, 860, 650), cuc, long=True, min_area=200, rmax=22)
+    on_board((1060, 525, 1240, 645), cuc, long=True, min_area=200, rmax=26)
     small = K.projected(squeeze=1.0, keep=[(1172, 605, 1262, 650)], inset=1)
-    on_board((1178, 610, 1258, 648), P.m(13), small)
+    on_board((1172, 605, 1262, 650), small)
     # beans lie flat in bundles: low rolls along the board
     beans = K.projected(squeeze=1.0, keep=[(840, 560, 1030, 645)], inset=1)
-    for py_ in (575, 595, 615, 632):
-        zc = Z(py_)
-        y = board_y(zc - 0.03)
-        pod(K, (P.x(935), y, zc), 0.03, P.m(185), beans, yaw=0, segs=6)
+    zc = Z(605)
+    y = board_y(zc)
+    K.block(P.x(935), y, zc - 0.005, P.m(185), P.m(85) / math.sin(math.atan(slope)) * 0.9, 0.05, beans,
+            rot=(-math.degrees(math.atan(slope)), 0, 0), bevel=0.02, name="beans")
     # ---------------------------------------------------------------- standing at the back of the board
     burlap = ktile(K, (30, 690, 180, 728), vary=0.06, soften=0.3)
     zb_back = board_z(0.42)
     sack(K, P.x(282), 0.42, P.m(66), Z(478), Z(458), Z(432), burlap,
          K.projected(squeeze=1.0, keep=[(240, 430, 335, 490)], inset=2), z0=zb_back, sy=0.85, name="spice_sack")
     greens = K.projected(squeeze=1.0, keep=[(350, 440, 610, 510)], inset=2)
-    heap_px(K, 480, 0.4, [(130, 512), (120, 480), (90, 460), (40, 448), (0, 445)], greens, sy=0.4, name="beans_heap",
+    heap_px(K, 480, 0.4, [(128, 512), (118, 485), (88, 466), (40, 456), (0, 453)], greens, sy=0.35, name="beans_heap",
             z0=board_z(0.4))
     weave = ktile(K, (630, 470, 750, 505), vary=0.06)
     zb = board_z(0.38)
@@ -1480,8 +1518,8 @@ def stall_e_1(K):
     # the hanging balance: a stand on a box, the beam, the pan on its three strings
     K.box(P.x(1078), P.x(1200), 0.18, 0.42, board_z(0.3) - 0.1, Z(505), wood, bevel=0.01, name="scale_box")
     iron = K.colour((0.05, 0.035, 0.025), vary=0.05)
-    K.tube([(P.x(1185), 0.35, Z(505)), (P.x(1185), 0.35, Z(395)), (P.x(1100), 0.35, Z(395))], 0.008, iron, segments=6,
-           name="scale_stand")
+    K.tube([(P.x(1100), 0.42, Z(505)), (P.x(1100), 0.42, Z(392)), (P.x(1100), 0.35, Z(392))], 0.005, iron, segments=6,
+           name="scale_rod")
     K.tube([P.pt(1100, 395, 0.35), P.pt(1100, 418, 0.35)], 0.005, iron, segments=5, name="scale_hook")
     pan = K.projected(squeeze=1.0, keep=[(1060, 470, 1185, 510)], inset=1)
     K.lathe([(0.0, Z(505)), (P.m(35), Z(502)), (P.m(55), Z(492)), (P.m(62), Z(482))], pan, segments=20,

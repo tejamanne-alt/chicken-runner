@@ -393,11 +393,13 @@ class Wood:
         return [(P.x(a), b, P.z(c)) for a, b, c in zip(xs, yv, zs)], [P.m(max(0.7, v)) for v in rs]
 
     def tubes(self, mat, fuse_r_px=3.0, thick=None, thin=None, rscale=1.0, seg_thick=14, seg_thin=6, only=None,
-              transform=None, name="limb", inside=None):
+              transform=None, name="limb", inside=None, min_r_px=0.0, ylim=None):
         """Tubes for the paths (or `only` those): returns (thick parts to fuse, thin parts left as they are)."""
         thick, thin = (thick if thick is not None else []), (thin if thin is not None else [])
         for i in (only if only is not None else range(len(self.paths))):
             p = self.paths[i]
+            if float(np.max(p["r"])) < min_r_px:
+                continue
             pts, rs = self.polyline(p)
             if pts is None or len(pts) < 2:
                 continue
@@ -405,6 +407,9 @@ class Wood:
                 pts = [transform(v) for v in pts]
                 if inside is not None and not all(inside(v) for v in pts):
                     continue
+            if ylim is not None:
+                pts = [(v[0], float(np.clip(v[1], -ylim(self.P.px(v[0]), self.P.py(v[2])),
+                                            ylim(self.P.px(v[0]), self.P.py(v[2])))), v[2]) for v in pts]
             rs = [v * rscale for v in rs]
             big = float(np.max(p["r"])) * rscale >= fuse_r_px
             segs = seg_thick if float(np.max(p["r"])) > 3 * fuse_r_px else (10 if big else seg_thin)
@@ -413,7 +418,7 @@ class Wood:
         return thick, thin
 
     def turned_copies(self, mat, picks, rscale=0.85, thick=None, thin=None, fuse_r_px=3.0, ymax=None, rise=30,
-                      whole=True):
+                      whole=True, min_r_px=0.0, ylim=None):
         """Copies of whole limbs (path i with everything growing from it above its start), turned `deg` about the
         vertical through the limb's start: picks [(path index, deg, dy)] carry the crown's wood round to the sides
         and back. ymax: each copy is drawn in towards its pivot so it stays within +-ymax in depth."""
@@ -439,7 +444,7 @@ class Wood:
                 dx, dyy = (v[0] - x0) * k, (v[1] - y0) * k
                 return (x0 + dx * ca - dyy * sa, y0 + dx * sa + dyy * ca + dy, v[2])
             thick, thin = self.tubes(mat, fuse_r_px, thick, thin, rscale=rscale, only=only, transform=tf,
-                                     name="limb_turned", inside=self.hidden)
+                                     name="limb_turned", inside=self.hidden, min_r_px=min_r_px, ylim=ylim)
         return thick, thin
 
     def at(self, px, py):
@@ -1953,7 +1958,8 @@ def field_tree_6(K):
 def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spread=0.5, root_z_px=None,
                 card_px=None, n_cards=(220, 90, 50, 25), limb_py_max=None, limb_py_min=None, n_limbs=6, n_roots=4,
                 root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=0.7, fuse_faces=9000,
-                rscale=1.0, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260):
+                rscale=1.0, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
+                min_r_px=0.0):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
     on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
     roots turned round the trunk as well; returns (wood, crown, bark material, thin parts)."""
@@ -1968,16 +1974,17 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
               ymax=lambda px, py: max(floor, crown.extent(px, py) * 0.8), seed_dy=seed_dy)
     bark = bark_material(K, mask, axis_x=P.x(bark_axis_px or root_px[0]), squeeze=0.9)
     voxel = P.H / voxel_div
-    fuse_r = voxel * 1.3 * P.ppm
-    thick, thin = wood.tubes(bark, fuse_r_px=fuse_r, rscale=rscale)
-    limbs = pick_limbs(wood, py_max=limb_py_max, py_min=limb_py_min, r_min=fuse_r * 1.2, min_len=cw * 0.08,
-                       n=n_limbs)
+    fuse_r = voxel * 2.5 * P.ppm                     # thinner wood stays clean tubes (a voxel remesh would bloat it)
+    thick, thin = wood.tubes(bark, fuse_r_px=fuse_r, rscale=rscale, min_r_px=min_r_px)
+    limbs = pick_limbs(wood, py_max=limb_py_max, py_min=limb_py_min, r_min=max(fuse_r * 0.6, min_r_px),
+                       min_len=cw * 0.08, n=n_limbs)
     picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 125), 0.0) for k, i in enumerate(limbs)]
-    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=fuse_r)
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=fuse_r,
+                       min_r_px=min_r_px, ylim=lambda px, py: max(floor, crown.extent(px, py) * 0.85))
     if n_roots:
         roots = pick_limbs(wood, r_min=fuse_r, min_len=cw * 0.05, n=n_roots, roots=True, root_py=root_py)
         wood.turned_copies(bark, [(i, rng.choice([-1, 1]) * rng.uniform(*root_turn), 0.0) for i in roots],
-                           thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=fuse_r)
+                           thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=fuse_r, min_r_px=min_r_px)
     if thick:
         K.fuse(thick, voxel=voxel, faces=fuse_faces)
     K.leaves_only(tuple(int(v) for v in crown_box), leaf_rule)
@@ -2116,7 +2123,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
             out.append(ob)
             if stalk is not None:
                 top = max(pts, key=lambda v: v[2])
-                K.tube([top, (top[0], top[1], top[2] + P.m(r_max) * 2.5)], P.m(r_max) * 0.25, stalk, segments=5,
+                K.tube([top, (top[0], top[1], top[2] + P.m(r_max) * 1.3)], P.m(r_max) * 0.22, stalk, segments=5,
                        name="pod_stalk")
     return out
 
@@ -2199,7 +2206,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, root, crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6)
+                                          dome_pow=0.6, min_r_px=3.2)
     # the pods: long, thin, ribbed green tubes hanging from the branches, and more round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=2, flatten=0.85, lump=0.05, min_len=40,
               segments=7)
@@ -2261,9 +2268,8 @@ def h2_3(K):
                                           n_limbs=6, n_roots=4, root_py=700, n_cards=(170, 80, 45, 15),
                                           card_px=(80, 70))
     pm = pod_mask(K, (100, 60, 500, 460))
-    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=2, flatten=0.6, lump=0.12,
+    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=2, flatten=0.6, lump=0.12, segments=8,
               stalk=K.colour((0.12, 0.08, 0.03)))
-    earth(K, 300, 150, P.m(130), (290, 712, 310, 722), h=P.m(6), z=P.z(720) - P.m(4))
 
 
 class DiamondKatte:

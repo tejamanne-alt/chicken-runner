@@ -11,16 +11,16 @@ from lane_houses import side_window, stairs
 from lane_props import ground_patch
 
 
-def strip_tile(K, box, vary=0.05, soften=0.4, name=None):
-    """Like K.tile, for a thin strip of the painting (a cornice, a coping, a plinth band): the strip mirrored and
-    stacked into a square, so that on a slab's top (a deck, a coping, a verandah floor) it does not stretch into
-    streaks of planks."""
+def strip_tile(K, box, vary=0.05, soften=0.4, name=None, image=None, key=None):
+    """Like K.tile, for a thin strip of the painting (a cornice, a coping, a plinth band, a band of thatch): the
+    strip mirrored and stacked into a square, so that on a slab's top (a deck, a coping, a verandah floor, a roof
+    slope) it does not stretch into streaks of planks. image: a PIL strip to use instead of the box's crop."""
     from PIL import Image
     P = K.paint
-    key = ("strip", tuple(int(v) for v in box), soften)
+    key = key or ("strip", tuple(int(v) for v in box), soften)
     if key in K._mats:
         return K._mats[key]
-    crop = P.crop(box).convert("RGB")
+    crop = (image if image is not None else P.crop(box)).convert("RGB")
     a = np.asarray(crop).astype(np.float32)
     if soften:
         med = np.median(a.reshape(-1, 3), axis=0)
@@ -48,6 +48,18 @@ def strip_tile(K, box, vary=0.05, soften=0.4, name=None):
     K._mats[key] = m
     return m
 
+
+def rake_tile(K, a, b, offset_px, thick_px, vary=0.1, soften=0.1):
+    """A tile of a band painted along a slanting line (the thatch along a gable's rake) from a to b (px): the
+    painting turned so the band lies flat, and the band offset_px below the line, thick_px thick, cut out."""
+    P = K.paint
+    ang = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+    cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    rot = P.img.convert("RGBA").rotate(ang, center=(cx, cy), resample=2)
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    box = (cx - L * 0.38, cy + offset_px, cx + L * 0.38, cy + offset_px + thick_px)
+    band = rot.crop(tuple(int(v) for v in box))
+    return strip_tile(K, box, vary=vary, soften=soften, image=band, key=("rake", tuple(a), tuple(b), offset_px))
 
 def prof(P, pts):
     """A lathe profile [(radius px, y px), ...] in metres (z from the ground)."""
@@ -325,7 +337,7 @@ def figures(K, figs):
     K.leaf_rules.append((box, keep))
     out = []
     for poly, (_, y, name) in zip(polys, figs):
-        cell = max(4, int((max(v for _, v in poly) - min(v for _, v in poly)) / 28))
+        cell = max(4, int((max(v for _, v in poly) - min(v for _, v in poly)) / 18))
         K.front_exclude.append(("poly", poly))
         # the card: a grid of small quads over the figure's own outline (no long sliver triangles), its edge cells
         # cut finely by the mask
@@ -1101,7 +1113,7 @@ def coconut_cart(K):
         placed.append(Vector((X(px), y, Z(py))))
     n = 0
     tries = 0
-    while n < 36 and tries < 3000:
+    while n < 30 and tries < 3000:
         tries += 1
         u, v = K.rng.uniform(0.02, 0.98), K.rng.uniform(0.35, 1.0)
         p = Vector(heap(u, v))
@@ -1544,8 +1556,9 @@ def roof_house_a_1(K):
               (108, 205, 460), (115, 205, 420), (118, 205, 375)]
     for k, (x0, x1, top) in enumerate(risers):
         K.box(X(x0), X(x1), -2.4 + k * 0.3, 0.9, 0.0, Z(top), stone, bevel=0.01, name="stone_step")
-    para = [(10, 715), (10, 700), (100, 255), (140, 255), (140, 330), (60, 715)]
-    K.prism([(X(x), Z(y)) for x, y in para], -2.4, 0.9, tower, name="stair_parapet")
+    # the stair's side wall, climbing back along its left edge with it
+    wedge_wall(K, (X(36), -2.25), (X(118), 0.75), 0.0, Z(690), Z(262), P.m(48), tower, name="stair_parapet")
+    K.box(X(96), X(142), 0.55, 0.95, Z(330), Z(255), tower, bevel=0.01, name="stair_newel")
     cake = K.colour((0.17, 0.08, 0.035), vary=0.12)
     dung_cakes(K, [(159, 181, 24), (220, 178, 25), (280, 182, 25), (163, 237, 24), (216, 240, 24), (269, 237, 23)],
                0.9, cake)
@@ -1867,13 +1880,43 @@ def chariot_shed(K):
     D = 6.0
     mat = K.tile((70, 328, 215, 372), vary=0.06, soften=0.3)
     timber = K.tile((50, 300, 62, 470), P.m(12), vary=0.08)
-    straw = K.tile((195, 126, 232, 138), P.m(37), vary=0.12, soften=0.2)
+    straw = rake_tile(K, (14, 236), (390, 12), -10, 8, vary=0.12, soften=0.1)
     dark = K.colour((0.07, 0.055, 0.045), vary=0.1)
     earth = K.colour((0.12, 0.08, 0.05), vary=0.12)
     # the roof: two thatched slopes from the ridge, past the gable ends
     thatch_slope(K, (18, 236), (390, 24), -0.45, D + 0.45, straw, name="thatch_l")
     thatch_slope(K, (770, 242), (390, 24), D + 0.45, -0.45, straw, name="thatch_r")
     K.tube([(X(390), -0.47, Z(22)), (X(390), D + 0.47, Z(22))], P.m(9), straw, segments=10, name="ridge")
+    # the ragged straw along the rakes and at the eaves, as painted: cut-out tufts at the gable, and the same
+    # carried down the eaves along the sides
+    def thatchy(rgb):
+        """the thatch only: straw-coloured pixels above the rake lines (not the matting gable below them), and
+        the fringe hanging past the walls at the two eaves"""
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        h, w = r.shape
+        yy, xx = np.mgrid[0:h, 0:w]
+        line = np.where(xx < 390, 236 + (12 - 236) * (xx - 14) / (390 - 14), 246 + (12 - 246) * (xx - 772) / (390 - 772))
+        roof = (yy < line + 3) | (xx < 50) | (xx > 731)
+        straw = (r > 60) & (r >= g) & (g >= b - 5) & (r - b > 25)
+        dark = np.maximum(np.maximum(r, g), b) < 70
+        return roof & (straw | dark) & (yy < 268)
+    K.leaves_only((0, 0, 780, 268), thatchy)
+    tufts = []
+    for k in range(14):
+        t = (k + 0.5) / 14
+        for (ax, ay), (bx, by) in (((14, 236), (390, 12)), ((772, 246), (390, 12))):
+            px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+            tufts.append((px - 30, py - 22, px + 30, py + 12))
+    eaves = [(0, 205, 50, 256), (731, 215, 780, 266)]
+    for box in tufts + eaves:
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, (X(cx), -0.5, Z(cy)), name="thatch_tuft")
+        K.card_from_painting(box, (X(cx), D + 0.5, Z(cy)), name="thatch_tuft")
+    for side, (ex, ey) in ((-1, (22, 236)), (1, (764, 244))):
+        box = eaves[0] if side < 0 else eaves[1]
+        for k in range(12):
+            y = -0.4 + (D + 0.8) * (k + 0.5) / 12
+            K.card_from_painting(box, (X(ex), y, Z(ey) - 0.04), yaw=90 + K.rng.uniform(-10, 10), name="eave_tuft")
     # the gable walls of woven matting (the front open in its middle bay), the side walls
     front = [(50, 485), (50, 232), (390, 40), (730, 232), (730, 485), (558, 485), (558, 205), (225, 205), (225, 485)]
     K.prism([(X(x), Z(y)) for x, y in front], 0.0, 0.06, mat, name="gable_front")

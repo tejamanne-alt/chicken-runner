@@ -1331,7 +1331,7 @@ def sugarcane(K):
     depth = 1.5
     rows = [-depth / 2 + 0.15 + k * 0.3 for k in range(5)]
     bed_py = 464
-    field_bed(K, 128, 834, bed_py, depth, top_rgb=(0.12, 0.07, 0.035), ridges=0.05, rows=rows)
+    field_bed(K, 100, 848, bed_py, depth, top_rgb=(0.12, 0.07, 0.035), ridges=0.05, rows=rows)
     z0 = P.z(bed_py)
     # the canes' rind: the painted canes' own bands (yellow, ringed brown at the nodes) as they run up three painted
     # canes, carried round each cane (every cane takes one of the three, shifted up or down a little)

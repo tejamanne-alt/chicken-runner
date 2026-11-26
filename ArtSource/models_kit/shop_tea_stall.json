@@ -1,0 +1,10 @@
+{
+ "name": "shop_tea_stall",
+ "folder": "lane",
+ "kind": "building",
+ "width": 4.439,
+ "height": 3.47,
+ "depth": 3.941,
+ "faces": 6434,
+ "source": "blender"
+}

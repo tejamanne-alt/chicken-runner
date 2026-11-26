@@ -1,0 +1,10 @@
+{
+ "name": "roof_house_b_1",
+ "folder": "market",
+ "kind": "building",
+ "width": 9.863,
+ "height": 4.505,
+ "depth": 7.8,
+ "faces": 5956,
+ "source": "blender"
+}

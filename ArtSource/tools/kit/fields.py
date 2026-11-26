@@ -1457,3 +1457,114 @@ def granary(K):
     for y in (0.5, 1.15, 1.8):
         K.tube([(P.x(360), y, P.z(203)), (P.x(405), y, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
     shear(K, 0.0, 0.0, kx=kx)
+
+
+def place(parts, angle, pivot):
+    """Turns parts (as built in a local frame) by angle degrees about the vertical through pivot (x, y)."""
+    for ob in parts:
+        rotate(ob, angle, "Z", (pivot[0], pivot[1], 0.0))
+        for v in ob.data.vertices:
+            v.co.x += pivot[0]
+            v.co.y += pivot[1]
+
+
+def gable_thatch(K, W, L, z_eave, z_ridge, mat, over=0.3, thickness=0.2, shag=0.06):
+    """A thatched gable roof in a local frame (walls x -W..0, y 0..L): two lumpy straw slopes from the eaves over
+    the long walls up to a ridge along y at x = -W/2, overhanging the ends by `over`; returns the parts."""
+    a = K.thatch(-over, L + over, -W / 2, 0.0, z_eave, z_ridge, mat, thickness=thickness, overhang=over, shag=shag,
+                 name="thatch")
+    rotate(a, 90, "Z", (0, 0, 0))
+    b = K.thatch(-(L + over), over, -W / 2, 0.0, z_eave, z_ridge, mat, thickness=thickness, overhang=over, shag=shag,
+                 name="thatch")
+    rotate(b, -90, "Z", (0, 0, 0))
+    for ob in (a, b):
+        for v in ob.data.vertices:
+            v.co.x -= W / 2
+    ridge = K.tube([(-W / 2, -over - 0.1, z_ridge + 0.05), (-W / 2, L + over + 0.1, z_ridge + 0.05)], 0.12, mat,
+                   segments=10, name="ridge_roll")
+    return [a, b, ridge]
+
+
+def pen_fence(K, posts, rails, mat, tie=None, r_post=0.045, r_rail=0.035):
+    """A bamboo fence: posts [(x, y, z_top)] standing from the ground, rails [((x0, y0), (x1, y1), z)] lashed across
+    them, with crossed lashings where they meet (tie)."""
+    for x, y, zt in posts:
+        K.tube([(x, y, -0.05), (x, y, zt)], r_post, mat, segments=8, name="post")
+        K.lathe([(0.0, zt), (r_post * 0.9, zt)], K.colour((0.3, 0.22, 0.08)), segments=8, centre=(x, y, 0),
+                name="post_top")
+    for (x0, y0), (x1, y1), z in rails:
+        K.tube([(x0, y0, z), (x1, y1, z)], r_rail, mat, segments=8, name="rail")
+    if tie is not None:
+        for x, y, zt in posts:
+            for (x0, y0), (x1, y1), z in rails:
+                d = math.hypot(x1 - x0, y1 - y0)
+                t = ((x - x0) * (x1 - x0) + (y - y0) * (y1 - y0)) / max(d * d, 1e-9)
+                if -0.01 <= t <= 1.01 and math.hypot(x0 + t * (x1 - x0) - x, y0 + t * (y1 - y0) - y) < 0.05 and z < zt:
+                    rope_ring(K, x, y, z, r_post + 0.012, tie, axis="z", thick=0.012, name="lashing")
+
+
+@fmodel("hut_with_pen", "fields", kind="building", atlas=2048)
+def hut_with_pen(K):
+    """A field-watcher's mud hut with a steep straw-thatched gable roof (bamboo bargeboards, a ridge roll), a low
+    doorway in the gable end under a bamboo pole with pegs, a mud plinth before it; along its side a pen of bamboo
+    posts and rails lashed with rope, a metal water tub inside. The hut stands turned, as it is painted: we see its
+    gable end and one long side."""
+    P = K.paint
+    K.front_min = 0.15
+    phi = 35.0
+    W, L = 2.3, 4.2
+    C = (P.x(305), 0.0)                                   # the hut's nearest corner
+    mud = K.tile((80, 290, 140, 400), soften=0.4, vary=0.05)
+    thatch = K.tile((330, 70, 520, 200), soften=0.2, vary=0.04)
+    zg, ze, zr = P.z(462), P.z(262), P.z(32)
+    hut = []
+    walls = K.box(-W, 0.0, 0.0, L, zg - 0.05, ze, mud, name="walls")
+    hut.append(walls)
+    for y0, y1 in ((0.0, 0.22), (L - 0.22, L)):
+        hut.append(K.prism([(0.0, ze - 0.01), (-W, ze - 0.01), (-W / 2, zr - 0.15)], y0, y1, mud, name="gable"))
+    hut += gable_thatch(K, W, L, ze, zr, thatch, over=0.32)
+    # the doorway in the gable end, its dark inside; the bamboo pole with pegs over it; the plinth
+    d = lambda px: -(305 - px) / P.ppm / math.cos(math.radians(phi))     # along the gable from the corner
+    K.cut(walls, d(222), d(160), -0.05, 0.4, zg, P.z(250))
+    hut.append(K.box(d(222), d(160), 0.3, 0.34, zg, P.z(250), K.colour((0.06, 0.035, 0.025), vary=0.05), name="door_dark"))
+    bamboo = K.colour((0.52, 0.36, 0.1), vary=0.12)
+    hut.append(K.tube([(d(232), -0.08, P.z(238)), (d(115), -0.08, P.z(238))], 0.05, bamboo, segments=8, name="pole"))
+    for px in (125, 172, 215):
+        hut.append(K.tube([(d(px), -0.1, P.z(238)), (d(px) + 0.04, -0.14, P.z(218))], 0.02, bamboo, segments=6,
+                          name="peg"))
+    plinth = K.tile((100, 425, 180, 445), soften=0.4)
+    hut.append(K.box(d(212), d(40) + 0.1, -0.42, 0.02, 0.0, P.z(425) - 0.05, plinth, bevel=0.02, name="plinth"))
+    # bamboo bargeboards up the front gable's thatch edge, with their cross ties
+    for sgn in (-1, 1):
+        x0 = -W / 2 + sgn * (W / 2 + 0.32)
+        hut.append(K.tube([(x0, -0.36, ze - 0.15), (-W / 2, -0.36, zr + 0.02)], 0.045, bamboo, segments=8,
+                          name="bargeboard"))
+        for f in (0.25, 0.5, 0.75):
+            x = x0 + (-W / 2 - x0) * f
+            z = ze - 0.15 + (zr + 0.02 - ze + 0.15) * f
+            hut.append(K.tube([(x - 0.12, -0.38, z - 0.05), (x + 0.12, -0.38, z + 0.05)], 0.025, bamboo, segments=6,
+                              name="tie"))
+    place(hut, -phi, C)
+    # the pen along its side: bamboo posts and three rails, lashed; a metal tub inside
+    yf, yb = 0.25, 2.5
+    x_l, x_r = P.x(452), P.x(806)
+    wall_x = lambda y: C[0] + y * math.tan(math.radians(phi))   # the hut's side wall at depth y (in plan)
+    posts = [(P.x(455), yf, P.z(286)), (P.x(662), yf, P.z(280)), (P.x(745), yf, P.z(290)), (P.x(803), yf, P.z(285)),
+             (P.x(549), yb, P.z(300)), (P.x(628), yb, P.z(300)), (x_r, yb, P.z(290)), (x_r, (yf + yb) / 2, P.z(290)),
+             (P.x(455), (yf + wall_x(0) * 0 + 1.2) / 2 + 0.3, P.z(290))]
+    rails = []
+    for row in (325, 375, 422):
+        z = P.z(row)
+        rails += [((P.x(445), yf), (P.x(812), yf), z), ((x_r, yf), (x_r, yb), z),
+                  ((wall_x(yb), yb), (x_r, yb), z), ((P.x(455), yf), (P.x(455), 1.45), z)]
+    pen_fence(K, posts, rails, bamboo, tie=K.colour((0.42, 0.3, 0.12), vary=0.1))
+    tub = K.projected(axis_x=P.x(585), squeeze=0.92, keep=[(474, 404, 696, 466)], exclude=[(440, 410, 812, 432)],
+                      inset=2)
+    K.lathe([(P.m(50), P.z(466)), (P.m(85), P.z(452)), (P.m(105), P.z(430)), (P.m(111), P.z(410)), (P.m(108), P.z(406))],
+            tub, segments=28, centre=(P.x(585), 1.0, 0), scale_y=0.45, name="tub", cap=False)
+    K.lathe([(P.m(104), P.z(414)), (0.0, P.z(418))], K.colour((0.18, 0.2, 0.18), vary=0.1), segments=28,
+            centre=(P.x(585), 1.0, 0), scale_y=0.45, name="tub_water")
+    # tufts of grass along the foot
+    K.leaves_only((30, 440, 823, 478), grass_pixels)
+    for cx in (60, 290, 600, 700):
+        K.card_from_painting((cx - 30, 440, cx + 30, 470), P.pt(cx, 455, -0.1), name="grass", normal=(0, -0.3, 1))
