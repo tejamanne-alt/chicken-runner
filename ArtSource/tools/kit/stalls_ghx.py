@@ -2384,8 +2384,9 @@ def garland(K, box, y, mat=None, strands=2, string_to=None, name="garland"):
             t = i / n
             z = P.z(y0 + 4) - (L - 8 / P.ppm) * t
             pts.append((cx + 0.004 * math.sin(7 * t + ph + k), y + 0.004 * math.cos(5 * t + k), z))
-            radii.append(r * (0.82 + 0.18 * abs(math.sin(math.pi * i * 0.5 + k))) * (0.35 if i in (0, n) else 1.0))
-        K.tube(pts, radii, mat, segments=8, name=name)
+            end = min(i, n - i)
+            radii.append(r * (0.82 + 0.18 * abs(math.sin(math.pi * i * 0.5 + k))) * (0.4, 0.8, 1.0)[min(2, end)])
+        K.tube(pts, radii, mat, segments=10, name=name)
     if string_to is not None:
         string = K.colour((0.3, 0.22, 0.12), vary=0.05)
         K.tube([(P.x((x0 + x1) / 2), y, P.z(y0) - 0.01), (P.x((x0 + x1) / 2), y, string_to)], 0.004, string, segments=4,
