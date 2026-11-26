@@ -563,7 +563,8 @@ def h4_1(K):
     # ---- the boulders and grass at its foot
     rock_boxes = [(165, 1072, 290, 1160), (250, 1095, 320, 1160), (290, 1138, 330, 1164), (310, 1103, 398, 1152),
                   (360, 1076, 432, 1146)]
-    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb) & ~barkish(rgb, 90), inset=2)
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb)
+                            & ~(barkish(rgb) & box_mask(opaque.shape, [(255, 1030, 350, 1120)])), inset=2)
     palm_foot(K, [(226, 1158, 122, 86, -0.035), (283, 1160, 66, 60, -0.03), (310, 1164, 40, 24, -0.055),
                   (352, 1152, 88, 50, -0.04), (395, 1146, 72, 70, -0.02), (250, 1155, 70, 50, 0.045),
                   (360, 1152, 80, 55, 0.04)],
@@ -623,7 +624,8 @@ def h4_2(K):
         for v in ob.data.vertices:
             v.co.y += yh
     rock_boxes = [(398, 816, 480, 866), (470, 820, 556, 873), (456, 855, 497, 877), (528, 818, 598, 869)]
-    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb) & ~barkish(rgb, 90), inset=2)
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb)
+                            & ~(barkish(rgb) & box_mask(opaque.shape, [(455, 760, 545, 840)])), inset=2)
     palm_foot(K, [(438, 865, 82, 50, -0.025), (512, 872, 86, 52, -0.035), (476, 876, 40, 22, -0.06),
                   (562, 868, 70, 50, -0.02), (470, 868, 70, 44, 0.04), (540, 868, 70, 46, 0.045)],
               stone, [(398, 776, 462, 824), (538, 766, 592, 824), (558, 826, 592, 872)], [-0.03, -0.03, -0.05],
@@ -707,7 +709,8 @@ def h4_3(K):
             for v in ob.data.vertices:
                 v.co.y += yh
     rock_boxes = [(133, 970, 255, 1058), (200, 1004, 306, 1064), (302, 994, 398, 1061)]
-    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb) & ~barkish(rgb, 90), inset=2)
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb)
+                            & ~(barkish(rgb) & box_mask(opaque.shape, [(245, 900, 345, 1020)])), inset=2)
     palm_foot(K, [(194, 1057, 122, 88, -0.03), (252, 1063, 104, 58, -0.045), (350, 1060, 94, 66, -0.03),
                   (240, 1058, 90, 60, 0.05), (330, 1058, 80, 55, 0.055)],
               stone, [(160, 922, 246, 975), (336, 952, 384, 998), (288, 1004, 335, 1046)], [-0.03, -0.03, -0.055],
