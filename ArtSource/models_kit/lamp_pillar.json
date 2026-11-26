@@ -1,0 +1,10 @@
+{
+ "name": "lamp_pillar",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 5.807,
+ "height": 9.115,
+ "depth": 5.046,
+ "faces": 8439,
+ "source": "blender"
+}

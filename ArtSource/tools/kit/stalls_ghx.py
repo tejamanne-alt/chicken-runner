@@ -15,7 +15,7 @@ from mathutils import Matrix, Vector
 
 from kitlib import Mat, _image, _obj, model
 from stalls_cdef import (_smooth, bamboo, basket_stack, beam, hanging_cloth, heap_px, hip_thatch, joint, ktile,
-                         lashing, turned, unify_cards)
+                         lashing, rib_umbrella, turned, unify_cards)
 
 
 # ====================================================================== helpers
@@ -638,18 +638,30 @@ def loft(K, rings, mat, segs=16, name="loft", smooth=True):
 
 
 def mask_rings(K, box, py0, py1, step=10, alpha=0.5):
-    """The painted outline of a thing inside box, row by row from py0 down to py1: [(py, centre px, half-width px)],
-    a little smoothed."""
+    """The painted outline of a thing inside box, row by row from py0 down to py1: [(py, centre px, half-width px)]
+    of the run of opaque pixels round the middle of the box (or round the row above's middle), a little smoothed:
+    things painted beside it in the box but not touching it are left out."""
     P = K.paint
     a = P.rgba[..., 3]
     x0, _, x1, _ = [int(v) for v in box]
     out = []
+    c = (x0 + x1) // 2
     for py in np.arange(py0, py1 + 0.1, step):
-        row = np.nonzero(a[int(min(P.h - 1, py)), x0:x1] > alpha)[0]
-        if len(row) == 0:
+        row = a[int(min(P.h - 1, py)), x0:x1] > alpha
+        if not row.any():
             continue
-        l, r = x0 + row[0], x0 + row[-1]
-        out.append([float(py), (l + r) / 2, (r - l) / 2])
+        i = c - x0
+        if not row[i]:
+            idx = np.nonzero(row)[0]
+            i = idx[np.argmin(np.abs(idx - i))]
+        l = i
+        while l > 0 and row[l - 1]:
+            l -= 1
+        r = i
+        while r < len(row) - 1 and row[r + 1]:
+            r += 1
+        out.append([float(py), x0 + (l + r) / 2, (r - l) / 2])
+        c = int(x0 + (l + r) / 2)
     arr = np.array(out)
     if len(arr) > 2:
         for k in (1, 2):
@@ -657,7 +669,7 @@ def mask_rings(K, box, py0, py1, step=10, alpha=0.5):
     return [tuple(r) for r in arr]
 
 
-def banana_bunch(K, box, py0, py1, y, mat, core=0.7, depth=0.82, hands=5, per=10, finger=None, scale=1.0, dz=0.0,
+def banana_bunch(K, box, py0, py1, y, mat, core=0.64, depth=0.82, hands=5, per=10, finger=None, scale=1.0, dz=0.0,
                  name="bunch"):
     """A hanging bunch of bananas traced off the painting: a core the shape of the painted bunch (inside box, from
     py0 down to py1, its stalk trimmed off) hung at depth y, wrapped in hands of curved fingers lying up its sides,
@@ -679,7 +691,7 @@ def banana_bunch(K, box, py0, py1, y, mat, core=0.7, depth=0.82, hands=5, per=10
     t, bt = rings[0], rings[-1]
     rings = ([(t[0], y, t[2] + 0.035 * scale, t[3] * 0.45, t[4] * 0.45), (t[0], y, t[2] + 0.02 * scale, t[3] * 0.82, t[4] * 0.82)]
              + rings + [(bt[0], y, bt[2] - 0.03 * scale, bt[3] * 0.5, bt[4] * 0.5)])
-    loft(K, rings, mat, segs=14, name=name)
+    loft(K, rings, mat, segs=18, name=name)
     fl = finger or P.m(56) * scale
     fr = fl * 0.19
     import market_props as MP
@@ -698,10 +710,12 @@ def banana_bunch(K, box, py0, py1, y, mat, core=0.7, depth=0.82, hands=5, per=10
         ph = K.rng.uniform(0, 6.28)
         for j in range(per):
             a = ph + 2 * math.pi * (j + K.rng.uniform(-0.15, 0.15)) / per
+            if math.sin(a) < -0.25:                      # the front stays smooth: the painting's own bananas
+                continue
             n = Vector((math.cos(a), math.sin(a), 0))
             rb = Vector((rx * math.cos(a), ry * math.sin(a), 0))
             base = Vector((cx, cy, zh - fl * 0.42)) + rb * 0.92
-            tip = Vector((cx, cy, zh + fl * 0.45)) + rb * 1.0 + n * fr * 0.9
+            tip = Vector((cx, cy, zh + fl * 0.45)) + rb * 1.0 + n * fr * 0.6
             MP.pod(K, tuple(base), tuple(tip), fr, fr * 0.55, mat, bend=tuple(n * fr * 0.9), n=4, seg=5,
                    name=name + "_finger")
     return rings
@@ -782,15 +796,15 @@ def stall_g_3(K):
     # ---------------------------------------------------------------- the bunches
     stem = K.colour((165, 520, 180, 570), vary=0.1)
     bunches = [  # box, body top py, bottom py, row, top stalk px, bottom stalk px, hands, per hand
-        ((58, 230, 196, 520), 262, 505, 0, [(150, 236), (148, 262)], [(166, 500), (172, 545), (178, 582)], 6, 10),
-        ((150, 225, 252, 500), 262, 482, 1, [(210, 230), (212, 262)], [(218, 478), (226, 500), (232, 515)], 5, 8),
+        ((58, 230, 176, 520), 262, 505, 0, [(150, 236), (148, 262)], [(166, 500), (172, 545), (178, 582)], 6, 10),
+        ((176, 225, 252, 500), 262, 482, 1, [(210, 230), (212, 262)], [(218, 478), (226, 500), (232, 515)], 5, 8),
         ((250, 235, 360, 505), 262, 490, 0, [(306, 238), (310, 262)], [(310, 490), (310, 528)], 6, 9),
         ((352, 240, 442, 420), 260, 410, 1, [(400, 238), (402, 258)], [], 4, 8),
         ((440, 268, 548, 360), 280, 350, 0, [(490, 270), (490, 290)], [], 2, 10),
-        ((548, 230, 648, 470), 255, 455, 1, [(600, 236), (600, 258)], [(598, 455), (595, 466)], 5, 8),
-        ((645, 235, 752, 505), 258, 480, 0, [(695, 240), (695, 260)], [(690, 478), (688, 500)], 6, 9),
-        ((752, 235, 852, 520), 258, 490, 1, [(800, 238), (800, 258)], [(790, 490), (785, 515)], 6, 8),
-        ((835, 222, 958, 475), 255, 455, 0, [(888, 226), (890, 256)], [(898, 455), (900, 470)], 5, 9),
+        ((550, 230, 645, 470), 255, 455, 1, [(600, 236), (600, 258)], [(598, 455), (595, 466)], 5, 8),
+        ((648, 235, 752, 505), 258, 480, 0, [(695, 240), (695, 260)], [(690, 478), (688, 500)], 6, 9),
+        ((754, 235, 846, 520), 258, 490, 1, [(800, 238), (800, 258)], [(790, 490), (785, 515)], 6, 8),
+        ((846, 222, 958, 475), 255, 455, 0, [(888, 226), (890, 256)], [(898, 455), (900, 470)], 5, 9),
     ]
     mats = []
     for box, t, b, row, top, bot, hands, per in bunches:
@@ -813,7 +827,212 @@ def stall_g_3(K):
         cx, scx = (box[0] + box[2]) / 2, (sbox[0] + sbox[2]) / 2
         m = K.projected(axis_x=P.x(cx), squeeze=0.9, dx=P.x(scx) - P.x(cx), dz=P.z((st + sb) / 2) - P.z((t + b) / 2),
                         keep=[(sbox[0], st - 6, sbox[2], sb + 8)], inset=2)
-        rings = banana_bunch(K, box, t - 14, b + 6, yrow[2], m, hands=4, per=8, scale=0.85, dz=0.04)
+        rings = banana_bunch(K, box, t - 14, b + 6, yrow[2], m, hands=3, per=8, scale=0.85, dz=0.04)
         K.tube([(rings[0][0], yrow[2], rings[0][2]), (rings[0][0], yrow[2], zb + 0.02)], P.m(7), stem, segments=8,
                name="stalk")
+    unify_cards(K)
+
+
+# ====================================================================== stall H1: the cobbler under his umbrella
+class Bank:
+    """A raked bank of earth (or a raised display) whose surface z rises from 0 at y0 to `top` at y1 (slope deg),
+    flat behind to y2, then rounds down to the ground at y3: lets goods painted from above lie on it in place."""
+
+    def __init__(self, y0, top, slope, flat=0.3, back=0.45):
+        self.y0, self.top = y0, top
+        self.y1 = y0 + top / math.tan(math.radians(slope))
+        self.y2 = self.y1 + flat
+        self.y3 = self.y2 + back
+
+    def z(self, y):
+        if y <= self.y0:
+            return 0.0
+        if y <= self.y1:
+            return self.top * (y - self.y0) / (self.y1 - self.y0)
+        if y <= self.y2:
+            return self.top
+        return self.top * _smooth(self.y3, self.y2, y)
+
+    def y(self, z):
+        """Where on the raked front the surface is at height z."""
+        return self.y0 + (self.y1 - self.y0) * max(0.0, min(1.0, z / self.top))
+
+    def at(self, P, px, py, lift=0.0):
+        """The point of the raked front painted at (px, py), lifted off it."""
+        z = P.z(py)
+        a = math.atan2(self.top, self.y1 - self.y0)
+        return Vector((P.x(px), self.y(z) - lift * math.sin(a), z + lift * math.cos(a)))
+
+    def normal(self):
+        a = math.atan2(self.top, self.y1 - self.y0)
+        return Vector((0, -math.sin(a), math.cos(a)))
+
+
+def sole_mesh(K, heel, along, across, L, W, t, mat, name="sole"):
+    """A sandal's sole: a foot-shaped slab from its heel (point) along `along` L long, W wide, t thick, its top
+    towards along x across."""
+    up = Vector(across).cross(Vector(along)).normalized() * -1
+    along, across, heel = Vector(along).normalized(), Vector(across).normalized(), Vector(heel)
+    if up.dot(Vector((0, -0.3, 1))) < 0:
+        up = -up
+    prof = [(0.0, 0.72), (0.06, 0.9), (0.2, 0.86), (0.4, 0.78), (0.62, 0.98), (0.8, 1.0), (0.92, 0.82), (0.985, 0.5),
+            (1.0, 0.0)]
+    pts = [(v, w) for v, w in prof] + [(v, -w) for v, w in reversed(prof[:-1])]
+    bm = bmesh.new()
+    bot = [bm.verts.new(heel + along * (L * v) + across * (W * 0.5 * w)) for v, w in pts]
+    top = [bm.verts.new(heel + along * (L * v) + across * (W * 0.5 * w) + up * t) for v, w in pts]
+    bm.faces.new(list(reversed(bot)))
+    bm.faces.new(top)
+    n = len(pts)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([bot[i], bot[j], top[j], top[i]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat)
+    K.parts.append(ob)
+    return ob, up
+
+
+def sandal(K, bank, box, sole, strap, tilt=48.0, horizontal=False, flip=False, name="sandal"):
+    """A sandal laid out where it is painted (box px), propped up `tilt` degrees on the bank so its painted top
+    faces the customers: its sole, a toe post and a strap arched over the foot."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    a = math.radians(tilt)
+    if not horizontal:
+        L = P.m(y1 - y0) / math.sin(a)
+        W = P.m(x1 - x0) * 0.92
+        heel_z = P.z(y1)
+        heel = Vector((P.x((x0 + x1) / 2), bank.y(heel_z), heel_z))
+        along = Vector((0, math.cos(a), math.sin(a)))
+        across = Vector((1, 0, 0))
+    else:
+        L = P.m(x1 - x0)
+        W = P.m(y1 - y0) / math.sin(a) * 0.92
+        zc = P.z((y0 + y1) / 2)
+        ex = P.x(x1) if flip else P.x(x0)
+        heel = Vector((ex, bank.y(zc), zc))
+        along = Vector((-1 if flip else 1, 0, 0))
+        across = Vector((0, math.cos(a), math.sin(a)))
+    t = 0.018
+    ob, up = sole_mesh(K, heel + bank.normal() * 0.006, along, across, L, W, t, sole, name=name)
+    base = heel + up * t
+    ac = across * (W * 0.5)
+    pts = [base + along * (L * 0.62) + ac * s * 0.85 + up * (0.035 * math.cos(s * math.pi / 2)) for s in np.linspace(-1, 1, 7)]
+    K.tube([tuple(p) for p in pts], 0.007, strap, segments=5, name=name + "_strap")
+    K.tube([tuple(base + along * (L * 0.86)), tuple(base + along * (L * 0.66) + up * 0.03)], 0.005, strap, segments=4,
+           name=name + "_post")
+    toe = heel + along * L
+    return toe
+
+
+@model("stall_h_1", "market", kind="prop", atlas=2048)
+def stall_h_1(K):
+    """A cobbler's pitch: a big black cloth umbrella on a bamboo pole, tilted back so its ribs show, over a straw mat
+    spread on a bank of red earth; rows of new sandals propped on sticks along the mat, a stack of tanned leather,
+    leather straps, his hammer, mallet, awls and knives, a sack-cloth he sits on; the cobbler himself, mending a
+    sandal, is a painted cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    bank = Bank(-0.95, Z(768), 19.0, flat=0.35, back=0.5)
+    # ---------------------------------------------------------------- the bank of earth and the mats on it
+    earth = ktile(K, (935, 792, 1020, 860), vary=0.08, soften=0.3)
+    xl, xr = P.x(60), P.x(1026)
+
+    def ground(x, y):
+        side = _smooth(xl - 0.02, xl + 0.12 + 0.1 * _smooth(bank.y0, bank.y1, y), x) * _smooth(xr + 0.02, xr - 0.1, x)
+        return bank.z(y) * side
+    K.grid_plane(xl - 0.1, xr + 0.05, bank.y0 - 0.05, bank.y3 + 0.02, 0.0, 34, 30, earth, height=ground, name="bank")
+    straw = ktile(K, (292, 866, 345, 884), vary=0.06)
+
+    def mat_sheet(corners, mat, lift, name):
+        FL, FR, BR, BL = corners
+
+        def f(u, v):
+            px_ = (FL[0] * (1 - u) + FR[0] * u) * (1 - v) + (BL[0] * (1 - u) + BR[0] * u) * v
+            py_ = (FL[1] * (1 - u) + FR[1] * u) * (1 - v) + (BL[1] * (1 - u) + BR[1] * u) * v
+            return tuple(bank.at(P, px_, py_, lift))
+        return K.sheet(f, 16, 10, mat, name=name, thickness=0.006)
+    mat_sheet([(58, 944), (995, 944), (872, 768), (204, 768)], straw, 0.006, "mat")
+    sack = ktile(K, (360, 800, 420, 830), vary=0.05)
+    mat_sheet([(345, 880), (760, 880), (720, 772), (395, 772)], sack, 0.013, "sack_cloth")
+    # ---------------------------------------------------------------- the umbrella and its pole
+    black = ktile(K, (180, 70, 420, 140), vary=0.05, soften=0.2)
+    under = ktile(K, (560, 255, 660, 300), vary=0.05, soften=0.2)
+    rib = K.colour((600, 196, 640, 206), vary=0.08)
+    cy = 0.62
+    tilt = 8.8
+    tip, axis = rib_umbrella(K, P.x(498), cy, Z(245), P.m(490), P.m(200) / math.cos(math.radians(tilt)), tilt, black,
+                             under, rib, ribs=10, phase=math.pi / 10, tears=0.0)
+    ax = Vector(axis)
+    poleshaft = lean_projected(K, (498, 40), (498, 750), 0.85, [(482, 255, 516, 745)])
+    zb = bank.z(cy - 0.05)
+    t = (tip[2] - zb) / ax.z
+    base = Vector(tip) - ax * t
+    bamboo(K, tuple(base - ax * 0.12), tuple(Vector(tip) + ax * 0.05), P.m(15), poleshaft,
+           node_at=[0.25, 0.45, 0.62], bend=0.0, taper=0.95, name="pole")
+    rope = K.colour((0.3, 0.2, 0.1), vary=0.1)
+    c = Vector(tip) - ax * (Z(45) - Z(245) + 0.03) / ax.z * 0.0
+    lashing(K, tuple(Vector(tip) - ax * ((Z(45) - Z(240)) / ax.z)), tuple(ax), P.m(16), rope, turns=4)
+    _ = c
+    # ---------------------------------------------------------------- the sandals, propped in rows on sticks
+    sole = K.colour((120, 925, 135, 940), vary=0.1)
+    strap = K.colour((0.35, 0.12, 0.04), vary=0.12)
+    stick = K.colour((0.35, 0.22, 0.1), vary=0.1)
+    front_row = [(106, 168), (168, 231), (249, 302), (302, 356), (380, 440), (440, 493), (590, 646), (646, 696),
+                 (718, 771), (771, 827), (862, 921), (915, 971)]
+    toes = []
+    for x0, x1 in front_row:
+        toes.append(sandal(K, bank, (x0 + 2, 880, x1 - 2, 944), sole, strap))
+    zt = toes[0].z
+    yt = toes[0].y
+    bamboo(K, (P.x(95), yt + 0.03, zt - 0.03), (P.x(985), yt + 0.03, zt - 0.03), 0.013, stick, node_at=[], taper=1.0,
+           name="prop_stick")
+    for box in ((168, 828, 209, 874), (198, 830, 259, 880), (822, 822, 875, 874), (866, 825, 927, 880)):
+        toe = sandal(K, bank, box, sole, strap, tilt=46)
+        bamboo(K, (toe.x - 0.05, toe.y + 0.03, toe.z - 0.03), (toe.x + 0.05, toe.y + 0.03, toe.z - 0.03), 0.011, stick,
+               node_at=[], taper=1.0, name="prop_stick")
+    for box, flip in (((790, 771, 842, 810), True), ((827, 773, 872, 807), True)):
+        sandal(K, bank, box, sole, strap, tilt=40, horizontal=True, flip=flip)
+    # ---------------------------------------------------------------- leather, straps and tools
+    n = bank.normal()
+    a = math.degrees(math.atan2(bank.top, bank.y1 - bank.y0))
+    hide = K.colour((250, 765, 330, 780), vary=0.1)
+    for k, (x0, x1, top, bot) in enumerate(((215, 345, 757, 790), (222, 340, 778, 800), (230, 350, 792, 812))):
+        p = bank.at(P, (x0 + x1) / 2, (top + bot) / 2, 0.012 + 0.012 * (2 - k))
+        K.block(p.x, p.y, p.z, P.m(x1 - x0), P.m(bot - top) / math.sin(math.radians(a)) * 0.9, 0.012, hide,
+                rot=(a, 0, K.rng.uniform(-3, 3)), bevel=0.004, name="leather")
+    for (ax_, ay_), (bx_, by_) in (((445, 772), (368, 862)), ((456, 776), (384, 868)), ((432, 770), (352, 850)),
+                                   ((465, 782), (402, 872))):
+        beam(K, tuple(bank.at(P, ax_, ay_, 0.012)), tuple(bank.at(P, bx_, by_, 0.012)), P.m(9), 0.008, hide,
+             name="strap_strip")
+    wood = K.colour((360, 845, 380, 855), vary=0.08)
+    iron = K.colour((0.06, 0.07, 0.09), vary=0.06)
+    K.tube([tuple(bank.at(P, 383, 843, 0.02)), tuple(bank.at(P, 432, 864, 0.02))], P.m(8), wood, segments=8, name="hammer")
+    p = bank.at(P, 448, 872, 0.03)
+    K.block(p.x, p.y, p.z, P.m(42), 0.05, 0.05, iron, rot=(0, 0, -25), bevel=0.01, name="hammer_head")
+    K.tube([tuple(bank.at(P, 470, 870, 0.03)), tuple(bank.at(P, 500, 885, 0.03))], P.m(18), K.colour((0.2, 0.2, 0.22)),
+           segments=10, name="mallet")
+    for (ax_, ay_), (bx_, by_) in (((590, 820), (615, 862)), ((497, 892), (505, 944)), ((612, 818), (620, 845))):
+        K.tube([tuple(bank.at(P, ax_, ay_, 0.015)), tuple(bank.at(P, bx_, by_, 0.015))], P.m(5), wood, segments=6,
+               name="awl")
+    for x0, x1, yy in ((676, 720, 852), (760, 800, 848)):
+        p = bank.at(P, (x0 + x1) / 2, yy, 0.012)
+        K.block(p.x, p.y, p.z, P.m(x1 - x0), 0.03, 0.01, K.colour((0.4, 0.42, 0.45)), rot=(a, 0, 0), name="blade")
+    p = bank.at(P, 460, 792, 0.03)
+    ob = K.lathe([(0.025, -0.06), (0.03, 0.06)], wood, segments=10, centre=tuple(p), name="last")
+    frame_to(ob, tuple(p), (0.3, 0.1, 0.95), (1, 0, 0))
+    # ---------------------------------------------------------------- behind him: his tin box and a bundle
+    tin = K.colour((0.3, 0.3, 0.33), vary=0.08)
+    zt_ = bank.top
+    K.box(P.x(560), P.x(720), bank.y1 + 0.05, bank.y1 + 0.3, zt_, zt_ + 0.22, tin, bevel=0.01, name="tool_box")
+    bundle = K.colour((0.55, 0.45, 0.3), vary=0.1)
+    K.block(P.x(330), bank.y1 + 0.18, zt_ + 0.1, 0.4, 0.28, 0.2, bundle, bevel=0.06, name="bundle")
+    # ---------------------------------------------------------------- the cobbler
+    K.figure([(630, 471), (656, 478), (672, 500), (668, 540), (660, 565), (700, 580), (722, 600), (736, 630),
+              (746, 670), (749, 715), (772, 735), (792, 760), (792, 792), (772, 812), (740, 822), (712, 834),
+              (690, 818), (650, 818), (596, 832), (560, 828), (528, 812), (488, 802), (480, 776), (494, 750),
+              (520, 734), (522, 700), (530, 660), (545, 620), (560, 590), (590, 575), (600, 560), (591, 530),
+              (589, 500), (605, 479)], y=bank.y(Z(815)) + 0.02, name="cobbler")
     unify_cards(K)

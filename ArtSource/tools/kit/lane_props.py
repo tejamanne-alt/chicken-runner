@@ -890,9 +890,9 @@ def shrine_stone(K):
     red = K.colour((0.6, 0.02, 0.03), vary=0.1, scale=60)
     r = P.m(10)
     yfr = yf - r * 0.7
-    front = [(90, 37), (81, 50), (79, 66), (82, 84), (88, 101), (96, 117), (104, 131), (114, 144), (126, 153),
-             (137, 156), (148, 150), (158, 140), (167, 128), (175, 114), (182, 99), (187, 82), (188, 64), (184, 48),
-             (177, 36)]
+    front = [(88, 41), (81, 52), (79, 66), (82, 84), (88, 101), (96, 117), (104, 131), (114, 144), (126, 153),
+             (137, 156), (148, 150), (158, 140), (167, 128), (175, 114), (182, 99), (187, 82), (188, 64), (185, 50),
+             (180, 41)]
     pts = [(X(x), yfr, Z(y)) for x, y in front]
     flower_chain(K, pts, r, marigold, P.m(15.5), reds=[(X(97), yfr, Z(119)), (X(173), yfr, Z(118))], red_mat=red)
     back = [(X(181), yfr * 0.5, Z(42)), (X(184), 0.04, Z(44)), (X(178), yb + r * 0.6, Z(48)),
@@ -1126,7 +1126,7 @@ def rope_cot(K):
     blockm = K.tile((36, 104, 72, 150), vary=0.06, soften=0.3)
     for i, (cx, yy, keep, low, blk, top) in enumerate(legs):
         wood = K.projected(axis_x=X(cx), squeeze=0.92, keep=[keep], inset=2)
-        lift = tilt * yy
+        lift = 0.0                       # each leg's foot is where it is painted: the ground falls to the front
         K.lathe([(P.m(r), Z(py) + lift) for r, py in low], wood, segments=24, centre=(X(cx), yy, 0), name="leg")
         x0, x1, t_py, b_py = blk
         hw = P.m(x1 - x0) / 2
@@ -1134,7 +1134,9 @@ def rope_cot(K):
               name="block")
         decal_faces(K, (32, 102, 77, 152), X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py) + lift, Z(t_py) + lift,
                     faces=("back", "left", "right"))
-        tcx = cx if i != 3 else 444
+        tcx = cx if i != 3 else 449
+        if i == 3:
+            wood = K.projected(axis_x=X(tcx), squeeze=0.92, keep=[(434, 34, 464, 70)], inset=2)
         K.lathe([(P.m(r), Z(py) + lift) for r, py in top], wood, segments=24, centre=(X(tcx), yy, 0), name="finial")
     # the frame's rails, wrapped in rope
     wrap = K.tile((150, 114, 250, 146), vary=0.06, soften=0.15)
@@ -1166,6 +1168,121 @@ def rope_cot(K):
     pil = proj(K, X(150), 1.0, polys=[[(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]], inset=3)
     cushion(K, [(X(108), yF + 0.18, Z(110)), (X(234), yF + 0.18, Z(96)), (X(170), yB - 0.12, Z(9)),
                 (X(63), yB - 0.12, Z(12))], 0.075, pil, name="cushion")
-    earth(K, 263, 251, 266, 255, 0.62, (180, 250, 230, 258), tilt=tilt,
+    earth(K, 263, 251, 266, 255, 0.62, (0.58, 0.25, 0.12), tilt=tilt,
           grass=[(8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
                  (420, 240, 462, 262), (490, 248, 510, 262)])
+
+
+def octagon(K, prof_hw, cx_px, cy, mat, name="octagon"):
+    """An eight-sided turned shaft (a stone pillar) with one flat face to the front: prof_hw [(half width px as
+    painted, py), ...] from the bottom up."""
+    from mathutils import Matrix
+    P = K.paint
+    k = 1 / math.cos(math.pi / 8)
+    ob = K.lathe([(P.m(hw) * k, P.z(py)) for hw, py in prof_hw], mat, segments=8, centre=(0, 0, 0), name=name,
+                 smooth=False)
+    ob.data.transform(Matrix.Translation((P.x(cx_px), cy, 0)) @ Matrix.Rotation(math.pi / 8, 4, "Z"))
+    return ob
+
+
+def stone_lamp(K, axis, level_py, theta, reach_px, shaft_hw_px, mat, spout_mat=None, name="lamp"):
+    """A small stone lamp on its bracket, standing out from a pillar: its cup `reach_px` out from the axis (x px,
+    y m) at angle theta (degrees; 0 = to the right, -90 = to the front), with a pointed spout on its outer rim, held
+    by a curved bracket springing from the shaft below it."""
+    P = K.paint
+    ax, ay = axis
+    a = math.radians(theta)
+    d = (math.cos(a), math.sin(a))
+    c = (P.x(ax) + d[0] * P.m(reach_px), ay + d[1] * P.m(reach_px))
+    L = level_py
+    K.lathe(prof(P, [(0, L + 17), (7, L + 17), (12, L + 13), (15, L + 8), (16, L + 5), (14.5, L + 4.5),
+                     (13, L + 7), (0, L + 8)]), mat, segments=14, centre=(c[0], c[1], 0), name=name)
+    tip = (c[0] + d[0] * P.m(17), c[1] + d[1] * P.m(17), P.z(L - 6))
+    base = (c[0] + d[0] * P.m(11), c[1] + d[1] * P.m(11), P.z(L + 6))
+    K.tube([base, tip], [P.m(3.2), P.m(0.8)], spout_mat or mat, segments=6, name="spout")
+    s0 = P.m(shaft_hw_px - 4)
+    pts = [(P.x(ax) + d[0] * s0, ay + d[1] * s0, P.z(L + 42)), (P.x(ax) + d[0] * (s0 + P.m(12)),
+           ay + d[1] * (s0 + P.m(12)), P.z(L + 30)), (c[0] - d[0] * P.m(2), c[1] - d[1] * P.m(2), P.z(L + 18))]
+    K.tube(pts, [P.m(7), P.m(6), P.m(7)], mat, segments=6, name="bracket")
+
+
+@model("lamp_pillar", "lane", kind="prop")
+def lamp_pillar(K):
+    """A temple deepa stambha: a tall eight-sided sandstone lamp pillar on a moulded pedestal and six broad steps,
+    rows of small stone lamps standing out on brackets all the way up, carved bands near its foot and below its
+    capital, the tiered capital with a lamp at each corner and a big lamp bowl on top; a marigold garland and a
+    brass bell hang at its foot."""
+    P = K.paint
+    X, Z = P.x, P.z
+    cx = 430
+    keep = [(355, 0, 505, 1112)]
+    stone = proj(K, X(cx), 0.95, keep=keep, inset=3, side_tile=(410, 645, 450, 680))
+    # the shaft, its carved bands and the capital: one eight-sided turned stone
+    shaft = [(67, 945), (67, 910), (67.5, 820), (64, 812), (62, 800), (63.5, 740), (61, 660), (59, 580), (58, 500),
+             (56, 420), (54, 350), (52, 270), (55, 263), (62, 260), (63, 248), (60, 244), (56, 210), (56, 190),
+             (52, 160), (48, 153), (47, 148), (47, 140), (42, 137), (39, 130), (45, 122), (60, 118), (69, 112),
+             (70, 98), (60, 91), (50, 89), (47, 82), (46, 72), (55, 68), (62, 60), (70, 52), (80, 46), (0, 46)]
+    octagon(K, shaft, cx, 0.0, stone, name="shaft")
+    # the top plate with a lamp at each corner, and the lamp bowl on top
+    top = K.tile((380, 28, 480, 42), vary=0.05, soften=0.3)
+    K.box(X(340), X(521), -P.m(80), P.m(80), Z(46), Z(27), top, bevel=0.03, name="top_plate")
+    bowl = K.projected(axis_x=X(429), squeeze=0.93, keep=[(400, 6, 458, 30)], inset=1)
+    K.lathe(prof(P, [(0, 28), (12, 28), (20, 25), (25, 18), (27, 11), (25, 10), (22, 14), (0, 16)]), bowl,
+            segments=24, centre=(X(429), 0.0, 0), name="top_bowl")
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            c = (X(cx) + sx * P.m(80), sy * P.m(70))
+            K.lathe(prof(P, [(0, 28), (8, 28), (11, 22), (10, 20), (0, 22)]), top, segments=12,
+                    centre=(c[0], c[1], 0), name="corner_lamp")
+            K.tube([(c[0] + sx * P.m(8), c[1], Z(22)), (c[0] + sx * P.m(14), c[1], Z(12))], [P.m(3), P.m(0.8)], top,
+                   segments=6, name="corner_spout")
+    # the lamps up the shaft: left and right on every level, front and back below the top one
+    lampm = K.colour((340, 215, 370, 228), vary=0.08)
+    hw_at = lambda py: interp([(p, h) for h, p in sorted(((h, p) for h, p in shaft[2:12]), key=lambda t: t[1])], py)
+    for L in (212, 291, 371, 451, 531, 611, 691, 771):
+        hw = hw_at(L + 40)
+        for th in ((180, 0) if L == 212 else (180, 0, -90, 90)):
+            stone_lamp(K, (cx, 0.0), L, th, 78 if th in (0, 180) else hw + 16, hw, lampm)
+    # the pedestal: a square block with its mouldings and a sunk panel on each face
+    ped = proj(K, X(cx), 1.0, keep=[(330, 940, 535, 1112)], exclude=[(340, 920, 520, 1060), (392, 1040, 472, 1112)],
+               inset=3,
+               side_tile=(345, 1062, 400, 1078))
+    D = P.m(89)
+    K.box(X(cx) - D, X(cx) + D, -D, D, Z(1080), Z(990), ped, name="pedestal")
+    for (y0, y1), r in (((1090, 1112), 103), ((1080, 1090), 96), ((975, 990), 100), ((945, 975), 92)):
+        rr = P.m(r)
+        K.box(X(cx) - rr, X(cx) + rr, -rr, rr, Z(y1), Z(y0), ped, bevel=0.01, name="moulding")
+    # the steps
+    step = K.tile((300, 1296, 420, 1334), vary=0.05, soften=0.3)
+    for (y0, y1, x0, x1) in ((1112, 1148, 260, 600), (1148, 1183, 212, 648), (1183, 1218, 165, 697),
+                             (1218, 1252, 115, 747), (1252, 1290, 68, 795), (1290, 1342, 18, 842)):
+        d = P.m(x1 - x0) * 0.32 + P.m(110)
+        K.box(X(x0), X(x1), -d, d, Z(y1), Z(y0), step, bevel=0.012, name="step")
+    # the garland round its foot, the cloth band, the bell on its cord
+    marigold = K.colour((0.95, 0.45, 0.02), vary=0.12, scale=40)
+    white = K.colour((0.85, 0.82, 0.75), vary=0.05)
+    red = K.colour((0.55, 0.03, 0.06), vary=0.1)
+    r = P.m(11)
+    yfr = -D - r * 0.8
+    left = [(348, 928), (352, 955), (360, 980), (372, 1003), (386, 1022), (402, 1036), (420, 1045)]
+    right = [(512, 928), (508, 955), (500, 980), (488, 1000), (472, 1016), (456, 1030), (440, 1043)]
+    flower_chain(K, [(X(x), yfr, Z(y)) for x, y in left], r, marigold, P.m(19),
+                 reds=[(X(372), yfr, Z(1003)), (X(386), yfr, Z(1022))], red_mat=white)
+    flower_chain(K, [(X(x), yfr, Z(y)) for x, y in right], r, marigold, P.m(19),
+                 reds=[(X(488), yfr, Z(1000))], red_mat=white)
+    flower_chain(K, [(X(512), yfr, Z(928)), (X(cx) + D + r, 0.0, Z(930)), (X(cx), D + r, Z(932)),
+                     (X(cx) - D - r, 0.0, Z(930)), (X(348), yfr, Z(928))], r, marigold, P.m(20), name="garland_back")
+    for x, y, m in ((498, 1038, white), (497, 1052, white), (494, 1068, red), (504, 1068, red)):
+        boulder_ball(K, (X(x), yfr - 0.02, Z(y)), (P.m(8), P.m(7), P.m(8)), m, lumps=0.3, name="pendant")
+    cloth = K.colour((410, 960, 420, 975), vary=0.08)
+    K.lathe([(P.m(62) / math.cos(math.pi / 8) + 0.01, Z(950)), (P.m(62) / math.cos(math.pi / 8) + 0.01, Z(944))],
+            cloth, segments=8, centre=(X(cx), 0, 0), name="band", cap=False)
+    for sx in (-1, 1):
+        K.tube([(X(cx), -D - 0.03, Z(952)), (X(cx + sx * 14), -D - 0.05, Z(975)), (X(cx + sx * 22), -D - 0.05,
+                Z(990))], [P.m(5), P.m(6), P.m(4)], cloth, segments=6, name="band_tail")
+    brass = K.projected(axis_x=X(432), squeeze=0.92, keep=[(400, 1040, 462, 1112)], inset=1)
+    K.tube([(X(431), -D - 0.04, Z(950)), (X(431), -D - 0.06, Z(1045))], P.m(2.5), brass, segments=6, name="cord")
+    K.lathe(prof(P, [(0, 1104), (26, 1104), (28, 1100), (25, 1090), (20, 1075), (15, 1060), (13, 1050), (6, 1045),
+                     (0, 1044)]), brass, segments=24, centre=(X(431), -D - 0.06, 0), name="bell")
+    K.lathe(prof(P, [(0, 1110), (5, 1108), (5, 1103), (0, 1101)]), brass, segments=10,
+            centre=(X(431), -D - 0.06, 0), name="clapper")

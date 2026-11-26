@@ -1067,10 +1067,10 @@ def stall_d_1(K):
     for cx, hw, rim, prof, fruit, y in table:
         basket(K, P.x(cx), y, zc, [(P.m(hw * 0.7), 0.0), (P.m(hw * 0.95), (Z(rim) - zc) * 0.6), (P.m(hw), Z(rim) - zc)],
                weave, sy=0.85)
-        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.9, py + 3) for r, py in prof[1:]], fruit, sy=0.85,
-                    name="heap")
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.6) for r, py in prof[1:]], fruit,
+                    sy=0.85, name="heap")
         on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 12, cx + hw, rim - 4), fruit,
-                dark=60 if fruit is dark else 130, min_area=120, max_area=3000, rmax=22, flat=0.95)
+                dark=60 if fruit is dark else 130, min_area=120, max_area=3000, rmax=22, flat=0.95, top_pieces=True)
     # ---------------------------------------------------------------- on the ground in front
     front = [  # (cx, rim half-width, rim py, heap profile, y)
         (120, 80, 662, [(78, 662), (72, 630), (55, 605), (30, 590), (0, 585)], -0.85),
@@ -1080,10 +1080,10 @@ def stall_d_1(K):
     ]
     for cx, hw, rim, prof, y in front:
         basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.85), 0.0), (P.m(hw), Z(rim))], weave, sy=0.85)
-        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.9, py + 4) for r, py in prof[1:]], nungu, sy=0.85,
-                    name="heap")
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.6) for r, py in prof[1:]], nungu,
+                    sy=0.85, name="heap")
         on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 15, cx + hw, rim - 4), nungu, dark=130,
-                min_area=150, max_area=4000, rmax=26, flat=0.95)
+                min_area=150, max_area=4000, rmax=26, flat=0.95, top_pieces=True)
     # a cut bunch lying on the ground at the front left
     bunch = K.projected(squeeze=1.0, keep=[(160, 545, 320, 700)], inset=2)
     fruit_bunch(K, (165, 548, 318, 700), -0.6, 0.45, bunch)
@@ -1613,7 +1613,8 @@ def stall_e_1(K):
     unify_cards(K)
 
 
-def on_heap(K, height, x_c, y_c, ry, box, mat, dark=70, min_area=25, max_area=1e9, rmax=99.0, kind="ball", flat=0.8):
+def on_heap(K, height, x_c, y_c, ry, box, mat, dark=70, min_area=25, max_area=1e9, rmax=99.0, kind="ball", flat=0.8,
+            top_pieces=False):
     """Pieces (nuts, peanuts, sweets, fruit) on the front of a heap, one for every painted piece in box, each where
     it is painted: at its painted x and height, on the heap's front surface height(x, y)."""
     P = K.paint
@@ -1627,7 +1628,9 @@ def on_heap(K, height, x_c, y_c, ry, box, mat, dark=70, min_area=25, max_area=1e
                 y = yy
                 break
         else:
-            continue
+            if not top_pieces:
+                continue
+            y = y_c - ry * 0.3              # a piece above the mound: it sits on top of the others
         if kind == "ball" or L < W * 1.5:
             ball(K, (x, y, z), r, mat, squash=flat, segs=7, rings=4)
         else:

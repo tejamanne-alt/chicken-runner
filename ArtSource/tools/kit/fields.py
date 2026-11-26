@@ -1191,19 +1191,23 @@ def sluice_gate(K):
         K.boulder(P.x(px), ydep(300) + 0.05, P.z(300) + P.m(8), P.m(w), P.m(w) * 0.8, P.m(16), pebbles, name="stone")
 
 
-def ring_wall(K, cx, cy, r_out, r_in, z0, z1, courses, n, mat, rim=None, bevel=0.035, gap=0.012, name="course"):
+def ring_wall(K, cx, cy, r_out, r_in, z0, z1, courses, n, mat, rim=None, bevel=0.035, gap=0.012, name="course",
+              levels=None):
     """A round wall of dressed stones: `courses` rings of n blocks each, every other ring turned half a block,
-    between radii r_in and r_out from z0 to z1 (the top ring in `rim`'s material, its stones a little proud)."""
-    ch = (z1 - z0) / courses
+    between radii r_in and r_out from z0 to z1 (the top ring in `rim`'s material, its stones a little proud).
+    levels: the courses' own heights [z0, z_a, ..., z1] (bottom to top), to lay them where the painting has them."""
+    levels = levels or [z0 + (z1 - z0) * c / courses for c in range(courses + 1)]
+    courses = len(levels) - 1
     parts = []
     for c in range(courses):
         top = c == courses - 1
         ro = r_out + (0.03 if top else 0.0)
+        ch = levels[c + 1] - levels[c]
         for i in range(n):
             a = 2 * math.pi * (i + 0.5 * (c % 2)) / n
             rm = (ro + r_in) / 2
             w = 2 * math.pi * rm / n - gap
-            parts.append(K.block(cx + rm * math.cos(a), cy + rm * math.sin(a), z0 + ch * (c + 0.5),
+            parts.append(K.block(cx + rm * math.cos(a), cy + rm * math.sin(a), levels[c] + ch / 2,
                                  w * (ro / rm), ro - r_in, ch - gap, rim if (top and rim) else mat,
                                  rot=(0, 0, math.degrees(a) + 90), bevel=bevel, name=name))
     return parts
@@ -1218,27 +1222,27 @@ def well(K):
     K.front_min = 0.15
     cx = P.x(256)
     R, r_in = P.m(190), P.m(190) - 0.24
-    k = 0.075                                                # the painting looks down on the rim a little
-    stone_m = K.tile((250, 268, 340, 302), soften=0.3, vary=0.05)
-    rim = K.tile((310, 220, 400, 255), soften=0.3, vary=0.05)
-    zb, zt = P.z(352) + k * R, P.z(216) + k * R
-    wall = ring_wall(K, cx, 0.0, R, r_in, zb - 0.06, zt, 5, 12, stone_m, rim=rim, name="course")
+    zg = P.z(374)                                            # the ground round its foot
+    stone_m = K.tile((215, 236, 300, 262), soften=0.3, vary=0.06)       # one clean dressed stone's face
+    rim = K.tile((320, 240, 392, 262), soften=0.45, vary=0.05)
+    zb, zt = zg - 0.06, P.z(208)                             # level courses, the rim's top as high as painted
+    levels = [zb, P.z(348), P.z(305), P.z(264), zt]          # the courses where they are painted
+    ring_wall(K, cx, 0.0, R, r_in, zb, zt, 4, 12, stone_m, rim=rim, name="course", levels=levels)
     inner = K.colour((0.06, 0.05, 0.07), vary=0.1)
-    wall.append(K.lathe([(r_in + 0.01, zb - 0.06), (r_in + 0.01, zt - 0.02)], inner, segments=30, centre=(cx, 0, 0),
-                        name="shaft", cap=False))
+    K.lathe([(r_in - 0.012, zb), (r_in - 0.012, levels[-2])], inner, segments=36, centre=(cx, 0, 0), name="shaft",
+            cap=False)                                       # the dark shaft inside the courses below the rim
     water = K.colour((0.05, 0.09, 0.1), vary=0.15)
-    wall.append(K.lathe([(0.0, zt - 0.55), (r_in + 0.02, zt - 0.55)], water, segments=30, centre=(cx, 0, 0),
-                        name="water"))
-    shear(K, k, 0.0, parts=wall)
-    # the posts, leaning in a little, standing inside the wall; the log beam across their heads
+    K.lathe([(0.0, zt - 0.55), (r_in + 0.02, zt - 0.55)], water, segments=30, centre=(cx, 0, 0), name="water")
+    # the posts: rough round timbers leaning in a little, standing inside the wall; the log beam across their heads
     timber = K.tile((100, 70, 128, 200), soften=0.15, vary=0.05)
-    post = K.projected(squeeze=1.0, keep=[(84, 8, 145, 214), (356, 8, 418, 214)], inset=2)
-    for (bx, tx) in ((108, 122), (391, 386)):
+    post = K.projected(squeeze=0.9, keep=[(84, 8, 145, 214), (356, 8, 418, 214)], inset=2)
+    for bx, tx in ((106, 120), (396, 380)):
         x0, x1 = P.x(bx), P.x(tx)
-        dx = x1 - x0
-        h = P.z(12) - P.z(300)
-        ob = K.block((x0 + x1) / 2, 0.0, (P.z(12) + P.z(300)) / 2, P.m(42), 0.24, h, post,
-                     rot=(0, math.degrees(math.atan2(dx, h)), 0), bevel=0.03, name="post")
+        h = P.z(10) - zg
+        ob = K.lathe([(P.m(22), zg), (P.m(21.5), zg + h * 0.4), (P.m(20.5), zg + h * 0.85), (P.m(20), P.z(10)),
+                      (P.m(17), P.z(10) + 0.01), (0.0, P.z(10) + 0.015)], post, segments=10, centre=(x0, 0.0, 0.0),
+                     wobble=0.07, name="post")
+        rotate(ob, math.degrees(math.atan2(x1 - x0, h)), "Y", (x0, 0.0, zg))
     beam = K.projected(squeeze=1.0, keep=[(78, 28, 422, 58)], exclude=[(228, 15, 290, 70)], inset=2)
     K.tube([P.pt(80, 43), P.pt(420, 41)], P.m(13), beam, segments=14, name="beam")
     for x in (80, 420):
@@ -1269,7 +1273,7 @@ def well(K):
             for a in np.linspace(0.0, math.pi, 12)], P.m(3), iron, segments=6, name="pail_handle")
     # the spare rope, coiled and hung over the wall's front
     hook_x = 175
-    yw = -math.sqrt(max(0.0, R ** 2 - (P.x(hook_x) - cx) ** 2)) - 0.03 - k * 0.0
+    yw = -math.sqrt(max(0.0, R ** 2 - (P.x(hook_x) - cx) ** 2)) - 0.03
     for i, (w, bot) in enumerate(((46, 336), (38, 326), (30, 312), (22, 296))):
         pts = []
         for a in np.linspace(0, 2 * math.pi, 22):
@@ -1279,18 +1283,18 @@ def well(K):
         K.tube(pts, P.m(6), rope, segments=6, name="coil", cap=False)
     # the ground round its foot: earth, rocks, weeds
     earth = K.colour((100, 375, 160, 385), vary=0.18, scale=8)
-    K.lathe([(0.0, P.z(386)), (R + 0.26, P.z(386)), (R + 0.2, P.z(372)), (0.0, P.z(372))], earth, segments=32,
-            centre=(cx, 0, 0), wobble=0.08, name="ground")
+    K.lathe([(0.0, 0.0), (R + 0.36, 0.0), (R + 0.31, 0.015), (R + 0.16, zg * 0.75), (R, zg), (0.0, zg)], earth,
+            segments=32, centre=(cx, 0, 0), wobble=0.08, name="ground")
     rocks = K.projected(squeeze=1.0, keep=[(14, 340, 500, 394)], exclude=[(30, 300, 120, 360), (330, 300, 500, 360)],
                         inset=2)
     for px, w, h in ((70, 48, 24), (130, 60, 30), (215, 50, 22), (300, 44, 22), (380, 70, 32), (450, 52, 24),
                      (40, 30, 14), (480, 30, 14)):
         dxm = P.x(px) - cx
         y = -math.sqrt(max(0.0, (R + 0.12) ** 2 - dxm ** 2)) - 0.04
-        stone(K, P.x(px), y, P.z(372) + P.m(h) * 0.4, P.m(w), P.m(w) * 0.7, P.m(h), rocks, lumps=0.15, name="rock")
+        stone(K, P.x(px), y, zg + P.m(h) * 0.4, P.m(w), P.m(w) * 0.7, P.m(h), rocks, lumps=0.15, name="rock")
     for a in (30, 75, 120, 160):
         t = math.radians(a)
-        stone(K, cx + (R + 0.15) * math.cos(t), (R + 0.15) * math.sin(t), P.z(372) + 0.05, 0.3, 0.22, 0.14, rocks,
+        stone(K, cx + (R + 0.15) * math.cos(t), (R + 0.15) * math.sin(t), zg + 0.05, 0.3, 0.22, 0.14, rocks,
                   lumps=0.15, name="rock")
     K.leaves_only((0, 300, 515, 394), grass_pixels)
     for box in ((30, 306, 116, 372), (336, 310, 420, 372), (430, 300, 515, 366), (140, 340, 220, 384)):
@@ -1649,6 +1653,7 @@ def field_shrine(K):
     K.box(P.x(124), P.x(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back")
     K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image")
     # blind niches in the other three walls of the cella, and in the first tier
+    niche_m = K.colour((166, 350, 194, 440), vary=0.08)
     for ang in (90, 180, 270):
         a = math.radians(ang)
         nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction
@@ -1658,6 +1663,10 @@ def field_shrine(K):
             x0, x1 = sorted((mx - tx * w - nx * d, mx + tx * w + nx * d))
             y0, y1 = sorted((my - ty * w - ny * d, my + ty * w + ny * d))
             K.cut(ob, x0, x1, y0, y1, z0, z1)
+            bx_, by_ = ax + nx * (hh - d * 0.6), cy + ny * (hh - d * 0.6)     # its shaded back, a little proud
+            x0, x1 = sorted((bx_ - tx * w - nx * 0.015, bx_ + tx * w + nx * 0.015))
+            y0, y1 = sorted((by_ - ty * w - ny * 0.015, by_ + ty * w + ny * 0.015))
+            K.box(x0, x1, y0, y1, z0, z1, niche_m, name="blind_niche")
     # the flag on its pole, standing at the back of the dome and leaning over to the right as painted
     pole = K.colour((186, 60, 196, 110), vary=0.08)
     by = cy + hd * 0.5
