@@ -929,14 +929,18 @@ class Katte:
 
 
 def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
-                 crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0):
+                 crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
+                 crown_extra_keep=None):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves."""
     P = K.paint
     rng = K.rng
     mask = raster((P.h, P.w), [trunk] + limbs + roots)
-    bark = bark_material(K, mask & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]), axis_x=P.x(918),
-                         squeeze=0.9)
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    barkish = (r - b > 35) & (mx < 215) & (mx > 60) & (r >= g)
+    bark = bark_material(K, mask & barkish & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]),
+                         axis_x=P.x(918), squeeze=0.9)
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
                   dome_pow=0.9, y0=y0)
     wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
@@ -1010,6 +1014,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     halo = (mn > 175) & (mx - mn < 45)
     leaves = (P.rgba[..., 3] > 0.5) & ~excl & ~halo
     leaves = ndimage.binary_opening(leaves, iterations=1)
+    if crown_extra_keep is not None:
+        leaves |= crown_extra_keep
     box = tuple(int(v) for v in crown_box)
     K.leaves_only(box, mask_rule(leaves, box))
     nv, nf, nb = n_cards
@@ -1264,36 +1270,32 @@ def shrine_tree(K):
     for px in (862, 892, 922, 952, 984):
         K.lathe([(P.m(r), P.z(py)) for r, py in ((9, 472), (11, 462), (7, 452), (4, 445), (6, 440), (0.5, 430))],
                 tower_mat, segments=12, centre=(P.x(px), tc, 0.0), name="finial")
-    # ---- the peepal behind it
+    # ---- the peepal behind it (the painted skeins of thread hanging from its limbs go on cards with its leaves)
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    skein = (r > 150) & (r - b > 110) & (g < 0.8 * r) & (P.rgba[..., 3] > 0.5)
+    skein = ndimage.binary_dilation(skein, iterations=1) & (P.rgba[..., 3] > 0.5)
+    skein &= box_mask(skein.shape, [(370, 470, 800, 800), (1020, 490, 1350, 790)])
     crown, trunk_ob = _peepal_tree(
         K, (0, 0, 1844, 790), SHRINE_TRUNK, SHRINE_LIMBS, [], None, (300, 200, 1600, 800), P.m(1780) * 0.36,
         (440, 10, 790),
-        exclude_wood=[SHRINE_TRUNK[3:], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2], SHRINE_LIMBS[2][:3],
-                      SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
-        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=7)
+        exclude_wood=[SHRINE_TRUNK[3:-2] + [(905, 340, 120)], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2],
+                      SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
+        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=7,
+        crown_extra_keep=skein)
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
-    for limb_pts, segs in ((SHRINE_LIMBS[4], [(1, 3), (4, 5)]), (SHRINE_LIMBS[5], [(1, 3), (5, 6)])):
+    for limb_pts, segs in ((SHRINE_LIMBS[4], [(1, 2), (3, 4)]), (SHRINE_LIMBS[5], [(2, 3)])):
         for i0, i1 in segs:
             a, b = limb_pts[i0], limb_pts[i1]
             for mat in (red, orange):
                 wrap_limb(K, (P.x(a[0]), yt, P.z(a[1])), (P.x(b[0]), yt, P.z(b[1])), P.m((a[2] + b[2]) / 2), mat,
                           5, P.m(2.5))
-            for k in range(7):
-                f = rng.uniform(0, 1)
-                x, z = P.x(a[0] + (b[0] - a[0]) * f), P.z(a[1] + (b[1] - a[1]) * f) - P.m((a[2] + b[2]) / 2) * 0.9
-                strand(K, (x, yt + rng.uniform(-0.3, 0.3), z), rng.uniform(0.3, 0.8), rng.choice([red, orange]),
-                       P.m(2.5))
     for py in range(600, 770, 18):
         ring_tube(K, P.x(905), yt, P.z(py), P.m(212), P.m(212), rng.choice([red, orange]), P.m(2.5),
                   tilt=(rng.uniform(-0.05, 0.05), rng.uniform(0.0, 0.08)), wobble=0.03, name="thread")
-    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
-    r, g, b, mx, mn = chan(rgb)
-    skein = (r > 150) & (r - b > 110) & (g < 0.8 * r) & (P.rgba[..., 3] > 0.5)
-    skein = ndimage.binary_dilation(skein, iterations=1) & (P.rgba[..., 3] > 0.5)
     for box in ((370, 470, 800, 800), (1020, 490, 1350, 790)):
-        K.leaves_only(box, mask_rule(skein, box))
         for k in range(16):
             cx, cy = rng.uniform(box[0] + 40, box[2] - 40), rng.uniform(box[1] + 40, box[3] - 40)
             K.card_from_painting((cx - 70, cy - 70, cx + 70, cy + 70), (P.x(cx), yt - rng.uniform(0.2, 0.9), P.z(cy)),

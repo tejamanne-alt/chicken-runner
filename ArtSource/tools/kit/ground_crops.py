@@ -1010,3 +1010,331 @@ def crop_strip_1(K):
     plant_band_cards(K, 30, 1170, 0, base_py, rows_y[0], 18, yaw=10)
     src = [75, 150, 250, 310, 370, 435, 500, 570, 640, 735, 810, 880, 960, 1040, 1110]
     plant_rows_cards(K, src, 70, 0, base_py, rows_y[1:], (30, 1170), 72, scale=(0.8, 1.0), yaw=40)
+
+
+# stooks of crop_strip_2: (axis px, top of the ears py, tie py, painted foot py, foot radius px); a tie of None is a
+# stook thatched to a point (a spike of straw at its top) instead of tied under a fan of ears
+STOOKS = [(150, 8, 45, 158, 54), (236, 38, 60, 142, 42), (305, 28, 50, 126, 38), (450, 10, 42, 140, 56),
+          (545, 50, None, 122, 28), (606, 10, 45, 150, 54), (750, 38, None, 132, 48), (863, 38, 55, 138, 41),
+          (912, 18, 40, 118, 34), (964, 28, 50, 140, 46), (1042, 10, 45, 150, 50)]
+
+
+def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=1.0):
+    """A stook of harvested paddy: a cone of sheaves stood ears-up, its foot flared, tied near the top under a fan
+    of ears (or thatched to a point), at (x, y) with its foot at z0, scaled; built on the painted one at ax (its
+    painted heights top, tie, foot px, its foot radius rf px)."""
+    P = K.paint
+    s = scale
+    h = P.m(foot - (tie if tie else top)) * s
+    R = P.m(rf) * s
+    if tie:
+        rt = P.m(10) * s
+        prof = [(R * 0.92, 0.0), (R, h * 0.06), (R * 0.86, h * 0.2), (R * 0.62, h * 0.45), (R * 0.36, h * 0.72),
+                (rt * 1.3, h * 0.94), (rt, h)]
+    else:
+        prof = [(R * 0.92, 0.0), (R, h * 0.06), (R * 0.9, h * 0.25), (R * 0.72, h * 0.5), (R * 0.42, h * 0.78),
+                (R * 0.12, h * 0.97), (0.0, h)]
+    K.lathe([(r, z0 + z) for r, z in prof], straw, segments=20, centre=(x, y, 0.0), wobble=0.04, name="stook")
+    if tie:
+        # the tie: a twist of straw rope; above it the ears fan out
+        rt = P.m(10) * s
+        K.lathe([(rt * 1.05, z0 + h - P.m(4) * s), (rt * 1.35, z0 + h), (rt * 1.05, z0 + h + P.m(4) * s)], band,
+                segments=14, centre=(x, y, 0.0), cap=False, name="tie")
+        ht = P.m(tie - top) * s
+        K.lathe([(rt, z0 + h), (rt * 1.6, z0 + h + ht * 0.4), (rt * 2.6, z0 + h + ht * 0.8), (rt * 1.2, z0 + h + ht),
+                 (0.0, z0 + h + ht * 0.95)], straw, segments=14, centre=(x, y, 0.0), wobble=0.12, name="ears")
+    else:
+        K.tube([(x, y, z0 + h * 0.95), (x + 0.005, y, z0 + h + P.m(14) * s)], [P.m(3) * s, P.m(1.5) * s], band,
+               segments=6, name="spike")
+
+
+@model("crop_strip_2", "fields", kind="prop", atlas=2048)
+def crop_strip_2(K):
+    """A harvested paddy field: a strip of dry earth 1.5 m deep, stubble standing in rows all over it (each hill of
+    cut stalks a short, striped bundle) and stooks of the cut paddy stood on it (cones of sheaves, ears up, tied under
+    a fan of ears), the ones painted further back further back."""
+    P = K.paint
+    depth = 1.5
+    clean_front(K, no_halo(P))
+    top_py = 172
+    field_bed(K, 8, 1182, top_py, depth, top_box=(560, 158, 600, 170))
+    K.front_exclude = [(0, 0, P.w, top_py - 2)]       # everything on the field is set back: it carries its own paint
+    z0 = P.z(top_py)
+    straw_src = filled_source(P, ndimage.binary_erosion(no_halo(P), iterations=3) & (np.arange(P.h)[:, None] < 160))
+    band = K.colour((140, 40, 160, 50), vary=0.08, pct=30)
+    feet = [f for _, _, _, f, _ in STOOKS]
+    lo, hi = min(feet), max(feet)
+
+    def depth_of(foot):
+        return -depth / 2 + 0.25 + (hi - foot) / max(1, hi - lo) * (depth - 0.75)
+    for ax, top, tie, foot, rf in STOOKS:
+        y = depth_of(foot)
+        dz = P.z(foot) - z0                                   # how far it is set down from where it is painted
+        straw = wrapped(K, P.x(ax), axis_y=y, squeeze=0.9, src=straw_src, dz=dz)
+        stook(K, ax, top, tie, foot, rf, P.x(ax), y, z0, straw, band)
+    # more stooks in the gaps behind, copies of painted ones
+    for x in (60, 380, 690, 1110, 820, 500):
+        ax, top, tie, foot, rf = STOOKS[int(K.rng.integers(len(STOOKS)))]
+        y = depth / 2 - 0.3 - K.rng.uniform(0, 0.25)
+        straw = wrapped(K, P.x(x), axis_y=y, squeeze=0.9, src=straw_src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
+        stook(K, ax, top, tie, foot, rf, P.x(x), y, z0, straw, band, scale=K.rng.uniform(0.8, 0.95))
+    # the stubble: hills of cut stalks in rows over the whole field
+    stub = K.tile((163, 140, 178, 176), vary=0.1, soften=0.1)
+    rows = [-depth / 2 + 0.1 + k * 0.2 for k in range(7)]
+    for k, y in enumerate(rows):
+        x = P.x(20) + K.rng.uniform(0, 0.2)
+        while x < P.x(1170):
+            yy = y + K.rng.uniform(-0.04, 0.04)
+            ok = all(math.hypot(x - P.x(ax), yy - depth_of(f)) > P.m(rf) + 0.06 for ax, _, _, f, rf in STOOKS)
+            if ok:
+                r = K.rng.uniform(0.028, 0.04)
+                hh = K.rng.uniform(0.13, 0.22) * (1.0 if k < 2 else 0.85)
+                K.lathe([(r * 0.95, z0 - 0.01), (r, z0 + hh * 0.5), (r * 1.08, z0 + hh), (0.0, z0 + hh)], stub,
+                        segments=7, centre=(x, yy, 0.0), wobble=0.08, name="stubble")
+            x += K.rng.uniform(0.17, 0.26)
+
+
+# ====================================================================== plants as cards carrying solid parts
+def card_frame(K, box, centre, yaw, scale):
+    """Where a point of the painting inside `box` lands on a card of it placed at centre, turned yaw, scaled:
+    returns f(px, py) -> (x, y, z) metres."""
+    P = K.paint
+    cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    c = Vector(centre)
+    R = Vector((math.cos(math.radians(yaw)), math.sin(math.radians(yaw)), 0.0))
+
+    def f(px, py, out=0.0):
+        v = c + R * (P.m(px - cx) * scale) + Vector((0, 0, P.m(cy - py) * scale))
+        return (v.x - R.y * out, v.y + R.x * out, v.z)
+    return f
+
+
+def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", normal=(0, -0.3, 0.9)):
+    """A plant: a card of the painting inside `box` stood with its foot (bottom middle) at `foot` (x, y, z metres),
+    turned and scaled; and its solid parts (features [(px, py, data)] painted inside the box) made by
+    make(K, frame, feature, yaw, scale) where the card puts them."""
+    P = K.paint
+    h = P.m(box[3] - box[1]) * scale
+    centre = (foot[0], foot[1], foot[2] + h / 2)
+    c = K.card_from_painting(box, centre, yaw=yaw, scale=scale, name=name, normal=normal)
+    if make is not None:
+        fr = card_frame(K, box, centre, yaw, scale)
+        for ft in features:
+            if box[0] <= ft[0] < box[2] and box[1] <= ft[1] < box[3]:
+                make(K, fr, ft, yaw, scale)
+    return c
+
+
+def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_px, features=(), make=None,
+              scale=(0.8, 0.97), yaw=35.0, cross=True, front_yaw=8.0, src=None, name="crop"):
+    """A crop in rows: the front row (rows[0]) is the painting from x0 to x1 cut into `slices` cards standing where
+    they are painted; each row behind has a plant every ~step_px: a card of a random painted plant (width_px wide)
+    with a second crossed through it, a little smaller. Solid parts (features) go wherever their card puts them."""
+    P = K.paint
+    edges = np.linspace(x0, x1, slices + 1)
+    for a, b in zip(edges, edges[1:]):
+        box = (a - 1, top_py, b + 1, base_py)
+        plant_card(K, box, (P.x((a + b) / 2), rows[0] + K.rng.uniform(-0.02, 0.02), P.z(base_py)),
+                   K.rng.uniform(-front_yaw, front_yaw), 1.0, features, make, name=name)
+    src = src if src is not None else list(np.arange(x0 + width_px / 2, x1 - width_px / 2, 10))
+    for y in rows[1:]:
+        x = x0 + K.rng.uniform(0, step_px)
+        while x < x1:
+            base_yaw = K.rng.uniform(-yaw, yaw)
+            s = K.rng.uniform(*scale)
+            for k in range(2 if cross else 1):
+                sx = float(K.rng.choice(src))
+                box = (sx - width_px / 2, top_py, sx + width_px / 2, base_py)
+                plant_card(K, box, (P.x(x) + K.rng.uniform(-0.03, 0.03), y + K.rng.uniform(-0.05, 0.05), z_foot),
+                           base_yaw + (90 + K.rng.uniform(-20, 20) if k else 0), s * (0.92 if k else 1.0),
+                           features, make, name=name)
+            x += step_px * K.rng.uniform(0.8, 1.2)
+
+
+def blobs(P, mask, min_area, max_py=None):
+    """The painted blobs of a mask (bolls, pods): (centre px, py, (axis ends, half-width, area))."""
+    out = []
+    for box, area, m, sl in components(mask, min_area):
+        e0, e1, d, hw = pca_axis(m, (box[0], box[1]))
+        c = (e0 + e1) / 2
+        if max_py is not None and c[1] > max_py:
+            continue
+        out.append((float(c[0]), float(c[1]), (e0, e1, hw, area)))
+    return out
+
+
+def capsule(K, a, b, r, mat, segments=8, name="pod"):
+    """A fat, rounded capsule from a to b (metres), radius r: a pod, a boll, a grain head."""
+    A, B = Vector(a), Vector(b)
+    pts = [A + (B - A) * t for t in (0.0, 0.08, 0.3, 0.5, 0.7, 0.92, 1.0)]
+    rad = [r * 0.25, r * 0.75, r * 0.98, r, r * 0.98, r * 0.75, r * 0.25]
+    return K.tube([tuple(p) for p in pts], rad, mat, segments=segments, name=name)
+
+
+def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band):
+    """A groundnut (peanut) crop: bushy plants of small round leaflets in rows, the pods lying at their feet."""
+    P = K.paint
+    clean_front(K, no_halo(P))
+    rgb = P.rgba[..., :3] * 255
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    yy = np.arange(P.h)[:, None]
+    podm = alpha_mask(P) & (r > 150) & (r - b > 55) & (r > g + 15) & (yy > pod_band[0]) & (yy < pod_band[1])
+    podm = ndimage.binary_opening(podm, iterations=1)
+    pods = blobs(P, podm, 25)
+    leaves = plant_mask(P) & ~ndimage.binary_dilation(podm, iterations=3)
+    card_mask(K, leaves)
+    pod_mat = K.tile((0, 0, 1, 1)) if False else K.colour((0.55, 0.3, 0.12), vary=0.12, scale=60)
+    shell = K.projected(squeeze=1.0, keep=[(0, pod_band[0], P.w, pod_band[1])], inset=1)
+
+    def make(K, fr, ft, yaw, s):
+        e0, e1, hw, area = ft[2]
+        a, bb = fr(*e0, out=-0.01), fr(*e1, out=-0.01)
+        capsule(K, a, bb, P.m(hw) * s * 1.05, shell if s == 1.0 else pod_mat, segments=7)
+    crop_rows(K, 10, P.w - 8, top_py, base_py, rows, P.z(bed_py), slices, bush_w, step, pods, make,
+              scale=(0.78, 0.95), yaw=40)
+    return pods
+
+
+@model("crop_strip_4", "fields", kind="prop", atlas=2048)
+def crop_strip_4(K):
+    """A strip of groundnut: round bushes of small paired leaflets in rows 1.5 m deep on a bed of red earth, the
+    pale, waisted pods turned up at their feet."""
+    P = K.paint
+    depth = 1.5
+    rows = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
+    field_bed(K, 8, 1174, 180, depth, top_box=(500, 182, 560, 192), ridges=0.04, rows=rows)
+    groundnut(K, 0, 180, 182, rows, 120, 105, 11, (130, 200))
+
+
+@model("crop_strip_5", "fields", kind="prop", atlas=2048)
+def crop_strip_5(K):
+    """A strip of a low green crop (young groundnut): small bushes in close rows 1.5 m deep on a bed of earth, pods
+    at their feet."""
+    P = K.paint
+    depth = 1.5
+    rows = [-depth / 2 + 0.13 + k * 0.22 for k in range(7)]
+    field_bed(K, 13, 1178, 100, depth, top_box=(600, 102, 660, 112), ridges=0.03, rows=rows)
+    groundnut(K, 0, 100, 101, rows, 80, 70, 15, (70, 110))
+
+
+def ball(K, c, r, mat, squash=0.92, name="boll"):
+    """A small, slightly lumpy ball (a cotton boll): six sides, four rings."""
+    x, y, z = c
+    prof = [(0.0, -r * squash), (r * 0.72, -r * 0.62 * squash), (r, 0.0), (r * 0.78, r * 0.6 * squash),
+            (0.0, r * squash)]
+    return K.lathe([(rr, z + zz) for rr, zz in prof], mat, segments=6, centre=(x, y, 0.0), wobble=0.1, name=name)
+
+
+@model("crop_strip_6", "fields", kind="prop", atlas=2048)
+def crop_strip_6(K):
+    """A strip of cotton: woody bushes with a few lobed leaves, their bolls burst open in white tufts on brown
+    stars, in rows 1.5 m deep on a bed of earth."""
+    P = K.paint
+    depth = 1.5
+    clean_front(K, no_halo(P))
+    rgb = P.rgba[..., :3] * 255
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    white = alpha_mask(P) & (mn > 175) & (mx - mn < 60) & ~ndimage.binary_dilation(~alpha_mask(P), iterations=4)
+    white = ndimage.binary_opening(white, iterations=2)
+    bolls = blobs(P, white, 60)
+    card_mask(K, plant_mask(P, white=True) & ~ndimage.binary_erosion(white, iterations=2))
+    rows = [-depth / 2 + 0.16 + k * 0.36 for k in range(4)]
+    field_bed(K, 8, 1173, 212, depth, top_box=(470, 214, 540, 224), ridges=0.035, rows=rows)
+    cream = K.colour(tuple(float(v) for v in np.median(P.rgba[white][:, :3], 0) ** 2.2), vary=0.08, scale=30)
+
+    def make(K, fr, ft, yaw, s):
+        e0, e1, hw, area = ft[2]
+        r = math.sqrt(area / math.pi) * 1.05
+        ball(K, fr(ft[0], ft[1], out=P.m(r) * s * 0.35), P.m(r) * s, cream)
+    crop_rows(K, 8, 1173, 0, 214, rows, P.z(212), 12, 130, 120, bolls, make, scale=(0.8, 0.95), yaw=40,
+              cross=False)
+
+
+# banana pseudostems of crop_strip_7: (axis px, foot py, top py, half-width at the foot, at the top px)
+BANANAS = [(158, 392, 172, 21, 9), (183, 388, 300, 7, 4), (352, 388, 268, 17, 8), (527, 392, 150, 21, 9),
+           (571, 390, 258, 11, 6), (742, 388, 140, 18, 8), (867, 388, 228, 17, 8), (1067, 390, 150, 20, 9)]
+
+
+def pseudostem(K, ax, foot, top, wf, wt, x, y, z0, mat, scale=1.0):
+    """A banana's pseudostem: a tall, tapering column of tightly wrapped leaf sheaths, swollen a little at the foot,
+    its top opening into the crown."""
+    P = K.paint
+    h = P.m(foot - top) * scale
+    rf, rt = P.m(wf) * scale, P.m(wt) * scale
+    prof = [(rf * 1.12, 0.0), (rf * 1.05, h * 0.05), (rf, h * 0.15), (rf * 0.82 + rt * 0.18, h * 0.45),
+            (rf * 0.45 + rt * 0.55, h * 0.75), (rt, h), (rt * 0.6, h * 1.03)]
+    return K.lathe([(r, z0 + z) for r, z in prof], mat, segments=14, centre=(x, y, 0.0), wobble=0.04, name="stem")
+
+
+@model("crop_strip_7", "fields", kind="prop", atlas=2048)
+def crop_strip_7(K):
+    """A row of banana plants (a plantain grove's edge), 2 m deep: each a pseudostem of wrapped sheaths with its
+    suckers, opening at the top into a crown of huge, ragged, arching leaves; on a bed of red earth."""
+    P = K.paint
+    depth = 2.0
+    clean_front(K, no_halo(P))
+    stems = np.zeros((P.h, P.w), bool)
+    yy, xx = np.mgrid[0:P.h, 0:P.w]
+    for ax, foot, top, wf, wt in BANANAS:
+        t = np.clip((foot - yy) / max(1, foot - top), 0, 1)
+        half = wf + (wt - wf) * t
+        stems |= (yy <= foot + 2) & (yy >= top) & (np.abs(xx - ax) <= half + 1)
+    card_mask(K, plant_mask(P) & ~stems)
+    rows = [-depth / 2 + 0.3, 0.05, depth / 2 - 0.3]
+    bed_py = 393
+    field_bed(K, 28, 1198, bed_py, depth, top_box=(400, 393, 470, 402), ridges=0.05, rows=rows)
+    z0 = P.z(bed_py)
+    src = filled_source(P, ndimage.binary_erosion(stems, iterations=2))
+    # the painted plants, where they are painted: their stems turned, their crowns the painting
+    for ax, foot, top, wf, wt in BANANAS:
+        mat = wrapped(K, P.x(ax), axis_y=rows[0], squeeze=0.9, src=src, dz=P.z(foot) - z0)
+        pseudostem(K, ax, foot, top, wf, wt, P.x(ax), rows[0], z0, mat)
+    edges = np.linspace(28, 1198, 15)
+    for a, b in zip(edges, edges[1:]):
+        plant_card(K, (a - 1, 0, b + 1, bed_py), (P.x((a + b) / 2), rows[0] + K.rng.uniform(-0.05, 0.05), z0),
+                   K.rng.uniform(-8, 8), 1.0, name="banana")
+    # and the rows behind: plants turned and mixed, each its crown crossed with a second, on its own stem
+    main = [bn for bn in BANANAS if bn[3] >= 15]
+    for k, y in enumerate(rows[1:]):
+        x = 60 + (k * 110) + K.rng.uniform(0, 60)
+        while x < 1170:
+            ax, foot, top, wf, wt = main[int(K.rng.integers(len(main)))]
+            s = K.rng.uniform(0.82, 0.97)
+            yaw = K.rng.uniform(-50, 50)
+            X, Y = P.x(x), y + K.rng.uniform(-0.12, 0.12)
+            mat = wrapped(K, X, axis_y=Y, squeeze=0.9, src=src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
+            pseudostem(K, ax, foot, top, wf, wt, X, Y, z0, mat, scale=s)
+            box = (ax - 150, 0, ax + 150, foot)
+            for j in range(2):
+                plant_card(K, box, (X, Y, z0), yaw + (90 + K.rng.uniform(-15, 15) if j else 0), s * (0.9 if j else 1),
+                           name="banana")
+            x += K.rng.uniform(190, 240)
+
+
+def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None):
+    """A strip of paddy: clumps of long blades (and their panicles) in rows on a low bed of field mud."""
+    P = K.paint
+    clean_front(K, no_halo(P))
+    card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < bed_py + 3))
+    a = alpha_mask(P)
+    cols = np.nonzero(a[bed_py + 4])[0] if a[bed_py + 4].any() else np.nonzero(a.any(0))[0]
+    bx0, bx1 = (x0, x1) if x0 is not None else (int(cols.min()) + 4, int(cols.max()) - 4)
+    depth = rows[-1] - rows[0] + 0.4
+    field_bed(K, bx0, bx1, bed_py, depth, top_box=bed_box, ridges=0.03, rows=rows)
+    allc = np.nonzero(a[:bed_py].any(0))[0]
+    crop_rows(K, int(allc.min()), int(allc.max()), top_py, base_py, rows, P.z(bed_py), slices, width_px, step_px,
+              scale=(0.8, 0.96), yaw=40)
+
+
+@model("paddy_ripe", "fields", kind="prop")
+def paddy_ripe(K):
+    """A row of ripe paddy, 1.2 m deep: golden clumps of blades, the heavy grain heads drooping over them."""
+    rows = [-0.6 + 0.15 + k * 0.22 for k in range(5)]
+    paddy(K, 0, 284, 284, rows, 9, 110, 85, (330, 283, 380, 290))
+
+
+@model("paddy_tall", "fields", kind="prop")
+def paddy_tall(K):
+    """A row of tall green paddy, 1.2 m deep: dense clumps of blades with green heads arching out of them."""
+    rows = [-0.6 + 0.15 + k * 0.22 for k in range(5)]
+    paddy(K, 0, 294, 294, rows, 9, 110, 85, (300, 292, 360, 298))

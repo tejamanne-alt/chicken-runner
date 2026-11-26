@@ -619,7 +619,7 @@ def stall_c_2(K):
     basket(K, P.x(170), yb1, zb1, [(P.m(62), 0.0), (P.m(85), Z(672) - zb1 * 0 - Z(690) + 0.02),
                                     (P.m(98), Z(640) - zb1), (P.m(106), Z(603) - zb1)], bask, inside=inside, sy=0.85)
     leafm = ktile(K, (180, 560, 260, 600), vary=0.05)
-    heap(K, P.x(172), yb1, P.m(96), P.m(96) * 0.85, Z(610), Z(590) - Z(610), leafm, name="leaves")
+    heap(K, P.x(172), yb1, P.m(100), P.m(100) * 0.85, Z(625), Z(606) - Z(625), leafm, name="leaves")
     # the brass areca-nut cutter on its base plate
     brass = K.colour((672, 560, 684, 640), vary=0.08)
     brass_d = K.colour((605, 625, 640, 655), vary=0.08)
@@ -656,10 +656,10 @@ def stall_c_2(K):
     y2 = -0.95
     basket(K, P.x(140), y2, 0.0, [(P.m(92), 0.0), (P.m(104), Z(810)), (P.m(110), Z(780)), (P.m(112), Z(752))], bask2,
            sy=0.85)
-    heap(K, P.x(140), y2, P.m(100), P.m(100) * 0.85, Z(760), Z(735) - Z(760), leafm, name="leaves2")
+    heap(K, P.x(140), y2, P.m(104), P.m(104) * 0.85, Z(775), Z(756) - Z(775), leafm, name="leaves2")
     bask3 = K.projected(axis_x=P.x(315), squeeze=0.92, keep=[(215, 785, 415, 836)], inset=2)
     y3 = -0.98
-    basket(K, P.x(318), y3, 0.0, [(P.m(88), 0.0), (P.m(94), Z(815)), (P.m(100), Z(792))], bask3, sy=0.85)
+    basket(K, P.x(318), y3, 0.0, [(P.m(88), 0.0), (P.m(94), Z(815)), (P.m(100), Z(797))], bask3, sy=0.85)
     nutsm = ktile(K, (520, 760, 610, 810), vary=0.06)
     nut = K.colour((560, 760, 580, 780), vary=0.12, scale=30)
     h3 = heap_px(K, 318, y3, [(92, 795), (82, 780), (64, 764), (42, 755), (16, 750), (0, 749)], nutsm, name="nuts3")

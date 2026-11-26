@@ -616,7 +616,7 @@ def papad(K, T, px, py, r_px, lift, mat, tilt=(0.0, 0.0), name="papad"):
     lying in the tray's plane, lifted `lift` metres off the mat (resting on the ones under it), tilted a little."""
     P = K.paint
     R = P.m(r_px)
-    c = T.at(px, py, lift)
+    c = T.over(px, py, lift)
     ex = Vector((1, 0, 0))
     ey = T.s
     ez = T.n
@@ -671,3 +671,144 @@ def papad_mat(K):
                                      ((182, 90), 34, 0, (3, 2)), ((71, 93), 37, 1, (-3, -2)),
                                      ((139, 91.5), 36, 1, (4, -2)), ((112, 71.5), 36, 2, (-2, 4))):
         papad(K, T, px, py, r, P.m(2.5) + layer * 0.004, top, tilt=tilt)
+
+
+def colour_pixels(rgb):
+    """Coloured cloth or paper and its dark ink, not the pale halo round the cut-out."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    keep = (mx - mn > 55) | (mx < 90)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
+def cloth_sheet(K, tl, tr, tip, mat, billow=0.012, twist=0.0, nu=6, nv=6, thickness=0.002, name="flag"):
+    """A triangular pennant of cloth (metres: its top corners on the rope, its tip hanging), bellied out by `billow`
+    and turned by `twist` (metres the tip swings in depth)."""
+    A, B, C = Vector(tl), Vector(tr), Vector(tip)
+
+    def fn(u, v):
+        top = A.lerp(B, u)
+        p = top.lerp(C, v)
+        return tuple(p + Vector((0, billow * math.sin(math.pi * u) * math.sin(math.pi * min(1, v * 1.2)) + twist * v
+                                 * (u - 0.5) * 2 + twist * v * v, 0)))
+    return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=thickness)
+
+
+@model("bunting", "market", kind="prop")
+def bunting(K):
+    """A festival bunting: a twisted rope sagging between two bow-knotted ends, eight cloth pennants hung over it
+    (orange, yellow, pink, teal), each bellied a little in the breeze."""
+    P = K.paint
+    rope_m = K.colour((130, 57, 160, 60), vary=0.12, scale=60)
+    path = [(22, 20), (30, 26), (45, 33), (62, 42), (80, 48), (97, 53), (114, 57), (130, 60), (147, 61.5), (163, 62),
+            (180, 61.5), (195, 60), (210, 57), (225, 53), (240, 47), (255, 40), (268, 32), (282, 23), (287, 20)]
+    ys = [0.0] * len(path)
+    K.tube([P.pt(x, y, yy) for (x, y), yy in zip(path, ys)], P.m(2.6), rope_m, segments=8, name="rope")
+    # the bow knots at the ends: two loops and a tail each
+    for sx, knot in ((1, (24, 21)), (-1, (285, 21))):
+        kx, ky = knot
+        for (lx, ly, r) in ((-10, -5, 6), (1, -9, 5)):
+            c = P.pt(kx + sx * lx, ky + ly, 0.0)
+            ring(K, c[0], 0.0, c[2], P.m(r), P.m(1.6), rope_m, n=14, name="bow_loop")
+        K.tube([P.pt(kx, ky, 0), P.pt(kx - sx * 3, ky + 8, -0.005), P.pt(kx - sx * 7, ky + 14, 0),
+                P.pt(kx - sx * 4, ky + 18, 0.005)], P.m(1.6), rope_m, segments=6, name="bow_tail")
+        K.lathe([(P.m(3.2), -P.m(3)), (P.m(3.6), 0.0), (P.m(3.2), P.m(3)), (0.0, P.m(3.2))], rope_m, segments=10,
+                centre=(P.x(kx), 0.0, P.z(ky) - 0.0), name="knot")
+    flags = [((32, 30), (62, 44), (34, 79)), ((64, 46), (95, 55), (70, 94)), ((97, 56), (128, 62), (106, 104)),
+             ((130, 62), (160, 63), (142, 108)), ((163, 63), (192, 62), (176, 107)), ((195, 60), (223, 55), (210, 99)),
+             ((225, 52), (250, 44), (243, 89)), ((253, 42), (279, 28), (271, 73))]
+    for k, (tl, tr, tip) in enumerate(flags):
+        xs, ys_ = [tl[0], tr[0], tip[0]], [tl[1], tr[1], tip[1]]
+        cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 2, min(ys_) + 3, max(xs) - 2, max(ys_) - 2)], inset=2)
+        # the cloth folds over the rope: its top edge a little behind and above the rope's middle
+        tw = K.rng.uniform(-0.03, 0.03)
+        cloth_sheet(K, P.pt(tl[0], tl[1] - 1, P.m(1.5)), P.pt(tr[0], tr[1] - 1, P.m(1.5)), P.pt(*tip, 0.0), cloth,
+                    billow=-K.rng.uniform(0.006, 0.014), twist=tw, name="flag")
+
+
+def ribbon(K, pts_px, w_px, mat, ys=None, notch=True, thickness=0.0015, name="ribbon"):
+    """A strip of cloth or paper along a painted centreline [(px, py), ...] w_px wide, its depth along the strip
+    ys (metres, one per point; default flat at 0), its free end cut in a V (notch)."""
+    P = K.paint
+    pts = [Vector((P.x(x), 0.0, P.z(y))) for x, y in pts_px]
+    ys = ys or [0.0] * len(pts)
+    for p, y in zip(pts, ys):
+        p.y = y
+    seg = [(b - a).length for a, b in zip(pts, pts[1:])]
+    total = sum(seg)
+    w = P.m(w_px)
+
+    def along(t):
+        d = t * total
+        for i, L in enumerate(seg):
+            if d <= L or i == len(seg) - 1:
+                f = min(1.0, d / max(L, 1e-9))
+                a, b = pts[i], pts[i + 1]
+                return a.lerp(b, f), (b - a).normalized()
+            d -= L
+    def fn(u, v):
+        tt = u
+        if notch:
+            tt = u * (1 - (w * 0.7 / total) * (1 - abs(2 * v - 1)) * u ** 6)
+        c, d = along(tt)
+        side = Vector((-d.z, 0.0, d.x))
+        if side.length < 1e-6:
+            side = Vector((1, 0, 0))
+        return tuple(c + side.normalized() * w * (v - 0.5))
+    return K.sheet(fn, 8, 2, mat, name=name, smooth=True, thickness=thickness)
+
+
+@model("kite", "market", kind="prop")
+def kite(K):
+    """A paper fighter kite: a pink-and-yellow diamond sail bowed back over its bamboo spine and arched cross-spar,
+    paper tassels tied at its three lower corners, and a tail of coloured paper strips knotted along a string."""
+    P = K.paint
+    L, T_, R, B = (25, 55), (98, 7), (143, 78), (70, 123)
+    sail = K.projected(squeeze=1.0, keep=[(24, 6, 145, 124)], inset=1)
+    bow = 0.07                          # how far the wing tips sweep back
+
+    def spine_x(py):
+        return 97 + (70 - 97) * (py - 8) / (122 - 8)
+
+    def depth(px, py):
+        half = 60.0
+        return bow * ((px - spine_x(py)) / half) ** 2
+
+    def fn(s, t):
+        q = (Vector(L) * (1 - s) * (1 - t) + Vector(T_) * s * (1 - t) + Vector(R) * s * t + Vector(B) * (1 - s) * t)
+        px, py = q.x, q.y
+        return (P.x(px), depth(px, py) + 0.004 * math.sin(math.pi * s) * math.sin(math.pi * t), P.z(py))
+    K.sheet(fn, 14, 14, sail, name="sail", smooth=True, thickness=0.0015)
+    # the sticks: the straight spine and the arched cross-spar, on the sail's front
+    cane = K.colour((0.62, 0.38, 0.12), vary=0.1)
+    K.tube([P.pt(97, 8, -0.004), P.pt(83.5, 65, -0.004), P.pt(70.5, 121, -0.004)], P.m(1.3), cane, segments=6,
+           name="spine")
+    arch = [(25, 55), (40, 50.5), (60, 48), (87, 49.5), (110, 55), (128, 65), (143, 78)]
+    K.tube([P.pt(x, y, depth(x, y) - 0.004) for x, y in arch], P.m(1.3), cane, segments=6, name="spar")
+    knot = K.colour((16, 52, 22, 58), vary=0.1)
+    for (x, y) in ((19, 55), (145, 79), (70, 124), (98, 8)):
+        ellipsoid(K, P.pt(x, y, depth(x, y) - 0.002), (P.m(3.5), P.m(3), P.m(3)), knot, seg=8, rings=6, name="knot")
+    # the paper tassels at the corners, and the tail on its string
+    def strip(pts, w, box, ys):
+        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        ribbon(K, pts, w, m, ys=ys)
+    yl, yr = depth(19, 55), depth(145, 79)
+    strip([(19, 56), (14, 68), (9, 80)], 6, (6, 58, 20, 86), [yl, yl + 0.01, yl + 0.02])
+    strip([(21, 57), (23, 72), (25, 88)], 7, (19, 60, 30, 88), [yl, yl - 0.008, yl - 0.012])
+    strip([(145, 80), (139, 92), (133, 104)], 6, (128, 84, 143, 106), [yr, yr - 0.01, yr - 0.02])
+    strip([(147, 80), (149, 91), (150, 102)], 6, (143, 82, 153, 104), [yr, yr + 0.01, yr + 0.015])
+    strip([(70, 127), (61, 133), (54, 142)], 8, (52, 127, 66, 148), [0.0, -0.01, -0.012])
+    strip([(70, 127), (77, 134), (83, 141)], 7, (72, 127, 88, 145), [0.0, 0.01, 0.012])
+    string = [(70, 124), (71, 140), (73, 150), (82, 160), (92, 170), (104, 180), (110, 186), (113, 198), (112, 212)]
+    sy = [0.0, 0.004, 0.01, 0.02, 0.03, 0.038, 0.04, 0.036, 0.03]
+    K.tube([P.pt(x, y, yy) for (x, y), yy in zip(string, sy)], P.m(0.9), knot, segments=5, name="string")
+    for pts, w, box, ys in (
+            ([(72, 150), (71, 162), (72, 173)], 7, (66, 152, 78, 176), [0.01, 0.0, -0.01]),
+            ([(74, 151), (86, 155), (97, 159)], 7, (76, 150, 100, 164), [0.012, 0.02, 0.03]),
+            ([(89, 169), (103, 173), (118, 178)], 7, (92, 166, 120, 181), [0.028, 0.04, 0.05]),
+            ([(91, 172), (93, 182), (95, 192)], 8, (88, 175, 99, 194), [0.03, 0.02, 0.012]),
+            ([(108, 186), (107, 196), (106, 207)], 7, (102, 189, 112, 210), [0.038, 0.03, 0.02]),
+            ([(111, 187), (120, 194), (128, 202)], 7, (113, 187, 131, 206), [0.04, 0.05, 0.058]),
+            ([(114, 200), (112, 215), (105, 230)], 7, (102, 204, 120, 233), [0.035, 0.04, 0.048]),
+            ([(110, 213), (96, 222), (85, 236)], 7, (80, 213, 108, 240), [0.03, 0.02, 0.01])):
+        strip(pts, w, box, ys)

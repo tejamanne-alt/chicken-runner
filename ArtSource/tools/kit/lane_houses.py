@@ -9,6 +9,7 @@ import math
 
 import numpy as np
 from scipy import ndimage
+from mathutils import Matrix
 
 from kitlib import model
 
@@ -1362,7 +1363,7 @@ def house_weaver(K):
     K.box(P.x(150), P.x(1665), -0.9, D + 0.25, 0.0, P.z(1090), earth, bevel=0.04, name="ground")
     eave = (P.x(5), P.x(1495), -0.62, D + 0.62)
     ridge = (P.x(375), P.x(1125))
-    hip_thatch(K, eave, ridge, P.z(448), P.z(30), thatch_m, thickness=0.26, shag=0.05, fringe=0.1)
+    hip_thatch(K, eave, ridge, P.z(436), P.z(30), thatch_m, thickness=0.26, shag=0.05, fringe=0.09)
     K.tube([P.pt(375, 26, D / 2), P.pt(1125, 26, D / 2)], P.m(16), K.colour((600, 15, 900, 38), vary=0.06),
            segments=10, name="ridge_pole")
     # the workshop alcove, lined with its dark mud plaster, and its floor
@@ -1449,3 +1450,134 @@ def house_weaver(K):
     dark = K.colour((0.04, 0.03, 0.03), vary=0.0)
     for side in (-1, 1):
         side_window(K, body, side, D * 0.55, P.z(820), P.z(640), 0.6, timber, iron, dark)
+
+
+def wall_disc(K, x, y, z, r, thick, mat, facing="-y", name="disc", wobble=0.08):
+    """A lumpy disc (a dung cake slapped on a wall to dry, a plate, a lid) of radius r m and `thick` m, its back on
+    the wall at (x, y, z), facing -y (the front), +y, -x or +x."""
+    prof = [(0.0, 0.0), (r, 0.0), (r * 0.97, thick * 0.45), (r * 0.75, thick * 0.9), (0.0, thick)]
+    ob = K.lathe(prof, mat, segments=14, wobble=wobble, name=name)
+    R = {"-y": Matrix.Rotation(math.radians(90), 4, "X"), "+y": Matrix.Rotation(math.radians(-90), 4, "X"),
+         "-x": Matrix.Rotation(math.radians(-90), 4, "Y"), "+x": Matrix.Rotation(math.radians(90), 4, "Y")}[facing]
+    ob.data.transform(Matrix.Translation((x, y, z)) @ R)
+    return ob
+
+
+def rope_cot(K, x0_px, x1_px, top_py, foot_py, y0, y1, legs_mat, frame_mat, weave_mat, leg_prof=None):
+    """A rope cot (kattil): four turned legs, a frame of four rails, its woven rope bed, x0..x1 px wide, y0..y1 m deep,
+    the bed at top_py, standing on foot_py."""
+    P = K.paint
+    prof = leg_prof or [(0.035, 0.0), (0.04, 0.08), (0.05, 0.18), (0.035, 0.3), (0.045, 0.36), (0.035, 0.42)]
+    zt, zf = P.z(top_py), P.z(foot_py)
+    h = zt - zf
+    for x in (P.x(x0_px) + 0.05, P.x(x1_px) - 0.05):
+        for y in (y0 + 0.05, y1 - 0.05):
+            K.lathe([(r, zf + h * t / 0.42) for r, t in prof] + [(0.03, zt + 0.06)], legs_mat, segments=10,
+                    centre=(x, y, 0.0), name="cot_leg")
+    K.box(P.x(x0_px), P.x(x1_px), y0, y0 + 0.06, zt - 0.06, zt, frame_mat, bevel=0.008, name="cot_rail")
+    K.box(P.x(x0_px), P.x(x1_px), y1 - 0.06, y1, zt - 0.06, zt, frame_mat, bevel=0.008, name="cot_rail")
+    K.box(P.x(x0_px), P.x(x0_px) + 0.06, y0, y1, zt - 0.06, zt, frame_mat, bevel=0.008, name="cot_rail")
+    K.box(P.x(x1_px) - 0.06, P.x(x1_px), y0, y1, zt - 0.06, zt, frame_mat, bevel=0.008, name="cot_rail")
+    K.sheet(lambda u, v: (P.x(x0_px) + 0.06 + (P.x(x1_px) - P.x(x0_px) - 0.12) * u, y0 + 0.06 + (y1 - y0 - 0.12) * v,
+                          zt - 0.025 - 0.03 * math.sin(math.pi * u) * math.sin(math.pi * v)), 10, 4, weave_mat,
+            name="cot_weave", thickness=0.012)
+
+
+@model("house_hut_porch", "lane", kind="building", atlas=2048)
+def house_hut_porch(K):
+    """A mud hut under a tall hipped thatch, with a porch of woven palm matting on a bamboo frame across its front;
+    dung cakes drying on the walls, a carved plank door between kolam motifs, a shuttered window, a rope cot on the
+    porch and a pile of firewood, a lime skirting."""
+    P = K.paint
+    D = 4.6
+    K.front_min = 0.15
+    halo_exclude(K, [(0, 0, 1659, 1139)])
+    mud = K.tile((440, 930, 670, 975), size=1.0, vary=0.05, soften=0.45)
+    lime = K.tile((1000, 990, 1060, 1060), size=0.6, vary=0.04, soften=0.4)
+    thatch_m = K.tile((500, 100, 800, 400), size=0.8, vary=0.06, soften=0.25)
+    mat_m = K.tile((280, 462, 560, 532), size=0.7, vary=0.05)
+    earth = K.tile((300, 1100, 1300, 1130), size=1.0, vary=0.08)
+    wood = K.tile((720, 660, 940, 1040), size=0.6, vary=0.04)
+    frame = K.colour((688, 700, 700, 1000), vary=0.06)
+    X0, X1 = P.x(130), P.x(1525)
+    body = K.box(X0, X1, 0.0, D, 0.0, P.z(480), mud, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(985), lime, name="skirting")
+    K.box(P.x(78), P.x(1580), -1.85, D + 0.25, 0.0, P.z(1100), earth, bevel=0.04, name="ground")
+    hip_thatch(K, (P.x(100), P.x(1545), -0.5, D + 0.5), (P.x(370), P.x(1290)), P.z(468), P.z(30), thatch_m,
+               thickness=0.26, shag=0.05, fringe=0.09)
+    K.tube([P.pt(370, 27, D / 2), P.pt(1290, 27, D / 2)], P.m(16), K.colour((600, 12, 1000, 40), vary=0.06),
+           segments=10, name="ridge_pole")
+    # the porch: a woven mat on bamboo rafters, a beam along its front on four posts
+    yb, yfp = -0.42, -1.62
+    bamboo = K.projected(axis_x=P.x(615), squeeze=0.9, keep=[(606, 560, 625, 1095)], inset=2)
+    def mat_surf(u, v):
+        x = P.x(48) + (P.x(1585) - P.x(48)) * u
+        y = yb + (yfp - 0.06 - yb) * v
+        z = P.z(452) + (P.z(540) - P.z(452)) * v - 0.025 * math.sin(math.pi * u * 3) ** 2 * math.sin(math.pi * v)
+        return (x, y, z)
+    K.sheet(mat_surf, 30, 6, mat_m, name="porch_mat", thickness=0.02)
+    K.tube([P.pt(50, 547, yfp), P.pt(1650, 547, yfp)], P.m(10), bamboo, segments=10, name="front_beam")
+    K.tube([P.pt(60, 458, yb + 0.05), P.pt(1580, 458, yb + 0.05)], P.m(8), bamboo, segments=8, name="back_beam")
+    for x in (95, 615, 1053, 1560):
+        K.tube([P.pt(x, 1100, yfp), P.pt(x, 552, yfp)], P.m(10), bamboo, segments=10, name="post")
+        K.tube([P.pt(x, 458, yb + 0.1), P.pt(x, 549, yfp - 0.15)], P.m(9), bamboo, segments=8, name="rafter")
+    # dung cakes drying on the front wall where they are painted, and round the sides and back
+    dung = K.colour((300, 860, 340, 890), vary=0.15, scale=30)
+    r = P.m(42)
+    cakes = [(175, 588), (250, 588), (345, 588), (448, 588), (545, 588), (230, 678), (330, 678), (240, 778),
+             (330, 778), (180, 878), (275, 878), (375, 878), (470, 878), (560, 878), (1165, 588), (1255, 588),
+             (1355, 588), (1455, 588), (1075, 675), (1165, 675), (1265, 675), (1355, 675), (1455, 675), (1085, 775),
+             (1170, 775), (1265, 775), (1360, 775), (1460, 775), (1080, 878), (1180, 878), (1275, 878), (1370, 878),
+             (1465, 878)]
+    for cx, cy in cakes:
+        wall_disc(K, P.x(cx), -0.002, P.z(cy), r * K.rng.uniform(0.92, 1.05), 0.035, dung, name="dung_cake")
+    for side, xw in ((-1, X0), (1, X1)):
+        for row, z in enumerate((P.z(600), P.z(700), P.z(800), P.z(900))):
+            for k in range(6):
+                if K.rng.uniform() < 0.25:
+                    continue
+                y = 0.45 + k * 0.62 + (0.3 if row % 2 else 0) + K.rng.uniform(-0.05, 0.05)
+                if y > D - 0.3:
+                    continue
+                wall_disc(K, xw, y, z + K.rng.uniform(-0.04, 0.04), r * K.rng.uniform(0.9, 1.05), 0.035, dung,
+                          facing="+x" if side > 0 else "-x", name="dung_cake")
+    for row, z in enumerate((P.z(650), P.z(760), P.z(870))):
+        for k in range(9):
+            if K.rng.uniform() < 0.3:
+                continue
+            x = X0 + 0.4 + k * 0.62 + (0.3 if row % 2 else 0)
+            if x > X1 - 0.3 or abs(x - P.x(830)) < 0.7:
+                continue
+            wall_disc(K, x, D, z, r * K.rng.uniform(0.9, 1.05), 0.035, dung, facing="+y", name="dung_cake")
+    # the door, the window
+    K.cut(body, P.x(700), P.x(960), -0.05, 0.25, P.z(1068), P.z(632))
+    K.box(P.x(700), P.x(960), 0.12, 0.17, P.z(1068), P.z(632), wood, name="door")
+    for x0, x1 in ((683, 700), (960, 975)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(1068), P.z(615), frame, bevel=0.008, name="jamb")
+    K.box(P.x(683), P.x(975), -0.03, 0.12, P.z(632), P.z(615), frame, bevel=0.008, name="frame_head")
+    K.cut(body, P.x(410), P.x(512), -0.05, 0.12, P.z(790), P.z(665))
+    K.box(P.x(410), P.x(512), 0.07, 0.1, P.z(790), P.z(665), wood, name="shutters")
+    for a, b, c, d in ((395, 410, 652, 802), (512, 527, 652, 802), (410, 512, 652, 665), (410, 512, 790, 802)):
+        K.box(P.x(a), P.x(b), -0.03, 0.07, P.z(d), P.z(c), frame, bevel=0.006, name="window_frame")
+    back_decal(K, (683, 615, 975, 1068), D, x_shift=0.0)
+    side_decal(K, (395, 652, 527, 802), X0, -1, D * 0.5, name="side_window")
+    side_decal(K, (395, 652, 527, 802), X1, 1, D * 0.5, name="side_window")
+    # the rope cot on the porch
+    cotleg = K.projected(axis_x=P.x(140), squeeze=0.9, keep=[(128, 990, 152, 1105)], inset=2)
+    rope_cot(K, 125, 660, 955, 1100, -0.95, -0.15, cotleg, K.colour((150, 990, 600, 1000), vary=0.08),
+             K.tile((300, 955, 600, 985), vary=0.06))
+    # the firewood: logs end-on at the bottom, sticks piled across them
+    logs = K.projected(squeeze=1.0, keep=[(1065, 945, 1555, 1100)], inset=2)
+    bark = K.colour((1200, 1000, 1300, 1040), vary=0.12)
+    for cx, cy, rr in ((1110, 1078, 18), (1150, 1080, 19), (1195, 1078, 18), (1240, 1080, 18), (1290, 1078, 19),
+                       (1335, 1080, 18), (1380, 1078, 18), (1425, 1080, 18), (1470, 1078, 19), (1515, 1082, 17),
+                       (1130, 1045, 17), (1175, 1045, 18), (1220, 1044, 17), (1310, 1046, 18), (1355, 1044, 17),
+                       (1400, 1045, 18), (1445, 1046, 17), (1490, 1048, 17)):
+        y0 = -1.25 + K.rng.uniform(-0.05, 0.05)
+        K.tube([P.pt(cx, cy, y0), P.pt(cx + K.rng.uniform(-8, 8), cy + K.rng.uniform(-4, 4), y0 + 0.95)], P.m(rr),
+               logs, segments=8, name="log")
+    for (ax, ay), (bx, by) in (((1080, 1020), (1290, 1000)), ((1120, 995), (1360, 960)), ((1210, 1010), (1480, 985)),
+                               ((1260, 990), (1530, 1030)), ((1300, 975), (1450, 955)), ((1350, 1000), (1550, 1060)),
+                               ((1150, 1030), (1420, 1015))):
+        yy = -0.75 + K.rng.uniform(-0.35, 0.35)
+        K.tube([P.pt(ax, ay, yy - 0.2), P.pt(bx, by, yy + 0.2)], P.m(13), logs, segments=8, name="stick")

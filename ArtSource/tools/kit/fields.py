@@ -858,3 +858,71 @@ def canal_bridge(K):
             dy = K.rng.uniform(0.15, 0.5)
             K.card_from_painting(box, (P.x(cx + K.rng.uniform(-20, 20)), y + dy, P.z(cy) + dy * 0.43),
                                  yaw=K.rng.uniform(-80, 80), name="fern", normal=(0, -0.3, 1))
+
+
+# ====================================================================== the canal's pieces (the D9 sheet)
+def rope_ring(K, cx, cy, cz, r, mat, axis="z", thick=0.012, name="rope"):
+    """A ring of rope (a lashing) of radius r round an axis ("z" vertical, or a direction (dx, dz) in the front plane
+    for one bound round a sloping beam) through (cx, cy, cz)."""
+    pts = []
+    for k in range(17):
+        a = 2 * math.pi * k / 16
+        if axis == "z":
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a), cz))
+        else:
+            dx, dz = axis
+            n = math.hypot(dx, dz)
+            ux, uz = -dz / n, dx / n                      # across the beam in the front plane
+            pts.append((cx + ux * r * math.cos(a), cy + r * math.sin(a), cz + uz * r * math.cos(a)))
+    return K.tube(pts, thick, mat, segments=6, name=name, cap=False)
+
+
+@fmodel("canal_piece_1", "fields", kind="prop", atlas=1024)
+def canal_piece_1(K):
+    """A picottah, the old water lift at the canal's edge: a forked post of rough timber planted in the ground, a long
+    lever beam pinned in its fork, a rough stone lashed to the beam's short end for a counterweight, and from the
+    long end a rope with a clay pot slung on it."""
+    P = K.paint
+    wood = K.tile((246, 520, 286, 900), vary=0.05, soften=0.2)
+    post = K.projected(axis_x=P.x(266), squeeze=0.9, keep=[(160, 150, 350, 950)], exclude=[(0, 0, 160, 950)], inset=2)
+    # the post: a trunk forking into two prongs, as one piece of timber
+    parts = [K.tube([P.pt(265, 950), P.pt(265, 800), P.pt(266, 600), P.pt(264, 450), P.pt(262, 380)],
+                    [P.m(36), P.m(34), P.m(31), P.m(28), P.m(27)], post, segments=14, name="trunk"),
+             K.tube([P.pt(262, 400), P.pt(240, 330), P.pt(210, 250), P.pt(190, 184)],
+                    [P.m(25), P.m(19), P.m(17), P.m(17)], post, segments=12, name="prong"),
+             K.tube([P.pt(266, 400), P.pt(290, 320), P.pt(308, 240), P.pt(322, 170)],
+                    [P.m(25), P.m(19), P.m(17), P.m(17)], post, segments=12, name="prong")]
+    K.fuse(parts, voxel=0.025, faces=3000)
+    # the lever beam, lying in the fork behind the prongs, on a pin through them
+    beam_mat = K.projected(squeeze=1.0, keep=[(20, 0, 650, 480)], exclude=[(160, 150, 350, 420)], inset=2)
+    yb = 0.12
+    K.tube([P.pt(40, 455, yb), P.pt(324, 233, yb), P.pt(608, 11, yb)], P.m(15.5), beam_mat, segments=12, name="beam")
+    K.tube([P.pt(256, 286, -0.1), P.pt(256, 286, yb + 0.12)], P.m(6), wood, segments=8, name="pin")
+    # the counterweight: a rough stone hung by a loop of rope from the beam's short end
+    stone = K.projected(squeeze=1.0, keep=[(10, 506, 166, 664)], inset=3)
+    K.block(P.x(88), yb, P.z(585), P.m(150), 0.62, P.m(150), stone, rot=(0, 3, 6), bevel=0.05, jitter=0.02,
+            name="stone")
+    rope = K.colour((574, 150, 581, 400), vary=0.08)
+    for x, top in ((76, 412), (103, 432)):
+        K.tube([P.pt(x, top, yb), P.pt(x, 520, yb - 0.04)], P.m(4.5), rope, segments=6, name="rope")
+    rope_ring(K, P.x(90), yb, P.z(418), P.m(17), rope, axis=(P.m(290), P.m(215)), thick=P.m(4), name="lashing")
+    K.box(P.x(14), P.x(162), yb - 0.32, yb + 0.32, P.z(520), P.z(516), rope, name="rope_band")
+    # the pot on its rope at the long end, slung in a three-strand sling
+    rope_ring(K, P.x(578), yb, P.z(45), P.m(15), rope, axis=(P.m(570), P.m(430)), thick=P.m(4), name="lashing")
+    K.tube([P.pt(577, 50, yb), P.pt(577, 440, yb)], P.m(3.5), rope, segments=6, name="rope")
+    for a in (90, 210, 330):
+        t = math.radians(a)
+        K.tube([P.pt(577, 446, yb), (P.x(577) + P.m(30) * math.cos(t), yb - P.m(30) * math.sin(t), P.z(478))],
+               P.m(2.5), rope, segments=5, name="sling")
+    pot = K.projected(axis_x=P.x(577), squeeze=0.9, keep=[(508, 468, 645, 606)], inset=3)
+    prof = [(30, 604), (46, 597), (58, 582), (63, 560), (62, 540), (55, 520), (45, 507), (30, 498), (28, 492),
+            (34, 488), (35, 478), (31, 472)]
+    K.lathe([(P.m(r), P.z(y)) for r, y in prof], pot, segments=32, centre=(P.x(577), yb, 0), wobble=0.01, name="pot",
+            cap=False)
+    inside = K.colour((0.09, 0.035, 0.015), vary=0.1)
+    K.lathe([(P.m(29), P.z(473)), (P.m(25), P.z(480)), (P.m(20), P.z(495)), (0.0, P.z(500))], inside, segments=32,
+            centre=(P.x(577), yb, 0), name="mouth", cap=False)
+    # the earth the post is planted in
+    earth = K.colour((0.32, 0.2, 0.11), vary=0.15)
+    K.lathe([(0.0, 0.0), (P.m(80), 0.0), (P.m(60), 0.03), (P.m(30), 0.05), (0.0, 0.055)], earth, segments=20,
+            centre=(P.x(265), 0, 0), wobble=0.15, name="mound")

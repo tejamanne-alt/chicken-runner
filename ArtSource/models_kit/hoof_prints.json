@@ -1,0 +1,10 @@
+{
+ "name": "hoof_prints",
+ "folder": "ground",
+ "kind": "slab",
+ "width": 1.2,
+ "height": 0.338,
+ "depth": 0.002,
+ "faces": 7,
+ "source": "blender"
+}

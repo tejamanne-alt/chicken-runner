@@ -1,0 +1,10 @@
+{
+ "name": "shrine_tree",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 7.175,
+ "height": 5.494,
+ "depth": 5.616,
+ "faces": 31772,
+ "source": "blender"
+}

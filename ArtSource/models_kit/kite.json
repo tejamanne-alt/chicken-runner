@@ -1,0 +1,10 @@
+{
+ "name": "kite",
+ "folder": "market",
+ "kind": "volume",
+ "width": 0.579,
+ "height": 0.9,
+ "depth": 0.121,
+ "faces": 1462,
+ "source": "blender"
+}
