@@ -224,7 +224,9 @@ def patch_decal(K, box, keep_fn, base_box, feather=10):
     w = np.clip(1 - d / feather, 0, 1)[..., None]
     base = np.median(np.asarray(P.crop(base_box).convert("RGB")).reshape(-1, 3), axis=0)
     out = crop * w + base * (1 - w)
-    return K.decal(None, image=Image.fromarray(out.clip(0, 255).astype(np.uint8)).convert("RGBA"))
+    img = Image.fromarray(out.clip(0, 255).astype(np.uint8)).convert("RGBA")
+    K.__dict__.setdefault("_held", []).append(img)        # decal() keys on id(image): keep each one alive
+    return K.decal(None, image=img)
 
 
 def masked_material(K, ok, inset=1, name=None):
