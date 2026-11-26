@@ -1,0 +1,10 @@
+{
+ "name": "husk",
+ "folder": "ground",
+ "kind": "volume",
+ "width": 0.3,
+ "height": 0.214,
+ "depth": 0.132,
+ "faces": 370,
+ "source": "blender"
+}

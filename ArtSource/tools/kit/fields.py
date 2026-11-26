@@ -397,12 +397,12 @@ def scarecrow(K):
     K.leaves_only((94, 250, 268, 334), no_halo)
     straw_fringe(K, ax, 0.0, rsk, (256, 296), 34, size=(40, 40), inset=0.45, exact_rows=(258, 296),
                  sources=(256, 296), sectors=[(-25, 0), (0, 180), (-180, -155)], up=0.1)
-    for i in range(18):
-        th = K.rng.uniform(-20, 200)
+    for i in range(16):
+        th = K.rng.uniform(15, 165)
         t = math.radians(th)
         cx = K.rng.uniform(130, 230)
         r = P.m(rsk(296)) * 0.9
-        K.card_from_painting((cx - 26, 282, cx + 26, 332), (P.x(ax) + r * math.cos(t), r * 0.8 * math.sin(t), P.z(307)),
+        K.card_from_painting((cx - 26, 290, cx + 26, 332), (P.x(ax) + r * math.cos(t), r * 0.8 * math.sin(t), P.z(307)),
                              yaw=th + 90, name="skirt_tips", normal=(math.cos(t), math.sin(t), -0.1))
     K.card_from_painting((96, 280, 266, 334), P.pt(181, 307, -P.m(52)), name="skirt_front", normal=(0, -1, 0.2))
     # the fists of straw out of the sleeves: fans of straw, turned about the arm so they are full from every side

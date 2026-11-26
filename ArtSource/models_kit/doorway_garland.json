@@ -1,0 +1,10 @@
+{
+ "name": "doorway_garland",
+ "folder": "lane",
+ "kind": "building",
+ "width": 1.858,
+ "height": 2.3,
+ "depth": 1.7,
+ "faces": 491,
+ "source": "blender"
+}

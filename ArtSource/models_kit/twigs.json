@@ -1,0 +1,10 @@
+{
+ "name": "twigs",
+ "folder": "ground",
+ "kind": "slab",
+ "width": 0.45,
+ "height": 0.299,
+ "depth": 0.028,
+ "faces": 1602,
+ "source": "blender"
+}

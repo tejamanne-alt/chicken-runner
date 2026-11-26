@@ -7,6 +7,8 @@ from the painting, with a door or window repeated where a real house would have 
 """
 import math
 
+import numpy as np
+
 from kitlib import model
 
 
@@ -556,3 +558,71 @@ def house_indigo_veranda(K):
     scatter_cards(K, (0, 395, 20, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_l")
     K.leaves_only((526, 410, 546, 506))
     scatter_cards(K, (526, 410, 546, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_r")
+
+
+def leaf_pixels(rgb):
+    """Leaves of a thoranam or a bush: green, yellow and orange (not red laterite, brown wood or plaster)."""
+    from kitlib import plant_pixels
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    warm = (g > 110) & (b < 0.62 * g) & (r - g < 120)
+    return plant_pixels(rgb) | warm
+
+
+@model("doorway_garland", "lane", kind="building", atlas=2048)
+def doorway_garland(K):
+    """A doorway of red laterite: two pillars and a heavy lintel slab with yellow corner blocks, a wooden frame and a
+    double plank door with its bar and ring, a thoranam of mango leaves on two strings, a laterite threshold and step
+    with a kolam, grass at its feet."""
+    P = K.paint
+    d = 0.9                                                       # the doorway's depth through the wall
+    lat = K.tile((50, 140, 80, 260), vary=0.06, soften=0.25)       # laterite with its pits and lime splashes
+    lat2 = K.tile((290, 120, 310, 280), vary=0.06, soften=0.25)
+    slab = K.tile((60, 18, 280, 34), vary=0.05, soften=0.2)
+    wood = K.tile((120, 120, 170, 190), vary=0.05)
+    frame_w = K.colour((86, 120, 100, 300), vary=0.08)
+    ochre = K.colour((50, 45, 70, 72), vary=0.08)
+    step = K.tile((40, 372, 80, 395), vary=0.05, soften=0.2)
+    # the pillars and the lintel
+    K.box(P.x(47), P.x(82), 0.0, d, P.z(366), P.z(40), lat, bevel=0.01, name="pillar_l")
+    K.box(P.x(280), P.x(311), 0.0, d, P.z(366), P.z(40), lat2, bevel=0.01, name="pillar_r")
+    K.box(P.x(28), P.x(330), -0.12, d + 0.12, P.z(42), P.z(8), slab, bevel=0.02, name="lintel")
+    K.box(P.x(82), P.x(280), 0.0, d, P.z(56), P.z(42), lat, name="head_wall")
+    for x0, x1 in ((45, 74), (283, 312)):
+        for y0, y1 in ((-0.08, 0.16), (d - 0.16, d + 0.08)):
+            K.box(P.x(x0), P.x(x1), y0, y1, P.z(77), P.z(42), ochre, bevel=0.01, name="corner_block")
+    # the wooden frame, set back, and the door set back again in it
+    fy = 0.08
+    for x0, x1 in ((82, 106), (251, 280)):
+        K.box(P.x(x0), P.x(x1), fy, d - 0.1, P.z(363), P.z(56), frame_w, bevel=0.006, name="jamb")
+    K.box(P.x(82), P.x(280), fy, d - 0.1, P.z(70), P.z(56), frame_w, bevel=0.006, name="frame_head")
+    door = K.box(P.x(106), P.x(251), 0.2, 0.26, P.z(363), P.z(70), wood, name="door")
+    # the door's back: planks with three battens and a bar
+    bat = K.colour((0.17, 0.07, 0.025), vary=0.1)
+    for py in (110, 215, 320):
+        K.box(P.x(110), P.x(247), 0.26, 0.3, P.z(py + 12), P.z(py), bat, bevel=0.005, name="batten")
+    iron = K.colour((0.06, 0.035, 0.02), vary=0.05)
+    K.tube([P.pt(158, 207, 0.32), P.pt(205, 207, 0.32)], 0.012, iron, segments=6, name="back_bar")
+    K.tube([P.pt(160, 207, 0.195), P.pt(205, 207, 0.195)], 0.009, iron, segments=6, name="bar")
+    # threshold platform and the step before it
+    K.box(P.x(35), P.x(322), -0.35, d + 0.1, 0.0, P.z(366), step, bevel=0.012, name="platform")
+    K.box(P.x(82), P.x(278), -0.68, -0.35, 0.0, P.z(394), step, bevel=0.012, name="step")
+    # the thoranam: two strings sagging between the corner blocks, mango leaves hanging off them
+    rope = K.colour((0.55, 0.36, 0.06), vary=0.1)
+    for pts in (((75, 45), (130, 56), (180, 62), (230, 56), (285, 45)), ((78, 54), (130, 76), (180, 84), (230, 76),
+                                                                           (282, 54))):
+        K.tube([P.pt(x, y, -0.04) for x, y in pts], 0.008, rope, segments=6, name="string")
+    K.leaves_only((70, 44, 292, 140), leaf_pixels)
+    K.card_from_painting((70, 44, 292, 140), (P.x(181), -0.06, P.z(92)), name="thoranam")
+    for cx in (95, 135, 160, 180, 210, 225, 245, 270):
+        K.card_from_painting((cx - 25, 60, cx + 25, 138), (P.x(cx), -0.06 + K.rng.uniform(-0.04, 0.03), P.z(99)),
+                             yaw=K.rng.uniform(-40, 40), pitch=K.rng.uniform(-10, 10), name="leaf")
+    # grass at its feet
+    K.leaves_only((0, 335, 75, 437))
+    K.leaves_only((275, 335, 353, 437))
+    for box in ((0, 335, 75, 437), (275, 335, 353, 437)):
+        cx = (box[0] + box[2]) / 2
+        for yaw in (0, 55, -55):
+            K.card_from_painting(box, (P.x(cx), K.rng.uniform(-0.5, -0.05), P.z(386)), yaw=yaw, name="grass")
+        for i in range(3):
+            K.card_from_painting(box, (P.x(cx) + K.rng.uniform(-0.05, 0.05), K.rng.uniform(0.2, 0.9), P.z(386)),
+                                 yaw=K.rng.uniform(-80, 80), name="grass_side")

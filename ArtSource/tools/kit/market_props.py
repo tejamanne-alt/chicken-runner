@@ -322,15 +322,15 @@ def veg_basket(K):
         return zr + P.m(10) * (1 - rho * rho) - P.m(3) * rho
     # the heap inside: a low dome of dark leaves the vegetables lie on
     heap = K.colour((0.05, 0.09, 0.015), vary=0.2, scale=25)
-    K.lathe([(0.0, zr + P.m(10)), (R * 0.6, zr + P.m(7)), (R * 0.9, zr + P.m(1)), (R * 0.98, zr - P.m(3))], heap,
+    K.lathe([(0.0, zr + P.m(10)), (R * 0.6, zr + P.m(7)), (R * 0.88, zr + P.m(1)), (R * 0.93, zr - P.m(8))], heap,
             segments=32, centre=(P.x(cx), 0, 0), name="heap", cap=False)
     # okra fanned up on the left, a bunch going back through the basket
-    okra = K.colour((25, 20, 45, 45), vary=0.15, scale=30)
+    okra = K.colour((25, 20, 45, 45), vary=0.15, scale=30, pct=75)
     fan = [((45, 58), (18, 25)), ((50, 55), (30, 16)), ((55, 50), (40, 15)), ((60, 48), (55, 8)), ((66, 45), (68, 12)),
            ((72, 42), (80, 15)), ((40, 60), (10, 45)), ((48, 58), (20, 38)), ((44, 60), (8, 56)), ((52, 56), (36, 26)),
            ((62, 50), (62, 18)), ((58, 52), (48, 22))]
     for k, ((ax, ay), (bx, by)) in enumerate(fan):
-        for y in (-R * 0.3, -R * 0.05, R * 0.2, R * 0.45):
+        for y in (-R * 0.3, R * 0.05, R * 0.4):
             jx, jy = K.rng.uniform(-5, 5), K.rng.uniform(-3, 4)
             yb = y + K.rng.uniform(-0.03, 0.03)
             pod(K, P.pt(ax + jx * 0.5, ay, y), P.pt(bx + jx, by + jy, yb), P.m(6.5), P.m(2.6), okra,
@@ -346,7 +346,7 @@ def veg_basket(K):
         cz = max(P.z(py), heap_z(P.x(px), y) + P.m(r) * 0.6) if fy > 0 else P.z(py)
         at = (px, P.py(cz))
         ellipsoid(K, (P.x(px), y, cz), (P.m(r), P.m(r), P.m(r) * 0.86), painted_as(K, at, (sx, sy), box),
-                  flat_top=0.15, lumps=0.03, name="tomato")
+                  flat_top=0.15, lumps=0.03, seg=14, rings=9, name="tomato")
         K.lathe([(P.m(4), 0.0), (P.m(1), P.m(1.5)), (0.0, P.m(1.5))], cap, segments=6,
                 centre=(P.x(px), y, cz + P.m(r) * 0.84), name="tomato_cap")
     B1 = ((63, 59), (52, 53, 74, 64))
@@ -361,9 +361,10 @@ def veg_basket(K):
         L = P.m(math.hypot(x1 - x0, y1 - y0)) / 2
         ang = math.degrees(math.atan2(-(y1 - y0), x1 - x0))
         mat = painted_as(K, (P.px(c[0]), P.py(c[2])), B1[0], B1[1], squeeze=0.7)
-        ellipsoid(K, c, (L, P.m(r), P.m(r)), mat, rot=(0, -ang, yaw), name="brinjal")
+        ellipsoid(K, c, (L, P.m(r), P.m(r)), mat, rot=(0, -ang, yaw), seg=14, rings=9, name="brinjal")
         d = Matrix.Rotation(math.radians(yaw), 3, "Z") @ Vector((-math.cos(math.radians(ang)), 0, -math.sin(math.radians(ang))))
-        ellipsoid(K, tuple(Vector(c) + d * L * 0.95), (P.m(4), P.m(5), P.m(5)), cap, rot=(0, -ang, yaw), name="calyx")
+        ellipsoid(K, tuple(Vector(c) + d * L * 0.95), (P.m(4), P.m(5), P.m(5)), cap, rot=(0, -ang, yaw), seg=8, rings=6,
+                  name="calyx")
     K.tube([P.pt(87, 36, -R * 0.15), P.pt(89, 28, -R * 0.15), P.pt(90, 22, -R * 0.12)], P.m(1.8), cap, segments=6,
            name="stalk")
     # pale round gourds: the painted one at the front left, two more at the back
@@ -386,3 +387,76 @@ def veg_basket(K):
         y = K.rng.uniform(R * 0.55, R * 0.95)
         blob_card(K, (sx - 15, sy - 14, sx + 15, sy + 14), (P.x(px), y, P.z(sy) + P.m(4)), yaw=K.rng.uniform(-80, 80),
                   pitch=K.rng.uniform(-25, 25), name="spinach_back")
+
+
+def ring_sheet(K, cx, cy, section, mat, nu=48, lumps=0.0, scale_y=1.0, name="ring_sheet", thickness=0.0):
+    """A surface of revolution with lumps: section [(r m, z m), ...] swept round a vertical axis at (cx, cy) metres,
+    each point pushed in and out by a smooth noise of `lumps` metres (a straw nest, a heap, a coil)."""
+    nv = len(section) - 1
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (nv + 1, nu + 1)), (0.8, 1.5), mode="wrap")
+    noise /= max(1e-6, noise.std())
+    noise[:, -1] = noise[:, 0]
+
+    def fn(u, v):
+        j = int(round(v * nv))
+        i = int(round(u * nu))
+        r, z = section[j]
+        a = 2 * math.pi * u
+        k = lumps * noise[j, i]
+        return (cx + (r + k) * math.cos(a), cy + (r + k) * math.sin(a) * scale_y, z + k * 0.6)
+    return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=thickness)
+
+
+def straws(K, n, cx, cy, r0, r1, z0, z1, mat, length=(0.04, 0.09), radius=0.0018, droop=0.5, skip=None, name="straw"):
+    """Loose straws sticking out of a nest's rim all round: n thin curved tubes rooted between radius r0..r1 and
+    height z0..z1 (metres), leaning outwards and drooping. skip(angle) -> True leaves a gap (where the painting has
+    something else in front)."""
+    for i in range(n):
+        a = K.rng.uniform(0, 2 * math.pi)
+        if skip is not None and skip(a):
+            continue
+        rr = K.rng.uniform(r0, r1)
+        z = K.rng.uniform(z0, z1)
+        L = K.rng.uniform(*length)
+        out = Vector((math.cos(a), math.sin(a), 0))
+        side = Vector((-math.sin(a), math.cos(a), 0)) * K.rng.uniform(-0.8, 0.8)
+        up = K.rng.uniform(-droop, 0.6)
+        d = (out + side + Vector((0, 0, up))).normalized()
+        base = Vector((cx + rr * math.cos(a), cy + rr * math.sin(a), z))
+        pts = [base + d * L * t + Vector((0, 0, -droop * 0.35 * L * t * t)) for t in (0, 0.35, 0.7, 1.0)]
+        K.tube([tuple(p) for p in pts], radius, mat, segments=4, name=name, taper=0.6)
+
+
+@model("hens_basket", "market", kind="prop")
+def hens_basket(K):
+    """A wide, low wicker basket with a nest of straw heaped over its rim (the two hens sitting in it are animals:
+    not modelled; the hollow of the nest is there for them)."""
+    P = K.paint
+    cx = 86
+    K.front_exclude = [(30, 0, 147, 64)]          # the two hens
+    wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(20, 80, 152, 124)], inset=2)
+    basket(K, cx, 0.0, [(48, 123.5), (50, 122), (52.5, 118), (56.5, 110), (61.5, 100), (64, 90), (66, 81)],
+           (67, 76, 84), 14, wicker)
+    ground_disc(K, cx, 124, 75, 0.2, (12, 119, 30, 123), h=0.004)
+    # the nest: a lumpy ring of straw heaped over the rim and drooping over it, its hollow bedded with straw
+    straw = K.tile((40, 68, 130, 82), vary=0.1, soften=0.15)
+    sec = [(0, 72), (20, 72.5), (36, 71), (48, 67), (58, 63), (66, 63), (71, 67), (72, 73), (71, 80), (69, 86), (66, 87.5)]
+    ring_sheet(K, P.x(cx), 0.0, [(P.m(r), P.z(y)) for r, y in sec], straw, nu=56, lumps=P.m(2.2), name="nest",
+               thickness=0.01)
+    # loose straws all round the rim, and the ragged fringe at the two ends as painted, carried round the nest
+    gold = K.colour((60, 70, 70, 74), vary=0.15, scale=40)
+    straws(K, 150, P.x(cx), 0.0, P.m(56), P.m(70), P.z(80), P.z(62), gold, length=(P.m(10), P.m(24)), radius=P.m(0.8))
+    K.leaves_only((0, 45, 171, 95), straw_pixels)
+    fringe = [(4, 50, 32, 90), (140, 50, 168, 90)]
+    for box in fringe:
+        bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, (P.x(bx), -0.02, P.z(by)), name="fringe")
+    for i in range(26):
+        a = 2 * math.pi * i / 26 + K.rng.uniform(-0.1, 0.1)
+        box = fringe[i % 2]
+        bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        r = P.m(abs(bx - cx))
+        # the card's outer end points away from the nest, as the painted fringe at each end does
+        yaw = math.degrees(a) + (180 if box[0] < cx else 0)
+        K.card_from_painting(box, (P.x(cx) + r * math.cos(a), r * math.sin(a), P.z(by)),
+                             yaw=yaw + K.rng.uniform(-15, 15), name="fringe_round")

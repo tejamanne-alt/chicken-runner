@@ -1,0 +1,10 @@
+{
+ "name": "scarecrow",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 1.723,
+ "height": 2.1,
+ "depth": 0.866,
+ "faces": 5101,
+ "source": "blender"
+}
