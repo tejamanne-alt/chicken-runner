@@ -1964,7 +1964,7 @@ def field_tree_6(K):
 def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spread=0.5, root_z_px=None,
                 card_px=None, n_cards=(220, 90, 50, 25), limb_py_max=None, limb_py_min=None, n_limbs=6, n_roots=4,
                 root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=1.0, fuse_faces=9000,
-                rscale=1.0, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
+                rscale=0.88, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
                 min_r_px=0.0):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
     on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
@@ -2043,7 +2043,7 @@ def h1_2(K):
     mask, _ = TRACE["h1_2"](K)
     traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_leaves, spread=0.6,
                 root_z_px=900, limb_py_max=520, limb_py_min=150, n_limbs=6, n_roots=4, root_py=920,
-                n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=2.5)
+                n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=3.5)
 
 
 TRACE["h1_3"] = lambda K: _trace_grey(K, [(0, 190, 864, 1024)], (150, 1000),

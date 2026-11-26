@@ -1096,7 +1096,7 @@ def house_potter(K):
     for i, (cx, cy) in enumerate(((640, 250), (860, 260), (1040, 240), (1180, 230))):
         u = 0.35 + 0.2 * (i % 2)
         z = ze + (zr - ze) * u
-        y = D + 0.55 - (D / 2 + 0.55) * u + 0.14
+        y = D + 0.55 - (D / 2 + 0.55) * u + 0.34            # clear of the thatch's thickness and lumps
         K.card_from_painting((cx - 130, cy - 200, cx + 130, cy + 200), (P.x(cx) + K.rng.uniform(-0.3, 0.3), y, z),
                              yaw=180, pitch=-(90 - ang) * 0.95, name="frond_back")
     # straw fringe cards round the sides and back, cut from the painted fringe

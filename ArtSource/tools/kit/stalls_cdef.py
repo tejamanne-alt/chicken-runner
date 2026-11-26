@@ -2065,8 +2065,9 @@ def stall_f_2(K):
                 (570, 645, 305)], 0.0, Z(232), P.x(120), P.x(680), bam)
     # ---------------------------------------------------------------- the counter and the stepped stand on it
     front = K.projected(squeeze=1.0, keep=[(80, 655, 712, 778)], inset=1)
-    K.box(P.x(85), P.x(705), -0.55, 0.0, 0.0, Z(680), front, name="counter")
-    K.box(P.x(76), P.x(712), -0.58, 0.02, Z(680), Z(655), front, bevel=0.006, name="counter_top")
+    K.box(P.x(85), P.x(705), -0.55, 0.0, 0.0, Z(680), planks, name="counter")
+    K.box(P.x(76), P.x(712), -0.58, 0.02, Z(680), Z(655), K.colour((300, 660, 400, 676), vary=0.08), bevel=0.006,
+          name="counter_top")
     wood = K.colour((120, 545, 220, 556), vary=0.08)
     tiers = [  # (x0, x1 at the front, top py, y0, y1)
         (88, 705, 655, -0.55, -0.2),
@@ -2108,3 +2109,226 @@ def stall_f_2(K):
     lad = K.projected(squeeze=1.0, keep=[(290, 392, 395, 432)], inset=1)
     hl = heap_px(K, 341, 0.22, [(52, 432), (40, 412), (20, 400), (0, 396)], lad, sy=0.6, name="laddus")
     on_heap(K, hl, P.x(341), 0.22, P.m(52) * 0.6, (290, 392, 395, 432), lad, dark=85, min_area=25, max_area=600, rmax=12)
+
+
+def flywheel(K, hub, R, mat, rim_r=0.012, spokes=6, axis=(1, 0, 0), name="wheel"):
+    """A cast-iron flywheel: a rim, spokes and a hub, turning about `axis` through hub (x, y, z)."""
+    hub = Vector(hub)
+    parts = []
+    pts = [(hub.x, hub.y + R * math.cos(2 * math.pi * k / 32), hub.z + R * math.sin(2 * math.pi * k / 32)) for k in range(33)]
+    parts.append(K.tube(pts, rim_r, mat, segments=6, name=name + "_rim"))
+    for k in range(spokes):
+        a = 2 * math.pi * k / spokes
+        parts.append(K.tube([tuple(hub), (hub.x, hub.y + R * math.cos(a), hub.z + R * math.sin(a))], rim_r * 0.6, mat,
+                            segments=5, name=name + "_spoke"))
+    parts.append(K.lathe([(rim_r * 2.2, -rim_r * 1.5), (rim_r * 2.2, rim_r * 1.5)], mat, segments=10,
+                         centre=tuple(hub), name=name + "_hub"))
+    orient(parts[-1], tuple(hub), (1, 0, 0))
+    return parts
+
+
+# ====================================================================== stall F3: the sugarcane-juice stall
+@model("stall_f_3", "market", kind="prop", atlas=2048)
+def stall_f_3(K):
+    """A sugarcane-juice stall: a hipped roof of woven palm leaf on two square posts and a ridge pole, a heavy wooden
+    table on splayed trestle legs, an iron cane crusher with its rollers, flywheel and crank on it, five brass
+    tumblers in a row and a tied bundle of cut cane; the juice man behind the table is a painted cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    yr = 0.3
+    # ---------------------------------------------------------------- the roof and its posts
+    weave = ktile(K, (200, 60, 420, 130), vary=0.06)
+    hip_thatch(K, P.x(15), P.x(682), -0.6, 1.2, Z(176), P.x(88), P.x(610), yr, Z(24), weave, thick=0.06, shag=0.015,
+               fringe=P.m(12), nu=110, nv=6)
+    bam = K.colour((300, 14, 400, 20), vary=0.08)
+    bamboo(K, P.pt(82, 14, yr), P.pt(616, 14, yr), P.m(7), bam, node_at=[0.2, 0.4, 0.6, 0.8], taper=1.0, name="ridge")
+    post = K.colour((78, 300, 96, 420), vary=0.08)
+    for x0, x1 in ((77, 97), (601, 621)):
+        K.box(P.x(x0), P.x(x1), yr - P.m(10), yr + P.m(10), 0.0, Z(22) - 0.02, post, name="post")
+    under = K.colour((0.25, 0.2, 0.08), vary=0.1)
+    for y in (-0.35, 0.95):
+        z = Z(176) + (Z(24) - Z(176)) * (1 - abs(y - yr) / (0.9 if y < yr else 0.9)) - 0.05
+        K.box(P.x(70), P.x(628), y - 0.025, y + 0.025, z - 0.05, z, post, name="purlin")
+        for x0, x1 in ((77, 97), (601, 621)):
+            K.box(P.x(x0) + 0.01, P.x(x1) - 0.01, min(y, yr), max(y, yr), z - 0.04, z, post, name="tie")
+    # ---------------------------------------------------------------- the table
+    wood = ktile(K, (155, 535, 300, 560), vary=0.08)
+    ty0, ty1 = -0.3, 0.18
+    K.box(P.x(150), P.x(620), ty0, ty1, Z(532), Z(497), wood, bevel=0.006, name="table_top")
+    K.panel((150, 497, 620, 532), ty0 - 0.003, name="table_front")
+    legs = [((182, 532), (150, 738)), ((312, 532), (342, 738)), ((563, 532), (563, 722))]
+    for (ax, ay), (bx, by) in legs:
+        for y in (ty0 + 0.06, ty1 - 0.06):
+            beam(K, P.pt(ax, ay, y), P.pt(bx, by, y), P.m(20), P.m(20), wood, name="leg")
+    for y in (ty0 + 0.06, ty1 - 0.06):
+        beam(K, P.pt(165, 668, y), P.pt(330, 668, y), P.m(16), P.m(22), wood, name="stretcher")
+    beam(K, P.pt(247, 668, ty0 + 0.06), P.pt(247, 668, ty1 - 0.06), P.m(16), P.m(16), wood, name="stretcher_x")
+    # ---------------------------------------------------------------- the crusher
+    iron = K.colour((185, 430, 200, 470), vary=0.06)
+    my = -0.05
+    zt = Z(497)
+    for x0, x1 in ((125, 185), (235, 285)):
+        K.box(P.x(x0), P.x(x1), my - 0.13, my + 0.13, zt, Z(482), iron, bevel=0.006, name="foot")
+    for x0, x1 in ((142, 175), (242, 278)):
+        K.box(P.x(x0), P.x(x1), my - 0.07, my + 0.07, Z(482), Z(292), iron, bevel=0.008, name="frame")
+    K.box(P.x(165), P.x(252), my - 0.08, my + 0.08, Z(345), Z(300), iron, bevel=0.012, name="housing")
+    roller = K.projected(squeeze=1.0, keep=[(165, 350, 255, 410)], inset=1)
+    for dy in (-0.045, 0.045):
+        K.lathe([(P.m(29), P.x(165)), (P.m(30), P.x(170)), (P.m(30), P.x(250)), (P.m(29), P.x(255))], roller,
+                segments=20, centre=(0.0, 0.0, 0.0), name="roller")
+        ob = K.parts[-1]
+        ob.data.transform(Matrix.Translation((0.0, my + dy, Z(380))) @ Matrix.Rotation(math.radians(90), 4, "Y")
+                          @ Matrix.Scale(-1, 4, (0, 0, 1)) @ Matrix.Rotation(0, 4, "X"))
+        for v in ob.data.vertices:
+            v.co.x = -v.co.x
+    K.box(P.x(160), P.x(262), my - 0.06, my + 0.06, Z(425), Z(410), iron, bevel=0.005, name="tray")
+    K.box(P.x(148), P.x(277), my - 0.025, my + 0.025, Z(272), Z(262), iron, bevel=0.004, name="top_bar")
+    for x_px in (166, 260):
+        K.tube([P.pt(x_px, 300, my), P.pt(x_px, 248, my)], P.m(6), iron, segments=8, name="stud")
+    K.tube([P.pt(210, 300, my), P.pt(210, 245, my)], P.m(8), iron, segments=8, name="screw")
+    K.box(P.x(198), P.x(222), my - 0.02, my + 0.02, Z(252), Z(242), iron, name="screw_head")
+    # the flywheel on the left, its crank, and the handle on the right
+    flywheel(K, (P.x(112), my, Z(365)), P.m(54), iron, rim_r=P.m(5), spokes=6)
+    K.tube([(P.x(112), my, Z(365)), (P.x(150), my, Z(365))], P.m(5), iron, segments=8, name="axle")
+    K.tube([(P.x(100), my, Z(365)), (P.x(95), my - 0.03, Z(455)), (P.x(60), my - 0.06, Z(462))], P.m(5), iron,
+           segments=8, name="crank")
+    K.tube([(P.x(278), my, Z(385)), (P.x(330), my, Z(388))], P.m(5), iron, segments=8, name="handle")
+    # ---------------------------------------------------------------- the tumblers and the cane
+    for cx in (315, 353, 390, 429, 466):
+        brass = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - 18, 452, cx + 18, 500)], inset=2)
+        turned(K, cx, [(13, 499), (15, 497), (18, 456), (17, 454)], -0.18, brass, segs=18, name="tumbler")
+        K.lathe([(P.m(15), Z(458)), (P.m(11), Z(495))], K.colour((0.25, 0.14, 0.04), vary=0.05), segments=14,
+                centre=(P.x(cx), -0.18, 0.0), cap=False, name="tumbler_in")
+    cane = K.projected(squeeze=1.0, keep=[(490, 372, 690, 525)], inset=1)
+    ends = [(640, 395), (662, 410), (618, 415), (645, 430), (672, 432), (600, 440), (628, 448), (655, 455), (676, 455),
+            (608, 465), (636, 470), (662, 478), (590, 485), (618, 490), (645, 495), (603, 508), (630, 512), (582, 505)]
+    for ex, ey in ends:
+        a = (P.x(ex) - 0.68, 0.15 + K.rng.uniform(-0.04, 0.04), P.z(ey) - 0.07 + (P.z(ey) - P.z(450)) * -0.3)
+        b = (P.x(ex) - P.m(10), -0.38 + K.rng.uniform(-0.03, 0.03), P.z(ey))
+        bamboo(K, a, b, P.m(12), cane, nodes=0.18, bend=0.004, taper=1.0, segments=8, name="cane")
+    rope = K.colour((530, 410, 540, 480), vary=0.08)
+    lashing(K, (P.x(520), -0.05, Z(455)), (0.6, -0.8, 0.0), P.m(55), rope, turns=2, rope=0.008)
+    # ---------------------------------------------------------------- the juice man, standing behind the table
+    K.figure([(352, 236), (372, 224), (395, 232), (405, 258), (400, 285), (440, 298), (452, 320), (455, 380),
+              (452, 440), (455, 500), (462, 560), (468, 640), (470, 700), (472, 735), (440, 738), (425, 712),
+              (400, 700), (380, 712), (368, 738), (330, 735), (342, 700), (345, 640), (348, 560), (350, 500),
+              (352, 440), (340, 400), (318, 398), (300, 392), (296, 372), (320, 360), (330, 320), (350, 300),
+              (358, 285), (350, 262)], y=0.42, name="juice_man")
+    unify_cards(K)
+
+
+def coil(K, c, R, r, mat, tilt=(0.0, 0.0), turns=1.6, name="coil"):
+    """A coil of rope: `turns` loops of radius R, rope r thick, lying round c (x, y, z), tipped tilt (deg about x, y)."""
+    n = int(turns * 20)
+    pts = []
+    for i in range(n + 1):
+        a = 2 * math.pi * turns * i / n
+        rr = R * (1 - 0.12 * i / n)
+        pts.append(Vector((rr * math.cos(a), rr * math.sin(a), r * 1.6 * i / n)))
+    M = Matrix.Rotation(math.radians(tilt[1]), 3, "Y") @ Matrix.Rotation(math.radians(tilt[0]), 3, "X")
+    return K.tube([tuple(Vector(c) + M @ p) for p in pts], r, mat, segments=6, name=name)
+
+
+def broom(K, neck, top, spread, mat, handle, rope, z_foot, flat=0.45, name="broom"):
+    """A palm-fibre broom standing on its handle: the bristles fanning from the bound neck (x, y, z) up to a ragged
+    top `spread` metres wide round top (x, y, z), the binding, and the green handle down to z_foot."""
+    neck, top = Vector(neck), Vector(top)
+    L = (top - neck).length
+    r0 = spread * 0.16
+    prof = [(r0, 0.0), (r0 * 1.25, L * 0.12), (spread * 0.32, L * 0.45), (spread * 0.45, L * 0.8), (spread * 0.5, L * 0.95),
+            (spread * 0.3, L)]
+    ob = K.lathe(prof, mat, segments=14, centre=tuple(neck), scale_y=flat, wobble=0.06, name=name)
+    orient(ob, tuple(neck), top - neck)
+    lashing(K, tuple(neck + (top - neck).normalized() * 0.02), top - neck, r0, rope, turns=3, rope=0.006)
+    K.lathe([(r0 * 0.85, z_foot - neck.z), (r0 * 0.9, -0.01), (r0, 0.0)], handle, segments=10, centre=tuple(neck),
+            scale_y=flat * 1.5, name=name + "_handle")
+
+
+# ====================================================================== stall F4: mats, brooms and rope
+@model("stall_f_4", "market", kind="prop", atlas=2048)
+def stall_f_4(K):
+    """A mat, broom and rope seller's booth: a shaggy hipped thatch on four posts over a dark plank booth, palm-fibre
+    brooms standing in two clusters, a pyramid of rolled green grass mats, two baskets heaped with coils of coir
+    rope, a low plank seat on a green mat floor; the old man sitting cross-legged on the seat is a painted
+    cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    # ---------------------------------------------------------------- the floor: a green mat sloping up into the booth
+    yF, yS = -0.85, -0.38
+    zS = Z(694)
+
+    def floor(x, y):
+        return zS * _smooth(yF, yS, y)
+    green = K.projected(squeeze=1.0, keep=[(20, 690, 760, 748)], exclude=[(0, 520, 360, 750), (480, 600, 770, 750)],
+                        inset=1)
+    K.grid_plane(P.x(15), P.x(762), yF, 0.85, 0.0, 30, 22, green, height=floor, name="floor")
+    # ---------------------------------------------------------------- the booth and the thatch
+    dark = ktile(K, (220, 215, 330, 280), vary=0.05)
+    wall = K.colour((140, 220, 160, 280), vary=0.08)
+    batten = K.colour((75, 300, 86, 400), vary=0.08)
+    booth_shell(K, P.x(95), P.x(712), -0.32, 0.8, Z(200), dark, wall, batten, battens=10)
+    for x0, x1 in ((70, 88), (690, 708)):
+        for y in (-0.5, 0.86):
+            K.box(P.x(x0), P.x(x1), y - P.m(9), y + P.m(9), 0.0, Z(190), batten, name="post")
+    K.box(P.x(290), P.x(520), 0.7, 0.74, Z(332), Z(325), batten, name="rail")
+    straw = ktile(K, (300, 30, 500, 90), vary=0.06)
+    hip_thatch(K, P.x(12), P.x(764), -0.8, 1.2, Z(192), P.x(105), P.x(680), 0.2, Z(22), straw, thick=0.1, shag=0.03,
+               fringe=P.m(16))
+    # ---------------------------------------------------------------- the seat
+    seat = ktile(K, (560, 610, 640, 640), vary=0.06)
+    K.box(P.x(332), P.x(542), -0.3, 0.3, 0.0, Z(602), K.colour((360, 640, 400, 690), vary=0.08), bevel=0.01,
+          name="seat")
+    K.box(P.x(325), P.x(548), -0.33, 0.33, Z(602), Z(590), K.colour((330, 594, 350, 602), vary=0.08), bevel=0.006,
+          name="seat_top")
+    # ---------------------------------------------------------------- the brooms
+    handle = K.colour((150, 530, 160, 545), vary=0.1)
+    rope = K.colour((140, 500, 160, 510), vary=0.08)
+    brooms = [  # (neck px, top px, spread px, y)
+        ((145, 508), (130, 300), 110, 0.45), ((178, 496), (200, 290), 100, 0.55), ((218, 502), (235, 292), 130, 0.35),
+        ((248, 497), (275, 305), 80, 0.5),
+        ((560, 482), (548, 285), 100, 0.45), ((588, 470), (598, 262), 110, 0.55), ((618, 486), (645, 290), 105, 0.38),
+    ]
+    for (nx, ny), (tx, ty), sp, y in brooms:
+        mat = K.projected(axis_x=P.x((nx + tx) / 2), squeeze=0.95,
+                          keep=[(min(nx, tx) - sp // 2, ty - 10, max(nx, tx) + sp // 2, ny + 15)], inset=2)
+        broom(K, (P.x(nx), y, P.z(ny)), (P.x(tx), y, P.z(ty)), P.m(sp), mat, handle, rope, floor(0, y))
+    # ---------------------------------------------------------------- the rolled mats
+    mats = K.projected(squeeze=1.0, keep=[(10, 525, 350, 748)], inset=1)
+    body = ktile(K, (235, 530, 330, 560), vary=0.06)
+    d = Vector((0.3, 0.95, 0.0)).normalized()
+    rolls = [(50, 708, 36), (122, 712, 36), (195, 712, 36), (268, 706, 37), (86, 650, 35), (158, 655, 35),
+             (230, 648, 36), (122, 585, 38), (190, 600, 33)]
+    for cx, cy, r in rolls:
+        c = Vector((P.x(cx), yF + 0.12, P.z(cy)))
+        c.y = max(c.y, yF + 0.04)
+        rr = P.m(r)
+        cz = max(P.z(cy), floor(c.x, c.y) + rr)
+        ob = K.lathe([(0.0, 0.0), (rr, 0.0), (rr, 1.25), (0.0, 1.25)], body, segments=16, centre=(c.x, c.y, cz),
+                     name="mat_roll")
+        orient(ob, (c.x, c.y, cz), d)
+        end = K.lathe([(0.0, -0.002), (rr * 1.005, -0.002), (rr * 1.005, 0.004)], mats, segments=16,
+                      centre=(c.x, c.y, cz), name="mat_end", cap=False)
+        orient(end, (c.x, c.y, cz), d)
+    # ---------------------------------------------------------------- the rope baskets
+    weave = ktile(K, (500, 700, 600, 730), vary=0.06)
+    ropes = K.projected(squeeze=1.0, keep=[(480, 500, 770, 690)], inset=1)
+    for cx, hw, rim, y in ((552, 70, 668, -0.55), (695, 70, 664, -0.5)):
+        basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.8), 0.0), (P.m(hw * 0.97), Z(700)), (P.m(hw), Z(rim))],
+               K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, rim - 6, cx + hw, 748)], inset=2), sy=0.9)
+    h1 = heap_px(K, 552, -0.55, [(68, 668), (64, 640), (50, 615), (25, 600), (0, 595)], ropes, sy=0.9, name="rope_heap")
+    h2 = heap_px(K, 695, -0.5, [(68, 664), (66, 630), (58, 600), (40, 580), (0, 575)], ropes, sy=0.9, name="rope_heap")
+    K.lathe([(P.m(95), 0.0), (P.m(95), Z(560)), (P.m(70), Z(530)), (P.m(30), Z(510)), (0.0, Z(505))], ropes, segments=20,
+            centre=(P.x(620), -0.15, 0.0), scale_y=0.8, wobble=0.05, name="rope_pile")
+    for (cx, cy, R, tilt, y) in ((545, 630, 40, (-55, 10), -0.62), (575, 650, 34, (-60, -15), -0.6),
+                                 (700, 625, 45, (-50, 5), -0.58), (690, 600, 40, (-30, -10), -0.42),
+                                 (625, 540, 50, (-35, 0), -0.25), (590, 560, 42, (-45, 15), -0.28),
+                                 (660, 570, 45, (-40, -10), -0.3), (710, 700, 22, (0, -90), -0.98)):
+        coil(K, (P.x(cx), y, P.z(cy)), P.m(R), P.m(7), ropes, tilt=tilt)
+    # ---------------------------------------------------------------- the old man on his seat
+    K.figure([(430, 362), (458, 368), (472, 390), (468, 420), (462, 445), (495, 460), (510, 500), (518, 545),
+              (530, 560), (540, 590), (530, 612), (490, 620), (440, 622), (380, 622), (345, 612), (338, 585),
+              (352, 555), (365, 545), (370, 500), (385, 460), (415, 445), (408, 420), (405, 390)], y=-0.05,
+             name="mat_seller")
+    unify_cards(K)
