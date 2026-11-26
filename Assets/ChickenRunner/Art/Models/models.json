@@ -215,102 +215,152 @@
   {
    "name": "bund_block",
    "folder": "fields",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.327,
    "height": 0.7,
-   "depth": 0.9,
-   "faces": 5316,
-   "source": "extruded"
+   "depth": 1.442,
+   "faces": 3968,
+   "source": "blender"
   },
   {
    "name": "bund_strip",
    "folder": "fields",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.43,
    "height": 0.55,
-   "depth": 0.9,
-   "faces": 3146,
-   "source": "extruded"
+   "depth": 1.078,
+   "faces": 2742,
+   "source": "blender"
   },
   {
    "name": "canal_bank",
    "folder": "fields",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.175,
    "height": 1.3,
-   "depth": 0.8,
-   "faces": 3044,
-   "source": "extruded"
+   "depth": 2.4,
+   "faces": 673,
+   "source": "blender"
   },
   {
    "name": "canal_bridge",
    "folder": "fields",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.053,
    "height": 1.1,
+   "depth": 2.719,
+   "faces": 3903,
+   "source": "blender"
+  },
+  {
+   "name": "canal_piece_1",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 3.407,
+   "height": 5.0,
+   "depth": 0.938,
+   "faces": 4999,
+   "source": "blender"
+  },
+  {
+   "name": "canal_piece_2",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 3.464,
+   "height": 1.724,
+   "depth": 2.793,
+   "faces": 2581,
+   "source": "blender"
+  },
+  {
+   "name": "canal_piece_3",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.956,
+   "height": 1.84,
+   "depth": 2.079,
+   "faces": 1902,
+   "source": "blender"
+  },
+  {
+   "name": "canal_piece_4",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 2.904,
+   "height": 2.369,
    "depth": 1.0,
-   "faces": 4908,
-   "source": "extruded"
+   "faces": 1236,
+   "source": "blender"
   },
   {
    "name": "crop_strip_1",
    "folder": "fields",
    "kind": "volume",
-   "width": 8.248,
-   "height": 0.703,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "width": 7.265,
+   "height": 1.27,
+   "depth": 1.507,
+   "faces": 1918,
+   "source": "blender"
   },
   {
    "name": "crop_strip_2",
    "folder": "fields",
    "kind": "volume",
-   "width": 8.538,
-   "height": 1.055,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "width": 7.277,
+   "height": 1.319,
+   "depth": 1.569,
+   "faces": 6913,
+   "source": "blender"
   },
   {
    "name": "crop_strip_3",
    "folder": "fields",
    "kind": "volume",
-   "width": 8.352,
-   "height": 2.6,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "width": 7.497,
+   "height": 2.601,
+   "depth": 1.648,
+   "faces": 1905,
+   "source": "blender"
   },
   {
    "name": "crop_strip_4",
    "folder": "fields",
    "kind": "volume",
-   "width": 8.248,
-   "height": 0.738,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "width": 7.21,
+   "height": 1.282,
+   "depth": 1.677,
+   "faces": 3112,
+   "source": "blender"
   },
   {
    "name": "crop_strip_5",
    "folder": "fields",
    "kind": "volume",
-   "width": 8.324,
-   "height": 1.428,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "width": 7.253,
+   "height": 0.794,
+   "depth": 1.664,
+   "faces": 3334,
+   "source": "blender"
   },
   {
    "name": "crop_strip_6",
    "folder": "fields",
    "kind": "volume",
-   "width": 8.262,
-   "height": 2.255,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "width": 7.21,
+   "height": 1.484,
+   "depth": 1.598,
+   "faces": 2259,
+   "source": "blender"
+  },
+  {
+   "name": "crop_strip_7",
+   "folder": "fields",
+   "kind": "volume",
+   "width": 7.521,
+   "height": 2.576,
+   "depth": 2.449,
+   "faces": 3946,
+   "source": "blender"
   },
   {
    "name": "field_bldg_1",
@@ -318,9 +368,9 @@
    "kind": "building",
    "width": 7.414,
    "height": 4.468,
-   "depth": 3.5,
-   "faces": 6109,
-   "source": "extruded"
+   "depth": 2.519,
+   "faces": 5600,
+   "source": "blender"
   },
   {
    "name": "field_bldg_2",
@@ -328,9 +378,9 @@
    "kind": "building",
    "width": 3.908,
    "height": 5.0,
-   "depth": 3.5,
-   "faces": 7252,
-   "source": "extruded"
+   "depth": 3.82,
+   "faces": 3544,
+   "source": "blender"
   },
   {
    "name": "field_bldg_3",
@@ -338,9 +388,9 @@
    "kind": "building",
    "width": 8.369,
    "height": 3.348,
-   "depth": 3.5,
-   "faces": 3340,
-   "source": "extruded"
+   "depth": 4.761,
+   "faces": 3667,
+   "source": "blender"
   },
   {
    "name": "field_life_1",
@@ -408,9 +458,9 @@
    "kind": "building",
    "width": 2.676,
    "height": 4.2,
-   "depth": 1.5,
-   "faces": 3116,
-   "source": "extruded"
+   "depth": 1.784,
+   "faces": 759,
+   "source": "blender"
   },
   {
    "name": "field_tree_1",
@@ -418,9 +468,9 @@
    "kind": "volume",
    "width": 9.494,
    "height": 10.0,
-   "depth": 3.038,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 7.321,
+   "faces": 20832,
+   "source": "blender"
   },
   {
    "name": "field_tree_2",
@@ -428,9 +478,9 @@
    "kind": "volume",
    "width": 5.314,
    "height": 5.688,
-   "depth": 1.7,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 3.721,
+   "faces": 23000,
+   "source": "blender"
   },
   {
    "name": "field_tree_3",
@@ -438,9 +488,9 @@
    "kind": "volume",
    "width": 5.172,
    "height": 8.472,
-   "depth": 1.655,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 3.576,
+   "faces": 5537,
+   "source": "blender"
   },
   {
    "name": "field_tree_4",
@@ -448,9 +498,9 @@
    "kind": "volume",
    "width": 5.182,
    "height": 4.433,
-   "depth": 1.658,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 2.964,
+   "faces": 11225,
+   "source": "blender"
   },
   {
    "name": "field_tree_5",
@@ -458,9 +508,9 @@
    "kind": "volume",
    "width": 4.059,
    "height": 9.008,
-   "depth": 1.299,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 3.0,
+   "faces": 2785,
+   "source": "blender"
   },
   {
    "name": "field_tree_6",
@@ -468,9 +518,9 @@
    "kind": "volume",
    "width": 3.887,
    "height": 2.54,
-   "depth": 1.244,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 1.636,
+   "faces": 13681,
+   "source": "blender"
   },
   {
    "name": "granary",
@@ -478,9 +528,9 @@
    "kind": "building",
    "width": 4.584,
    "height": 4.6,
-   "depth": 3,
-   "faces": 5024,
-   "source": "extruded"
+   "depth": 3.563,
+   "faces": 8281,
+   "source": "blender"
   },
   {
    "name": "haystack",
@@ -488,9 +538,9 @@
    "kind": "volume",
    "width": 2.854,
    "height": 2.6,
-   "depth": 2.283,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 2.771,
+   "faces": 2229,
+   "source": "blender"
   },
   {
    "name": "haystack_small",
@@ -498,9 +548,9 @@
    "kind": "volume",
    "width": 1.681,
    "height": 1.8,
-   "depth": 1.344,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.647,
+   "faces": 1452,
+   "source": "blender"
   },
   {
    "name": "hut_with_pen",
@@ -508,9 +558,9 @@
    "kind": "building",
    "width": 6.543,
    "height": 3.8,
-   "depth": 4,
-   "faces": 5388,
-   "source": "extruded"
+   "depth": 5.773,
+   "faces": 6512,
+   "source": "blender"
   },
   {
    "name": "paddy_ripe",
@@ -518,9 +568,9 @@
    "kind": "volume",
    "width": 2.622,
    "height": 1.0,
-   "depth": 0.45,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.28,
+   "faces": 567,
+   "source": "blender"
   },
   {
    "name": "paddy_tall",
@@ -528,9 +578,9 @@
    "kind": "volume",
    "width": 2.406,
    "height": 1.0,
-   "depth": 0.45,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.28,
+   "faces": 526,
+   "source": "blender"
   },
   {
    "name": "paddy_young",
@@ -538,9 +588,9 @@
    "kind": "volume",
    "width": 1.654,
    "height": 0.55,
-   "depth": 0.45,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.0,
+   "faces": 327,
+   "source": "blender"
   },
   {
    "name": "palmyra_1",
@@ -548,9 +598,9 @@
    "kind": "volume",
    "width": 4.647,
    "height": 9.0,
-   "depth": 1.487,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 3.968,
+   "faces": 3322,
+   "source": "blender"
   },
   {
    "name": "palmyra_2",
@@ -558,9 +608,9 @@
    "kind": "volume",
    "width": 4.721,
    "height": 9.5,
-   "depth": 1.511,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 3.881,
+   "faces": 3762,
+   "source": "blender"
   },
   {
    "name": "palmyra_3",
@@ -568,9 +618,9 @@
    "kind": "volume",
    "width": 4.354,
    "height": 9.0,
-   "depth": 1.393,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 3.691,
+   "faces": 3146,
+   "source": "blender"
   },
   {
    "name": "pump_house",
@@ -578,29 +628,29 @@
    "kind": "building",
    "width": 3.83,
    "height": 2.9,
-   "depth": 3,
-   "faces": 4828,
-   "source": "extruded"
+   "depth": 2.68,
+   "faces": 424,
+   "source": "blender"
   },
   {
    "name": "scarecrow",
    "folder": "fields",
-   "kind": "slab",
+   "kind": "volume",
    "width": 1.723,
    "height": 2.1,
-   "depth": 0.25,
-   "faces": 1794,
-   "source": "extruded"
+   "depth": 0.817,
+   "faces": 5099,
+   "source": "blender"
   },
   {
    "name": "sluice_gate",
    "folder": "fields",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.205,
    "height": 1.7,
-   "depth": 0.8,
-   "faces": 3958,
-   "source": "extruded"
+   "depth": 1.873,
+   "faces": 4145,
+   "source": "blender"
   },
   {
    "name": "sugarcane",
@@ -608,19 +658,19 @@
    "kind": "volume",
    "width": 5.624,
    "height": 2.8,
-   "depth": 0.45,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 1.678,
+   "faces": 6636,
+   "source": "blender"
   },
   {
    "name": "well",
    "folder": "fields",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.137,
    "height": 2.4,
-   "depth": 1.6,
-   "faces": 5556,
-   "source": "extruded"
+   "depth": 2.993,
+   "faces": 5365,
+   "source": "blender"
   },
   {
    "name": "cart_rut",
@@ -628,19 +678,19 @@
    "kind": "slab",
    "width": 2.6,
    "height": 0.685,
-   "depth": 0.012,
-   "faces": 737,
-   "source": "extruded"
+   "depth": 0.025,
+   "faces": 1924,
+   "source": "blender"
   },
   {
    "name": "coconut",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.22,
    "height": 0.234,
-   "depth": 0.012,
-   "faces": 1120,
-   "source": "extruded"
+   "depth": 0.195,
+   "faces": 563,
+   "source": "blender"
   },
   {
    "name": "cracked_mud",
@@ -648,9 +698,9 @@
    "kind": "slab",
    "width": 1.6,
    "height": 0.669,
-   "depth": 0.012,
-   "faces": 667,
-   "source": "extruded"
+   "depth": 0.021,
+   "faces": 2479,
+   "source": "blender"
   },
   {
    "name": "footprints",
@@ -658,9 +708,9 @@
    "kind": "slab",
    "width": 1.4,
    "height": 0.278,
-   "depth": 0.012,
-   "faces": 739,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "hen_prints",
@@ -668,9 +718,9 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.225,
-   "depth": 0.012,
-   "faces": 764,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "hoof_prints",
@@ -678,19 +728,19 @@
    "kind": "slab",
    "width": 1.2,
    "height": 0.338,
-   "depth": 0.012,
-   "faces": 917,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "husk",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.3,
    "height": 0.214,
-   "depth": 0.012,
-   "faces": 1437,
-   "source": "extruded"
+   "depth": 0.132,
+   "faces": 872,
+   "source": "blender"
   },
   {
    "name": "leaf_1",
@@ -698,9 +748,9 @@
    "kind": "slab",
    "width": 0.12,
    "height": 0.186,
-   "depth": 0.012,
-   "faces": 686,
-   "source": "extruded"
+   "depth": 0.025,
+   "faces": 565,
+   "source": "blender"
   },
   {
    "name": "leaf_2",
@@ -708,9 +758,9 @@
    "kind": "slab",
    "width": 0.12,
    "height": 0.305,
-   "depth": 0.012,
-   "faces": 599,
-   "source": "extruded"
+   "depth": 0.025,
+   "faces": 453,
+   "source": "blender"
   },
   {
    "name": "leaf_3",
@@ -718,69 +768,69 @@
    "kind": "slab",
    "width": 0.12,
    "height": 0.296,
-   "depth": 0.012,
-   "faces": 608,
-   "source": "extruded"
+   "depth": 0.022,
+   "faces": 385,
+   "source": "blender"
   },
   {
    "name": "pebble_cluster",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.35,
    "height": 0.24,
-   "depth": 0.012,
-   "faces": 1356,
-   "source": "extruded"
+   "depth": 0.301,
+   "faces": 1426,
+   "source": "blender"
   },
   {
    "name": "pebbles",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.6,
    "height": 0.269,
-   "depth": 0.012,
-   "faces": 787,
-   "source": "extruded"
+   "depth": 0.298,
+   "faces": 1104,
+   "source": "blender"
   },
   {
    "name": "tuft_1",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.3,
    "height": 0.343,
-   "depth": 0.012,
-   "faces": 1625,
-   "source": "extruded"
+   "depth": 0.231,
+   "faces": 56,
+   "source": "blender"
   },
   {
    "name": "tuft_2",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.22,
    "height": 0.246,
-   "depth": 0.012,
-   "faces": 1445,
-   "source": "extruded"
+   "depth": 0.17,
+   "faces": 55,
+   "source": "blender"
   },
   {
    "name": "tuft_3",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.2,
    "height": 0.244,
-   "depth": 0.012,
-   "faces": 1334,
-   "source": "extruded"
+   "depth": 0.154,
+   "faces": 55,
+   "source": "blender"
   },
   {
    "name": "tuft_4",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.16,
    "height": 0.152,
-   "depth": 0.012,
-   "faces": 1244,
-   "source": "extruded"
+   "depth": 0.126,
+   "faces": 54,
+   "source": "blender"
   },
   {
    "name": "twigs",
@@ -788,29 +838,29 @@
    "kind": "slab",
    "width": 0.45,
    "height": 0.299,
-   "depth": 0.012,
-   "faces": 1688,
-   "source": "extruded"
+   "depth": 0.026,
+   "faces": 1602,
+   "source": "blender"
   },
   {
    "name": "weed_1",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.3,
    "height": 0.309,
-   "depth": 0.012,
-   "faces": 2069,
-   "source": "extruded"
+   "depth": 0.252,
+   "faces": 61,
+   "source": "blender"
   },
   {
    "name": "weed_2",
    "folder": "ground",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.3,
    "height": 0.44,
-   "depth": 0.012,
-   "faces": 1795,
-   "source": "extruded"
+   "depth": 0.252,
+   "faces": 63,
+   "source": "blender"
   },
   {
    "name": "bicycle",
@@ -828,9 +878,9 @@
    "kind": "volume",
    "width": 0.697,
    "height": 0.45,
-   "depth": 0.558,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.641,
+   "faces": 2856,
+   "source": "blender"
   },
   {
    "name": "bullock_cart",
@@ -848,9 +898,9 @@
    "kind": "building",
    "width": 6.373,
    "height": 3.438,
-   "depth": 4,
-   "faces": 5027,
-   "source": "extruded"
+   "depth": 4.211,
+   "faces": 6425,
+   "source": "blender"
   },
   {
    "name": "chicken_basket",
@@ -858,49 +908,49 @@
    "kind": "volume",
    "width": 0.718,
    "height": 0.6,
-   "depth": 0.574,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.686,
+   "faces": 7876,
+   "source": "blender"
   },
   {
    "name": "clothesline",
    "folder": "lane",
-   "kind": "slab",
+   "kind": "volume",
    "width": 2.4,
    "height": 1.693,
-   "depth": 0.05,
-   "faces": 2252,
-   "source": "extruded"
+   "depth": 0.735,
+   "faces": 5524,
+   "source": "blender"
   },
   {
    "name": "doorway_garland",
    "folder": "lane",
-   "kind": "slab",
+   "kind": "building",
    "width": 1.858,
    "height": 2.3,
-   "depth": 0.06,
-   "faces": 1022,
-   "source": "extruded"
+   "depth": 1.7,
+   "faces": 491,
+   "source": "blender"
   },
   {
    "name": "dung",
    "folder": "lane",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.6,
    "height": 0.252,
-   "depth": 0.08,
-   "faces": 939,
-   "source": "extruded"
+   "depth": 0.556,
+   "faces": 5051,
+   "source": "blender"
   },
   {
    "name": "hand_pump",
    "folder": "lane",
-   "kind": "slab",
+   "kind": "volume",
    "width": 1.304,
    "height": 1.2,
-   "depth": 0.2,
-   "faces": 1814,
-   "source": "extruded"
+   "depth": 1.029,
+   "faces": 4263,
+   "source": "blender"
   },
   {
    "name": "house_being_built",
@@ -908,9 +958,9 @@
    "kind": "building",
    "width": 8.167,
    "height": 3.525,
-   "depth": 4.5,
-   "faces": 3836,
-   "source": "extruded"
+   "depth": 7.05,
+   "faces": 1802,
+   "source": "blender"
   },
   {
    "name": "house_hut_porch",
@@ -918,9 +968,9 @@
    "kind": "building",
    "width": 6.799,
    "height": 4.668,
-   "depth": 4.5,
-   "faces": 4572,
-   "source": "extruded"
+   "depth": 7.027,
+   "faces": 10479,
+   "source": "blender"
   },
   {
    "name": "house_indigo_veranda",
@@ -928,9 +978,9 @@
    "kind": "building",
    "width": 4.532,
    "height": 4.2,
-   "depth": 4.5,
-   "faces": 6564,
-   "source": "extruded"
+   "depth": 6.92,
+   "faces": 10494,
+   "source": "blender"
   },
   {
    "name": "house_limewash",
@@ -938,9 +988,9 @@
    "kind": "building",
    "width": 2.118,
    "height": 4.27,
-   "depth": 4.5,
-   "faces": 8556,
-   "source": "extruded"
+   "depth": 5.28,
+   "faces": 1261,
+   "source": "blender"
   },
   {
    "name": "house_mud_tin",
@@ -948,9 +998,9 @@
    "kind": "building",
    "width": 4.567,
    "height": 3.682,
-   "depth": 4.5,
-   "faces": 4235,
-   "source": "extruded"
+   "depth": 4.827,
+   "faces": 13015,
+   "source": "blender"
   },
   {
    "name": "house_pink",
@@ -959,7 +1009,7 @@
    "width": 2.83,
    "height": 4.27,
    "depth": 5.27,
-   "faces": 1078,
+   "faces": 1081,
    "source": "blender"
   },
   {
@@ -968,9 +1018,9 @@
    "kind": "building",
    "width": 4.739,
    "height": 3.202,
-   "depth": 4.5,
-   "faces": 4386,
-   "source": "extruded"
+   "depth": 4.416,
+   "faces": 9867,
+   "source": "blender"
   },
   {
    "name": "house_potter",
@@ -978,9 +1028,9 @@
    "kind": "building",
    "width": 8.745,
    "height": 4.542,
-   "depth": 4.5,
-   "faces": 5156,
-   "source": "extruded"
+   "depth": 6.383,
+   "faces": 12653,
+   "source": "blender"
   },
   {
    "name": "house_thatched_hut",
@@ -988,9 +1038,9 @@
    "kind": "building",
    "width": 6.064,
    "height": 4.733,
-   "depth": 4.5,
-   "faces": 4108,
-   "source": "extruded"
+   "depth": 6.08,
+   "faces": 7840,
+   "source": "blender"
   },
   {
    "name": "house_tiled_gate",
@@ -998,9 +1048,9 @@
    "kind": "building",
    "width": 9.967,
    "height": 5.317,
-   "depth": 6,
-   "faces": 4437,
-   "source": "extruded"
+   "depth": 8.621,
+   "faces": 13997,
+   "source": "blender"
   },
   {
    "name": "house_turmeric_ladder",
@@ -1008,9 +1058,9 @@
    "kind": "building",
    "width": 3.512,
    "height": 3.97,
-   "depth": 4.5,
-   "faces": 7074,
-   "source": "extruded"
+   "depth": 5.79,
+   "faces": 1534,
+   "source": "blender"
   },
   {
    "name": "house_village_head",
@@ -1018,9 +1068,9 @@
    "kind": "building",
    "width": 13.517,
    "height": 8.006,
-   "depth": 7,
-   "faces": 4854,
-   "source": "extruded"
+   "depth": 11.77,
+   "faces": 15187,
+   "source": "blender"
   },
   {
    "name": "house_weaver",
@@ -1028,9 +1078,9 @@
    "kind": "building",
    "width": 6.553,
    "height": 4.482,
-   "depth": 4.5,
-   "faces": 4152,
-   "source": "extruded"
+   "depth": 6.395,
+   "faces": 7036,
+   "source": "blender"
   },
   {
    "name": "jute_sacks",
@@ -1038,9 +1088,9 @@
    "kind": "volume",
    "width": 1.153,
    "height": 0.8,
-   "depth": 0.922,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.93,
+   "faces": 6069,
+   "source": "blender"
   },
   {
    "name": "kolam_1",
@@ -1048,9 +1098,9 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.711,
-   "depth": 0.012,
-   "faces": 3565,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "kolam_2",
@@ -1058,9 +1108,9 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.751,
-   "depth": 0.012,
-   "faces": 3011,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "kolam_3",
@@ -1068,9 +1118,9 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.814,
-   "depth": 0.012,
-   "faces": 3173,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "kolam_4",
@@ -1078,9 +1128,9 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.652,
-   "depth": 0.012,
-   "faces": 3027,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "kolam_5",
@@ -1088,9 +1138,9 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.642,
-   "depth": 0.012,
-   "faces": 3813,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "kolam_6",
@@ -1098,19 +1148,19 @@
    "kind": "slab",
    "width": 0.9,
    "height": 0.949,
-   "depth": 0.012,
-   "faces": 4424,
-   "source": "extruded"
+   "depth": 0.002,
+   "faces": 7,
+   "source": "blender"
   },
   {
    "name": "lamp_pillar",
    "folder": "lane",
-   "kind": "building",
+   "kind": "volume",
    "width": 5.807,
    "height": 9.115,
-   "depth": 0.7,
-   "faces": 1598,
-   "source": "extruded"
+   "depth": 5.046,
+   "faces": 8439,
+   "source": "blender"
   },
   {
    "name": "panchayat_office",
@@ -1118,19 +1168,19 @@
    "kind": "building",
    "width": 8.509,
    "height": 4.286,
-   "depth": 6,
-   "faces": 4666,
-   "source": "extruded"
+   "depth": 7.323,
+   "faces": 1213,
+   "source": "blender"
   },
   {
    "name": "peepal_platform",
    "folder": "lane",
-   "kind": "building",
+   "kind": "volume",
    "width": 6.932,
    "height": 5.327,
-   "depth": 4,
-   "faces": 4959,
-   "source": "extruded"
+   "depth": 5.798,
+   "faces": 23377,
+   "source": "blender"
   },
   {
    "name": "pot_stack",
@@ -1145,12 +1195,12 @@
   {
    "name": "rope_cot",
    "folder": "lane",
-   "kind": "slab",
+   "kind": "volume",
    "width": 1.9,
    "height": 1.02,
-   "depth": 0.85,
-   "faces": 3655,
-   "source": "extruded"
+   "depth": 1.241,
+   "faces": 4872,
+   "source": "blender"
   },
   {
    "name": "shop_provisions",
@@ -1158,9 +1208,9 @@
    "kind": "building",
    "width": 5.027,
    "height": 3.81,
-   "depth": 4,
-   "faces": 5604,
-   "source": "extruded"
+   "depth": 5.25,
+   "faces": 7349,
+   "source": "blender"
   },
   {
    "name": "shop_tailor_cycle",
@@ -1168,9 +1218,9 @@
    "kind": "building",
    "width": 4.671,
    "height": 3.697,
-   "depth": 4,
-   "faces": 6943,
-   "source": "extruded"
+   "depth": 5.163,
+   "faces": 16250,
+   "source": "blender"
   },
   {
    "name": "shop_tea_stall",
@@ -1178,9 +1228,9 @@
    "kind": "building",
    "width": 4.439,
    "height": 3.47,
-   "depth": 4,
-   "faces": 7475,
-   "source": "extruded"
+   "depth": 3.944,
+   "faces": 6408,
+   "source": "blender"
   },
   {
    "name": "shrine_stone",
@@ -1188,19 +1238,19 @@
    "kind": "volume",
    "width": 1.067,
    "height": 1.0,
-   "depth": 0.854,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.69,
+   "faces": 4526,
+   "source": "blender"
   },
   {
    "name": "shrine_tree",
    "folder": "lane",
-   "kind": "building",
+   "kind": "volume",
    "width": 7.175,
    "height": 5.494,
-   "depth": 4,
-   "faces": 4918,
-   "source": "extruded"
+   "depth": 5.695,
+   "faces": 25869,
+   "source": "blender"
   },
   {
    "name": "tree_mango_1",
@@ -1208,9 +1258,9 @@
    "kind": "volume",
    "width": 6.575,
    "height": 6.0,
-   "depth": 2.104,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 4.795,
+   "faces": 21763,
+   "source": "blender"
   },
   {
    "name": "tree_mango_2",
@@ -1228,19 +1278,19 @@
    "kind": "volume",
    "width": 0.729,
    "height": 1.1,
-   "depth": 0.583,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.709,
+   "faces": 973,
+   "source": "blender"
   },
   {
    "name": "water_pot_stand",
    "folder": "lane",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.96,
    "height": 1.1,
-   "depth": 0.45,
-   "faces": 2150,
-   "source": "extruded"
+   "depth": 0.837,
+   "faces": 3391,
+   "source": "blender"
   },
   {
    "name": "black_tank",
@@ -1248,9 +1298,9 @@
    "kind": "volume",
    "width": 1.629,
    "height": 2.0,
-   "depth": 1.303,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.786,
+   "faces": 1650,
+   "source": "blender"
   },
   {
    "name": "brass_vessels",
@@ -1258,19 +1308,19 @@
    "kind": "volume",
    "width": 0.814,
    "height": 0.9,
-   "depth": 0.651,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.784,
+   "faces": 2563,
+   "source": "blender"
   },
   {
    "name": "bunting",
    "folder": "market",
-   "kind": "slab",
+   "kind": "volume",
    "width": 1.893,
    "height": 0.7,
-   "depth": 0.015,
-   "faces": 1085,
-   "source": "extruded"
+   "depth": 0.098,
+   "faces": 1352,
+   "source": "blender"
   },
   {
    "name": "chariot_shed",
@@ -1278,29 +1328,29 @@
    "kind": "building",
    "width": 7.911,
    "height": 5.0,
-   "depth": 5,
-   "faces": 3164,
-   "source": "extruded"
+   "depth": 7.0,
+   "faces": 4275,
+   "source": "blender"
   },
   {
    "name": "chilli_mat",
    "folder": "market",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.435,
    "height": 0.25,
-   "depth": 0.05,
-   "faces": 782,
-   "source": "extruded"
+   "depth": 0.313,
+   "faces": 4113,
+   "source": "blender"
   },
   {
    "name": "coconut_cart",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.858,
    "height": 2.711,
-   "depth": 1.1,
-   "faces": 4299,
-   "source": "extruded"
+   "depth": 1.92,
+   "faces": 5683,
+   "source": "blender"
   },
   {
    "name": "flower_stall",
@@ -1318,39 +1368,39 @@
    "kind": "volume",
    "width": 0.713,
    "height": 0.55,
-   "depth": 0.57,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.687,
+   "faces": 3632,
+   "source": "blender"
   },
   {
    "name": "kite",
    "folder": "market",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.579,
    "height": 0.9,
-   "depth": 0.02,
-   "faces": 1252,
-   "source": "extruded"
+   "depth": 0.121,
+   "faces": 1462,
+   "source": "blender"
   },
   {
    "name": "lamp_step",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 1.746,
    "height": 1.9,
-   "depth": 0.6,
-   "faces": 2244,
-   "source": "extruded"
+   "depth": 1.015,
+   "faces": 1188,
+   "source": "blender"
   },
   {
    "name": "lantern",
    "folder": "market",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.203,
    "height": 0.45,
-   "depth": 0.2,
-   "faces": 1964,
-   "source": "extruded"
+   "depth": 0.15,
+   "faces": 2134,
+   "source": "blender"
   },
   {
    "name": "mandapam",
@@ -1358,19 +1408,19 @@
    "kind": "building",
    "width": 10.355,
    "height": 2.89,
-   "depth": 4,
-   "faces": 4842,
-   "source": "extruded"
+   "depth": 5.21,
+   "faces": 14608,
+   "source": "blender"
   },
   {
    "name": "papad_mat",
    "folder": "market",
-   "kind": "slab",
+   "kind": "volume",
    "width": 0.437,
    "height": 0.25,
-   "depth": 0.05,
-   "faces": 764,
-   "source": "extruded"
+   "depth": 0.313,
+   "faces": 4573,
+   "source": "blender"
   },
   {
    "name": "parapet_gap",
@@ -1378,9 +1428,9 @@
    "kind": "building",
    "width": 2.093,
    "height": 1.2,
-   "depth": 0.3,
-   "faces": 1940,
-   "source": "extruded"
+   "depth": 0.52,
+   "faces": 320,
+   "source": "blender"
   },
   {
    "name": "roof_house_a_1",
@@ -1388,9 +1438,9 @@
    "kind": "building",
    "width": 13.121,
    "height": 5.998,
-   "depth": 6,
-   "faces": 3632,
-   "source": "extruded"
+   "depth": 7.44,
+   "faces": 6627,
+   "source": "blender"
   },
   {
    "name": "roof_house_a_2",
@@ -1398,9 +1448,9 @@
    "kind": "building",
    "width": 12.517,
    "height": 5.176,
-   "depth": 6,
-   "faces": 4099,
-   "source": "extruded"
+   "depth": 7.362,
+   "faces": 3688,
+   "source": "blender"
   },
   {
    "name": "roof_house_b_1",
@@ -1408,9 +1458,9 @@
    "kind": "building",
    "width": 9.863,
    "height": 4.505,
-   "depth": 6,
-   "faces": 7772,
-   "source": "extruded"
+   "depth": 7.8,
+   "faces": 5956,
+   "source": "blender"
   },
   {
    "name": "roof_house_b_2",
@@ -1418,139 +1468,139 @@
    "kind": "building",
    "width": 8.162,
    "height": 6.0,
-   "depth": 6,
-   "faces": 5276,
-   "source": "extruded"
+   "depth": 6.0,
+   "faces": 5488,
+   "source": "blender"
   },
   {
    "name": "stall_c_1",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.033,
    "height": 2.845,
-   "depth": 1.6,
-   "faces": 5636,
-   "source": "extruded"
+   "depth": 2.697,
+   "faces": 13511,
+   "source": "blender"
   },
   {
    "name": "stall_c_2",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.15,
    "height": 3.0,
-   "depth": 1.6,
-   "faces": 5149,
-   "source": "extruded"
+   "depth": 3.413,
+   "faces": 10760,
+   "source": "blender"
   },
   {
    "name": "stall_c_3",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.541,
    "height": 2.329,
-   "depth": 1.6,
-   "faces": 6730,
-   "source": "extruded"
+   "depth": 2.622,
+   "faces": 16988,
+   "source": "blender"
   },
   {
    "name": "stall_d_1",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.35,
    "height": 2.987,
-   "depth": 1.6,
-   "faces": 6572,
-   "source": "extruded"
+   "depth": 2.227,
+   "faces": 18029,
+   "source": "blender"
   },
   {
    "name": "stall_d_2",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.963,
    "height": 3.0,
-   "depth": 1.6,
-   "faces": 5804,
-   "source": "extruded"
+   "depth": 1.382,
+   "faces": 8798,
+   "source": "blender"
   },
   {
    "name": "stall_d_3",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.447,
    "height": 2.836,
-   "depth": 1.6,
-   "faces": 3176,
-   "source": "extruded"
+   "depth": 2.395,
+   "faces": 19731,
+   "source": "blender"
   },
   {
    "name": "stall_e_1",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 6.353,
    "height": 3.0,
-   "depth": 1.6,
-   "faces": 4333,
-   "source": "extruded"
+   "depth": 1.963,
+   "faces": 19216,
+   "source": "blender"
   },
   {
    "name": "stall_e_2",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.086,
    "height": 2.82,
-   "depth": 1.6,
-   "faces": 7412,
-   "source": "extruded"
+   "depth": 1.977,
+   "faces": 7548,
+   "source": "blender"
   },
   {
    "name": "stall_e_3",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.103,
    "height": 2.874,
-   "depth": 1.6,
-   "faces": 5018,
-   "source": "extruded"
+   "depth": 3.197,
+   "faces": 8847,
+   "source": "blender"
   },
   {
    "name": "stall_f_1",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.954,
    "height": 3.0,
-   "depth": 1.6,
-   "faces": 5528,
-   "source": "extruded"
+   "depth": 1.378,
+   "faces": 7010,
+   "source": "blender"
   },
   {
    "name": "stall_f_2",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.966,
    "height": 2.97,
-   "depth": 1.6,
-   "faces": 4661,
-   "source": "extruded"
+   "depth": 1.383,
+   "faces": 11683,
+   "source": "blender"
   },
   {
    "name": "stall_f_3",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.646,
    "height": 2.859,
-   "depth": 1.6,
-   "faces": 10428,
-   "source": "extruded"
+   "depth": 1.9,
+   "faces": 5342,
+   "source": "blender"
   },
   {
    "name": "stall_f_4",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 2.966,
    "height": 2.886,
-   "depth": 1.6,
-   "faces": 4554,
-   "source": "extruded"
+   "depth": 2.131,
+   "faces": 8804,
+   "source": "blender"
   },
   {
    "name": "stall_flowers",
@@ -1565,42 +1615,42 @@
   {
    "name": "stall_g_1",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.793,
    "height": 2.878,
-   "depth": 1.6,
-   "faces": 4462,
-   "source": "extruded"
+   "depth": 3.503,
+   "faces": 18867,
+   "source": "blender"
   },
   {
    "name": "stall_g_2",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.934,
    "height": 3.0,
-   "depth": 1.6,
-   "faces": 6284,
-   "source": "extruded"
+   "depth": 1.763,
+   "faces": 14139,
+   "source": "blender"
   },
   {
    "name": "stall_g_3",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 4.427,
    "height": 2.931,
-   "depth": 1.6,
-   "faces": 7896,
-   "source": "extruded"
+   "depth": 2.519,
+   "faces": 20351,
+   "source": "blender"
   },
   {
    "name": "stall_h_1",
    "folder": "market",
-   "kind": "building",
+   "kind": "volume",
    "width": 3.254,
    "height": 3.0,
-   "depth": 1.6,
-   "faces": 4143,
-   "source": "extruded"
+   "depth": 3.158,
+   "faces": 7966,
+   "source": "blender"
   },
   {
    "name": "stall_h_2",
@@ -1688,9 +1738,9 @@
    "kind": "building",
    "width": 10.467,
    "height": 3.387,
-   "depth": 0.5,
-   "faces": 1195,
-   "source": "extruded"
+   "depth": 4.18,
+   "faces": 5877,
+   "source": "blender"
   },
   {
    "name": "veg_basket",
@@ -1698,9 +1748,9 @@
    "kind": "volume",
    "width": 0.718,
    "height": 0.6,
-   "depth": 0.575,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.59,
+   "faces": 4638,
+   "source": "blender"
   },
   {
    "name": "kids_rolling_tyre",
@@ -1768,9 +1818,9 @@
    "kind": "volume",
    "width": 1.044,
    "height": 1.0,
-   "depth": 0.334,
-   "faces": 5998,
-   "source": "extruded"
+   "depth": 0.776,
+   "faces": 17841,
+   "source": "blender"
   },
   {
    "name": "h1_2",
@@ -1778,9 +1828,9 @@
    "kind": "volume",
    "width": 0.543,
    "height": 1.0,
-   "depth": 0.174,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.424,
+   "faces": 8622,
+   "source": "blender"
   },
   {
    "name": "h1_3",
@@ -1788,9 +1838,9 @@
    "kind": "volume",
    "width": 0.844,
    "height": 1.0,
-   "depth": 0.27,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.554,
+   "faces": 17891,
+   "source": "blender"
   },
   {
    "name": "h2_1",
@@ -1798,9 +1848,9 @@
    "kind": "volume",
    "width": 1.004,
    "height": 1.0,
-   "depth": 0.321,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.764,
+   "faces": 23348,
+   "source": "blender"
   },
   {
    "name": "h2_2",
@@ -1808,9 +1858,9 @@
    "kind": "volume",
    "width": 0.589,
    "height": 1.0,
-   "depth": 0.188,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.445,
+   "faces": 14139,
+   "source": "blender"
   },
   {
    "name": "h2_3",
@@ -1818,9 +1868,9 @@
    "kind": "volume",
    "width": 0.807,
    "height": 1.0,
-   "depth": 0.258,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.595,
+   "faces": 16853,
+   "source": "blender"
   },
   {
    "name": "h2_4",
@@ -1828,9 +1878,9 @@
    "kind": "volume",
    "width": 0.566,
    "height": 1.0,
-   "depth": 0.181,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.427,
+   "faces": 6179,
+   "source": "blender"
   },
   {
    "name": "h3_1",
@@ -1838,9 +1888,9 @@
    "kind": "volume",
    "width": 1.187,
    "height": 1.0,
-   "depth": 0.38,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.947,
+   "faces": 22923,
+   "source": "blender"
   },
   {
    "name": "h4_1",
@@ -1848,9 +1898,9 @@
    "kind": "volume",
    "width": 0.519,
    "height": 1.0,
-   "depth": 0.166,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.45,
+   "faces": 8280,
+   "source": "blender"
   },
   {
    "name": "h4_2",
@@ -1858,9 +1908,9 @@
    "kind": "volume",
    "width": 0.684,
    "height": 1.0,
-   "depth": 0.219,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.535,
+   "faces": 5644,
+   "source": "blender"
   },
   {
    "name": "h4_3",
@@ -1868,9 +1918,9 @@
    "kind": "volume",
    "width": 0.678,
    "height": 1.0,
-   "depth": 0.217,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.456,
+   "faces": 17185,
+   "source": "blender"
   },
   {
    "name": "h4_4",
@@ -1878,9 +1928,9 @@
    "kind": "volume",
    "width": 0.838,
    "height": 1.0,
-   "depth": 0.268,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.711,
+   "faces": 2049,
+   "source": "blender"
   },
   {
    "name": "h4_5",
@@ -1888,9 +1938,9 @@
    "kind": "volume",
    "width": 0.546,
    "height": 1.0,
-   "depth": 0.175,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.515,
+   "faces": 9025,
+   "source": "blender"
   },
   {
    "name": "h5_1",
@@ -1898,9 +1948,9 @@
    "kind": "volume",
    "width": 0.693,
    "height": 1.0,
-   "depth": 0.222,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.607,
+   "faces": 4577,
+   "source": "blender"
   },
   {
    "name": "h5_2",
@@ -1908,9 +1958,9 @@
    "kind": "volume",
    "width": 0.691,
    "height": 1.0,
-   "depth": 0.221,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.604,
+   "faces": 3717,
+   "source": "blender"
   },
   {
    "name": "h5_3",
@@ -1918,9 +1968,9 @@
    "kind": "volume",
    "width": 0.476,
    "height": 1.0,
-   "depth": 0.152,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.336,
+   "faces": 5412,
+   "source": "blender"
   },
   {
    "name": "h5_4",
@@ -1928,9 +1978,9 @@
    "kind": "volume",
    "width": 0.797,
    "height": 1.0,
-   "depth": 0.255,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.683,
+   "faces": 7211,
+   "source": "blender"
   },
   {
    "name": "h5_5",
@@ -1938,9 +1988,9 @@
    "kind": "volume",
    "width": 0.56,
    "height": 1.0,
-   "depth": 0.179,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.542,
+   "faces": 3178,
+   "source": "blender"
   },
   {
    "name": "h5_6",
@@ -1948,9 +1998,9 @@
    "kind": "volume",
    "width": 0.775,
    "height": 1.0,
-   "depth": 0.248,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.461,
+   "faces": 7835,
+   "source": "blender"
   },
   {
    "name": "h6_1",
@@ -1958,9 +2008,9 @@
    "kind": "volume",
    "width": 0.907,
    "height": 1.0,
-   "depth": 0.29,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.72,
+   "faces": 2409,
+   "source": "blender"
   },
   {
    "name": "h6_2",
@@ -1968,9 +2018,9 @@
    "kind": "volume",
    "width": 1.229,
    "height": 1.0,
-   "depth": 0.393,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.532,
+   "faces": 1790,
+   "source": "blender"
   },
   {
    "name": "h6_3",
@@ -1978,9 +2028,9 @@
    "kind": "volume",
    "width": 1.823,
    "height": 1.0,
-   "depth": 0.583,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.048,
+   "faces": 3535,
+   "source": "blender"
   },
   {
    "name": "h6_4",
@@ -1988,9 +2038,9 @@
    "kind": "volume",
    "width": 0.878,
    "height": 1.0,
-   "depth": 0.281,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.27,
+   "faces": 2259,
+   "source": "blender"
   },
   {
    "name": "h6_5",
@@ -1998,9 +2048,9 @@
    "kind": "volume",
    "width": 0.969,
    "height": 1.0,
-   "depth": 0.31,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.678,
+   "faces": 1452,
+   "source": "blender"
   },
   {
    "name": "h6_6",
@@ -2008,9 +2058,9 @@
    "kind": "volume",
    "width": 0.924,
    "height": 1.0,
-   "depth": 0.296,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.655,
+   "faces": 1642,
+   "source": "blender"
   },
   {
    "name": "h6_7",
@@ -2018,9 +2068,9 @@
    "kind": "volume",
    "width": 1.585,
    "height": 1.0,
-   "depth": 0.507,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.033,
+   "faces": 1967,
+   "source": "blender"
   },
   {
    "name": "h7_1",
@@ -2028,9 +2078,9 @@
    "kind": "volume",
    "width": 1.251,
    "height": 1.0,
-   "depth": 0.4,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.985,
+   "faces": 4796,
+   "source": "blender"
   },
   {
    "name": "h7_2",
@@ -2038,9 +2088,9 @@
    "kind": "volume",
    "width": 0.671,
    "height": 1.0,
-   "depth": 0.215,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.688,
+   "faces": 2257,
+   "source": "blender"
   },
   {
    "name": "h7_3",
@@ -2048,9 +2098,9 @@
    "kind": "volume",
    "width": 0.717,
    "height": 1.0,
-   "depth": 0.229,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.654,
+   "faces": 1826,
+   "source": "blender"
   },
   {
    "name": "h7_4",
@@ -2058,9 +2108,9 @@
    "kind": "volume",
    "width": 0.639,
    "height": 1.0,
-   "depth": 0.205,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.603,
+   "faces": 4832,
+   "source": "blender"
   },
   {
    "name": "h7_5",
@@ -2068,9 +2118,9 @@
    "kind": "volume",
    "width": 1.858,
    "height": 1.0,
-   "depth": 0.595,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 1.062,
+   "faces": 787,
+   "source": "blender"
   }
  ]
 }
