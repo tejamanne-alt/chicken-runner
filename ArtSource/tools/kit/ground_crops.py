@@ -122,7 +122,7 @@ def filled_source(P, ok):
     return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
 
 
-def wrapped(K, axis_x, axis_y=0.0, squeeze=0.93, src=None, keep=None, inset=4):
+def wrapped(K, axis_x, axis_y=0.0, squeeze=0.93, src=None, keep=None, inset=4, dz=0.0, src_axis_x=None):
     """The painting wrapped round a turned thing (a nut, a stem, a stook) about a vertical axis at (axis_x, axis_y):
     each point samples the painting at the same height, at the painted x its angle round the axis would show from the
     front (front half as painted, back half mirrored), so the sides carry the painted surface evenly instead of the
@@ -148,9 +148,10 @@ def wrapped(K, axis_x, axis_y=0.0, squeeze=0.93, src=None, keep=None, inset=4):
     dy = op("SUBTRACT", sep.outputs["Y"], axis_y)
     rho = op("MAXIMUM", op("SQRT", op("ADD", op("MULTIPLY", dx, dx), op("MULTIPLY", dy, dy))), 1e-5)
     ang = op("ARCSINE", op("MINIMUM", op("MAXIMUM", op("DIVIDE", dx, rho), -1.0), 1.0))
-    x = op("ADD", op("MULTIPLY", op("MULTIPLY", rho, ang), 2.0 / math.pi * squeeze), axis_x)
+    x = op("ADD", op("MULTIPLY", op("MULTIPLY", rho, ang), 2.0 / math.pi * squeeze),
+           axis_x if src_axis_x is None else src_axis_x)
     u = op("ADD", op("DIVIDE", x, P.W), 0.5)
-    v = op("DIVIDE", sep.outputs["Z"], P.H)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], dz), P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
