@@ -159,6 +159,34 @@ breathe. Everything in it that stands for a building, a tree or a plant comes fr
 Every painted piece is also a 3D model, built in Blender from the paintings themselves, so the models are the
 paintings in the round.
 
+### The scenery, hand-built in Blender (the models the game uses)
+
+Every piece of scenery that is not a person or an animal (houses, shops, sheds, stalls, temple pieces, wells, carts,
+pots, baskets, trees, palms, plants, crops, ground details: 179 pieces) is modelled part by part in a Blender script,
+the way a 3D artist builds it from the painting: real walls, roofs, pillars, steps and recessed doors; turned pots,
+posts and lamps; bamboo with its nodes and lashings; sagging cloth awnings; heaps of goods; trunks traced off the
+painted limbs, crowns, fronds and flowers as cut-out cards of the painting's own foliage. Each is textured from its
+painting (tiles and colours cut from it, the painting itself projected onto everything the camera sees, a little
+ambient occlusion), so from the game's camera it is the painting and from every other side the same thing painted by
+the same hand. People and animals painted into a piece (a vendor, hens in their basket, bullocks at the well) stay the
+painted cut-outs they are everywhere else, standing in the model where they are painted.
+
+The scripts are in `tools/kit/`, one module per kind (`lane_houses`, `lane_props`, `stalls_cdef`, `stalls_ghx`,
+`market_props`, `fields`, `trees`, `palms_plants`, `ground_crops`); the kit itself, the method and its lessons are in
+[tools/kit/README.md](tools/kit/README.md).
+
+```bash
+ArtSource/blender/venv/bin/python ArtSource/tools/kit/build.py --only house_pink --review /tmp/review   # one model + its review sheet
+ArtSource/blender/venv/bin/python ArtSource/tools/kit/build.py --all                                   # every model (a few hours)
+ArtSource/blender/venv/bin/python ArtSource/tools/kit/build.py --merge                                 # their records into models.json
+```
+
+They go to `Assets/ChickenRunner/Art/Models/<folder>/<name>.fbx` (with `<name>.jpg`, and `<name>_leaves.png` for the
+cards), listed in `models.json` with `"source": "blender"`; the game uses them wherever the piece's card was. The
+paintings drawn in perspective (a house's side wall, a tray seen from above) are modelled true and square, so from the
+front a model can differ from its painting a little at those edges; everywhere else the front is the painting. The
+older routes below (extrusions, TRELLIS, Meshy sheets) remain for the animals and people, and as fallbacks.
+
 ### The kid and the rooster, from their turnarounds
 
 `tools/characters/hull_character.py` builds each from its four painted views (A0 front/back/left/right, B11-B14):
