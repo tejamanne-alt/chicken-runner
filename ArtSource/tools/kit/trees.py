@@ -337,7 +337,8 @@ class Wood:
                             dy = seed_dy(p, dy)
                         yo = ynode[n] + dy
                         if ymax is not None:
-                            yo = float(np.clip(yo, -ymax, ymax))
+                            lim = ymax(*p["pts"][-1]) if callable(ymax) else ymax
+                            yo = float(np.clip(yo, -lim, lim))
                         ynode[o] = yo
                         dq.append(o)
                         self.children[i] = []
@@ -591,54 +592,6 @@ def undergrowth(K, region, n, size, ys, yaw=80, name="undergrowth", centre_fn=No
         placed += 1
 
 
-@model("tree_mango_1", "lane", kind="prop", atlas=2048, leaves=1024)
-def tree_mango_1(K):
-    """A leaning mango tree: a twisted trunk on splayed roots, one long limb reaching right, a broad lopsided dome of
-    leaves, five mangoes, two rocks and low plants at its foot."""
-    P = K.paint
-    mask, wood = TRACE["tree_mango_1"](K)
-    crown_d = P.m(770) * 0.72
-    wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=crown_d * 0.42)
-    bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
-    thick, thin = wood.tubes(bark, fuse_r_px=3.0)
-    # the big limbs again, turned into the crown's depth, and roots round the back of the foot
-    limbs = pick_limbs(wood, py_max=430, r_min=6, min_len=60, n=6)
-    picks = [(i, (1 if k % 2 else -1) * K.rng.uniform(70, 130), 0.0) for k, i in enumerate(limbs)]
-    roots = pick_limbs(wood, r_min=5, min_len=40, n=4, roots=True, root_py=640)
-    picks += [(i, K.rng.choice([-1, 1]) * K.rng.uniform(100, 160), 0.0) for i in roots]
-    wood.turned_copies(bark, picks, thick=thick, thin=thin)
-    K.fuse(thick, voxel=0.03, faces=10000)
-    # the crown: the painting's leaves on cards through its depth, and a denser front layer
-    K.leaves_only((0, 0, 789, 470), foliage_pixels)
-    K.canopy((8, 8, 782, 440), crown_d, n=190, size_px=(120, 100), yaw=40, pitch=25, bulge=0.35, centre_px=(400, 230))
-    K.canopy((8, 8, 782, 440), crown_d * 0.25, n=70, size_px=(130, 110), yaw=20, pitch=10, centre_y=-crown_d * 0.3,
-             bulge=1.0, centre_px=(400, 230))
-    # mangoes, where they hang and more round the back
-    fruits = [(211.5, 220, 16.5, 24), (236.5, 269.5, 16.5, 24.5), (222, 291.5, 12.5, 18.5), (648, 305, 11.5, 19),
-              (667, 312.5, 17, 24.5)]
-    keep = [(int(x - rx + 3), int(y - ry + 3), int(x + rx - 3), int(y + ry - 3)) for x, y, rx, ry in fruits]
-    stalk = K.colour((0.25, 0.12, 0.02))
-
-    def mango(i, dx, dz):
-        return K.projected(squeeze=1.0, keep=keep, inset=2, dx=dx, dz=dz)
-    hang_fruit(K, fruits, lambda i: -crown_d * (0.36 if i in (0, 1, 4) else 0.3), mango, stalk, crown_d, back=1)
-    for i, (px, py, rx, ry) in enumerate(fruits):
-        if i in (0, 1, 4):
-            hang_fruit(K, [(px + K.rng.uniform(-200, 200) * (1 if px < 400 else -1), py + K.rng.uniform(-60, 20), rx, ry)],
-                       crown_d * K.rng.uniform(0.15, 0.4), lambda j, dx, dz, i=i, px=px, py=py: mango(i, 0, 0), stalk,
-                       crown_d, back=0)
-    # rocks, and the low plants at the foot
-    stone = K.projected(squeeze=1.0, keep=[(142, 640, 270, 703), (397, 654, 485, 703)], inset=3)
-    rock(K, 206, 704, 130, 66, -0.55, stone)
-    rock(K, 441, 704, 92, 50, -0.45, stone)
-    rock(K, 300, 704, 80, 44, 1.2, K.projected(squeeze=1.0, keep=[(142, 640, 270, 703)], inset=3, dx=P.m(-90)))
-    K.leaves_only((0, 440, 560, 712), foliage_pixels)
-    undergrowth(K, (20, 470, 520, 700), 34, (80, 70), (-1.5, 1.5))
-    K.card_from_painting((10, 520, 150, 705), (P.x(80), -0.35, P.z(612)), name="bush_front")
-    K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
-    earth(K, 260, 300, 2.2, (60, 700, 500, 712))
-
-
 class Crown:
     """A crown of leaf cards cut from the painting, shaped as a dome in depth: a card at painted spot (px, py) may lie
     as far forward or back as the crown is deep there (half_depth at its heart, falling off like an ellipsoid to its
@@ -697,3 +650,64 @@ class Crown:
     def inside(self, px, py):
         P = self.P
         return P.rgba[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1)), 3] > 0.5
+
+
+def fruit_in_crown(K, crown, fruits, mat_for, stalk, back=1, spread=(160, 60), tries=40):
+    """Fruit [(px, py, rx, ry)] hanging where they are painted, just in front of the crown's leaves, and `back` more
+    of each somewhere else in the crown (inside its painted outline, at any depth), textured with a painted fruit."""
+    P = K.paint
+    for i, (px, py, rx, ry) in enumerate(fruits):
+        fruit(K, px, py, rx, ry, crown.front_y(px, py, 0.9) - P.m(rx), mat_for(i, 0.0, 0.0), stalk)
+        for k in range(back):
+            for _ in range(tries):
+                qx = px + K.rng.uniform(-spread[0], spread[0])
+                qy = py + K.rng.uniform(-spread[1], spread[1])
+                if crown.inside(qx, qy) and crown.inside(qx, qy - ry * 2) and crown.reach(qx, qy) > 0.25:
+                    break
+            else:
+                continue
+            ext = crown.extent(qx, qy)
+            fruit(K, qx, qy, rx, ry, crown.y0 + K.rng.uniform(-0.3, 0.95) * ext,
+                  mat_for(i, P.x(px) - P.x(qx), P.z(py) - P.z(qy)), stalk)
+
+
+@model("tree_mango_1", "lane", kind="prop", atlas=2048, leaves=1024)
+def tree_mango_1(K):
+    """A leaning mango tree: a twisted trunk on splayed roots, one long limb reaching right, a broad lopsided dome of
+    leaves, five mangoes, two rocks and low plants at its foot."""
+    P = K.paint
+    mask, wood = TRACE["tree_mango_1"](K)
+    crown = Crown(K, (8, 8, 782, 440), P.m(770) * 0.36, (400, 300), 400, 300, 150, core=0.2)
+    wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.8))
+    bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
+    thick, thin = wood.tubes(bark, fuse_r_px=3.0)
+    # the big limbs again, turned into the crown's depth, and roots round the back of the foot
+    limbs = pick_limbs(wood, py_max=430, r_min=6, min_len=60, n=6)
+    picks = [(i, (1 if k % 2 else -1) * K.rng.uniform(60, 120), 0.0) for k, i in enumerate(limbs)]
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8)
+    roots = pick_limbs(wood, r_min=5, min_len=40, n=4, roots=True, root_py=640)
+    wood.turned_copies(bark, [(i, K.rng.choice([-1, 1]) * K.rng.uniform(100, 160), 0.0) for i in roots],
+                       thick=thick, thin=thin, whole=False, rscale=0.9)
+    K.fuse(thick, voxel=0.03, faces=10000)
+    # the crown: the painting's leaves on cards through its depth, and the shell facing the camera
+    K.leaves_only((0, 0, 789, 470), foliage_pixels)
+    crown.cards(200, (120, 100), "volume")
+    crown.cards(80, (130, 110), "front", yaw=20, pitch=10)
+    crown.cards(40, (130, 110), "back", yaw=20, pitch=10)
+    # mangoes, where they hang and more round the back
+    fruits = [(211.5, 220, 16.5, 24), (236.5, 269.5, 16.5, 24.5), (222, 291.5, 12.5, 18.5), (648, 305, 11.5, 19),
+              (667, 312.5, 17, 24.5)]
+    keep = [(int(x - rx + 3), int(y - ry + 3), int(x + rx - 3), int(y + ry - 3)) for x, y, rx, ry in fruits]
+    stalk = K.colour((0.25, 0.12, 0.02))
+    fruit_in_crown(K, crown, fruits, lambda i, dx, dz: K.projected(squeeze=1.0, keep=keep, inset=2, dx=dx, dz=dz),
+                   stalk, back=2)
+    # rocks, and the low plants at the foot
+    stone = K.projected(squeeze=1.0, keep=[(142, 640, 270, 703), (397, 654, 485, 703)], inset=3)
+    rock(K, 206, 704, 130, 66, -0.55, stone)
+    rock(K, 441, 704, 92, 50, -0.45, stone)
+    rock(K, 300, 704, 80, 44, 1.2, K.projected(squeeze=1.0, keep=[(142, 640, 270, 703)], inset=3, dx=P.m(-90)))
+    K.leaves_only((0, 440, 560, 712), foliage_pixels)
+    undergrowth(K, (20, 470, 520, 700), 34, (80, 70), (-1.5, 1.5))
+    K.card_from_painting((10, 520, 150, 705), (P.x(80), -0.35, P.z(612)), name="bush_front")
+    K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
+    earth(K, 280, 270, 2.2, (60, 700, 500, 712))

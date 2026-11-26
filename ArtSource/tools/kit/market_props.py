@@ -174,3 +174,156 @@ def lantern(K):
     K.tube([P.pt(x, y) for x, y in bail], P.m(1.0), wire, segments=6, name="bail")
     for x in (16.5, 60.5):
         ring(K, P.x(x), 0, P.z(72), P.m(2.2), P.m(0.8), dark, axis="x", name="pivot")
+
+
+# ---------------------------------------------------------------------- shared helpers
+import bmesh  # noqa: E402
+import numpy as np  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
+from scipy import ndimage  # noqa: E402
+
+from kitlib import _obj  # noqa: E402
+
+
+def orient(ob, rot=(0, 0, 0), pivot=(0, 0, 0)):
+    """Turns a part's mesh by rot (degrees about x, y, z) about pivot."""
+    R = (Matrix.Rotation(math.radians(rot[2]), 4, "Z") @ Matrix.Rotation(math.radians(rot[1]), 4, "Y")
+         @ Matrix.Rotation(math.radians(rot[0]), 4, "X"))
+    ob.data.transform(Matrix.Translation(pivot) @ R @ Matrix.Translation(-Vector(pivot)))
+    return ob
+
+
+def ellipsoid(K, c, r3, mat, rot=(0, 0, 0), seg=16, rings=10, lumps=0.0, name="ellipsoid", flat_top=0.0):
+    """A smooth egg / sphere (tomato, brinjal, coconut, onion) of radii r3 at centre c, turned by rot (degrees).
+    flat_top flattens the top and bottom a little (a tomato's)."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=rings, radius=1.0)
+    ph = K.rng.uniform(0, 6.28, 3)
+    for v in bm.verts:
+        d = v.co.copy()
+        k = 1 + lumps * (math.sin(3 * d.x + ph[0]) * math.sin(2 * d.y + ph[1]) + 0.5 * math.sin(4 * d.z + ph[2]))
+        z = d.z * (1 - flat_top * d.z * d.z)
+        v.co = Vector((d.x * r3[0] * k, d.y * r3[1] * k, z * r3[2] * k))
+    R = (Matrix.Rotation(math.radians(rot[2]), 4, "Z") @ Matrix.Rotation(math.radians(rot[1]), 4, "Y")
+         @ Matrix.Rotation(math.radians(rot[0]), 4, "X"))
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(c) @ R, verts=bm.verts)
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob
+
+
+def pod(K, a, b, r0, r1, mat, bend=(0, 0, 0), n=6, seg=6, name="pod"):
+    """A tapering pod or stick from a to b (metres) with radius r0 -> r1, bowed by `bend` (metres, at its middle):
+    okra, chillies, beans, sticks."""
+    A, B, Bd = Vector(a), Vector(b), Vector(bend)
+    pts, radii = [], []
+    for i in range(n + 1):
+        t = i / n
+        pts.append(tuple(A.lerp(B, t) + Bd * (4 * t * (1 - t))))
+        radii.append(max(1e-4, r0 + (r1 - r0) * t ** 1.4) * (0.55 + 0.45 * math.sin(math.pi * min(1, t * 1.6 + 0.35))))
+    return K.tube(pts, radii, mat, segments=seg, name=name)
+
+
+def green_pixels(rgb):
+    """Leaves only: green and yellow-green pixels and the dark ink round them (no tomatoes, no brinjals, no basket)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    green = (g >= r - 12) & (g > b + 25)
+    keep = ndimage.binary_opening(ndimage.binary_closing(green, iterations=1), iterations=1)
+    keep |= (np.maximum(np.maximum(r, g), b) < 80) & ndimage.binary_dilation(keep, iterations=1)
+    return keep
+
+
+def straw_pixels(rgb):
+    """Straw only: bright yellow-gold strands and their brown ink (not the grey ground, not the background)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    straw = (r > 120) & (g > 0.5 * r) & (b < 0.6 * g) & (r - b > 70)
+    keep = ndimage.binary_closing(straw, iterations=1)
+    keep |= (np.maximum(np.maximum(r, g), b) < 110) & (r > b) & ndimage.binary_dilation(keep, iterations=1)
+    return keep
+
+
+def ground_disc(K, cx_px, top_py, rx_px, ry, rgb_or_box, name="ground", h=0.012):
+    """A low, flat disc of the floor a prop stands on (the painting's grey shadow under a basket or vessels)."""
+    P = K.paint
+    m = K.colour(rgb_or_box, vary=0.12, scale=8.0)
+    rx = P.m(rx_px)
+    return K.lathe([(0.0, 0.0), (rx, 0.0), (rx * 0.97, h * 0.7), (rx * 0.85, h), (0.0, h)], m, segments=32,
+                   centre=(P.x(cx_px), 0.0, P.z(top_py) - h), scale_y=ry / rx, wobble=0.04, name=name)
+
+
+def basket(K, cx, cy, outer, rim, inner_drop, mat, rim_mat=None, segments=40, name="basket"):
+    """A woven basket: its outer wall [(r px, y px)] from the foot up to the rim, a rolled rim (r px, top py, bottom
+    py) and the inside wall going down inner_drop px from the rim."""
+    P = K.paint
+    r_rim, top_py, bot_py = rim
+    t = (bot_py - top_py)
+    pts = list(outer) + [(r_rim, (top_py + bot_py) / 2), (r_rim - t * 0.15, top_py + t * 0.1),
+                         (r_rim - t * 0.5, top_py), (r_rim - t * 0.9, top_py + t * 0.15),
+                         (r_rim - t * 1.1, top_py + t * 0.6), (r_rim - t * 1.4, top_py + inner_drop),
+                         (0.0, top_py + inner_drop)]
+    return K.lathe(prof(P, [(0.0, outer[0][1])] + pts), mat, segments=segments, centre=(P.x(cx), cy, 0), name=name,
+                   wobble=0.01)
+
+
+@model("veg_basket", "market", kind="prop")
+def veg_basket(K):
+    """A round wicker basket heaped with vegetables: okra fanned up on the left, three brinjals, three tomatoes, a
+    pale gourd and a bunch of spinach on the right."""
+    P = K.paint
+    cx = 82
+    wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(16, 62, 150, 129)], inset=2)
+    basket(K, cx, 0.0, [(40, 128.5), (45, 127), (51, 119), (56, 109), (60, 98), (62.5, 88), (64, 79)],
+           (67, 62, 77), 16, wicker)
+    ground_disc(K, cx, 129, 72, 0.22, (8, 124, 30, 128))
+    R = P.m(64)                                   # the basket's radius at the rim, metres
+    zr = P.z(64)
+    # the heap inside: a dome of greens the vegetables lie on
+    heap = K.colour((120, 25, 150, 45), vary=0.15, scale=20)
+    K.lathe([(0.0, zr + P.m(18)), (R * 0.6, zr + P.m(14)), (R * 0.9, zr + P.m(4)), (R * 0.98, zr - P.m(2))], heap,
+            segments=32, centre=(P.x(cx), 0, 0), name="heap", cap=False)
+    # okra fanned up on the left, front and back
+    okra = K.colour((25, 20, 45, 45), vary=0.15, scale=30)
+    fan = [((45, 58), (18, 25)), ((50, 55), (30, 16)), ((55, 50), (40, 15)), ((60, 48), (55, 8)), ((66, 45), (68, 12)),
+           ((72, 42), (80, 15)), ((40, 60), (10, 45)), ((48, 58), (20, 38)), ((44, 60), (8, 56))]
+    for k, ((ax, ay), (bx, by)) in enumerate(fan):
+        for y in (-R * 0.35, R * 0.05, R * 0.45):
+            jx, jy = K.rng.uniform(-4, 4), K.rng.uniform(-3, 3)
+            pod(K, P.pt(ax, ay, y), P.pt(bx + jx, by + jy, y + K.rng.uniform(-0.04, 0.04)), P.m(5), P.m(1.6), okra,
+                bend=(0, 0, P.m(2)), seg=5, name="okra")
+    # the pale gourd lying at the front left
+    gourd = K.colour((30, 52, 42, 62), vary=0.1)
+    ellipsoid(K, P.pt(36, 57, -R * 0.55), (P.m(10), P.m(8), P.m(7)), gourd, rot=(0, -25, 0), name="gourd")
+    # three brinjals and their green caps
+    brinjal = K.colour((52, 52, 72, 64), vary=0.12)
+    cap = K.colour((0.06, 0.12, 0.02), vary=0.1)
+    for (x0, y0, x1, y1, r, y) in ((47, 52, 78, 66, 9, -R * 0.55), (64, 40, 85, 56, 8.5, -R * 0.35),
+                                   (80, 34, 90, 48, 7.5, -R * 0.15)):
+        c = P.pt((x0 + x1) / 2, (y0 + y1) / 2, y)
+        L = P.m(math.hypot(x1 - x0, y1 - y0)) / 2
+        ang = math.degrees(math.atan2(-(y1 - y0), x1 - x0))
+        ellipsoid(K, c, (L, P.m(r), P.m(r)), brinjal, rot=(0, -ang, 0), name="brinjal")
+        tip = Vector(c) + Vector((-math.cos(math.radians(ang)), 0, -math.sin(math.radians(ang)))) * L * 0.95
+        ellipsoid(K, tuple(tip), (P.m(4), P.m(5), P.m(5)), cap, rot=(0, -ang, 0), name="calyx")
+    K.tube([P.pt(87, 36, -R * 0.15), P.pt(89, 28, -R * 0.15), P.pt(90, 22, -R * 0.12)], P.m(1.8), cap, segments=6,
+           name="stalk")
+    # three tomatoes
+    tomato = K.colour((100, 58, 112, 66), vary=0.12)
+    for px, py, r, y in ((106, 46, 12, -R * 0.2), (95, 60, 14, -R * 0.6), (122, 58, 13, -R * 0.5)):
+        ellipsoid(K, P.pt(px, py, y), (P.m(r), P.m(r), P.m(r) * 0.86), tomato, flat_top=0.15, lumps=0.03,
+                  name="tomato")
+        K.lathe([(P.m(4), 0.0), (P.m(1), P.m(1.5)), (0.0, P.m(1.5))], cap, segments=6,
+                centre=(P.x(px), y, P.z(py) + P.m(r) * 0.84), name="tomato_cap")
+    # the spinach: leaf cards through the right of the heap and round the back
+    K.leaves_only((0, 0, 164, 70), green_pixels)
+    for i in range(34):
+        px, py = K.rng.uniform(98, 155), K.rng.uniform(18, 60)
+        y = K.rng.uniform(-R * 0.3, R * 0.8)
+        K.card_from_painting((px - 16, py - 14, px + 16, py + 14), (P.x(px), y, P.z(py)), yaw=K.rng.uniform(-70, 70),
+                             pitch=K.rng.uniform(-30, 30), name="spinach")
+    for i in range(16):
+        px, py = K.rng.uniform(20, 150), K.rng.uniform(15, 45)
+        y = K.rng.uniform(R * 0.3, R * 0.9)
+        src = (K.rng.uniform(105, 150), K.rng.uniform(20, 55))
+        card = K.card_from_painting((src[0] - 16, src[1] - 14, src[0] + 16, src[1] + 14), (P.x(px), y, P.z(py) - 0.02),
+                                    yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-30, 30), name="spinach_back")
+    K.card_from_painting((95, 10, 160, 66), (P.x(127.5), -R * 0.25, P.z(38)), name="spinach_front")
