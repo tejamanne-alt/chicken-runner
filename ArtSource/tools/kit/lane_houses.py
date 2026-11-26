@@ -9,7 +9,7 @@ import math
 
 import numpy as np
 from scipy import ndimage
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 from kitlib import model
 
@@ -1492,7 +1492,7 @@ def house_hut_porch(K):
     D = 4.6
     K.front_min = 0.15
     halo_exclude(K, [(0, 0, 1659, 1139)])
-    mud = K.tile((440, 930, 670, 975), size=1.0, vary=0.05, soften=0.45)
+    mud = K.tile((532, 690, 600, 830), size=0.7, vary=0.05, soften=0.45)    # clean mud between window and post
     lime = K.tile((1000, 990, 1060, 1060), size=0.6, vary=0.04, soften=0.4)
     thatch_m = K.tile((500, 100, 800, 400), size=0.8, vary=0.06, soften=0.25)
     mat_m = K.tile((280, 462, 560, 532), size=0.7, vary=0.05)
@@ -1522,7 +1522,7 @@ def house_hut_porch(K):
         K.tube([P.pt(x, 1100, yfp), P.pt(x, 552, yfp)], P.m(10), bamboo, segments=10, name="post")
         K.tube([P.pt(x, 458, yb + 0.1), P.pt(x, 549, yfp - 0.15)], P.m(9), bamboo, segments=8, name="rafter")
     # dung cakes drying on the front wall where they are painted, and round the sides and back
-    dung = K.colour((300, 860, 340, 890), vary=0.15, scale=30)
+    dung = K.tile((300, 850, 360, 905), size=P.m(84), vary=0.08)          # one painted cake, its rim and its straw
     r = P.m(42)
     cakes = [(175, 588), (250, 588), (345, 588), (448, 588), (545, 588), (230, 678), (330, 678), (240, 778),
              (330, 778), (180, 878), (275, 878), (375, 878), (470, 878), (560, 878), (1165, 588), (1255, 588),
@@ -1581,3 +1581,200 @@ def house_hut_porch(K):
                                ((1150, 1030), (1420, 1015))):
         yy = -0.75 + K.rng.uniform(-0.35, 0.35)
         K.tube([P.pt(ax, ay, yy - 0.2), P.pt(bx, by, yy + 0.2)], P.m(13), logs, segments=8, name="stick")
+
+
+def tiled_quad(K, corners, mat, courses, nu=24, lip=0.03, thickness=0.04, name="tiles"):
+    """A slope of country tiles through four corners (eave left, eave right, top right, top left; a triangle when
+    the two top corners are the same point): `courses` rows of tiles, each row's lower end standing proud by `lip`
+    (the tile columns themselves are in the painted texture)."""
+    c = [Vector(p) for p in corners]
+
+    def f(u, v):
+        a = c[0].lerp(c[1], u)
+        b = c[3].lerp(c[2], u)
+        p = a.lerp(b, v)
+        k = min(courses - 1, int(v * courses))
+        frac = v * courses - k
+        return (p.x, p.y, p.z + lip * (1 - frac) ** 2)
+    return K.sheet(f, nu, courses * 3, mat, name=name, smooth=False, thickness=thickness)
+
+
+def finial(K, px, top_py, base_py, y, mat, r_px=10, name="finial"):
+    """A turned clay finial on a ridge: a pot-and-spire profile from base_py up to top_py."""
+    P = K.paint
+    h = base_py - top_py
+    prof = [(1.0, 0.0), (1.2, 0.1), (0.9, 0.22), (1.1, 0.35), (0.7, 0.5), (0.5, 0.62), (0.75, 0.7), (0.35, 0.82),
+            (0.12, 1.0)]
+    return K.lathe([(P.m(r_px * a), P.z(base_py - h * t)) for a, t in prof], mat, segments=12,
+                   centre=(P.x(px), y, 0.0), name=name)
+
+
+PILLAR_VH = [(33, 1172), (32, 1163), (22, 1146), (22, 1140), (18, 1135), (18, 1125), (25, 1118), (28, 1100),
+             (27, 1075), (25, 1058), (23, 1000), (20, 950), (18, 920), (21.5, 915), (20, 895), (19.5, 890),
+             (19.5, 882), (18, 878), (18, 862)]
+BRACKET_VH = [(-78, 806), (78, 806), (76, 822), (66, 831), (48, 828), (36, 840), (27, 862), (-27, 862), (-36, 840),
+              (-48, 828), (-66, 831), (-76, 822)]
+
+
+@model("house_village_head", "lane", kind="building", atlas=2048)
+def house_village_head(K):
+    """The village head's two-storey house: a hipped roof of country tiles with clay finials over a cream upper
+    storey with three shuttered windows, a tiled veranda roof with a gable over the door on six turned wooden
+    pillars with carved brackets, thinnai platforms at its ends, a studded carved door between two niches, a brass
+    lamp, an easy chair, a kolam-bordered plinth with steps, a tulsi planter before it."""
+    P = K.paint
+    D, Du = 7.0, 4.2                                   # the ground floor's depth; the upper storey's
+    yv, yp = -2.6, -2.3                                # the veranda's edge; the pillars' line
+    K.front_min = 0.0
+    halo_exclude(K, [(0, 0, 2325, 1377)])
+    cream = K.tile((800, 400, 1000, 560), size=1.2, vary=0.04, soften=0.5)
+    maroon = K.colour((250, 420, 290, 600), vary=0.05)
+    dado = K.tile((620, 1060, 880, 1140), size=1.0, vary=0.04, soften=0.4)
+    tiles = K.tile((700, 120, 1000, 280), size=1.4, vary=0.04, soften=0.15)
+    tiles_low = K.tile((620, 660, 900, 760), size=1.4, vary=0.04, soften=0.15)
+    fascia = K.colour((400, 308, 800, 326), vary=0.06)
+    plinth = K.colour((500, 1182, 900, 1196), vary=0.06)
+    floor = K.colour((600, 1150, 900, 1165), vary=0.06)
+    thin = K.tile((150, 1100, 380, 1170), size=0.8, vary=0.05, soften=0.3)
+    bracket_m = K.colour((545, 815, 560, 845), vary=0.08)
+    clay = K.colour((560, 90, 600, 100), vary=0.06)
+    dark = K.colour((0.03, 0.02, 0.02), vary=0.0)
+    wood = K.colour((470, 450, 500, 600), vary=0.08)
+    X0, X1 = P.x(240), P.x(2085)
+    zf = P.z(1172)
+    # the storeys: the ground floor (deeper), the upper storey over its front, a maroon band between them
+    lower = K.box(X0, X1, 0.0, Du, 0.0, P.z(640), cream, name="ground_floor")
+    K.box(X0, X1, Du - 0.01, D, 0.0, P.z(790), cream, name="ground_floor_back")
+    upper = K.box(X0, X1, 0.0, Du, P.z(640), P.z(330), cream, name="upper_floor")
+    K.box(X0 - 0.03, X1 + 0.03, -0.03, Du + 0.03, P.z(645), P.z(620), maroon, name="band")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, zf, P.z(1035), dado, name="dado")
+    for x0, x1 in ((240, 292), (2033, 2085)):
+        for z0, z1 in ((zf, P.z(800)), (P.z(620), P.z(330))):
+            K.box(P.x(x0) - 0.02, P.x(x1) + 0.02 * 0, -0.02, 0.05, z0, z1, maroon, name="pilaster")
+    # the plinth: its kolam face where painted, a plain base course down to the ground, the veranda floor
+    K.box(P.x(137), P.x(2190), yv, D + 0.1, 0.0, zf, plinth, bevel=0.015, name="plinth")
+    K.box(P.x(140), P.x(2187), yv + 0.02, 0.0, zf, zf + 0.008, floor, name="veranda_floor")
+    stairs(K, [(990, 1335, 1201), (985, 1340, 1261), (980, 1345, 1305), (975, 1350, 1345)], plinth, tread=0.28,
+           y0=yv)
+    # the thinnai at both ends
+    for (a0, a1), (b0, b1) in (((138, 311), (311, 467)), ((2014, 2187), (1858, 2014))):
+        K.box(P.x(a0), P.x(a1), yv, 0.0, zf, P.z(1025), thin, bevel=0.012, name="thinnai")
+        K.box(P.x(b0), P.x(b1), yv, -1.1, zf, P.z(1083), thin, bevel=0.012, name="thinnai_seat")
+    # the door, recessed in its carved frame, a niche either side
+    K.cut(lower, P.x(1030), P.x(1295), -0.05, 0.3, zf, P.z(812))
+    K.box(P.x(1073), P.x(1251), 0.2, 0.26, zf, P.z(845), K.tile((1090, 870, 1230, 1100), vary=0.04), name="door")
+    K.box(P.x(1030), P.x(1295), 0.12, 0.2, zf, P.z(812), wood, name="door_frame")
+    K.cut(lower, P.x(1060), P.x(1265), 0.05, 0.25, zf, P.z(840))
+    for x0, x1 in ((955, 1000), (1320, 1365)):
+        K.cut(lower, P.x(x0), P.x(x1), -0.05, 0.12, P.z(962), P.z(888))
+        K.box(P.x(x0), P.x(x1), 0.08, 0.1, P.z(962), P.z(888), dark, name="niche_back")
+    # the upper windows, shutters open
+    iron = K.colour((0.05, 0.03, 0.025), vary=0.05)
+    for cx in (592, 1163, 1732):
+        dx = cx - 592
+        barred_window(K, upper, (510 + dx, 381, 677 + dx, 587), (527 + dx, 400, 660 + dx, 575),
+                      [x + dx for x in (545, 562, 578, 607, 623, 640)], (487,), wood, iron, dark)
+        shutter(K, 510 + dx, 0.38, 385, 585, 62, wood, side=-1)
+        shutter(K, 677 + dx, 0.38, 385, 585, 62, wood, side=1)
+    for side in (-1, 1):
+        side_window(K, upper, side, Du * 0.5, P.z(587), P.z(400), 0.8, wood, iron, dark)
+        side_window(K, lower, side, Du * 0.6, P.z(1000), P.z(880), 0.7, wood, iron, dark)
+    back_decal(K, (456, 381, 729, 590), Du, x_shift=P.m(570), name="back_window")
+    back_decal(K, (1030, 812, 1295, 1150), D, name="back_door")
+    # the pillars on the veranda floor and the thinnai, their carved brackets, the beam
+    for cx in (563, 922, 1423, 1782):
+        turned_post(K, cx, PILLAR_VH, yp, keep=[(cx - 34, 860, cx + 34, 1175)], name="pillar")
+    short = [(r, 1027 - (1172 - y) * (1027 - 870) / (1172 - 862)) for r, y in PILLAR_VH]
+    for cx in (184, 2158):
+        turned_post(K, cx, short, yp, keep=[(cx - 34, 860, cx + 34, 1030)], name="pillar_end")
+    for cx in (184, 563, 922, 1423, 1782, 2158):
+        K.prism([(P.x(cx + dx), P.z(py)) for dx, py in BRACKET_VH], yp - 0.08, yp + 0.08, bracket_m, name="bracket")
+    K.box(P.x(45), P.x(2280), yp - 0.12, yp + 0.12, P.z(806), P.z(790), fascia, bevel=0.01, name="veranda_beam")
+    # the veranda roof: a lean-to from the band, hipped at its ends, a gable over the door
+    zt, ze = P.z(640), P.z(782)
+    eY = yv - 0.15
+    tiled_quad(K, [(P.x(13), eY, ze), (P.x(2312), eY, ze), (P.x(2068), 0.0, zt), (P.x(257), 0.0, zt)], tiles_low,
+               courses=5, nu=40, name="veranda_roof")
+    for xe, xt in ((13, 257), (2312, 2068)):
+        tiled_quad(K, [(P.x(xe), 0.0, ze), (P.x(xe), eY, ze), (P.x(xt), 0.0, zt), (P.x(xt), 0.0, zt)], tiles_low,
+                   courses=5, nu=8, name="veranda_hip")
+    zg = P.z(603)
+    gY = eY - 0.12
+    K.prism([(P.x(895), P.z(806)), (P.x(1431), P.z(806)), (P.x(1163), P.z(590))], gY, gY + 0.16,
+            K.colour((1100, 700, 1220, 760), vary=0.06), name="pediment")
+    for xe in (905, 1421):
+        tiled_quad(K, [(P.x(xe), gY + 0.1, P.z(796)), (P.x(xe), -0.6, P.z(796)), (P.x(1163), -0.3, zg),
+                       (P.x(1163), gY + 0.1, zg)], tiles_low, courses=5, nu=6, name="gable_slope")
+    finial(K, 1163, 565, 605, gY + 0.08, clay, r_px=9)
+    # the upper roof: hipped country tiles, ridge and hip caps, three finials, its fascia
+    zeU, zrU = P.z(300), P.z(86)
+    ov = 0.8
+    ex0, ex1, rx0, rx1 = P.x(129), P.x(2195), P.x(566), P.x(1760)
+    ym = Du / 2
+    tiled_quad(K, [(ex0, -ov, zeU), (ex1, -ov, zeU), (rx1, ym, zrU), (rx0, ym, zrU)], tiles, courses=8, nu=40,
+               name="roof_front")
+    tiled_quad(K, [(ex1, Du + ov, zeU), (ex0, Du + ov, zeU), (rx0, ym, zrU), (rx1, ym, zrU)], tiles, courses=8,
+               nu=40, name="roof_back")
+    tiled_quad(K, [(ex0, Du + ov, zeU), (ex0, -ov, zeU), (rx0, ym, zrU), (rx0, ym, zrU)], tiles, courses=8, nu=10,
+               name="roof_hip")
+    tiled_quad(K, [(ex1, -ov, zeU), (ex1, Du + ov, zeU), (rx1, ym, zrU), (rx1, ym, zrU)], tiles, courses=8, nu=10,
+               name="roof_hip")
+    K.box(P.x(155), P.x(2170), -ov + 0.02, -ov + 0.08, P.z(330), P.z(300), fascia, name="fascia")
+    K.box(P.x(155), P.x(2170), Du + ov - 0.08, Du + ov - 0.02, P.z(330), P.z(300), fascia, name="fascia")
+    K.tube([(rx0, ym, zrU + 0.06), (rx1, ym, zrU + 0.06)], P.m(12), clay, segments=8, name="ridge_cap")
+    for x in np.arange(620, 1720, 70):
+        K.lathe([(P.m(13), zrU), (P.m(15), zrU + 0.1), (P.m(12), zrU + 0.16), (0.0, zrU + 0.17)], clay, segments=10,
+                centre=(P.x(x), ym, 0.0), name="ridge_tile")
+    for (xa, ya), xr in (((ex0, -ov), rx0), ((ex0, Du + ov), rx0), ((ex1, -ov), rx1), ((ex1, Du + ov), rx1)):
+        K.tube([(xa, ya, zeU + 0.06), (xr, ym, zrU + 0.06)], P.m(10), clay, segments=8, name="hip_cap")
+    for x in (566, 1163, 1750):
+        finial(K, x, 9, 80, ym, clay, r_px=14)
+    # back lean-to over the ground floor's back rooms
+    zb = P.z(790) - 0.05
+    tiled_quad(K, [(X1 + 0.5, D + 0.55, zb), (X0 - 0.5, D + 0.55, zb), (X0 - 0.2, Du, P.z(645)),
+                   (X1 + 0.2, Du, P.z(645))], tiles_low, courses=7, nu=30, name="back_roof")
+    for xe, xt in ((X0 - 0.5, X0 - 0.2), (X1 + 0.5, X1 + 0.2)):
+        tiled_quad(K, [(xe, Du, zb), (xe, D + 0.55, zb), (xt, Du, P.z(645)), (xt, Du, P.z(645))], tiles_low,
+                   courses=7, nu=6, name="back_hip")
+    # the brass lamp, the easy chair
+    brass = K.projected(axis_x=P.x(1340), squeeze=0.9, keep=[(1308, 980, 1372, 1166)], inset=2)
+    K.lathe([(P.m(r), P.z(y)) for r, y in ((30, 1166), (30, 1160), (18, 1152), (8, 1145), (6, 1120), (10, 1100),
+                                           (6, 1085), (6, 1052), (12, 1046), (30, 1040), (28, 1034), (8, 1030),
+                                           (8, 1010), (5, 995), (1, 983))], brass, segments=18,
+            centre=(P.x(1340), -0.5, 0.0), name="lamp")
+    chair = K.colour((1590, 1120, 1610, 1140), vary=0.08)
+    slats = K.projected(squeeze=1.0, keep=[(1560, 990, 1720, 1120)], inset=2)
+    for y in (-1.25, -0.7):
+        for (ax, ay), (bx, by) in (((1712, 990), (1600, 1150)), ((1520, 1100), (1505, 1172)),
+                                   ((1655, 1100), (1690, 1172)), ((1510, 1070), (1690, 1060)),
+                                   ((1535, 1118), (1660, 1110))):
+            K.tube([P.pt(ax, ay, y), P.pt(bx, by, y)], P.m(5), chair, segments=6, name="chair_frame")
+    def seat(u, v):
+        top, low, front = P.pt(1700, 1000, 0), P.pt(1610, 1125, 0), P.pt(1530, 1105, 0)
+        if v < 0.6:
+            t = v / 0.6
+            x, z = top[0] + (low[0] - top[0]) * t, top[2] + (low[2] - top[2]) * t
+        else:
+            t = (v - 0.6) / 0.4
+            x, z = low[0] + (front[0] - low[0]) * t, low[2] + (front[2] - low[2]) * t
+        return (x, -1.22 + 0.49 * u, z - 0.04 * math.sin(math.pi * u))
+    K.sheet(seat, 4, 10, slats, name="chair_seat", thickness=0.01)
+    # the tulsi planter before the steps, the plant on it
+    tp = K.projected(axis_x=P.x(790), squeeze=0.95, keep=[(705, 1148, 877, 1370)], inset=2)
+    yt = yv - 1.0
+    for x0, x1, t, b in ((705, 876, 1331, 1377), (720, 872, 1305, 1331), (731, 850, 1198, 1305),
+                         (712, 865, 1178, 1198)):
+        hw = P.m(x1 - x0) / 2
+        K.box(P.x(x0), P.x(x1), yt - hw, yt + hw, P.z(b), P.z(t), tp, bevel=0.008, name="tulsi_maadam")
+    hw = P.m(865 - 712) / 2
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            K.block(P.x(788.5) + sx * (hw - 0.04), yt + sy * (hw - 0.04), P.z(1165), 0.07, 0.07, P.m(26), tp,
+                    bevel=0.01, name="horn")
+    K.box(P.x(716), P.x(861), yt - hw + 0.03, yt + hw - 0.03, P.z(1180), P.z(1176), K.colour((0.12, 0.06, 0.03)),
+          name="soil")
+    from kitlib import plant_pixels
+    K.leaves_only((695, 990, 895, 1176), plant_pixels)
+    for yaw in (0, 45, -45, 90):
+        K.card_from_painting((695, 990, 895, 1176), (P.x(795), yt + K.rng.uniform(-0.04, 0.04), P.z(1083)),
+                             yaw=yaw, name="tulsi")

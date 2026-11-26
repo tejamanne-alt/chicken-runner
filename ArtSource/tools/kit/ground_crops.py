@@ -24,7 +24,21 @@ from mathutils import Vector
 from PIL import Image
 from scipy import ndimage
 
-from kitlib import Mat, _image, _obj, model
+from kitlib import Mat, _image, _obj
+from kitlib import model as _kit_model
+
+
+def model(name, folder, **kw):
+    """kitlib.model, with a plain-coloured speck added as each model's first part (see uv_anchor)."""
+    def wrap(fn):
+        def build(K):
+            fn(K)
+            if K.parts:
+                uv_anchor(K)
+        build.__doc__, build.__name__ = fn.__doc__, fn.__name__
+        _kit_model(name, folder, **kw)(build)
+        return fn
+    return wrap
 
 
 # ====================================================================== helpers: masks and outlines
@@ -205,6 +219,16 @@ def dome(K, poly_px, height, y_back, mat, rings=((1.0, 0.0), (0.94, 0.42), (0.74
     return ob
 
 
+def uv_anchor(K):
+    """A 1 mm speck of plain colour as the model's first part, hidden inside it. The kit unwraps the joined model with
+    Blender's Smart UV Project, which squashes every island by the aspect of the first material's image (a long
+    strip's painting squashed its atlas into a sliver): with a plain colour first, there is no image to take an
+    aspect from."""
+    m = K.colour((0.2, 0.2, 0.2), vary=0.0, name=f"{K.name}_anchor")
+    K.box(-0.0005, 0.0005, -0.0005, 0.0005, 0.0005, 0.0015, m, name="uv_anchor")
+    K.parts.insert(0, K.parts.pop())
+
+
 # ====================================================================== stones
 def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="stone"):
     """A faceted stone whose front outline is a painted one (px), set down by `lift` metres onto the ground, `depth`
@@ -293,7 +317,7 @@ def card_mask(K, mask):
     K.leaves_only((0, 0, K.paint.w, K.paint.h), lambda rgb: full[:rgb.shape[0], :rgb.shape[1]])
 
 
-def no_halo(P, width=3, bright=150, sat=45):
+def no_halo(P, width=3, bright=150, sat=45, haze=True):
     """The painting's opaque pixels less the pale fringe some cut-outs keep round their outline and the pale haze
     patches left in their gaps."""
     a = alpha_mask(P)
@@ -303,8 +327,8 @@ def no_halo(P, width=3, bright=150, sat=45):
     near = ndimage.binary_dilation(~a, iterations=width)
     halo = pale & near
     # haze: pale, washed-out patches (white smoke in a weed's gaps), however far from the edge
-    haze = (mn > 175) & (mx - mn < 30)
-    return a & ~halo & ~haze
+    hz = (mn > 175) & (mx - mn < 30) if haze else np.zeros_like(a)
+    return a & ~halo & ~hz
 
 
 def plant_mask(P, white=False):
@@ -367,7 +391,9 @@ def tri_sheet(K, mask, step, yfn, mat, eps=1.2, back_y=None, thickness=0.0, name
         for v in new_vs:
             v.co.y = back_y
         new_es = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMEdge) and g.is_boundary]
-        bmesh.ops.holes_fill(bm, edges=new_es, sides=0)
+        filled = bmesh.ops.holes_fill(bm, edges=new_es, sides=0)["faces"]
+        # the flat back in triangles: a single many-sided face unwraps edge-on and starves the atlas
+        bmesh.ops.triangulate(bm, faces=filled, quad_method="BEAUTY", ngon_method="EAR_CLIP")
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     ob = _obj(name, bm, mat, smooth=smooth)
     if thickness:
@@ -419,9 +445,11 @@ def coconut(K):
     ax = float(np.median(axes))
     prof[0] = (prof[0][0] * 0.82, prof[0][1])
     prof[-1] = (prof[-1][0] * 0.6, prof[-1][1])
-    # it rests on the ground: its flat underside let down onto it (the painting's frame runs below it, to the
-    # tips of the fibres hanging under it)
-    prof.insert(0, (prof[0][0] * 0.62, P.h - 0.5))
+    # it rests on the ground: the painting's frame runs below it to the tips of the fibres hanging under it, so its
+    # lower half is let down onto the ground (z, in px from the top, mapped so its foot lands on the frame's foot)
+    iw = int(np.argmax([r for r, _ in prof]))
+    pw, pb = prof[iw][1], prof[0][1]
+    prof = [(r, pw + (py - pw) * (P.h - 0.5 - pw) / (pb - pw)) if k < iw else (r, py) for k, (r, py) in enumerate(prof)]
     husk = wrapped(K, P.x(ax), squeeze=0.93, src=filled_source(P, ndimage.binary_erosion(body, iterations=5)))
     # three faces with a ridge between each (the painted ridge to the right of the middle and two more round it)
     bm = bmesh.new()
@@ -676,14 +704,15 @@ def tuft(K, n=5):
 
 
 def crown(K, foot, r, h):
-    """The crown a tuft's blades grow from: a low, squat knot of their own dark green at the foot, down to the
-    ground, hidden behind the painted blades from the front."""
+    """The little mound of earth a tuft or weed grows from, under its foot (its painted foot stands a little above
+    the frame's foot), most of it behind the painted blades."""
     P = K.paint
     fx, fy = foot
-    base = K.colour((fx - 12, fy - 14, fx + 12, fy - 2), vary=0.12, pct=12)
-    z0 = P.z(fy)
-    K.lathe([(r * 1.2, 0.0), (r, z0 * 0.6), (r * 0.9, z0), (r * 0.6, z0 + h * 0.6), (r * 0.2, z0 + h), (0.0, z0 + h * 1.05)],
-            base, segments=12, centre=(P.x(fx), r * 0.8, 0.0), wobble=0.12, name="crown")
+    earth = K.colour((0.085, 0.055, 0.03), vary=0.15, scale=40)
+    z0 = P.z(fy) + h * 0.3
+    R = max(r, z0 * 1.4)
+    K.lathe([(R, 0.0), (R * 0.85, z0 * 0.45), (R * 0.55, z0 * 0.85), (R * 0.25, z0), (0.0, z0 * 1.02)],
+            earth, segments=12, centre=(P.x(fx), R * 0.35, 0.0), wobble=0.15, name="mound")
 
 
 @model("tuft_1", "ground", kind="prop")
@@ -732,7 +761,7 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
             K.card_from_painting(box, P.pt(cx, cy, P.m(3)), yaw=yaw + K.rng.uniform(-6, 6), name="flower",
                                  normal=(0, -0.3, 1))
     ring_cards(K, rosette_box, foot, [45, 90, 135], y=P.m(3), scale=(0.8, 0.95), name="rosette")
-    crown(K, foot, P.m(rosette_box[2] - rosette_box[0]) * 0.07, P.m(rosette_box[3] - rosette_box[1]) * 0.12)
+    crown(K, foot, P.m(rosette_box[2] - rosette_box[0]) * 0.05, P.m(rosette_box[3] - rosette_box[1]) * 0.1)
     for box, yaw in upper:
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, P.pt(cx, cy, P.m(4)), yaw=yaw, name="leaf", normal=(0, -0.3, 1))
@@ -974,8 +1003,8 @@ def crop_strip_3(K):
     for k, y in enumerate(rows_y):
         for (te, be, hw) in painted:
             dx = 0.0 if k == 0 else K.rng.uniform(-45, 45)
-            dz = 0.0 if k == 0 else K.rng.uniform(-25, 15)
-            if k > 0 and K.rng.uniform() < 0.25:
+            dz = 0.0 if k == 0 else K.rng.uniform(0, 30)
+            if k > 0 and K.rng.uniform() < 0.35:
                 continue
             t0, t1 = te + (dx, dz), be + (dx, dz)
             mid = (t0 + t1) / 2 + np.array((K.rng.uniform(-3, 3), 0))
@@ -989,9 +1018,9 @@ def crop_strip_3(K):
             K.tube([P.pt(px, py, yy) for px, py in sp], [P.m(3.2), P.m(3.8), P.m(4.5)], stalk, segments=6,
                    name="stalk")
     # leaves: the front row is the painting, the rows behind it its plants mixed and turned
-    plant_band_cards(K, 28, 1197, 70, base_py, rows_y[0], 22, yaw=10)
-    src = list(range(120, 1110, 30))
-    plant_rows_cards(K, src, 110, 120, base_py, rows_y[1:], (40, 1185), 80, scale=(0.75, 0.95), yaw=35)
+    plant_band_cards(K, 28, 1197, 0, base_py, rows_y[0], 22, yaw=10)
+    src = [97, 180, 300, 380, 455, 540, 610, 690, 770, 850, 985, 1060, 1130]      # the painted stalks
+    plant_rows_cards(K, src, 75, 120, base_py, rows_y[1:], (40, 1185), 95, scale=(0.75, 0.92), yaw=35)
 
 
 @model("crop_strip_1", "fields", kind="prop", atlas=2048)
@@ -1001,7 +1030,7 @@ def crop_strip_1(K):
     1.5 m deep."""
     P = K.paint
     depth = 1.5
-    clean_front(K, no_halo(P))
+    clean_front(K, no_halo(P, haze=False))
     top_py, base_py = 104, 112
     rows_y = [-depth / 2 + 0.18 + k * 0.28 for k in range(5)]
     field_bed(K, 8, 1183, top_py, depth, top_rgb=(100, 106, 128, 116), wet=True)
@@ -1029,8 +1058,8 @@ def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=1.0):
     R = P.m(rf) * s
     if tie:
         rt = P.m(10) * s
-        prof = [(R * 0.92, 0.0), (R, h * 0.06), (R * 0.86, h * 0.2), (R * 0.62, h * 0.45), (R * 0.36, h * 0.72),
-                (rt * 1.3, h * 0.94), (rt, h)]
+        prof = [(R * 0.94, 0.0), (R, h * 0.05), (R * 0.93, h * 0.2), (R * 0.77, h * 0.42), (R * 0.52, h * 0.66),
+                (R * 0.3, h * 0.86), (rt * 1.2, h * 0.97), (rt, h)]
     else:
         prof = [(R * 0.92, 0.0), (R, h * 0.06), (R * 0.9, h * 0.25), (R * 0.72, h * 0.5), (R * 0.42, h * 0.78),
                 (R * 0.12, h * 0.97), (0.0, h)]
@@ -1041,8 +1070,14 @@ def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=1.0):
         K.lathe([(rt * 1.05, z0 + h - P.m(4) * s), (rt * 1.35, z0 + h), (rt * 1.05, z0 + h + P.m(4) * s)], band,
                 segments=14, centre=(x, y, 0.0), cap=False, name="tie")
         ht = P.m(tie - top) * s
-        K.lathe([(rt, z0 + h), (rt * 1.6, z0 + h + ht * 0.4), (rt * 2.6, z0 + h + ht * 0.8), (rt * 1.2, z0 + h + ht),
-                 (0.0, z0 + h + ht * 0.95)], straw, segments=14, centre=(x, y, 0.0), wobble=0.12, name="ears")
+        K.lathe([(rt, z0 + h), (rt * 1.25, z0 + h + ht * 0.3), (rt * 0.9, z0 + h + ht * 0.6), (0.0, z0 + h + ht * 0.75)],
+                straw, segments=10, centre=(x, y, 0.0), wobble=0.1, name="ears")
+        # the fan of ears: the painted fan, and two turned copies of it, standing on the tie
+        box = (ax - 34, top - 3, ax + 34, tie + 3)
+        for k, yaw in enumerate((0, 60, 120)):
+            yy = K.rng.uniform(-8, 8)
+            K.card_from_painting(box, (x, y + (0.0 if k == 0 else 0.002), z0 + h + P.m(tie + 3 - (top - 3)) * s / 2 - P.m(3) * s),
+                                 yaw=yaw + (yy if k else 0), scale=s, name="ears", normal=(0, -0.2, 1))
     else:
         K.tube([(x, y, z0 + h * 0.95), (x + 0.005, y, z0 + h + P.m(14) * s)], [P.m(3) * s, P.m(1.5) * s], band,
                segments=6, name="spike")
@@ -1055,12 +1090,17 @@ def crop_strip_2(K):
     a fan of ears), the ones painted further back further back."""
     P = K.paint
     depth = 1.5
-    clean_front(K, no_halo(P))
+    clean_front(K, no_halo(P, haze=False))
     top_py = 172
     field_bed(K, 8, 1182, top_py, depth, top_box=(560, 158, 600, 170))
     K.front_exclude = [(0, 0, P.w, top_py - 2)]       # everything on the field is set back: it carries its own paint
     z0 = P.z(top_py)
     straw_src = filled_source(P, ndimage.binary_erosion(no_halo(P), iterations=3) & (np.arange(P.h)[:, None] < 160))
+    ears = np.zeros((P.h, P.w), bool)
+    for ax, top, tie, foot, rf in STOOKS:
+        if tie:
+            ears[max(0, top - 3):tie + 3, ax - 34:ax + 34] = True
+    card_mask(K, ears & no_halo(P))
     band = K.colour((140, 40, 160, 50), vary=0.08, pct=30)
     feet = [f for _, _, _, f, _ in STOOKS]
     lo, hi = min(feet), max(feet)
@@ -1089,7 +1129,7 @@ def crop_strip_2(K):
             if ok:
                 r = K.rng.uniform(0.028, 0.04)
                 hh = K.rng.uniform(0.13, 0.22) * (1.0 if k < 2 else 0.85)
-                K.lathe([(r * 0.95, z0 - 0.01), (r, z0 + hh * 0.5), (r * 1.08, z0 + hh), (0.0, z0 + hh)], stub,
+                K.lathe([(r, z0 - 0.01), (r * 0.97, z0 + hh * 0.5), (r * 0.94, z0 + hh), (0.0, z0 + hh)], stub,
                         segments=7, centre=(x, yy, 0.0), wobble=0.08, name="stubble")
             x += K.rng.uniform(0.17, 0.26)
 
@@ -1174,7 +1214,7 @@ def capsule(K, a, b, r, mat, segments=8, name="pod"):
 def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band):
     """A groundnut (peanut) crop: bushy plants of small round leaflets in rows, the pods lying at their feet."""
     P = K.paint
-    clean_front(K, no_halo(P))
+    clean_front(K, no_halo(P, haze=False))
     rgb = P.rgba[..., :3] * 255
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
     yy = np.arange(P.h)[:, None]
@@ -1231,7 +1271,7 @@ def crop_strip_6(K):
     stars, in rows 1.5 m deep on a bed of earth."""
     P = K.paint
     depth = 1.5
-    clean_front(K, no_halo(P))
+    clean_front(K, no_halo(P, haze=False))
     rgb = P.rgba[..., :3] * 255
     mx, mn = rgb.max(-1), rgb.min(-1)
     white = alpha_mask(P) & (mn > 175) & (mx - mn < 60) & ~ndimage.binary_dilation(~alpha_mask(P), iterations=4)
@@ -1272,7 +1312,7 @@ def crop_strip_7(K):
     suckers, opening at the top into a crown of huge, ragged, arching leaves; on a bed of red earth."""
     P = K.paint
     depth = 2.0
-    clean_front(K, no_halo(P))
+    clean_front(K, no_halo(P, haze=False))
     stems = np.zeros((P.h, P.w), bool)
     yy, xx = np.mgrid[0:P.h, 0:P.w]
     for ax, foot, top, wf, wt in BANANAS:
@@ -1314,7 +1354,7 @@ def crop_strip_7(K):
 def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None):
     """A strip of paddy: clumps of long blades (and their panicles) in rows on a low bed of field mud."""
     P = K.paint
-    clean_front(K, no_halo(P))
+    clean_front(K, no_halo(P, haze=False))
     card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < bed_py + 3))
     a = alpha_mask(P)
     cols = np.nonzero(a[bed_py + 4])[0] if a[bed_py + 4].any() else np.nonzero(a.any(0))[0]

@@ -1,0 +1,10 @@
+{
+ "name": "lamp_step",
+ "folder": "market",
+ "kind": "volume",
+ "width": 1.746,
+ "height": 1.9,
+ "depth": 1.015,
+ "faces": 1188,
+ "source": "blender"
+}

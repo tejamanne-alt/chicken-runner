@@ -693,3 +693,224 @@ def stall_c_2(K):
               (315, 590), (318, 560), (320, 510), (330, 478), (352, 456), (368, 445), (366, 410), (372, 378)],
              y=-0.33, name="vendor")
     unify_cards(K)
+
+
+def hip_thatch(K, x0, x1, y0, y1, z_eave, rx0, rx1, yr, z_ridge, mat, thick=0.12, shag=0.04, fringe=0.07, nu=180,
+               nv=10, name="thatch"):
+    """A hipped thatch: its eave the rectangle x0..x1, y0..y1 at z_eave, its ridge the segment rx0..rx1 at (yr,
+    z_ridge); every eave point rises straight to the nearest ridge point, so the long sides are slopes and the ends
+    hipped triangles. Lumpy straw (shag), a ragged fringe hanging at the eave (fringe), thick enough to read."""
+    per = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    lens = [abs(per[(i + 1) % 4][0] - per[i][0]) + abs(per[(i + 1) % 4][1] - per[i][1]) for i in range(4)]
+    total = sum(lens)
+    rng = K.rng
+    from scipy import ndimage
+    noise = ndimage.gaussian_filter(rng.normal(0, 1, (nv + 1, nu + 1)), (1.0, 1.5), mode="wrap")
+    rag = ndimage.gaussian_filter(rng.normal(0, 1, nu + 1), 0.7, mode="wrap")
+
+    def eave(u):
+        d = (u % 1.0) * total
+        for i in range(4):
+            if d <= lens[i] or i == 3:
+                t = min(1.0, d / max(lens[i], 1e-6))
+                a, b = per[i], per[(i + 1) % 4]
+                return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+            d -= lens[i]
+
+    def f(u, v):
+        ex, ey = eave(u)
+        rx = min(max(ex, rx0), rx1)
+        x = ex + (rx - ex) * v
+        y = ey + (yr - ey) * v
+        z = z_eave + (z_ridge - z_eave) * v
+        iu, iv = int(round(u * nu)), int(round(v * nv))
+        z += shag * noise[iv, iu] * (1 - v * 0.6)
+        if iv == 0:
+            z -= fringe * (0.5 + abs(rag[iu]))
+            ox, oy = ex - (x0 + x1) / 2, ey - (y0 + y1) / 2
+            n = math.hypot(ox, oy)
+            x += 0.03 * ox / n
+            y += 0.03 * oy / n
+        return (x, y, z)
+    ob = K.sheet(f, nu, nv, mat, name=name, thickness=thick, smooth=True)
+    return ob
+
+
+def fold_stack(K, x0, x1, y, depth, z0, z1, mat, fold=0.045, name="stack"):
+    """A stack of folded cloths (sarees, towels, mats) on z0 up to z1: one soft slab per fold, each a little askew."""
+    n = max(1, int(round((z1 - z0) / fold)))
+    h = (z1 - z0) / n
+    for i in range(n):
+        dx = K.rng.uniform(-0.012, 0.012)
+        dy = K.rng.uniform(-0.012, 0.012)
+        K.block((x0 + x1) / 2 + dx, y + dy, z0 + h * (i + 0.5), (x1 - x0) - abs(dx), depth, h * 0.98, mat,
+                rot=(0, 0, K.rng.uniform(-1.5, 1.5)), bevel=min(0.014, h * 0.4), name=name)
+
+
+def hanging_cloth(K, x0, x1, y, z_top, z_bot, mat, back_drop=0.06, folds=3, amp=0.018, name="cloth"):
+    """A cloth folded over a rail at (y, z_top) and hanging down both sides: the front to z_bot, the back a little
+    shorter, in soft vertical folds."""
+    ph = K.rng.uniform(0, 6.28)
+    r = 0.022
+
+    def side(sgn, zb):
+        def f(u, v):
+            x = x0 + (x1 - x0) * u
+            wave = amp * math.sin(2 * math.pi * folds * u + ph) * (0.4 + 0.6 * v)
+            z = z_top - (z_top - zb) * v
+            yy = y + sgn * (r + 0.004 + wave + 0.01 * v)
+            return (x, yy, z)
+        return K.sheet(f, 24, 6, mat, name=name, thickness=0.004)
+    side(-1, z_bot)
+    side(1, z_bot + back_drop)
+    # over the rail
+    def top(u, v):
+        x = x0 + (x1 - x0) * u
+        a = math.pi * v
+        return (x, y - (r + 0.004) * math.cos(a), z_top + (r + 0.004) * math.sin(a))
+    K.sheet(top, 12, 4, mat, name=name + "_fold", thickness=0.004)
+
+
+def mirror_y(K, ob, y0):
+    """A copy of a part mirrored front-to-back about y = y0 (the back slope of a roof from its front one)."""
+    new = ob.copy()
+    new.data = ob.data.copy()
+    import bpy
+    bpy.context.scene.collection.objects.link(new)
+    for v in new.data.vertices:
+        v.co.y = 2 * y0 - v.co.y
+    new.data.flip_normals()
+    K.parts.append(new)
+    return new
+
+
+# ====================================================================== stall C3: the saree stall
+@model("stall_c_3", "market", kind="prop", atlas=2048)
+def stall_c_3(K):
+    """A cloth seller's stall: a hipped thatch on bamboo posts, six sarees folded over a bamboo rail under its eave,
+    and a big string cot (charpoy) with turned legs and rope wound round its rails, stacked two rows deep with folded
+    sarees and dhotis, on a rise of red earth."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.1
+    # ---------------------------------------------------------------- the ground
+    earth = ktile(K, (300, 570, 480, 630), vary=0.08, soften=0.3)
+    hb = Z(555)
+
+    def ground(x, y):
+        return hb * _smooth(-0.55, 0.5, y) * _smooth(1.9, 1.6, y) * _smooth(P.x(5), P.x(40), x) \
+            * _smooth(P.x(915), P.x(860), x)
+    K.grid_plane(P.x(5), P.x(915), -0.62, 1.9, 0.0, 36, 26, earth, height=ground, name="ground")
+    # ---------------------------------------------------------------- the roof
+    straw = ktile(K, (250, 30, 450, 100), vary=0.06)
+    y_e0, y_e1, yr = -0.66, 1.46, 0.4
+    hip_thatch(K, P.x(25), P.x(945), y_e0, y_e1, Z(168), P.x(122), P.x(868), yr, Z(20), straw, thick=0.1,
+               shag=0.035, fringe=P.m(14))
+    pole = K.projected(axis_x=P.x(142), squeeze=0.9, keep=[(128, 175, 158, 470), (130, 525, 156, 580)], inset=2)
+    pole2 = K.projected(axis_x=P.x(838), squeeze=0.9, keep=[(824, 175, 852, 420)], inset=2)
+    bam = K.colour((132, 300, 152, 400), vary=0.08)
+    rope = K.colour((0.1, 0.06, 0.03), vary=0.1)
+
+    def roof_under(x, y):          # the underside of the thatch over (x, y)
+        if y < yr:
+            t = (y - y_e0) / (yr - y_e0)
+        else:
+            t = (y_e1 - y) / (y_e1 - yr)
+        return Z(168) + (Z(20) - Z(168)) * max(0.0, min(1.0, t)) - 0.07
+    for x_px, mat in ((142, pole), (838, pole2)):
+        x = P.x(x_px)
+        bamboo(K, (x, yr, ground(x, yr) - 0.04), (x, yr, roof_under(x, yr) - 0.06), P.m(12), mat, nodes=0.45,
+               bend=0.0, taper=0.95, name="post")
+        # a brace up to the front eave beam (hidden behind the post from the front)
+        K.tube([(x, yr - 0.02, Z(270)), (x, -0.5, roof_under(x, -0.5) - 0.05)], P.m(7), bam, segments=6, name="brace")
+        lashing(K, (x, yr, Z(270)), (0, 0, 1), P.m(12), rope, turns=2.5)
+    for x_px in (205, 790):
+        x = P.x(x_px)
+        bamboo(K, (x, 1.2, ground(x, 1.2) - 0.04), (x, 1.2, roof_under(x, 1.2) - 0.05), P.m(10), bam, nodes=0.45,
+               bend=0.0, name="post_back")
+    # the beams under the thatch: ridge, front and back eaves, and rafters
+    zr = roof_under(0, yr) - 0.05
+    bamboo(K, (P.x(120), yr, zr), (P.x(870), yr, zr), P.m(10), bam, node_at=[], name="ridge_beam")
+    for yb in (-0.5, 1.2):
+        zb = roof_under(0, yb) - 0.05
+        bamboo(K, (P.x(60), yb, zb), (P.x(910), yb, zb), P.m(8), bam, node_at=[], name="eave_beam")
+    for x_px in np.linspace(140, 830, 8):
+        x = P.x(x_px)
+        K.tube([(x, -0.62, roof_under(x, -0.62) - 0.02), (x, yr, roof_under(x, yr) - 0.02),
+                (x, 1.42, roof_under(x, 1.42) - 0.02)], P.m(5), bam, segments=6, name="rafter")
+    # ---------------------------------------------------------------- the sarees hanging from a rail under the eave
+    y_rail, z_rail = -0.42, Z(163)
+    bamboo(K, (P.x(160), y_rail, z_rail), (P.x(800), y_rail, z_rail), P.m(7), bam, node_at=[], name="rail")
+    for x_px in (162, 798):
+        K.tube([(P.x(x_px), y_rail, z_rail), (P.x(x_px), y_rail, roof_under(P.x(x_px), y_rail))], 0.006, rope,
+               segments=5, name="hanger")
+    hung = [(175, 292, 315), (298, 390, 318), (398, 490, 305), (510, 600, 300), (600, 695, 292), (695, 780, 295)]
+    for x0, x1, bot in hung:
+        mat = K.projected(squeeze=1.0, keep=[(x0 + 3, 160, x1 - 3, bot)], inset=2)
+        hanging_cloth(K, P.x(x0 + 2), P.x(x1 - 2), y_rail, z_rail, Z(bot - 3), mat, back_drop=0.08)
+    # more hung along a rail at the back (the same sarees, swapped round)
+    yb_rail = 1.05
+    zb_rail = roof_under(0, yb_rail) - 0.08
+    bamboo(K, (P.x(220), yb_rail, zb_rail), (P.x(770), yb_rail, zb_rail), P.m(7), bam, node_at=[], name="rail_back")
+    for k, (x0, x1, bot) in enumerate(hung[:5]):
+        sx0, sx1, sbot = hung[(k + 3) % 6]
+        shift = P.m((sx0 + sx1) / 2 - (x0 + x1) / 2)
+        mat = K.projected(squeeze=1.0, dx=shift, keep=[(sx0 + 3, 160, sx1 - 3, sbot)], inset=2)
+        xa = P.x(225) + (P.x(765) - P.x(225)) * k / 5
+        hanging_cloth(K, xa + 0.01, xa + P.m(100), yb_rail, zb_rail, zb_rail - 0.5, mat, back_drop=0.06)
+    # ---------------------------------------------------------------- the string cot
+    wood = K.projected(squeeze=1.0, keep=[(100, 497, 930, 530)], inset=2)
+    leg_mat = K.projected(axis_x=P.x(77), squeeze=0.92, keep=[(50, 465, 106, 645)], inset=2)
+    leg_mat2 = K.projected(axis_x=P.x(950), squeeze=0.92, keep=[(924, 460, 978, 645)], inset=2)
+    cot_wood = ktile(K, (300, 503, 420, 522), vary=0.08)
+    yf, yk = -0.45, 0.42
+    zc = Z(512)
+    rr = P.m(16)
+    K.tube([(P.x(92), yf, zc), (P.x(938), yf, zc)], rr, wood, segments=12, name="rail_front")
+    K.tube([(P.x(92), yk, zc), (P.x(938), yk, zc)], rr, cot_wood, segments=12, name="rail_back")
+    for x_px in (77, 950):
+        K.tube([(P.x(x_px), yf, zc), (P.x(x_px), yk, zc)], rr * 0.9, cot_wood, segments=12, name="rail_side")
+    # rope wound round the rails, and the woven bed
+    cord = K.colour((880, 470, 920, 490), vary=0.1)
+    for (xa, ya), (xb, yb) in (((P.x(100), yf), (P.x(930), yf)), ((P.x(100), yk), (P.x(930), yk)),
+                               ((P.x(77), yf + 0.06), (P.x(77), yk - 0.06)), ((P.x(950), yf + 0.06), (P.x(950), yk - 0.06))):
+        a, b = Vector((xa, ya, zc)), Vector((xb, yb, zc))
+        L = (b - a).length
+        ax = (b - a).normalized()
+        u = Vector((0, 0, 1))
+        w = ax.cross(u)
+        n = int(L / 0.11)
+        pts = []
+        for i in range(n * 10 + 1):
+            t = i / (n * 10)
+            ang = 2 * math.pi * n * t
+            pts.append(tuple(a + ax * (L * t) + (u * math.cos(ang) + w * math.sin(ang)) * (rr + 0.006)))
+        K.tube(pts, 0.007, cord, segments=5, name="cord")
+    weave = ktile(K, (862, 458, 925, 494), vary=0.06)
+    K.grid_plane(P.x(92), P.x(938), yf + 0.02, yk - 0.02, zc + rr * 0.4, 12, 6, weave, name="bed")
+    # the legs: square blocks with pegs, turned below
+    for x_px, blk, mat in ((77, (50, 105, 465, 545), leg_mat), (950, (925, 975, 460, 545), leg_mat2)):
+        for y in (yf, yk):
+            K.box(P.x(blk[0]), P.x(blk[1]), y - 0.09, y + 0.09, Z(blk[3]), Z(blk[2]), mat, bevel=0.012, name="leg_block")
+            prof = [(22, 645), (17, 625), (13, 605), (18, 585), (22, 568), (18, 558), (24, 548), (24, 545)]
+            g = ground(P.x(x_px), y)
+            K.lathe([(P.m(r), max(Z(py), g - 0.03) if i == 0 else Z(py) + (g if y > 0 else 0.0) * 0.0)
+                     for i, (r, py) in enumerate(prof)], mat, segments=14, centre=(P.x(x_px), y, 0.0), name="leg")
+    # the middle legs under the back rail (the painted block feet) and a middle prop
+    foot = K.colour((600, 545, 645, 575), vary=0.08)
+    for x_px, w in ((206, 16), (622, 27)):
+        x = P.x(x_px)
+        g = ground(x, yk)
+        K.lathe([(P.m(w), g - 0.03), (P.m(w), Z(548)), (P.m(w * 0.7), Z(540)), (P.m(w * 0.55), Z(525)),
+                 (P.m(w * 0.7), zc - rr)], foot, segments=12, centre=(x, yk, 0.0), name="leg_mid")
+    K.lathe([(P.m(18), ground(P.x(718), 0.0) - 0.03), (P.m(16), zc - rr)], foot, segments=10,
+            centre=(P.x(718), 0.0, 0.0), name="prop")
+    # ---------------------------------------------------------------- the stacks of folded cloth
+    zt = zc + rr * 0.4
+    front = [(105, 268, 392), (232, 380, 422), (360, 492, 440), (490, 612, 435), (602, 735, 440), (710, 890, 415)]
+    back = [(180, 312, 342), (290, 400, 350), (392, 492, 342), (495, 595, 350), (590, 700, 355), (683, 830, 332)]
+    for row, y, d in ((back, 0.2, 0.36), (front, -0.2, 0.38)):
+        for x0, x1, top in row:
+            bot = 500 if row is front else 440
+            mat = K.projected(squeeze=1.0, keep=[(x0 + 4, top, x1 - 4, bot)], inset=2)
+            fold_stack(K, P.x(x0 + 3), P.x(x1 - 3), y, d, zt, Z(top + 4), mat, fold=P.m(13))

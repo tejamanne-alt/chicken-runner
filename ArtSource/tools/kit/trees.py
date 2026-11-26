@@ -930,7 +930,7 @@ class Katte:
 
 def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
                  crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
-                 crown_extra_keep=None):
+                 crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360)):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves."""
     P = K.paint
@@ -939,8 +939,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     rgb = (P.rgba[..., :3] * 255).astype(np.int32)
     r, g, b, mx, mn = chan(rgb)
     barkish = (r - b > 35) & (mx < 215) & (mx > 60) & (r >= g)
-    bark = bark_material(K, mask & barkish & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]),
-                         axis_x=P.x(918), squeeze=0.9)
+    bark = bark_mat or bark_material(K, mask & barkish & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]),
+                                     axis_x=P.x(918), squeeze=0.9)
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
                   dome_pow=0.9, y0=y0)
     wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
@@ -998,7 +998,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
             wood.append(K.tube(q, rr, bark, segments=10, name="root_turned"))
     # roots spreading over the ground all round the foot (where no platform holds them)
     for k in range(ground_roots):
-        a = 2 * math.pi * (k + rng.uniform(-0.3, 0.3)) / ground_roots
+        a = math.radians(root_dirs[0] + (root_dirs[1] - root_dirs[0]) * (k + 0.5 + rng.uniform(-0.3, 0.3)) / ground_roots)
         r0 = P.m(trunk[0][2])
         L = r0 * rng.uniform(1.4, 2.2)
         q = [(P.x(trunk[0][0]) + math.cos(a) * r0 * f, y0 + math.sin(a) * r0 * f, z)
@@ -1281,8 +1281,8 @@ def shrine_tree(K):
         (440, 10, 790),
         exclude_wood=[SHRINE_TRUNK[3:-2] + [(905, 340, 120)], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2],
                       SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
-        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=7,
-        crown_extra_keep=skein)
+        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=6,
+        crown_extra_keep=skein, bark_mat=K.tile((700, 330, 775, 440), vary=0.08, soften=0.15), root_dirs=(25, 155))
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
@@ -1312,3 +1312,68 @@ def shrine_tree(K):
         K.card_from_painting((1215, 1265, 1300, 1300), (P.x(1257), yb0 + 0.1, P.z(1282)), yaw=yaw, name="mango_leaves")
     # ---- the beaten earth it stands on
     earth(K, 905, 520, 2.4, (500, 1393, 1600, 1400), y=yt * 0.4, h=0.03)
+
+
+def _trace_field_tree_1(K):
+    def rule(rgb):
+        r, g, b, mx, mn = chan(rgb)
+        return grey_bark(rgb, sat=40, lo=45, hi=225) & ~((r - g > 14) & (mx < 110))
+    mask = wood_mask(K, rule, boxes=[(0, 280, 938, 960)], close=2, hole=600, min_area=30)
+    return mask, Wood(K, mask, root_px=(470, 930), spur=1.3, min_len=6)
+
+
+TRACE["field_tree_1"] = _trace_field_tree_1
+
+
+def hanging(p, r_max=6.0, min_drop=40):
+    """True for a path that hangs: thin and running downwards (an aerial root, a pod's stalk)."""
+    return float(np.max(p["r"])) <= r_max and p["pts"][-1][1] - p["pts"][0][1] > min_drop and \
+        abs(p["pts"][-1][0] - p["pts"][0][0]) < (p["pts"][-1][1] - p["pts"][0][1]) * 0.5
+
+
+@model("field_tree_1", "fields", kind="prop", atlas=2048, leaves=1024)
+def field_tree_1(K):
+    """A banyan: a thick, twisting grey trunk on a spread of great roots, limbs reaching out under a broad dark-green
+    dome, aerial roots hanging from them in curtains, a patch of red earth with pebbles."""
+    P = K.paint
+    rng = K.rng
+    mask, wood = TRACE["field_tree_1"](K)
+    crown = Crown(K, (0, 0, 938, 505), P.m(900) * 0.38, (470, 300), core=0.18, dome=(300, 0, 510), dome_pow=0.7)
+
+    def seed(p, dy):
+        return 0.0 if hanging(p) else dy
+    wood.grow(spread=0.55, root_z_px=860, root_spread=0.9, ymax=lambda px, py: max(0.6, crown.extent(px, py) * 0.8),
+              seed_dy=seed)
+    bark = bark_material(K, mask, axis_x=P.x(465), squeeze=0.9)
+    thick, thin = wood.tubes(bark, fuse_r_px=5.0)
+    limbs = pick_limbs(wood, py_max=560, py_min=300, r_min=8, min_len=60, n=7)
+    picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 120), 0.0) for k, i in enumerate(limbs)]
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=5.0)
+    roots = pick_limbs(wood, r_min=6, min_len=60, n=6, roots=True, root_py=880)
+    wood.turned_copies(bark, [(i, rng.choice([-1, 1]) * rng.uniform(70, 160), 0.0) for i in roots],
+                       thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=5.0)
+    # the aerial roots again, hanging in curtains through the crown's depth behind and before the painted ones
+    for i, p in enumerate(wood.paths):
+        if hanging(p):
+            for k in range(2):
+                dy = rng.uniform(0.4, 1.0) * crown.extent(*p["pts"][0]) * rng.choice([-0.6, 1.0])
+                ys = p["y"] + dy
+                pts, rs = wood.polyline(p, ys)
+                if pts is not None and len(pts) > 1:
+                    thin.append(K.tube(pts, [r * 0.9 for r in rs], bark, segments=6, name="aerial_root"))
+    K.fuse(thick, voxel=0.04, faces=11000)
+    # the crown
+    K.leaves_only((0, 0, 938, 510), foliage_pixels)
+    crown.cards(230, (110, 95), "volume", yaw=85, pitch=45)
+    crown.cards(90, (120, 105), "front", yaw=30, pitch=20)
+    crown.cards(50, (110, 95), "back", yaw=30, pitch=20)
+    crown.cards(30, (110, 95), "top", yaw=90, region=(0, 0, 938, 250))
+    # red earth and pebbles at its foot
+    earth(K, 455, 330, 3.2, (300, 945, 600, 962), h=0.05)
+    stone = K.colour((0.32, 0.3, 0.27), vary=0.15)
+    for px, w in ((222, 16), (418, 20), (478, 18), (520, 14), (650, 12), (300, 12)):
+        rock(K, px, 966, w, w * 0.6, rng.uniform(-1.6, -0.6), stone)
+    for k in range(6):
+        a = rng.uniform(0, 2 * math.pi)
+        K.boulder(P.x(455) + math.cos(a) * rng.uniform(1.0, 3.0), math.sin(a) * rng.uniform(1.0, 2.6), 0.06,
+                  0.18, 0.14, 0.12, stone)

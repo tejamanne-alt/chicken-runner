@@ -812,3 +812,77 @@ def kite(K):
             ([(114, 200), (112, 215), (105, 230)], 7, (102, 204, 120, 233), [0.035, 0.04, 0.048]),
             ([(110, 213), (96, 222), (85, 236)], 7, (80, 213, 108, 240), [0.03, 0.02, 0.01])):
         strip(pts, w, box, ys)
+
+
+def decal_faces(K, box_px, x0, x1, y0, y1, z0, z1, faces=("back", "left", "right"), inset=0.003):
+    """The painted picture inside box_px repeated on the other faces of a block (x0..x1, y0..y1, z0..z1 metres):
+    a carved panel or a door on the back and the sides, each the right way round seen from outside."""
+    m = K.decal(box_px)
+    for f in faces:
+        if f == "back":
+            y = y1 + inset
+            K.quad([(x1, y, z0), (x0, y, z0), (x0, y, z1), (x1, y, z1)], m, name="decal_back")
+        elif f == "left":
+            x = x0 - inset
+            K.quad([(x, y1, z0), (x, y0, z0), (x, y0, z1), (x, y1, z1)], m, name="decal_left")
+        elif f == "right":
+            x = x1 + inset
+            K.quad([(x, y0, z0), (x, y1, z0), (x, y1, z1), (x, y0, z1)], m, name="decal_right")
+
+
+def diya(K, cx, cy, rim_py, foot_py, r_px, flame_box, keep_box, name="diya"):
+    """A clay oil lamp: a shallow turned bowl (its oil inside, a wick) and its flame as a turned teardrop wearing
+    the painted flame."""
+    P = K.paint
+    h = foot_py - rim_py
+    clay = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[keep_box], inset=1)
+    K.lathe(prof(P, [(0, foot_py), (r_px * 0.58, foot_py - 0.05 * h), (r_px * 0.74, foot_py - 0.2 * h),
+                     (r_px * 0.9, foot_py - 0.48 * h), (r_px, rim_py + 0.12 * h), (r_px * 1.02, rim_py + 0.02 * h),
+                     (r_px * 0.97, rim_py - 0.03 * h), (r_px * 0.9, rim_py + 0.05 * h)]), clay, segments=28,
+            centre=(P.x(cx), cy, 0), name=name, cap=False)
+    oil = K.colour((0.2, 0.08, 0.01), vary=0.1)
+    K.lathe([(P.m(r_px * 0.9), P.z(rim_py + 0.05 * h)), (0.0, P.z(rim_py + 0.12 * h))], oil, segments=28,
+            centre=(P.x(cx), cy, 0), name="oil", cap=False)
+    fx0, fy0, fx1, fy1 = flame_box
+    fcx = (fx0 + fx1) / 2
+    w = (fx1 - fx0) / 2
+    flame = K.projected(axis_x=P.x(fcx), squeeze=0.85, keep=[flame_box], inset=0)
+    K.lathe(prof(P, [(0, fy1), (w * 0.6, fy1 - 1), (w * 0.95, fy1 - (fy1 - fy0) * 0.25),
+                     (w * 0.8, fy1 - (fy1 - fy0) * 0.55), (w * 0.4, fy1 - (fy1 - fy0) * 0.82), (0, fy0)]), flame,
+            segments=12, centre=(P.x(fcx), cy, 0), name="flame")
+    wick = K.colour((0.08, 0.05, 0.03), vary=0.0)
+    K.tube([(P.x(fcx), cy, P.z(rim_py + 0.1 * h)), (P.x(fcx), cy, P.z(fy1) + 0.004)], P.m(0.9), wick, segments=5,
+           name="wick")
+
+
+@model("lamp_step", "market", kind="prop", atlas=2048)
+def lamp_step(K):
+    """A temple's stone steps rising to a carved pillar: a long slab, a step with a red-oxide riser and its white
+    kolam, two plain stone blocks stepping up, the pillar on its kolam-painted base with a carved panel and a
+    moulded capital, and three clay lamps burning on the steps."""
+    P = K.paint
+    stone = K.tile((200, 226, 234, 258), vary=0.06, soften=0.35)
+    stone2 = K.tile((108, 150, 150, 178), vary=0.06, soften=0.35)
+    red = K.colour((95, 198, 130, 203), vary=0.08)
+    X = P.x
+    # the steps, back to y = 0.45
+    yb = 0.45
+    K.box(X(15), X(237), -0.56, yb, 0.0, P.z(221), stone, bevel=0.012, name="slab")
+    K.box(X(61), X(160), -0.32, yb, P.z(221), P.z(180), stone2, bevel=0.01, name="block_a")
+    K.box(X(90), X(234), -0.36, yb, P.z(221), P.z(194), red, bevel=0.008, name="red_step")
+    K.box(X(90), X(234), -0.365, yb + 0.005, P.z(197), P.z(193), stone, bevel=0.004, name="red_step_lip")
+    K.box(X(105), X(160), 0.02, yb, P.z(180), P.z(143), stone2, bevel=0.01, name="block_b")
+    # the pillar: its kolam base, plinth mouldings, the shaft with its carved panel, the capital
+    yc = 0.0
+    K.box(X(162), X(232), -0.3, 0.2, P.z(194), P.z(142), stone, bevel=0.01, name="pillar_base")
+    K.box(X(164), X(231), -0.28, 0.18, P.z(142), P.z(131), stone, bevel=0.008, name="plinth1")
+    K.box(X(168), X(228), -0.26, 0.16, P.z(131), P.z(120), stone, bevel=0.008, name="plinth2")
+    K.box(X(156), X(228), -0.24, 0.13, P.z(120), P.z(50), stone, bevel=0.006, name="shaft")
+    decal_faces(K, (178, 55, 218, 118), X(156), X(228), -0.24, 0.13, P.z(118), P.z(55))
+    K.box(X(153), X(230), -0.27, 0.16, P.z(50), P.z(35), stone, bevel=0.008, name="capital1")
+    K.box(X(150), X(232), -0.29, 0.18, P.z(35), P.z(22), stone, bevel=0.008, name="capital2")
+    K.box(X(147), X(235), -0.31, 0.2, P.z(22), P.z(8), stone, bevel=0.01, name="capital3")
+    # the three lamps
+    diya(K, 54.5, -0.38, 200, 221, 24.5, (44, 172, 58, 199), (30, 199, 80, 221))
+    diya(K, 97.5, -0.15, 162, 180, 22.5, (90, 136, 100, 161), (75, 161, 121, 180))
+    diya(K, 138.5, 0.18, 125, 144, 21.5, (131, 103, 141, 125), (117, 124, 161, 144))

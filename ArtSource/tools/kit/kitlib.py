@@ -912,7 +912,10 @@ def _smart_uv(ob, margin=0.004):
     bpy.context.view_layer.objects.active = ob
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, scale_to_bounds=False)
+    # correct_aspect off: otherwise Blender squashes every island by the aspect of the first material's image (a wide
+    # painting's projection collapsed the whole atlas into a thin sliver)
+    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, correct_aspect=False,
+                             scale_to_bounds=False)
     bpy.ops.uv.pack_islands(margin=margin, rotate=True)
     bpy.ops.object.mode_set(mode="OBJECT")
     return uv

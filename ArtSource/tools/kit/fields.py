@@ -926,3 +926,68 @@ def canal_piece_1(K):
     earth = K.colour((0.32, 0.2, 0.11), vary=0.15)
     K.lathe([(0.0, 0.0), (P.m(80), 0.0), (P.m(60), 0.03), (P.m(30), 0.05), (0.0, 0.055)], earth, segments=20,
             centre=(P.x(265), 0, 0), wobble=0.15, name="mound")
+
+
+def shear(K, k, y0, parts=None):
+    """Turns a model built true (level ground, upright stacks) into what the painting shows from its look-down:
+    every point is raised by k per metre it lies behind y0 (z += k (y - y0)), so level tops and the ground rise
+    towards the back and face the front camera as they are painted, while every upright stays upright."""
+    for ob in parts if parts is not None else K.parts + K.cards_parts:
+        for v in ob.data.vertices:
+            v.co.z += k * (v.co.y - y0)
+
+
+def stack(K, cx, cy, w, d, h, courses, mat, z0=0.0, yaw=0.0, name="stack"):
+    """A pier of rough-dressed stones: `courses` layers of one or two blocks each, w by d by h metres in all,
+    a little uneven, standing at (cx, cy) on z0."""
+    ch = h / courses
+    for c in range(courses):
+        z = z0 + ch * (c + 0.5)
+        split = c % 2 == 0
+        n = 2 if split else 1
+        for i in range(n):
+            bw = w / n
+            ox = (i - (n - 1) / 2) * bw
+            dx, dy = ox * math.cos(math.radians(yaw)), ox * math.sin(math.radians(yaw))
+            K.block(cx + dx + K.rng.uniform(-0.015, 0.015), cy + dy + K.rng.uniform(-0.015, 0.015), z,
+                    bw * 0.97, d * K.rng.uniform(0.94, 1.0), ch * 0.96, mat, rot=(0, 0, yaw + K.rng.uniform(-3, 3)),
+                    bevel=min(0.05, ch * 0.25), jitter=0.006, name=name)
+
+
+@fmodel("canal_piece_2", "fields", kind="prop", atlas=1024)
+def canal_piece_2(K):
+    """A footbridge of two long stone slabs laid side by side across a channel on four piers of rough-dressed stones,
+    seen from the near bank: the slabs run away from us to the far bank. Built true and level, then raised towards
+    the back as the painting looks down on it (its tops face us as painted, its piers stay upright)."""
+    P = K.paint
+    K.front_min = 0.1
+    k = 0.30                                              # the look-down: rise per metre of depth
+    y_front = -1.1
+    y0 = y_front - P.z(322) / k
+
+    def ydep(py):                                         # true depth of a painted ground point
+        return y0 + P.z(py) / k
+    stone = K.tile((36, 212, 118, 272), soften=0.25, vary=0.04)
+    slab_mat = K.tile((300, 84, 430, 118), soften=0.3, vary=0.04)
+    # the four piers: (painted x0, x1, bottom row, top row)
+    piers = [(166, 316, 320, 204), (22, 160, 285, 188), (506, 640, 195, 88), (402, 492, 166, 120)]
+    tops = []
+    for x0, x1, b, t in piers:
+        w = P.m(x1 - x0) * 0.9
+        h = P.z(t) - P.z(b)
+        d = 0.7
+        cy = ydep(b) + d / 2
+        cx = (P.x(x0) + P.x(x1)) / 2
+        stack(K, cx, cy, w, d, max(h, 0.55), 4, stone, z0=0.0)
+        tops.append((cx, cy, max(h, 0.55)))
+    # the two slabs laid from pier to pier: (painted top-middle of the near end, of the far end, width)
+    t = 0.26
+    H = max(h for _, _, h in tops) + t
+    for (nx, ny), (fx, fy), wid in (((192, 163), (596, 50), 0.56), ((58, 130), (478, 24), 0.54)):
+        a = (P.x(nx), y0 + (P.z(ny) - H) / k)
+        b = (P.x(fx), y0 + (P.z(fy) - H) / k)
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        yaw = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+        K.block((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, H - t / 2, L, wid, t, slab_mat, rot=(0, 0, yaw), bevel=0.07,
+                jitter=0.008, name="slab")
+    shear(K, k, y0)
