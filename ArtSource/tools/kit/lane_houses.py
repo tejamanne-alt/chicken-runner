@@ -2418,5 +2418,276 @@ def shop_provisions(K):
     for a, b, c, d in ((-0.53, -0.45, 0.0, 2.08), (0.45, 0.53, 0.0, 2.08), (-0.53, 0.53, 2.0, 2.08)):
         K.box(a, b, D - 0.02, D + 0.03, c, d, timber, bevel=0.005, name="back_door_frame")
     iron = K.colour((0.04, 0.03, 0.03), vary=0.05)
-    side_window(K, body, -1, D * 0.5, P.z(700), P.z(520), 0.6, timber, iron, K.colour((0.03, 0.02, 0.02)))
+    for side in (-1, 1):
+        side_window(K, body, side, D * 0.5, P.z(700), P.z(520), 0.6, timber, iron, K.colour((0.03, 0.02, 0.02)))
+    drop_ground_faces(K)
+
+
+def hanging_ring(K, cx_px, cy_px, half_w_px, half_h_px, tube_px, y, mat, loops=1, spread=0.0, name="tyre"):
+    """A tyre or a coiled inner tube hanging on a hook: a ring as tall as painted, turned about the vertical so its
+    painted width is its foreshortened one; `loops` rings `spread` m apart for a coil."""
+    P = K.paint
+    R = P.m(half_h_px)
+    yaw = math.acos(max(0.0, min(1.0, half_w_px / max(half_h_px, 1e-6))))
+    for k in range(loops):
+        off = (k - (loops - 1) / 2) * spread
+        pts = []
+        for i in range(33):
+            a = 2 * math.pi * i / 32
+            u = R * math.cos(a)
+            pts.append((P.x(cx_px) + u * math.cos(yaw) + off * math.sin(yaw), y + u * math.sin(yaw) + off,
+                        P.z(cy_px) + R * math.sin(a) * (1 - 0.04 * k)))
+        K.tube(pts, P.m(tube_px), mat, segments=10, cap=False, name=name)
+
+
+@model("shop_tailor_cycle", "lane", kind="building", atlas=2048)
+def shop_tailor_cycle(K):
+    """A tailor's and cycle-repair shop under one hipped tin roof on rough corner poles: a mud front with two deep
+    alcoves, the tailor's with shelves of standing bolts and folded cloth and a treadle sewing machine on its table
+    before it, the cycle-mender's with tyres and tubes hanging on hooks, a floor pump and a workbench with a vice."""
+    P = K.paint
+    D = 3.6
+    K.front_min = 0.05
+    halo_exclude(K, [(0, 0, 1448, 1146)])
+    mud = K.tile((700, 420, 770, 900), size=0.8, vary=0.04, soften=0.5)
+    lime = K.tile((130, 1010, 220, 1085), size=0.6, vary=0.04, soften=0.4)
+    tin = K.tile((300, 80, 700, 260), size=1.0, vary=0.04, soften=0.1)
+    timber = K.colour((236, 400, 250, 1000), vary=0.08)
+    inside = K.colour((860, 700, 950, 760), vary=0.06)
+    iron = K.colour((0.05, 0.045, 0.045), vary=0.05)
+    X0, X1 = P.x(125), P.x(1315)
+    ze, zr = P.z(296), P.z(42)
+    zg = P.z(1090)
+    body = K.box(X0, X1, 0.0, D, 0.0, ze + 0.1, mud, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(995), lime, name="skirting")
+    K.box(P.x(60), P.x(1385), -1.0, D + 0.15, 0.0, zg, K.colour((300, 1095, 1200, 1115), vary=0.1), bevel=0.01,
+          name="floor_slab")
+    hip_tin_roof(K, (P.x(5), P.x(1442), -0.55, D + 0.55), (P.x(118), P.x(1322)), ze, zr, tin,
+                 cap=K.colour((300, 20, 1000, 40), vary=0.06))
+    K.box(P.x(118), P.x(1322), D / 2 - 0.1, D / 2 + 0.1, zr - 0.02, P.z(15), K.colour((300, 20, 1000, 40), vary=0.06),
+          bevel=0.01, name="ridge_board")
+    # the corner poles, front as painted and at the back
+    for x0, x1 in ((68, 102), (1340, 1376)):
+        cx = (x0 + x1) / 2
+        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 300, x1, 1118)], inset=3)
+        for y in (-0.35, D + 0.3):
+            K.lathe([(P.m(18), P.z(1118)), (P.m(16), P.z(800)), (P.m(17), P.z(550)), (P.m(15), P.z(300))], m,
+                    segments=10, centre=(P.x(cx), y, 0.0), wobble=0.05, name="pole")
+        K.box(P.x(cx) - 0.04, P.x(cx) + 0.04, -0.35, D + 0.3, P.z(305), P.z(292), timber, name="wall_plate")
+    # the two alcoves, framed, with their top boards
+    ya = 0.95
+    for x0, x1 in ((233, 683), (785, 1228)):
+        K.cut(body, P.x(x0 + 18), P.x(x1 - 18), -0.05, ya, P.z(1068), P.z(350))
+        K.box(P.x(x0 + 18), P.x(x1 - 18), ya - 0.03, ya, P.z(1068), P.z(350), inside, name="alcove_back")
+        for a, b in ((x0, x0 + 18), (x1 - 18, x1)):
+            K.box(P.x(a), P.x(b), -0.04, ya, P.z(1070), P.z(333), timber, bevel=0.004, name="alcove_frame")
+        K.box(P.x(x0), P.x(x1), -0.04, ya, P.z(350), P.z(333), timber, bevel=0.004, name="alcove_frame")
+        K.box(P.x(x0 + 18), P.x(x1 - 18), -0.04, ya, P.z(1070), P.z(1058), timber, name="alcove_sill")
+        K.panel((x0 + 18, 350, x1 - 18, 398), 0.02, depth=0.4, name="top_board")
+    # the tailor's shelves: standing bolts on the left, folded stacks on the right
+    shelf = K.colour((300, 655, 480, 662), vary=0.08)
+    K.box(P.x(487), P.x(500), 0.02, ya, P.z(1058), P.z(398), timber, name="divider")
+    for x0, x1, py in ((252, 487, 655), (252, 487, 790), (500, 665, 530), (500, 665, 650), (500, 665, 770),
+                       (500, 665, 888), (500, 665, 1012)):
+        K.box(P.x(x0), P.x(x1), 0.04, ya - 0.04, P.z(py + 9), P.z(py), shelf, name="shelf")
+    for row, (t, b) in enumerate(((422, 655), (668, 790))):
+        xs = [283, 307, 333, 360, 386, 413, 438, 462, 482]
+        for k in range(len(xs) - 1):
+            x0, x1 = xs[k], xs[k + 1]
+            lean = -6 if k >= len(xs) - 3 else K.rng.uniform(-2, 2)
+            m = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=1.0, keep=[(x0, t, x1, b)], inset=1)
+            K.block(P.x((x0 + x1) / 2), 0.45, (P.z(b) + P.z(t)) / 2, P.m(x1 - x0) * 0.92, 0.55, P.z(t) - P.z(b), m,
+                    rot=(0, lean, 0), bevel=0.01, name="bolt")
+    for t, b in ((435, 530), (560, 648), (688, 768), (812, 886)):
+        goods_box(K, (505, t, 662, b), 0.15, 0.75, name="folded_cloth")
+    cloth = K.projected(squeeze=1.0, keep=[(505, 920, 662, 1012)], inset=2)
+    for px, py, w, h in ((548, 985, 95, 60), (620, 960, 80, 80), (625, 995, 80, 35)):
+        K.boulder(P.x(px), 0.4, P.z(py), P.m(w), 0.45, P.m(h), cloth, lumps=0.1, name="cloth_heap")
+    # the treadle sewing machine on its table, in front of the alcove
+    yt0, yt1 = -0.55, -0.1
+    table = K.colour((300, 800, 600, 815), vary=0.06)
+    K.box(P.x(213), P.x(628), yt0, yt1, P.z(821), P.z(795), table, bevel=0.008, name="sewing_table")
+    leg = K.projected(squeeze=1.0, keep=[(283, 821, 345, 1097), (520, 821, 537, 1097)], inset=1)
+    for x0, x1 in ((283, 300), (521, 536)):
+        for y in (yt0 + 0.05, yt1 - 0.05):
+            K.box(P.x(x0), P.x(x1), y - 0.02, y + 0.02, 0.0, P.z(821), leg, name="treadle_leg")
+            K.box(P.x(x0) - 0.03, P.x(x1) + 0.03, y - 0.05, y + 0.05, 0.0, 0.04, leg, name="treadle_foot")
+    K.box(P.x(300), P.x(521), yt0 + 0.06, yt0 + 0.1, P.z(905), P.z(887), leg, name="treadle_bar")
+    K.box(P.x(344), P.x(501), yt0 + 0.05, yt1 - 0.05, P.z(1085), P.z(1050), leg, name="treadle_pedal")
+    wheel = []
+    for i in range(33):
+        a = 2 * math.pi * i / 32
+        wheel.append((P.x(333), (yt0 + yt1) / 2 + P.m(100) * math.cos(a) * 0.55, P.z(965) + P.m(100) * math.sin(a)))
+    K.tube(wheel, P.m(7), leg, segments=8, cap=False, name="flywheel")
+    for a in (0.0, 1.05, 2.1):
+        c, sn = math.cos(a), math.sin(a)
+        K.tube([(P.x(333), (yt0 + yt1) / 2 - P.m(95) * c * 0.55, P.z(965) - P.m(95) * sn),
+                (P.x(333), (yt0 + yt1) / 2 + P.m(95) * c * 0.55, P.z(965) + P.m(95) * sn)], P.m(4), leg, segments=6,
+               name="spoke")
+    K.tube([P.pt(333, 965, (yt0 + yt1) / 2), P.pt(305, 965, (yt0 + yt1) / 2)], P.m(9), leg, segments=8, name="hub")
+    mach = K.projected(squeeze=1.0, keep=[(298, 688, 525, 806)], inset=1)
+    ym = (yt0 + yt1) / 2 + 0.02
+    K.box(P.x(305), P.x(523), ym - 0.1, ym + 0.1, P.z(806), P.z(798), mach, bevel=0.004, name="machine_bed")
+    K.prism([(P.x(x), P.z(y)) for x, y in ((331, 799), (392, 799), (385, 752), (372, 722), (444, 722), (448, 793),
+                                           (478, 793), (480, 700), (462, 693), (340, 700), (331, 720))],
+            ym - 0.05, ym + 0.05, mach, name="machine_arm")
+    K.lathe([(0.0, -0.025), (P.m(36), -0.02), (P.m(37), 0.02), (0.0, 0.025)], mach, segments=20,
+            centre=(0.0, 0.0, 0.0), name="hand_wheel")
+    hw = K.parts[-1]
+    from mathutils import Matrix as _M
+    hw.data.transform(_M.Translation((P.x(318), ym, P.z(728))) @ _M.Rotation(math.radians(90), 4, "Y"))
+    # the cycle-mender's alcove: tyres and tubes on hooks, a floor pump, a workbench with a vice
+    rubber = K.projected(squeeze=1.0, keep=[(800, 395, 1210, 795)], inset=1)
+    for x, py in ((850, 405), (965, 405), (1120, 418), (1035, 620), (1180, 618)):
+        K.tube([P.pt(x, py - 15, ya - 0.05), P.pt(x, py - 15, 0.3), P.pt(x, py + 2, 0.3)], P.m(3), iron, segments=5,
+               name="hook")
+    hanging_ring(K, 855, 528, 50, 127, 13, 0.35, rubber, name="tyre")
+    hanging_ring(K, 965, 505, 45, 105, 6, 0.4, rubber, name="tube")
+    hanging_ring(K, 1120, 512, 85, 98, 7, 0.45, rubber, loops=3, spread=0.03, name="coil")
+    hanging_ring(K, 1033, 705, 67, 87, 6, 0.4, rubber, loops=3, spread=0.03, name="coil")
+    K.tube([P.pt(1185, 625, 0.4), P.pt(1160, 650, 0.38), P.pt(1155, 700, 0.36), P.pt(1165, 730, 0.36)], P.m(7), rubber,
+           segments=8, name="bent_tube")
+    pump = K.projected(axis_x=P.x(877), squeeze=0.95, keep=[(800, 760, 935, 1055)], inset=1)
+    yp = 0.35
+    K.tube([P.pt(877, 1040, yp), P.pt(877, 795, yp)], P.m(11), pump, segments=12, name="pump_barrel")
+    K.tube([P.pt(877, 795, yp), P.pt(877, 772, yp)], P.m(3), pump, segments=6, name="pump_rod")
+    K.tube([P.pt(835, 770, yp), P.pt(922, 770, yp)], P.m(5), pump, segments=8, name="pump_handle")
+    K.box(P.x(840), P.x(910), yp - 0.06, yp + 0.06, P.z(1052), P.z(1040), pump, name="pump_foot")
+    K.tube([P.pt(887, 820, yp), P.pt(925, 880, yp - 0.05), P.pt(915, 980, yp - 0.1), P.pt(870, 1000, yp - 0.12),
+            P.pt(815, 968, yp - 0.1)], P.m(2.5), iron, segments=6, name="pump_hose")
+    bench = K.colour((1030, 850, 1200, 880), vary=0.06)
+    yb0, yb1 = 0.15, 0.75
+    K.box(P.x(1005), P.x(1212), yb0, yb1, P.z(852), P.z(836), bench, bevel=0.006, name="bench_top")
+    K.box(P.x(1012), P.x(1205), yb0 + 0.02, yb1 - 0.02, P.z(895), P.z(852), K.projected(squeeze=1.0,
+          keep=[(1012, 852, 1205, 895)], inset=1), name="bench_apron")
+    for x0, x1 in ((1015, 1035), (1188, 1208)):
+        for y in (yb0 + 0.04, yb1 - 0.04):
+            K.box(P.x(x0), P.x(x1), y - 0.02, y + 0.02, P.z(1068), P.z(852), bench, name="bench_leg")
+    K.box(P.x(1030), P.x(1195), yb0 + 0.05, yb1 - 0.05, P.z(1005), P.z(995), bench, name="bench_shelf")
+    vice = K.projected(squeeze=1.0, keep=[(1100, 795, 1210, 845)], inset=1)
+    K.box(P.x(1140), P.x(1205), yb0 + 0.05, yb0 + 0.22, P.z(836), P.z(800), vice, bevel=0.006, name="vice")
+    K.box(P.x(1060), P.x(1130), yb0 + 0.1, yb0 + 0.25, P.z(836), P.z(826), vice, name="tools")
+    # sides and back: a plank door at the back, small windows in the sides
+    wood = K.tile((1040, 900, 1180, 990), vary=0.05)
+    K.cut(body, -0.45, 0.45, D - 0.12, D + 0.05, 0.0, 2.0)
+    K.box(-0.45, 0.45, D - 0.1, D - 0.06, 0.0, 2.0, wood, name="back_door")
+    for a, b, c, d in ((-0.53, -0.45, 0.0, 2.08), (0.45, 0.53, 0.0, 2.08), (-0.53, 0.53, 2.0, 2.08)):
+        K.box(a, b, D - 0.02, D + 0.03, c, d, timber, bevel=0.005, name="back_door_frame")
+    for side in (-1, 1):
+        side_window(K, body, side, D * 0.5, P.z(700), P.z(520), 0.6, timber, iron, K.colour((0.03, 0.02, 0.02)))
+    drop_ground_faces(K)
+
+
+@model("shop_tea_stall", "lane", kind="building", atlas=2048)
+def shop_tea_stall(K):
+    """A plank tea stall under a thatch of palm fronds on two rough poles: a serving hatch with a counter of tea
+    glasses and a jar of biscuits, a radio on a wall shelf, a clay stove on a side board with a brass kettle
+    steaming on it, a bench out front with a folded newspaper."""
+    P = K.paint
+    D = 2.3
+    K.front_min = 0.05
+    halo_exclude(K, [(0, 0, 1465, 1145)])
+    planks = K.tile((300, 860, 520, 1080), size=0.7, vary=0.04)
+    inside = K.tile((620, 520, 760, 680), size=0.6, vary=0.04, soften=0.3)
+    thatch_m = K.tile((560, 120, 860, 230), size=0.9, vary=0.05, soften=0.15)
+    beam = K.colour((400, 20, 1000, 45), vary=0.06)
+    board = K.colour((600, 745, 1000, 760), vary=0.06)
+    earth = K.colour((300, 1100, 1200, 1130), vary=0.1)
+    X0, X1 = P.x(240), P.x(1225)
+    zg, ze, zr = P.z(1095), P.z(280), P.z(50)
+    body = K.box(X0, X1, 0.0, D, 0.0, ze + 0.05, planks, name="walls")
+    K.box(P.x(100), P.x(1365), -1.0, D + 0.2, 0.0, zg, earth, bevel=0.01, name="ground")
+    # the roof: palm-frond thatch on a frame, its top beam, frond cards for the ragged edge all round
+    eave = (P.x(15), P.x(1450), -0.6, D + 0.6)
+    ridge = (P.x(232), P.x(1228))
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12)
+    K.box(P.x(228), P.x(1232), -0.1, 0.1, P.z(55), P.z(10), beam, bevel=0.01, name="front_beam")
+    K.box(P.x(228), P.x(1232), D / 2 - 0.1, D / 2 + 0.1, zr - 0.05, P.z(10), beam, bevel=0.01, name="ridge_beam")
+    fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
+    K.leaves_only((0, 55, 1465, 330), straw_pixels)
+    for i in range(46):
+        cx, cy = K.rng.uniform(60, 1410), K.rng.uniform(150, 260)
+        side = i % 4
+        box = (cx - 70, cy - 70, cx + 70, cy + 70)
+        if side < 2:
+            K.card_from_painting(box, (P.x(cx), fy(cx, cy) - 0.08, P.z(cy)), yaw=K.rng.uniform(-15, 15),
+                                 pitch=-30 + K.rng.uniform(-10, 10), name="frond")
+        elif side == 2:
+            K.card_from_painting(box, (P.x(cx), D - fy(cx, cy) + 0.08, P.z(cy)), yaw=180 + K.rng.uniform(-15, 15),
+                                 pitch=-30 + K.rng.uniform(-10, 10), name="frond_back")
+        else:
+            xe = eave[0] if cx < 730 else eave[1]
+            K.card_from_painting(box, (xe + (0.08 if cx < 730 else -0.08), K.rng.uniform(0.0, D), P.z(cy)),
+                                 yaw=90 + K.rng.uniform(-15, 15), pitch=K.rng.uniform(-10, 10), name="frond_side")
+    # the poles
+    for x0, x1 in ((105, 150), (1315, 1355)):
+        cx = (x0 + x1) / 2
+        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 270, x1, 1115)], inset=3)
+        for y in (-0.45, D + 0.35):
+            K.lathe([(P.m(22), P.z(1115)), (P.m(19), P.z(800)), (P.m(20), P.z(550)), (P.m(17), P.z(265))], m,
+                    segments=10, centre=(P.x(cx), y, 0.0), wobble=0.05, name="pole")
+        K.box(P.x(cx) - 0.04, P.x(cx) + 0.04, -0.45, D + 0.35, P.z(272), P.z(258), beam, name="plate")
+    # the serving hatch: the dark inside, its counter, the radio's shelf
+    yb = 1.5
+    K.cut(body, P.x(300), P.x(1065), -0.05, yb, P.z(745), P.z(285))
+    K.box(P.x(300), P.x(1065), yb - 0.03, yb, P.z(745), P.z(285), inside, name="inside_back")
+    K.box(P.x(535), P.x(1090), -0.25, yb - 0.03, P.z(768), P.z(742), board, bevel=0.006, name="counter")
+    K.box(P.x(745), P.x(1030), yb - 0.35, yb - 0.03, P.z(480), P.z(466), board, bevel=0.004, name="radio_shelf")
+    K.block(P.x(795), yb - 0.2, P.z(500), 0.03, 0.2, 0.12, board, rot=(45, 0, 0), name="bracket")
+    goods_box(K, (858, 372, 1000, 468), yb - 0.3, yb - 0.08, name="radio")
+    K.tube([P.pt(985, 375, yb - 0.2), P.pt(895, 322, yb - 0.25)], P.m(2), K.colour((0.3, 0.3, 0.3)), segments=4,
+           name="aerial")
+    # the tea glasses and the biscuit jar on the counter
+    for x0, x1 in ((578, 615), (622, 660), (667, 705), (712, 750), (757, 795)):
+        jar(K, x0, x1, 695, 748, -0.08, prof=[(0.82, 0.0), (0.9, 0.08), (1.0, 1.0), (0.94, 1.0), (0.84, 0.15),
+                                               (0.0, 0.12)], name="glass")
+    jar(K, 815, 918, 603, 748, 0.0, name="biscuit_jar")
+    # the side board with the clay stove and the kettle
+    K.box(P.x(215), P.x(571), -0.45, 0.02, P.z(836), P.z(807), board, bevel=0.006, name="side_board")
+    for y in (-0.38, -0.05):
+        K.block(P.x(240), y, (P.z(836) + zg) / 2, 0.06, 0.06, P.z(836) - zg, board, name="board_leg")
+    clay = K.projected(axis_x=P.x(413), squeeze=0.95, keep=[(290, 668, 536, 830)], inset=2)
+    ys = -0.22
+    stove = K.prism([(P.x(x), P.z(y)) for x, y in ((293, 829), (533, 829), (520, 720), (505, 680), (325, 680),
+                                                   (305, 715))], ys - 0.2, ys + 0.2, clay, bevel=0.02, name="stove")
+    K.cut(stove, P.x(353), P.x(447), ys - 0.25, ys + 0.05, P.z(829), P.z(750))
+    K.box(P.x(353), P.x(447), ys + 0.02, ys + 0.05, P.z(829), P.z(750), K.colour((0.06, 0.03, 0.02)), name="fire_mouth")
+    brass = K.projected(axis_x=P.x(415), squeeze=0.93, keep=[(336, 528, 495, 695)], inset=2)
+    K.lathe([(P.m(r), P.z(y)) for r, y in ((0.0, 695), (60, 694), (66, 688), (75, 670), (77, 640), (77, 600),
+                                           (73, 590), (50, 576), (44, 571), (44, 556), (20, 553), (6, 549), (8, 538),
+                                           (0.0, 530))], brass, segments=28, centre=(P.x(415), ys, 0.0), name="kettle")
+    K.tube([P.pt(x, y, ys) for x, y in ((351, 582), (340, 548), (343, 515), (362, 489), (415, 487), (467, 489),
+                                        (488, 515), (491, 548), (476, 580))], P.m(5), brass, segments=8,
+           name="kettle_handle")
+    K.tube([P.pt(493, 651, ys), P.pt(520, 625, ys), P.pt(531, 600, ys), P.pt(551, 574, ys)],
+           [P.m(12), P.m(9), P.m(7), P.m(6)], brass, segments=10, name="spout")
+    # the steam rising from the spout: a cut-out of its pale wisps
+    K.leaves_only((485, 330, 585, 575), lambda rgb: (rgb.astype(np.int32) @ np.array([0.3, 0.59, 0.11])) > 95)
+    for yaw in (0, 60, -60):
+        K.card_from_painting((485, 330, 585, 575), (P.x(535), ys, P.z(452)), yaw=yaw, name="steam")
+    # the bench and its newspaper
+    bench = K.colour((700, 950, 1100, 965), vary=0.06)
+    K.box(P.x(590), P.x(1207), -0.75, -0.4, P.z(985), P.z(947), bench, bevel=0.006, name="bench_top")
+    for x0, x1 in ((605, 635), (1140, 1170)):
+        for y in (-0.7, -0.45):
+            K.box(P.x(x0), P.x(x1), y - 0.025, y + 0.025, zg, P.z(985), bench, name="bench_leg")
+    paper = K.projected(squeeze=1.0, keep=[(705, 925, 950, 1037)], inset=1)
+    def news(u, v):
+        px = 708 + (948 - 708) * u
+        if v < 0.6:
+            t = v / 0.6
+            return (P.x(px), -0.4 - 0.3 * t, P.z(946) + 0.01 + 0.01 * math.sin(u * 3))
+        t = (v - 0.6) / 0.4
+        return (P.x(px + 15 * t), -0.41, P.z(946) - (P.z(946) - P.z(1035)) * t * (1 - 0.5 * u))
+    K.sheet(news, 8, 10, paper, name="newspaper", thickness=0.004)
+    # the back: a plank door; the sides: a shuttered window
+    wood = K.tile((640, 800, 760, 930), vary=0.05)
+    K.box(-0.4, 0.4, D, D + 0.04, zg, 1.95, wood, name="back_door")
+    for a, b, c, d in ((-0.48, -0.4, zg, 2.02), (0.4, 0.48, zg, 2.02), (-0.48, 0.48, 1.95, 2.02)):
+        K.box(a, b, D, D + 0.06, c, d, beam, bevel=0.005, name="back_door_frame")
+    for side, x in ((-1, X0), (1, X1)):
+        K.box(min(x, x + side * 0.04), max(x, x + side * 0.04), D * 0.5 - 0.35, D * 0.5 + 0.35, 1.2, 1.8, wood,
+              bevel=0.005, name="side_shutter")
+        K.box(min(x, x + side * 0.06), max(x, x + side * 0.06), D * 0.5 - 0.4, D * 0.5 + 0.4, 1.8, 1.86, beam,
+              name="side_shutter_head")
     drop_ground_faces(K)

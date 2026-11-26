@@ -1169,8 +1169,8 @@ def tank_wall(K):
     gateway into the tank, and little clay lamps burning on brackets along the terraces."""
     P = K.paint
     X, Z = P.x, P.z
-    stone = K.tile((600, 140, 760, 196), vary=0.06, soften=0.45)
-    stone2 = K.tile((100, 255, 220, 298), vary=0.06, soften=0.45)
+    stone = K.tile((600, 140, 760, 196), vary=0.04, soften=0.62)
+    stone2 = K.tile((100, 255, 220, 298), vary=0.04, soften=0.62)
     cap = strip_tile(K, (150, 116, 400, 132), vary=0.05, soften=0.35)
     yb = 2.35
     # the terraces and the wall, each set back from the one below
@@ -1211,7 +1211,7 @@ def tank_wall(K):
                           (812, 272, 0.55), (968, 272, 0.55), (360, 324, 0.0), (688, 324, 0.0)):
         y = yface - 0.1
         if True:
-            K.box(X(px - 9), X(px + 9), y - 0.06, yface + 0.02, Z(py + 4), Z(py), stone, bevel=0.006, name="bracket")
+            K.box(X(px - 7), X(px + 7), y - 0.04, yface + 0.02, Z(py + 2.5), Z(py), stone, bevel=0.004, name="bracket")
         diya(K, px, y, py - 6, py, 7, (px - 3, py - 17, px + 3, py - 6), (px - 8, py - 7, px + 8, py), name="lamp")
     for px in (443, 600):
         diya(K, px, 1.62, 105, 113, 8, (px - 3, 92, px + 3, 105), (px - 9, 104, px + 9, 113), name="lamp")
@@ -1826,3 +1826,112 @@ def roof_house_b_2(K):
     # the back: a door
     K.quad([(X(775), D + 0.004, Z(858)), (X(605), D + 0.004, Z(858)), (X(605), D + 0.004, Z(575)),
             (X(775), D + 0.004, Z(575))], K.decal((605, 575, 775, 858)), name="back_door")
+
+
+def sq_frustum(K, cx, cy, tiers, mat, name="tier"):
+    """A square-planned stepped or tapering block (a chariot's tiers, a plinth, a pyramid roof): tiers
+    [(half-width px, py), ...] from the bottom up, turned about a vertical axis at painted x cx, depth cy."""
+    P = K.paint
+    ob = K.lathe([(P.m(a) * math.sqrt(2), P.z(py)) for a, py in tiers], mat, segments=4, centre=(P.x(cx), cy, 0),
+                 name=name, smooth=False)
+    return orient(ob, (0, 0, 45), pivot=(P.x(cx), cy, 0))
+
+
+def thatch_slope(K, eave, ridge, y0, y1, mat, thick_px=22, shag_px=4, name="thatch"):
+    """One slope of a thatched gable roof running front (y0) to back (y1): from its eave (px, py) up to the ridge
+    (px, py), lumpy, with a ragged drooping fringe at the eave and at the gable ends."""
+    P = K.paint
+    nu, nv = 30, 12
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (nv + 1, nu + 1)), 1.0)
+    fringe = ndimage.gaussian_filter(K.rng.normal(0, 1, nu + 1), 0.7)
+    shag = P.m(shag_px)
+    ex, ez, rx, rz = P.x(eave[0]), P.z(eave[1]), P.x(ridge[0]), P.z(ridge[1])
+
+    def fn(u, v):
+        i, j = int(round(u * nu)), int(round(v * nv))
+        x = ex + (rx - ex) * v
+        z = ez + (rz - ez) * v + shag * noise[j, i]
+        if v < 0.1:
+            z -= shag * 1.5 * abs(fringe[i])
+        return (x, y0 + (y1 - y0) * u, z)
+    return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=P.m(thick_px))
+
+
+@model("chariot_shed", "market", kind="building", atlas=2048)
+def chariot_shed(K):
+    """The shed that houses the temple chariot: a thatched gable roof on a timber frame, walls of woven bamboo
+    matting, a wide open front bay, and inside, lit by lamps on its posts, the carved wooden chariot on its four
+    solid wheels with its tiered roof."""
+    P = K.paint
+    X, Z = P.x, P.z
+    D = 6.0
+    mat = K.tile((70, 328, 215, 372), vary=0.06, soften=0.3)
+    timber = K.tile((50, 300, 62, 470), P.m(12), vary=0.08)
+    straw = K.tile((195, 126, 232, 138), P.m(37), vary=0.12, soften=0.2)
+    dark = K.colour((0.07, 0.055, 0.045), vary=0.1)
+    earth = K.colour((0.12, 0.08, 0.05), vary=0.12)
+    # the roof: two thatched slopes from the ridge, past the gable ends
+    thatch_slope(K, (18, 236), (390, 24), -0.45, D + 0.45, straw, name="thatch_l")
+    thatch_slope(K, (770, 242), (390, 24), D + 0.45, -0.45, straw, name="thatch_r")
+    K.tube([(X(390), -0.47, Z(22)), (X(390), D + 0.47, Z(22))], P.m(9), straw, segments=10, name="ridge")
+    # the gable walls of woven matting (the front open in its middle bay), the side walls
+    front = [(50, 485), (50, 232), (390, 40), (730, 232), (730, 485), (558, 485), (558, 205), (225, 205), (225, 485)]
+    K.prism([(X(x), Z(y)) for x, y in front], 0.0, 0.06, mat, name="gable_front")
+    K.prism([(X(x), Z(y)) for x, y in front[:5]], D - 0.06, D, mat, name="gable_back")
+    for x0, x1 in ((50, 58), (722, 730)):
+        K.box(X(x0), X(x1), 0.0, D, 0.0, Z(232), mat, name="side_wall")
+    # the frame: posts, wall plate, tie beam, lintel, king post, barge boards, battens; and down the sides
+    for x0, x1, top in ((48, 62, 228), (718, 732, 228), (222, 235, 128), (548, 561, 128)):
+        for y in (0.0, D - 0.12):
+            K.box(X(x0), X(x1), y - 0.04, y + 0.16, 0.0, Z(top), timber, bevel=0.01, name="post")
+    for t, b in ((228, 237), (128, 136), (200, 209)):
+        x0, x1 = (44, 736) if t == 228 else (220, 563)
+        for y in (0.0, D - 0.12):
+            K.box(X(x0), X(x1), y - 0.05, y + 0.12, Z(b), Z(t), timber, bevel=0.01, name="beam")
+    K.box(X(385), X(395), -0.04, 0.12, Z(200), Z(32), timber, name="king_post")
+    for y in (-0.42, D + 0.36):
+        for (ax, ay), (bx, by) in (((20, 236), (390, 30)), ((770, 242), (390, 30))):
+            K.tube([(X(ax), y, Z(ay) - P.m(12)), (X(bx), y, Z(by) - P.m(4))], P.m(5), timber, segments=6,
+                   name="barge")
+    for py in (270, 320, 375, 430):
+        for x0, x1 in ((62, 222), (561, 718)):
+            K.box(X(x0), X(x1), -0.035, 0.0, Z(py + 3), Z(py - 3), timber, name="batten")
+    for k in range(1, 5):
+        y = D * k / 5
+        for x0, x1 in ((46, 60), (720, 734)):
+            K.box(X(x0), X(x1), y - 0.08, y + 0.08, 0.0, Z(228), timber, bevel=0.01, name="side_post")
+        K.tube([(X(60), y, Z(232)), (X(390), y, Z(34)), (X(720), y, Z(232))], P.m(4), timber, segments=6,
+               name="rafter")
+    for x0, x1 in ((44, 62), (718, 736)):
+        K.box(X(x0), X(x1), 0.0, D, Z(237), Z(228), timber, name="side_plate")
+    # inside: the earth floor, the posts carrying lamps
+    K.box(X(58), X(722), 0.06, D - 0.06, 0.0, 0.02, earth, name="floor")
+    stone = K.colour((0.22, 0.21, 0.2), vary=0.1)
+    for x, y in ((250, 0.9), (502, 0.9), (279, 3.4), (474, 3.4)):
+        K.box(X(x - 5), X(x + 5), y - 0.05, y + 0.05, 0.0, Z(205), dark, name="inner_post")
+        K.box(X(x - 11), X(x + 11), y - 0.12, y + 0.12, 0.0, Z(465), stone, bevel=0.01, name="post_stone")
+    for (px, py, post) in ((265, 252, (250, 0.9)), (285, 300, (279, 3.4)), (515, 252, (502, 0.9)),
+                           (495, 300, (474, 3.4))):
+        y = post[1] - 0.12
+        K.box(X(min(px, post[0]) - 2), X(max(px, post[0]) + 2), y - 0.02, y + 0.12, Z(py + 3), Z(py), dark,
+              name="lamp_arm")
+        diya(K, px, y, py - 6, py + 1, 11, (px - 4, py - 22, px + 4, py - 6), (px - 12, py - 6, px + 12, py + 1),
+             name="lamp")
+    # the chariot
+    cx, cy = 390, 2.4
+    wood = K.tile((352, 402, 428, 425), vary=0.08, soften=0.15)
+    for y in (cy - 0.6, cy + 0.6):
+        for x0, x1 in ((315, 337), (443, 465)):
+            K.tube([(X(x0), y, Z(457)), (X(x1), y, Z(457))], P.m(28), wood, segments=18, name="chariot_wheel")
+        K.tube([(X(303), y, Z(454)), (X(477), y, Z(454))], P.m(6), dark, segments=8, name="chariot_axle")
+    sq_frustum(K, cx, cy, [(55, 462), (55, 440), (46, 440), (46, 428), (47, 428), (72, 400), (72.5, 392),
+                           (73, 392), (73, 385)], wood, name="chariot_base")
+    K.box(X(338), X(442), cy - P.m(52), cy + P.m(52), Z(385), Z(320), dark, name="sanctum")
+    for x0, x1 in ((334, 351), (353, 373), (407, 428), (430, 446)):
+        for y in (cy - P.m(56), cy + P.m(46)):
+            K.box(X(x0), X(x1), y, y + P.m(10), Z(385), Z(320), wood, bevel=0.006, name="chariot_pillar")
+    for x0, x1 in ((298, 325), (455, 483)):
+        for y in (cy - P.m(70), cy + P.m(55)):
+            K.box(X(x0), X(x1), y, y + P.m(15), Z(380), Z(320), wood, bevel=0.008, name="chariot_hanging")
+    sq_frustum(K, cx, cy, [(91, 320), (78, 300), (73, 300), (65, 255), (57, 255), (50, 230), (35, 230), (30, 210),
+                           (25, 210), (18, 204), (0, 203)], wood, name="chariot_roof")

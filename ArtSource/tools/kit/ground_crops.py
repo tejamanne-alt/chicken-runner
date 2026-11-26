@@ -1,19 +1,21 @@
 """The crop strips of the fields and the small things on the ground, modelled from their paintings
 (ArtSource/cutouts/fields, ArtSource/cutouts/ground). See kitlib.py for the kit.
 
-A crop strip is a real strip of field, 1-2 m deep: its soil bed or its water as a slab (the front is the painting, the
-top the same soil or water cut from it, the cut ends its layers), and its plants standing in rows through the depth:
-leaves and blades as cards cut from the painting's own plants, and the solid parts modelled where the painting has them
-(straw stooks, sorghum stalks and grain heads, banana pseudostems, sugarcane canes, cotton stems and bolls, groundnut
-pods). The front row is the painting; every row behind it is the painting's own plants, mixed and turned.
+A crop strip is a real strip of field, 1-2 m deep: its soil bed or its water as a slab (its front the painting, its
+cut ends and back the painted layers carried through, its top a sheet of the painted soil or water, ridged along the
+rows), and its plants standing in rows through the depth, planted on a grid behind the painted ones: leaves, blades,
+grain heads and flowers as cards cut from the painting's own plants (the front row is the painting, every row behind it
+the painting's own plants turned and crossed), and solid parts where they are thick enough to be solid: straw stooks
+(turned cones of sheaves with their fans of ears), stubble, banana pseudostems, sugarcane canes, cotton bolls and
+groundnut pods. (Thin stalks stay on the cards: the game draws an ink outline round every solid part, and a thin solid
+stalk would be all outline.)
 
-The ground pieces are lying things: stones (each a faceted dome on the painted outline), a coconut (a turned nut, its
-husk fibres as cards), a torn husk (a shell with a fibrous rim), dry leaves (thin curled sheets), twigs (tapered tubes
-along the painted ones); tufts and weeds (blades and flowers, turned copies so they are tufts from every side). The
-prints are decals (cards of the painting); cracked mud and a cart rut are thin relief slabs.
-
-Ground pieces lie on the ground in the game (front up): kind="flat" pieces keep their backs on one plane (the ground
-when laid down), so every stone, leaf and twig rests on it.
+The ground pieces: stones (each a faceted stone on its painted outline, standing on the ground), a coconut (a turned,
+three-sided nut, its loose fibres as cards), a torn husk (a boat of fibre lying hollow side up), tufts and weeds (the
+painted tuft and turned copies of it round its foot, on a little mound of earth). Pieces painted from above lie flat in
+the game, face up (kind="flat", built standing like the painting, relief towards -y): dry leaves (thin curled
+sheets), twigs (tapered tubes along the painted ones, resting on one plane), cracked mud and a cart rut (thin relief
+slabs) and the prints (decals: cards of the painting).
 """
 import math
 
@@ -34,17 +36,6 @@ def alpha_mask(P, thresh=0.5):
 
 def lum(P):
     return P.rgba[..., :3] @ np.array([0.3, 0.59, 0.11]) * 255
-
-
-def contour(mask, eps=1.5, offset=(0, 0)):
-    """The outer outline of a boolean mask as a polygon [(px, py), ...] (the largest piece), simplified by eps px."""
-    m = (mask.astype(np.uint8) * 255)
-    cs, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    if not cs:
-        return []
-    c = max(cs, key=cv2.contourArea)
-    c = cv2.approxPolyDP(c, eps, True)[:, 0, :].astype(float)
-    return [(x + offset[0] + 0.5, y + offset[1] + 0.5) for x, y in c]
 
 
 def stone_masks(P, dark=95, ink=85, min_px=25, grow=3):
@@ -433,20 +424,6 @@ def coconut(K):
                                  normal=(math.cos(t), math.sin(t), 0.6))
 
 
-def inflate(mask, height, falloff=0.55, noise=0.0, rng=None):
-    """A height field that puffs a painted outline up into a rounded body (h = 0 on the outline, `height` in its
-    middle): the distance from the outline, eased; returns h(px, py) -> metres."""
-    d = ndimage.distance_transform_edt(mask)
-    D = max(1.0, d.max() * falloff)
-    e = np.clip(d / D, 0, 1)
-    h = height * np.sqrt(1 - (1 - e) ** 2)
-    if noise and rng is not None:
-        n = ndimage.gaussian_filter(rng.normal(0, 1, mask.shape), 6)
-        h *= 1 + noise * n / max(1e-6, n.std())
-    H, W = mask.shape
-    return lambda px, py: float(h[min(H - 1, max(0, int(py))), min(W - 1, max(0, int(px)))])
-
-
 @model("husk", "ground", kind="prop")
 def husk(K):
     """A broken half of a coconut husk lying on the ground, hollow side up: a thick boat of fibre (the outside of its
@@ -828,7 +805,13 @@ def field_bed(K, x0, x1, top_py, depth, top_box=None, top_rgb=None, ridges=0.0, 
     side = K.projected(squeeze=1.0, keep=[(x0 + 4, top_py, x1 - 4, P.h)], inset=3)
     top_z = P.z(top_py)
     X0, X1 = P.x(x0), P.x(x1)
-    K.box(X0, X1, -depth / 2, depth / 2, 0.0, top_z - 0.004, side, name=name)
+    # its four sides (no top under the sheet, no bottom on the ground: they would only take atlas space)
+    y0, y1, zt = -depth / 2, depth / 2, top_z - 0.002
+    for corners in (((X0, y0, 0), (X1, y0, 0), (X1, y0, zt), (X0, y0, zt)),
+                    ((X1, y1, 0), (X0, y1, 0), (X0, y1, zt), (X1, y1, zt)),
+                    ((X0, y1, 0), (X0, y0, 0), (X0, y0, zt), (X0, y1, zt)),
+                    ((X1, y0, 0), (X1, y1, 0), (X1, y1, zt), (X1, y0, zt))):
+        K.quad(list(corners), side, name=name)
     top = (K.tile(top_box, vary=0.08, soften=0.35) if top_box else
            K.colour(top_rgb, vary=0.1, scale=3.0))
     nx = max(8, int((X1 - X0) / 0.12))
@@ -958,6 +941,13 @@ def crop_strip_1(K):
             [75, 150, 190, 250, 310, 370, 435, 500, 570, 640, 735, 810, 880, 960, 1040, 1110], 70, 72, 18)
 
 
+# stooks of crop_strip_2: (axis px, top of the ears py, tie py, painted foot py, foot radius px); a tie of None is a
+# stook thatched to a point (a spike of straw at its top) instead of tied under a fan of ears
+STOOKS = [(150, 8, 45, 158, 54), (236, 38, 60, 142, 42), (305, 28, 50, 126, 38), (450, 10, 42, 140, 56),
+          (545, 50, None, 122, 28), (606, 10, 45, 150, 54), (750, 38, None, 132, 48), (863, 38, 55, 138, 41),
+          (912, 18, 40, 118, 34), (964, 28, 50, 140, 46), (1042, 10, 45, 150, 50)]
+
+
 def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=1.0):
     """A stook of harvested paddy: a cone of sheaves stood ears-up, its foot flared, tied near the top under a fan
     of ears (or thatched to a point), at (x, y) with its foot at z0, scaled; built on the painted one at ax (its
@@ -1081,11 +1071,16 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
     they are painted; each row behind has a plant every ~step_px: a card of a random painted plant (width_px wide)
     with a second crossed through it, a little smaller. Solid parts (features) go wherever their card puts them."""
     P = K.paint
-    edges = np.linspace(x0, x1, slices + 1)
+    if at is not None and slices:
+        # one card per painted plant: cut midway between them, so no plant is split down its middle
+        c = sorted(at)
+        edges = [x0] + [(p + q) / 2 for p, q in zip(c, c[1:])] + [x1]
+    else:
+        edges = np.linspace(x0, x1, slices + 1)
     for a, b in zip(edges, edges[1:]):
         box = (a - 1, top_py, b + 1, base_py)
         plant_card(K, box, (P.x((a + b) / 2), rows[0] + K.rng.uniform(-0.02, 0.02), P.z(base_py)),
-                   K.rng.uniform(-front_yaw, front_yaw), 1.0, features, make, name=name)
+                   K.rng.uniform(-front_yaw, front_yaw) * 0.5, 1.0, features, make, name=name)
     src = src if src is not None else list(np.arange(x0 + width_px / 2, x1 - width_px / 2, 10))
     for y in rows[1:]:
         # planted on a grid (each plant behind a painted one: `at`), or every ~step_px along the row
@@ -1212,7 +1207,7 @@ def crop_strip_6(K):
         ball(K, fr(ft[0], ft[1], out=P.m(r) * s * 0.35), P.m(r) * s, cream)
     at = [105, 228, 335, 470, 640, 790, 925, 1065]                  # the painted bushes' stems
     crop_rows(K, 8, 1173, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.8, 0.95), yaw=40,
-              cross=True, src=at, at=[a + K.rng.uniform(-40, 40) for a in at])
+              cross=True, src=at, at=at)
 
 
 # banana pseudostems of crop_strip_7: (axis px, foot py, top py, half-width at the foot, at the top px)
@@ -1338,7 +1333,16 @@ def sugarcane(K):
     bed_py = 464
     field_bed(K, 128, 834, bed_py, depth, top_rgb=(0.12, 0.07, 0.035), ridges=0.05, rows=rows)
     z0 = P.z(bed_py)
-    cane = K.tile((292, 380, 299, 455), vary=0.06, soften=0.1)
+    # the canes' rind: the painted canes' own bands (yellow, ringed brown at the nodes) as they run up three painted
+    # canes, carried round each cane (every cane takes one of the three, shifted up or down a little)
+    a = np.asarray(P.img).astype(np.float32)
+    canes = []
+    for xr in (295, 326, 364):
+        col = np.median(a[:, xr - 2:xr + 3, :3], axis=1)
+        col[:300] = col[300]                                    # above the leaves' foot: as at its top
+        img = np.repeat(col[:, None, :], P.w, axis=1)
+        src = Image.fromarray(np.dstack([img, np.full(img.shape[:2], 255.0)]).clip(0, 255).astype(np.uint8), "RGBA")
+        canes += [proj_material(K, src, name="cane", dz=P.m(dz)) for dz in (-9, 6)]
     leafy_py = 300
     # the canes: the painted ones where they are painted (jointed: swollen a little at every node), and more in
     # every row behind
@@ -1357,7 +1361,9 @@ def sugarcane(K):
                 t = i / n
                 pts.append(P.pt(x + lean * t, bed_py + 2 + (top - bed_py - 2) * t, yy + dy * t))
                 rad.append(P.m(4.6) * (1.12 if (k == 0 and i % 2 == 0) else 1.0) * (1 - 0.15 * t))
-            K.tube(pts, rad, cane, segments=6, name="cane")
+            K.tube(pts, rad, canes[int(K.rng.integers(len(canes)))], segments=6, name="cane")
     # the leaves: the painted tangle in front, and rows of it behind, on top of the canes
     card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < 330))
-    crop_rows(K, 8, 946, 0, leafy_py + 30, rows, P.z(leafy_py + 30), 12, 120, 90, scale=(0.85, 1.0), yaw=35)
+    crop_rows(K, 8, 946, 0, leafy_py + 30, rows[:1], P.z(leafy_py + 30), 12, 120, 90, yaw=35)
+    crop_rows(K, 130, 830, 0, leafy_py + 30, [rows[0]] + rows[1:], P.z(leafy_py + 30), 0, 120, 90,
+              scale=(0.85, 1.0), yaw=35, src=list(range(190, 770, 20)))

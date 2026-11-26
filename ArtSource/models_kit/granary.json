@@ -1,0 +1,10 @@
+{
+ "name": "granary",
+ "folder": "fields",
+ "kind": "building",
+ "width": 4.584,
+ "height": 4.6,
+ "depth": 3.636,
+ "faces": 41550,
+ "source": "blender"
+}

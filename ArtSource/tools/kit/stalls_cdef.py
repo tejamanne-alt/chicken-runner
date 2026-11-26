@@ -1252,8 +1252,8 @@ def stall_d_3(K):
     for k, (x_px, box) in enumerate(((330, (130, 258, 288, 362)), (560, (243, 372, 382, 552)), (780, (712, 392, 858, 557)))):
         bmat = K.projected(axis_x=P.x((box[0] + box[2]) / 2), squeeze=0.94, keep=[box], dx=P.m((box[0] + box[2]) / 2 - x_px),
                            inset=2)
-        bowl(K, (P.x(x_px), 0.66, Z(330) + k * 0.05), P.m(62), P.m(48), P.m(55), bmat, axis=(0.0, 0.9, -0.45),
-             name="back_basket")
+        bowl(K, (P.x(x_px), 0.66 + P.m(55) * 0.95, Z(330) + k * 0.05), P.m(62), P.m(48), P.m(55), bmat,
+             axis=(0.0, -0.95, 0.3), name="back_basket")
         K.tube([(P.x(x_px), 0.65, Z(330) + k * 0.05 + 0.08), (P.x(x_px), 0.7, Z(330) + k * 0.05 + 0.1)], 0.01, batten,
                segments=5, name="peg")
     plank = K.projected(squeeze=1.0, keep=[(214, 230, 238, 545), (856, 230, 880, 680)], inset=1)
@@ -1326,3 +1326,213 @@ def stall_d_3(K):
             M = (Matrix.Translation((P.x((x0 + x1) / 2), y, 0.0)) @ Matrix.Rotation(math.radians(-14 - 6 * k), 4, "X")
                  @ Matrix.Translation((-P.x((x0 + x1) / 2), -y, 0.0)))
             p.data.transform(M)
+
+
+def pod(K, c, r, length, mat, yaw=0.0, pitch=0.0, segs=8, name="pod"):
+    """A long vegetable (brinjal, cucumber, gourd, carrot): a stretched egg r thick and `length` long at c, lying
+    along yaw degrees (0 = across the stall) tilted pitch degrees."""
+    L = length / 2
+    prof = [(0.0, -L), (r * 0.62, -L * 0.85), (r * 0.95, -L * 0.45), (r, 0.0), (r * 0.93, L * 0.5), (r * 0.6, L * 0.86),
+            (0.0, L)]
+    ob = K.lathe(prof, mat, segments=segs, centre=c, name=name)
+    a, b = math.radians(yaw), math.radians(pitch)
+    orient(ob, c, (math.cos(a) * math.cos(b), math.sin(a) * math.cos(b), math.sin(b)))
+    return ob
+
+
+def scatter_on(K, box, spacing, place, rng_jitter=0.35):
+    """Calls place(px, py) at the painted pixels of box on a jittered grid `spacing` px apart, where the painting is
+    opaque: pieces of produce laid where the painting has them."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    a = P.rgba[..., 3]
+    n = 0
+    for gy in np.arange(y0 + spacing / 2, y1, spacing * 0.87):
+        off = spacing / 2 if int((gy - y0) / (spacing * 0.87)) % 2 else 0.0
+        for gx in np.arange(x0 + spacing / 2 + off, x1, spacing):
+            px_ = gx + K.rng.uniform(-rng_jitter, rng_jitter) * spacing
+            py_ = gy + K.rng.uniform(-rng_jitter, rng_jitter) * spacing
+            if 0 <= int(py_) < P.h and 0 <= int(px_) < P.w and a[int(py_), int(px_)] > 0.5:
+                place(px_, py_)
+                n += 1
+    return n
+
+
+# ====================================================================== stall E1: the vegetable stall
+@model("stall_e_1", "market", kind="prop", atlas=2048)
+def stall_e_1(K):
+    """A long vegetable stall: a faded red cloth on four bamboo posts with lashed cross-stubs, over a big display
+    board sloping down to the customers, spread with green leaves and heaps of tomatoes, brinjals, onions, round
+    gourds, cucumbers and beans; brass pots on a box, a hanging balance on its stand and a basket of carrots at the
+    back; sacks of onions, chillies and limes and loose greens, onions, okra and cucumbers on the ground in front."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.12, 0.06, 0.03), vary=0.1)
+    bam = K.colour((70, 300, 90, 400), vary=0.08)
+    yf, yb = -0.62, 0.72
+    # ---------------------------------------------------------------- posts, stubs and the cloth
+    posts = [((60, 75), (104, 733), 12, yf, [(45, 70, 115, 650)]),
+             ((1450, 95), (1414, 733), 12, yf, [(1405, 90, 1465, 650)]),
+             ((240, 12), (258, 733), 10, yb, [(225, 0, 258, 60), (232, 270, 262, 445)]),
+             ((1310, 10), (1296, 733), 10, yb, [(1296, 0, 1326, 55), (1288, 270, 1318, 445)])]
+    for top, bot, rpx, y, keep in posts:
+        mat = K.projected(axis_x=P.x((top[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
+        bamboo(K, P.pt(bot[0], 733, y), P.pt(top[0], top[1], y), P.m(rpx), mat, nodes=0.5, bend=0.006, taper=0.95,
+               name="post")
+    stubs = [((15, 152), (95, 152), yf, (60, 150)), ((1420, 162), (1495, 162), yf, (1445, 162)),
+             ((195, 52), (260, 52), yb, (240, 52)), ((1295, 47), (1352, 47), yb, (1310, 45))]
+    for a, b, y, j in stubs:
+        bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(11), bam, node_at=[], taper=1.0, name="stub")
+        joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(12), rope)
+    cloth = K.projected(squeeze=1.0, keep=[(80, 40, 1440, 278)],
+                        exclude=[(30, 120, 95, 185), (1420, 130, 1480, 195), (220, 25, 262, 75), (1290, 25, 1330, 70)],
+                        inset=3)
+    under = ktile(K, (500, 100, 900, 200), vary=0.05, soften=0.3)
+    awning(K, P.pt(82, 152, yf + 0.03), P.pt(1430, 162, yf + 0.03), P.pt(248, 52, yb - 0.02), P.pt(1302, 48, yb - 0.02),
+           cloth, sag_front=P.m(100), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=48, nv=18,
+           hem=lambda u: 0.02 * (math.exp(-((u - 0.64) / 0.01) ** 2) + math.exp(-((u - 0.88) / 0.01) ** 2)))
+    # ---------------------------------------------------------------- the sloping display board on its trestles
+    bF, bB = -0.5, 0.5
+    zF, zB = Z(658), Z(502)
+
+    def board_z(y):
+        return zF + (zB - zF) * (y - bF) / (bB - bF)
+
+    def board_y(z):
+        return bF + (z - zF) * (bB - bF) / (zB - zF)
+    standing = [(210, 425, 352, 512), (612, 425, 762, 512), (770, 398, 1050, 578), (1060, 398, 1205, 572),
+                (1192, 405, 1342, 530)]
+    top = K.projected(squeeze=1.0, keep=[(100, 440, 1430, 668)], exclude=standing, inset=2)
+    slab(K, [(P.x(100), bF, zF), (P.x(1400), bF, zF), (P.x(1335), bB, zB), (P.x(212), bB, zB)], 0.04, top,
+         name="board")
+    edge = K.colour((600, 652, 700, 664), vary=0.08)
+    bamboo(K, (P.x(100), bF - 0.02, zF + 0.005), (P.x(1402), bF - 0.02, zF + 0.005), P.m(8), edge,
+           node_at=[0.25, 0.5, 0.75], taper=1.0, name="edge_front")
+    for xa, xb in ((100, 212), (1400, 1335)):
+        K.tube([(P.x(xa), bF, zF + 0.01), (P.x(xb), bB, zB + 0.01)], P.m(7), edge, segments=8, name="edge_side")
+    wood = ktile(K, (840, 515, 960, 570), vary=0.08)
+    for x_px in (130, 500, 900, 1300):
+        x = P.x(x_px)
+        for y in (bF + 0.08, bB - 0.08):
+            K.box(x - 0.04, x + 0.04, y - 0.04, y + 0.04, 0.0, board_z(y) - 0.04, wood, name="trestle_leg")
+        K.box(x - 0.035, x + 0.035, bF + 0.04, bB - 0.04, board_z(0.0) * 0.45 - 0.03, board_z(0.0) * 0.45 + 0.03, wood,
+              name="trestle_bar")
+    # ---------------------------------------------------------------- the heaps on the board, piece by piece
+    def on_board(box, r, mat, elong=1.0, spacing=None, squash=0.85, yaw_jit=25, kind="ball"):
+        def place(px_, py_):
+            zc = Z(py_)
+            y = board_y(zc - r * 0.8)
+            if kind == "ball":
+                ball(K, (P.x(px_), y, zc), r * K.rng.uniform(0.9, 1.1), mat, squash=squash, segs=7, rings=4)
+            else:
+                pod(K, (P.x(px_), y, zc), r, r * elong, mat, yaw=K.rng.uniform(-yaw_jit, yaw_jit) + (0 if kind == "pod" else 90),
+                    pitch=K.rng.uniform(-15, 15), segs=7)
+        return scatter_on(K, box, spacing or P.px(0) * 0 + (2 * r * P.ppm * 0.92), place)
+    tom = K.projected(squeeze=1.0, keep=[(205, 500, 330, 650)], inset=1)
+    on_board((215, 505, 325, 645), P.m(17), tom)
+    brin = K.projected(squeeze=1.0, keep=[(262, 505, 445, 650)], inset=1)
+    on_board((270, 515, 435, 645), P.m(13), brin, elong=3.4, kind="pod", spacing=30)
+    oni = K.projected(squeeze=1.0, keep=[(420, 500, 590, 652)], inset=1)
+    on_board((430, 505, 585, 648), P.m(16), oni)
+    lime = K.projected(squeeze=1.0, keep=[(585, 555, 722, 652)], inset=1)
+    on_board((590, 565, 718, 648), P.m(17), lime)
+    cuc = K.projected(squeeze=1.0, keep=[(580, 495, 860, 655), (1060, 520, 1240, 650)], inset=1)
+    on_board((590, 505, 760, 560), P.m(18), cuc, elong=5.0, kind="pod", spacing=40)
+    on_board((725, 490, 855, 645), P.m(18), cuc, elong=5.5, kind="pod_up", spacing=34, yaw_jit=10)
+    on_board((1065, 530, 1235, 640), P.m(22), cuc, elong=4.0, kind="pod", spacing=46)
+    small = K.projected(squeeze=1.0, keep=[(1172, 605, 1262, 650)], inset=1)
+    on_board((1178, 610, 1258, 648), P.m(13), small)
+    # beans lie flat in bundles: low rolls along the board
+    beans = K.projected(squeeze=1.0, keep=[(840, 560, 1030, 645)], inset=1)
+    for py_ in (575, 595, 615, 632):
+        zc = Z(py_)
+        y = board_y(zc - 0.03)
+        pod(K, (P.x(935), y, zc), 0.03, P.m(185), beans, yaw=0, segs=6)
+    # ---------------------------------------------------------------- standing at the back of the board
+    burlap = ktile(K, (30, 690, 180, 728), vary=0.06, soften=0.3)
+    zb_back = board_z(0.42)
+    sack(K, P.x(282), 0.42, P.m(66), Z(478), Z(458), Z(432), burlap,
+         K.projected(squeeze=1.0, keep=[(240, 430, 335, 490)], inset=2), z0=zb_back, sy=0.85, name="spice_sack")
+    greens = K.projected(squeeze=1.0, keep=[(350, 440, 610, 510)], inset=2)
+    heap_px(K, 480, 0.4, [(130, 512), (120, 480), (90, 460), (40, 448), (0, 445)], greens, sy=0.4, name="beans_heap",
+            z0=board_z(0.4))
+    weave = ktile(K, (630, 470, 750, 505), vary=0.06)
+    zb = board_z(0.38)
+    basket(K, P.x(688), 0.38, zb, [(P.m(52), 0.0), (P.m(68), Z(478) - zb), (P.m(74), Z(455) - zb)],
+           K.projected(axis_x=P.x(688), squeeze=0.93, keep=[(612, 450, 762, 512)], inset=2), sy=0.85)
+    hb = heap_px(K, 688, 0.38, [(70, 455), (60, 440), (40, 430), (0, 426)], oni, sy=0.85, name="onion_heap")
+    pile(K, hb, P.x(688), 0.38, P.m(62), P.m(52), 12, P.m(15), oni, over=P.m(4))
+    # the brass on its box
+    zbox = board_z(0.3)
+    K.box(P.x(828), P.x(972), 0.15, 0.45, zbox - 0.1, Z(512), wood, bevel=0.01, name="box")
+    brass = [  # (cx, profile, y)
+        (812, [(36, 500), (38, 455), (36, 448), (40, 440), (40, 410), (36, 405)], 0.42),
+        (852, [(20, 525), (28, 510), (30, 495), (24, 482), (27, 478), (26, 475)], 0.3),
+        (905, [(18, 525), (8, 515), (6, 505), (16, 495), (24, 482), (20, 470), (24, 465), (23, 462)], 0.3),
+        (950, [(18, 525), (24, 510), (26, 498), (20, 490), (22, 486)], 0.3),
+        (1003, [(30, 540), (40, 520), (44, 495), (38, 470), (25, 455), (24, 445), (30, 437), (28, 433)], 0.32),
+    ]
+    for cx, prof, y in brass:
+        x0, x1 = cx - max(r for r, _ in prof), cx + max(r for r, _ in prof)
+        mat = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(x0, prof[-1][1] - 3, x1, prof[0][1])], inset=2)
+        turned(K, cx, prof, y, mat, segs=24)
+    # the hanging balance: a stand on a box, the beam, the pan on its three strings
+    K.box(P.x(1078), P.x(1200), 0.18, 0.42, board_z(0.3) - 0.1, Z(505), wood, bevel=0.01, name="scale_box")
+    iron = K.colour((0.05, 0.035, 0.025), vary=0.05)
+    K.tube([(P.x(1185), 0.35, Z(505)), (P.x(1185), 0.35, Z(395)), (P.x(1100), 0.35, Z(395))], 0.008, iron, segments=6,
+           name="scale_stand")
+    K.tube([P.pt(1100, 395, 0.35), P.pt(1100, 418, 0.35)], 0.005, iron, segments=5, name="scale_hook")
+    pan = K.projected(squeeze=1.0, keep=[(1060, 470, 1185, 510)], inset=1)
+    K.lathe([(0.0, Z(505)), (P.m(35), Z(502)), (P.m(55), Z(492)), (P.m(62), Z(482))], pan, segments=20,
+            centre=(P.x(1122), 0.3, 0.0), cap=False, name="scale_pan")
+    for k in range(3):
+        a = 2 * math.pi * k / 3 + 0.4
+        K.tube([P.pt(1100, 418, 0.35), (P.x(1122) + P.m(58) * math.cos(a), 0.3 + P.m(58) * math.sin(a), Z(483))], 0.0025,
+               iron, segments=4, name="scale_string")
+    # the basket of carrots and radishes
+    zb = board_z(0.42)
+    basket(K, P.x(1268), 0.42, zb, [(P.m(55), 0.0), (P.m(70), Z(470) - zb), (P.m(74), Z(447) - zb)],
+           K.projected(axis_x=P.x(1268), squeeze=0.93, keep=[(1192, 440, 1342, 530)], inset=2), sy=0.85)
+    carrot = K.projected(squeeze=1.0, keep=[(1205, 410, 1335, 462)], inset=1)
+    hc = heap_px(K, 1268, 0.42, [(70, 450), (55, 435), (30, 425), (0, 422)], carrot, sy=0.85, name="carrot_heap")
+    for i in range(12):
+        a = K.rng.uniform(0, 2 * math.pi)
+        d = K.rng.uniform(0, 0.12)
+        c = (P.x(1268) + d * math.cos(a), 0.42 + d * math.sin(a) * 0.8, 0.0)
+        c = (c[0], c[1], hc(c[0], c[1]) + 0.02)
+        pod(K, c, 0.022, 0.15, carrot, yaw=K.rng.uniform(0, 360), pitch=K.rng.uniform(10, 50), segs=6)
+    # ---------------------------------------------------------------- on the ground in front
+    for cx, hw, rimf, rimb, peak, goods_box in ((100, 100, 690, 655, 650, (40, 655, 170, 690)),
+                                                (310, 100, 700, 662, 655, (215, 660, 400, 700)),
+                                                (522, 102, 705, 672, 665, (430, 665, 615, 705))):
+        goods = K.projected(squeeze=1.0, keep=[goods_box], inset=1)
+        sack(K, P.x(cx), -0.85, P.m(hw), Z(rimf), Z(rimb), Z(peak), burlap, goods, sy=0.75, name="ground_sack")
+    gb = K.projected(squeeze=1.0, keep=[(845, 660, 1070, 733)], inset=1)
+    ho = heap_px(K, 958, -0.85, [(112, 733), (95, 700), (65, 680), (30, 668), (0, 664)], gb, sy=0.5, name="onions_g")
+    pile(K, ho, P.x(958), -0.85, P.m(100), P.m(50), 26, P.m(17), gb, over=P.m(5))
+    ok = K.projected(squeeze=1.0, keep=[(1060, 660, 1222, 733)], inset=1)
+    heap_px(K, 1140, -0.85, [(82, 733), (70, 705), (45, 680), (0, 668)], ok, sy=0.5, name="okra_g")
+    for i in range(10):
+        pod(K, (P.x(1140) + K.rng.uniform(-0.25, 0.25), -0.85 + K.rng.uniform(-0.12, 0.08), Z(700) + K.rng.uniform(0, 0.06)),
+            0.018, 0.13, ok, yaw=K.rng.uniform(0, 360), pitch=K.rng.uniform(-10, 30), segs=6)
+    cg = K.projected(squeeze=1.0, keep=[(1215, 640, 1400, 733)], inset=1)
+    for px_, py_, yaw in ((1250, 690, -30), (1300, 680, -25), (1340, 700, -40), (1280, 712, -35), (1360, 670, -20)):
+        pod(K, (P.x(px_), -0.85 + K.rng.uniform(-0.08, 0.08), Z(py_)), P.m(18), P.m(110), cg, yaw=yaw,
+            pitch=-25 + K.rng.uniform(-8, 8), segs=8)
+    # loose greens as cards: on the ground and in bunches at the board's right end
+    for box in ((640, 645, 860, 733), (1380, 615, 1545, 728), (1205, 495, 1420, 655), (350, 440, 610, 505),
+                (215, 650, 405, 705)):
+        K.leaves_only(box, green_leaves)
+    K.card_from_painting((640, 645, 860, 733), (P.x(750), -0.9, Z(689)), name="greens")
+    K.card_from_painting((1380, 615, 1545, 728), (P.x(1462), -0.8, Z(671)), name="greens")
+    K.card_from_painting((1205, 495, 1420, 655), (P.x(1312), board_y(Z(600)) - 0.05, Z(575)), name="greens")
+    K.card_from_painting((215, 650, 405, 705), (P.x(310), -1.0, Z(677)), name="chillies")
+    for box, cy0 in (((640, 645, 860, 733), -0.85), ((1380, 615, 1545, 728), -0.75), ((1205, 495, 1420, 655), 0.0)):
+        for i in range(6):
+            px_ = K.rng.uniform(box[0] + 30, box[2] - 30)
+            py_ = K.rng.uniform(box[1] + 20, box[3] - 20)
+            yy = cy0 + K.rng.uniform(-0.15, 0.15)
+            K.card_from_painting((px_ - 45, py_ - 35, px_ + 45, py_ + 35), (P.x(px_), yy, Z(py_)),
+                                 yaw=K.rng.uniform(-80, 80), name="greens")
+    unify_cards(K)

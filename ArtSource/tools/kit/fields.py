@@ -1368,12 +1368,13 @@ def pump_house(K):
     shear(K, 0.0, 0.0, kx=kx)
 
 
-def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, tile_r=0.035, name="roof"):
+def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, tile_r=0.035, name="roof", under=None):
     """A hipped roof of country tiles over the eave rectangle x0..x1, y0..y1: front and back slopes up to a ridge
     `ridge` metres long (along x) and the two ends sloping up to it (hips), with half-round ridge and hip tiles."""
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     hw, hd = (x1 - x0) / 2, (y1 - y0) / 2
     parts = []
+    under = under or K.colour((0.2, 0.1, 0.05), vary=0.1)
 
     def slope(w_eave, w_ridge, depth, length_dir, name):
         def surf(u, v):
@@ -1385,18 +1386,22 @@ def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, ti
         def tiled(u, v):
             x, y, z = surf(u, v)
             ripple = tile_r * abs(math.sin(math.pi * u * n)) * (w_eave + (w_ridge - w_eave) * v) / w_eave
-            step = 0.012 * ((v * nr) % 1.0)
-            return (x, y, z + ripple + step)
-        return K.sheet(tiled, n * 6, nr * 2, mat, name=name, smooth=False, thickness=0.03)
+            return (x, y, z + ripple)
+        ob = K.sheet(tiled, n * 4, nr, mat, name=name, smooth=False)
+        # its underside: a plain board under the tiles (the soffit seen under the eaves)
+        K.sheet(lambda u, v: (lambda p: (p[0], p[1], p[2] - 0.02))(surf(1 - u, v)), 2, 2, under, name=name + "_soffit",
+                smooth=False)
+        return ob
     for side in (0, 90, 180, 270):
         if side in (0, 180):
             ob = slope(hw, ridge / 2, hd, "x", name)
         else:
             ob = slope(hd, 0.001, hw - ridge / 2, "y", name)
-        rotate(ob, side, "Z", (0, 0, 0))
-        for v in ob.data.vertices:
-            v.co.x += cx
-            v.co.y += cy
+        for o in (ob, K.parts[-1]):
+            rotate(o, side, "Z", (0, 0, 0))
+            for v in o.data.vertices:
+                v.co.x += cx + (ridge / 2 if side == 90 else -ridge / 2 if side == 270 else 0.0)
+                v.co.y += cy
         parts.append(ob)
     # ridge and hip tiles: half-round tiles along the ridge and down the four hips
     ridge_pts = [(cx - ridge / 2, cy, z_ridge + 0.04), (cx + ridge / 2, cy, z_ridge + 0.04)]
@@ -1445,7 +1450,7 @@ def granary(K):
     # the roof: hipped, over a wall plate, with rafter ends under the eaves
     plate = K.colour((0.22, 0.11, 0.05), vary=0.08)
     K.box(P.x(76), P.x(376), -0.06, D + 0.06, P.z(206), P.z(198), plate, name="wall_plate")
-    hip_roof(K, P.x(10), P.x(412), -0.62, D + 0.62, P.z(198), P.z(16), tiles, ridge=0.55)
+    hip_roof(K, P.x(10) + kx * 0.62, P.x(412), -0.62, D + 0.62, P.z(198), P.z(26), tiles, ridge=0.55)
     rafter = K.colour((0.3, 0.14, 0.06), vary=0.1)
     for x in (130, 270, 350):
         K.tube([(P.x(x), 0.2, P.z(203)), (P.x(x), -0.55, P.z(203))], P.m(7), rafter, segments=8, name="rafter")

@@ -1,0 +1,10 @@
+{
+ "name": "sugarcane",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 5.624,
+ "height": 2.8,
+ "depth": 1.709,
+ "faces": 6494,
+ "source": "blender"
+}
