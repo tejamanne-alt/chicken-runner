@@ -24,21 +24,7 @@ from mathutils import Vector
 from PIL import Image
 from scipy import ndimage
 
-from kitlib import Mat, _image, _obj
-from kitlib import model as _kit_model
-
-
-def model(name, folder, **kw):
-    """kitlib.model, with a plain-coloured speck added as each model's first part (see uv_anchor)."""
-    def wrap(fn):
-        def build(K):
-            fn(K)
-            if K.parts:
-                uv_anchor(K)
-        build.__doc__, build.__name__ = fn.__doc__, fn.__name__
-        _kit_model(name, folder, **kw)(build)
-        return fn
-    return wrap
+from kitlib import Mat, _image, _obj, model
 
 
 # ====================================================================== helpers: masks and outlines
@@ -217,16 +203,6 @@ def dome(K, poly_px, height, y_back, mat, rings=((1.0, 0.0), (0.94, 0.42), (0.74
     ob = _obj(name, bm, mat, smooth=False)
     K.parts.append(ob)
     return ob
-
-
-def uv_anchor(K):
-    """A 1 mm speck of plain colour as the model's first part, hidden inside it. The kit unwraps the joined model with
-    Blender's Smart UV Project, which squashes every island by the aspect of the first material's image (a long
-    strip's painting squashed its atlas into a sliver): with a plain colour first, there is no image to take an
-    aspect from."""
-    m = K.colour((0.2, 0.2, 0.2), vary=0.0, name=f"{K.name}_anchor")
-    K.box(-0.0005, 0.0005, -0.0005, 0.0005, 0.0005, 0.0015, m, name="uv_anchor")
-    K.parts.insert(0, K.parts.pop())
 
 
 # ====================================================================== stones
