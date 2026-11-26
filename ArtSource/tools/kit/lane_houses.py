@@ -1083,7 +1083,7 @@ def house_potter(K):
            (2165, 572)]
     bottom = [(2100, 602), (2040, 578), (1990, 562), (1880, 556), (1800, 540), (1700, 542), (1600, 526),
               (1500, 522), (1430, 502)]
-    lean = K.tile((1550, 270, 1750, 330), size=0.6, vary=0.06)
+    lean = K.tile((1650, 365, 1790, 455), size=0.6, vary=0.06)       # inside the lean-to, clear of its white halo
     yb = 3.0
     K.prism([(P.x(x), P.z(y)) for x, y in top + bottom], -0.5, -0.22, lean, name="lean_to_end")
     th = 0.24
@@ -1095,7 +1095,7 @@ def house_potter(K):
     noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (13, 31)), 1.0)
     def lean_surf(u, v):
         px = 1430 + (2140 - 1430) * u
-        return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - 0.02 + 0.03 * noise[int(v * 12), int(u * 30)])
+        return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - 0.06 + 0.02 * noise[int(v * 12), int(u * 30)])
     K.sheet(lean_surf, 30, 12, lean, name="lean_to", thickness=th)
     bamboo = K.projected(axis_x=P.x(2010), squeeze=0.9, keep=[(1985, 600, 2034, 1030)], inset=2)
     bamboo2 = K.projected(axis_x=P.x(1918), squeeze=0.9, keep=[(1903, 600, 1932, 965)], inset=2)
@@ -1105,7 +1105,7 @@ def house_potter(K):
     # posts: the two painted at the front (one behind the clay heap), two more at the back
     for x, y, top_py, m in ((2010, -0.3, 529, bamboo), (1918, 0.35, 560, bamboo2), (2010, yb - 0.25, 560, bamboo),
                             (1918, yb - 0.25, 560, bamboo2)):
-        K.tube([P.pt(x, 1105, y), P.pt(x, top_py, y)], P.m(17), m, segments=10, name="post")
+        K.tube([P.pt(x, 1105, y), P.pt(x, top_py, y)], P.m(21 if x == 2010 else 15), m, segments=10, name="post")
     K.tube([P.pt(1891, 563, 0.35), P.pt(2042, 563, -0.3)], P.m(11), bamboo, segments=8, name="beam")
     K.tube([P.pt(1891, 575, yb - 0.25), P.pt(2042, 575, yb - 0.25)], P.m(11), bamboo, segments=8, name="beam")
     K.tube([P.pt(2010, 560, -0.3), P.pt(2010, 560, yb - 0.25)], P.m(11), bamboo, segments=8, name="plate")

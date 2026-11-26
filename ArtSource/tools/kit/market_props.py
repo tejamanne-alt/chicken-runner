@@ -470,6 +470,30 @@ def hens_basket(K):
                              yaw=yaw + K.rng.uniform(-15, 15), name="fringe_round")
 
 
+def strokes(mask, min_px=18, ratio=2.0, grow=1.0, erode=1):
+    """The painted strokes in a mask (chillies, sticks, beans): each separate, elongated blob as a segment
+    ((x0, y0), (x1, y1), width) along its major axis, grown by `grow` about its middle."""
+    m = ndimage.binary_erosion(mask, iterations=erode) if erode else mask
+    lab, n = ndimage.label(m)
+    out = []
+    for i in range(1, n + 1):
+        ys, xs = np.nonzero(lab == i)
+        if len(xs) < min_px:
+            continue
+        c = np.array([xs.mean(), ys.mean()])
+        w, v = np.linalg.eigh(np.cov(np.vstack([xs - c[0], ys - c[1]])))
+        major = v[:, 1]
+        proj = (xs - c[0]) * major[0] + (ys - c[1]) * major[1]
+        L0, L1 = np.percentile(proj, 3), np.percentile(proj, 97)
+        width = 4 * math.sqrt(max(w[0], 1e-6))
+        if (L1 - L0) < ratio * width:
+            continue
+        mid, half = (L0 + L1) / 2, (L1 - L0) / 2 * grow
+        A, B = c + major * (mid - half), c + major * (mid + half)
+        out.append(((float(A[0]), float(A[1])), (float(B[0]), float(B[1])), width + 2 * erode))
+    return out
+
+
 class Tray:
     """A drying tray painted from above (a woven mat in a frame of four bamboo poles), built as a real tray tilted back
     so that from the front it is the painting: a point (px, py) of the painted tray lies on the tilted plane at depth
@@ -574,29 +598,16 @@ def chilli_mat(K):
             ((222, 100), "r"), ((215, 60), "r"), ((70, 124), "x"), ((120, 124), "x"), ((175, 124), "x"),
             ((90, 15), "x"), ((150, 15), "x")]
     drying_tray(K, T, poles, (24, 40, 36, 100), lashings=lash, height=height)
-    # the chillies on top of the heap, each lying along a painted one (the local grain of the red), wearing its colours
-    gy, gx = np.gradient(ndimage.gaussian_filter((a[..., 0] - a[..., 1]) * red, 1.2))
-    jxx = ndimage.gaussian_filter(gx * gx, 4)
-    jxy = ndimage.gaussian_filter(gx * gy, 4)
-    jyy = ndimage.gaussian_filter(gy * gy, 4)
+    # the chillies on top of the heap: one along each painted chilli that stands out (its bright core), wearing its
+    # painted colours
+    core = (a[..., 0] > 175) & (a[..., 0] > 2.2 * a[..., 1]) & (a[..., 0] > 2.2 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
     chilli = K.projected(squeeze=1.0, keep=[(30, 15, 220, 118)], inset=1)
     stalk = K.colour((0.1, 0.16, 0.02), vary=0.1)
-    placed = []
-    tries = 0
-    while len(placed) < 48 and tries < 4000:
-        tries += 1
-        px, py = K.rng.uniform(38, 212), K.rng.uniform(24, 112)
-        if not red[int(py), int(px)] or any((px - qx) ** 2 + (py - qy) ** 2 < 13 ** 2 for qx, qy in placed):
-            continue
-        placed.append((px, py))
-        ang = 0.5 * math.atan2(2 * jxy[int(py), int(px)], jxx[int(py), int(px)] - jyy[int(py), int(px)]) + math.pi / 2
-        L = K.rng.uniform(13, 18)
-        dx, dy = math.cos(ang) * L, math.sin(ang) * L
-        r = P.m(K.rng.uniform(4.0, 5.0))
-        h0 = height(px, py)
-        A = T.at(px - dx, py - dy, h0 + r * 0.2)
-        B = T.at(px + dx, py + dy, h0)
-        pod(K, tuple(A), tuple(B), r, r * 0.25, chilli, bend=tuple(T.n * r * 0.8), n=6, seg=6, name="chilli")
-        if K.rng.uniform() < 0.4 and min(py - dy, py + dy) > 26:
+    for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
+        r = P.m(min(5.0, max(3.6, w * 0.75)))
+        A = T.at(ax, ay, height(ax, ay) + r * 0.15)
+        B = T.at(bx, by, height(bx, by))
+        pod(K, tuple(A), tuple(B), r, r * 0.3, chilli, bend=tuple(T.n * r * 0.6), n=6, seg=6, name="chilli")
+        if K.rng.uniform() < 0.35 and min(ay, by) > 26:
             d = (A - B).normalized()
             K.tube([tuple(A), tuple(A + d * P.m(5) + T.n * P.m(2))], P.m(1.0), stalk, segments=4, name="stalk")

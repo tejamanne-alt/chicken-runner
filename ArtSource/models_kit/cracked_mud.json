@@ -1,0 +1,10 @@
+{
+ "name": "cracked_mud",
+ "folder": "ground",
+ "kind": "slab",
+ "width": 1.6,
+ "height": 0.669,
+ "depth": 0.022,
+ "faces": 4007,
+ "source": "blender"
+}
