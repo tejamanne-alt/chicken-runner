@@ -1,0 +1,10 @@
+{
+ "name": "house_plank_sheet",
+ "folder": "lane",
+ "kind": "building",
+ "width": 4.739,
+ "height": 3.202,
+ "depth": 4.416,
+ "faces": 9867,
+ "source": "blender"
+}

@@ -468,3 +468,135 @@ def hens_basket(K):
         yaw = math.degrees(a) + (180 if box[0] < cx else 0)
         K.card_from_painting(box, (P.x(cx) + r * math.cos(a), r * math.sin(a), P.z(by)),
                              yaw=yaw + K.rng.uniform(-15, 15), name="fringe_round")
+
+
+class Tray:
+    """A drying tray painted from above (a woven mat in a frame of four bamboo poles), built as a real tray tilted back
+    so that from the front it is the painting: a point (px, py) of the painted tray lies on the tilted plane at depth
+    y = -Dy/2 at the front pole (py_f) .. +Dy/2 at the back pole (py_b); h lifts it off the mat along its normal."""
+
+    def __init__(self, K, py_f, py_b, Dy):
+        P = K.paint
+        self.K, self.P, self.py_f, self.py_b, self.Dy = K, P, py_f, py_b, Dy
+        hz = P.z(py_b) - P.z(py_f)
+        self.n = Vector((0.0, -hz, Dy)).normalized()            # the tray's up: towards the camera and the sky
+        self.s = Vector((0.0, Dy, hz)).normalized()             # up the slope, front to back
+        self.tilt = math.degrees(math.atan2(hz, Dy))
+
+    def y(self, py):
+        return -self.Dy / 2 + self.Dy * (self.py_f - py) / (self.py_f - self.py_b)
+
+    def at(self, px, py, h=0.0):
+        P = self.P
+        return Vector((P.x(px), self.y(py), P.z(py))) + self.n * h
+
+
+def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=5.0, height=None, goods=None):
+    """The tray T: four bamboo poles along poles = (front-left, front-right, back-right, back-left) corner centres
+    in px (crossing a little at the corners, lashed with cord), the woven mat stretched between them (its top wears
+    the painting, as it lies; height(px, py) -> metres raises it into a heap of goods), its plain woven underside,
+    and two stacks of bricks propping the back up and flat stones under the front."""
+    P = K.paint
+    fl, fr, br, bl = poles
+    pr = P.m(pole_r_px)
+    bamboo = K.tile((60, 117, 120, 131), vary=0.08)
+    for a, b in ((fl, fr), (bl, br), (fl, bl), (fr, br)):
+        A, B = T.at(*a), T.at(*b)
+        d = (B - A).normalized()
+        K.tube([tuple(A - d * pr * 1.3), tuple(A.lerp(B, 0.5)), tuple(B + d * pr * 1.3)], pr, bamboo, segments=10,
+               name="pole")
+    cord = K.colour((0.32, 0.17, 0.05), vary=0.1)
+    for (px, py), axis in lashings:
+        c = T.at(px, py)
+        if axis == "x":
+            ring(K, c.x, c.y, c.z, pr * 1.08, pr * 0.22, cord, axis="x", n=12, name="lashing")
+        else:
+            ob = ring(K, 0, 0, 0, pr * 1.08, pr * 0.22, cord, axis="x", n=12, name="lashing")
+            ang = math.degrees(math.atan2(*(Vector(T.at(*fl)) - Vector(T.at(*bl))).xy[::-1])) if axis == "l" else \
+                math.degrees(math.atan2(*(Vector(T.at(*fr)) - Vector(T.at(*br))).xy[::-1]))
+            orient(ob, (0, 0, 0))
+            d = (T.at(*bl) - T.at(*fl)) if axis == "l" else (T.at(*br) - T.at(*fr))
+            R = d.normalized().to_track_quat("X", "Z").to_matrix().to_4x4()
+            ob.data.transform(Matrix.Translation(c) @ R)
+    # the mat, its top the painting as it lies
+    top = K.projected(squeeze=1.0, inset=0)
+    drop = P.m(mat_drop_px)
+    nu, nv = 44, 26
+
+    def corner_lerp(u, v):
+        x0 = fl[0] + (bl[0] - fl[0]) * v
+        x1 = fr[0] + (br[0] - fr[0]) * v
+        return x0 + (x1 - x0) * u, fl[1] + (bl[1] - fl[1]) * v
+
+    def surf(u, v):
+        px, py = corner_lerp(u, v)
+        h = -drop - 0.004 * math.sin(math.pi * u) * math.sin(math.pi * v)
+        if height is not None:
+            h += height(px, py)
+        return tuple(T.at(px, py, h))
+    K.sheet(surf, nu, nv, top, name="mat", smooth=True)
+    weave = K.colour(weave_box, vary=0.12, scale=30)
+    K.sheet(lambda u, v: tuple(T.at(*corner_lerp(1 - u, v), -drop - 0.006)), 8, 6, weave, name="mat_under",
+            smooth=False)
+    # propped up: two stacks of bricks under the back pole, flat stones under the front one
+    brick = K.colour((0.32, 0.09, 0.04), vary=0.12)
+    stone = K.colour((0.25, 0.22, 0.19), vary=0.12)
+    for t in (0.15, 0.85):
+        c = T.at(bl[0] + (br[0] - bl[0]) * t, bl[1])
+        ztop = c.z - pr
+        n = max(1, int(round(ztop / 0.055)))
+        for k in range(n):
+            K.block(c.x + K.rng.uniform(-0.005, 0.005), c.y, ztop * (k + 0.5) / n, 0.1, 0.05, ztop / n * 0.96, brick,
+                    rot=(0, 0, K.rng.uniform(-6, 6)), bevel=0.004, name="brick")
+        c = T.at(fl[0] + (fr[0] - fl[0]) * t, fl[1])
+        zs = c.z - pr
+        if zs > 0.003:
+            K.block(c.x, c.y, zs / 2, 0.07, 0.06, zs, stone, rot=(0, 0, K.rng.uniform(0, 40)), bevel=zs * 0.3,
+                    jitter=0.002, name="stone")
+
+
+@model("chilli_mat", "market", kind="prop")
+def chilli_mat(K):
+    """Red chillies heaped to dry on a woven palm-leaf mat in a frame of four lashed bamboo poles, the tray propped
+    on bricks at the back (so it faces the sun, and the camera)."""
+    P = K.paint
+    T = Tray(K, 124, 15, 0.26)
+    poles = ((16, 124), (233, 124), (205, 15), (38, 15))
+    # where the chillies are: their heap rises off the mat
+    a = P.rgba[..., :3] * 255
+    red = (a[..., 0] > 130) & (a[..., 0] > 1.5 * a[..., 1]) & (a[..., 0] > 1.5 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
+    pile = ndimage.gaussian_filter(red.astype(np.float32), 6)
+    pile = ndimage.gaussian_filter(np.clip(pile * 1.6, 0, 1), 4)
+
+    def height(px, py):
+        return P.m(9) * float(pile[int(min(P.h - 1, max(0, py))), int(min(P.w - 1, max(0, px)))])
+    lash = [((20, 122), "x"), ((228, 122), "x"), ((42, 16), "x"), ((200, 16), "x"), ((24, 100), "l"), ((30, 60), "l"),
+            ((222, 100), "r"), ((215, 60), "r"), ((70, 124), "x"), ((120, 124), "x"), ((175, 124), "x"),
+            ((90, 15), "x"), ((150, 15), "x")]
+    drying_tray(K, T, poles, (24, 40, 36, 100), lashings=lash, height=height)
+    # the chillies on top of the heap, each lying along a painted one (the local grain of the red), wearing its colours
+    gy, gx = np.gradient(ndimage.gaussian_filter((a[..., 0] - a[..., 1]) * red, 1.2))
+    jxx = ndimage.gaussian_filter(gx * gx, 4)
+    jxy = ndimage.gaussian_filter(gx * gy, 4)
+    jyy = ndimage.gaussian_filter(gy * gy, 4)
+    chilli = K.projected(squeeze=1.0, keep=[(30, 15, 220, 118)], inset=1)
+    stalk = K.colour((0.1, 0.16, 0.02), vary=0.1)
+    placed = []
+    tries = 0
+    while len(placed) < 70 and tries < 4000:
+        tries += 1
+        px, py = K.rng.uniform(35, 215), K.rng.uniform(20, 114)
+        if not red[int(py), int(px)] or any((px - qx) ** 2 + (py - qy) ** 2 < 11 ** 2 for qx, qy in placed):
+            continue
+        placed.append((px, py))
+        ang = 0.5 * math.atan2(2 * jxy[int(py), int(px)], jxx[int(py), int(px)] - jyy[int(py), int(px)]) + math.pi / 2
+        L = K.rng.uniform(13, 19)
+        dx, dy = math.cos(ang) * L, math.sin(ang) * L
+        r = P.m(K.rng.uniform(3.2, 4.2))
+        h0 = height(px, py)
+        A = T.at(px - dx, py - dy, h0 + r * 0.7)
+        B = T.at(px + dx, py + dy, h0 + r * 0.5)
+        pod(K, tuple(A), tuple(B), r, r * 0.25, chilli, bend=tuple(T.n * r * 0.8), n=6, seg=6, name="chilli")
+        if K.rng.uniform() < 0.4:
+            d = (A - B).normalized()
+            K.tube([tuple(A), tuple(A + d * P.m(5) + T.n * P.m(2))], P.m(1.0), stalk, segments=4, name="stalk")

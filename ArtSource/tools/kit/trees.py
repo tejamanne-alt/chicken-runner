@@ -742,17 +742,118 @@ def tree_mango_1(K):
     undergrowth(K, (20, 560, 520, 700), 16, (70, 60), (0.6, 1.8), name="undergrowth_back")
 
 
-def brown_wood(rgb):
-    r, g, b, mx, mn = chan(rgb)
-    return (r - b > 45) & (mx < 225) & (r > g) & (g > b)
+# ====================================================================== solids traced off the painting
+def _add(K, bm, mat, name, smooth=True):
+    from kitlib import _obj
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=smooth)
+    K.parts.append(ob)
+    return ob
 
 
-def _trace_peepal_roots(K):
-    """The peepal's foot: the trunk below the threads and the roots spreading over the platform's top."""
+def prism_x(K, outline_yz, x0, x1, mat, name="prism_x"):
+    """An outline [(y, z), ...] in a side plane, extruded across from x0 to x1 (a stair's string wall, a ramp)."""
+    bm = bmesh.new()
+    a = [bm.verts.new((x0, y, z)) for y, z in outline_yz]
+    b = [bm.verts.new((x1, y, z)) for y, z in outline_yz]
+    n = len(outline_yz)
+    bm.faces.new(a)
+    bm.faces.new(list(reversed(b)))
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([a[i], a[j], b[j], b[i]])
+    return _add(K, bm, mat, name, smooth=False)
+
+
+def _poly_rows(poly, py):
+    """Where a horizontal line at py crosses a polygon: (leftmost, rightmost) x, or None."""
+    xs = []
+    n = len(poly)
+    for i in range(n):
+        (x0, y0), (x1, y1) = poly[i], poly[(i + 1) % n]
+        if (y0 <= py < y1) or (y1 <= py < y0):
+            xs.append(x0 + (py - y0) * (x1 - x0) / (y1 - y0))
+    return (min(xs), max(xs)) if len(xs) >= 2 else None
+
+
+def poly_solid(K, poly_px, y, mat, depth=0.7, step=None, segments=16, name="solid", bulge=1.0, flat_back=0.0,
+               rows=None):
+    """A rounded solid whose outline from the front is the polygon poly_px (painted outline, px): each row across
+    it a ring as wide as the outline there and depth x as deep (an idol, a lamp, a pad, a heap), centred at depth y
+    (a number, or fn(px, py) -> y). flat_back (0..1) flattens its back (a relief, a pad lying on something)."""
     P = K.paint
-    extra = box_mask((P.h, P.w), [(700, 1000, 1140, 1150)])
-    mask = wood_mask(K, brown_wood, boxes=[(380, 940, 1480, 1205)], close=3, hole=3000, extra=extra)
-    return mask, Wood(K, mask, root_px=(920, 945), spur=1.2, min_len=8)
+    ys = [p[1] for p in poly_px]
+    top, bot = min(ys), max(ys)
+    step = step or max(2.0, (bot - top) / 18)
+    levels = rows or list(np.arange(top + 0.5, bot, step)) + [bot - 0.5]
+    bm = bmesh.new()
+    rings = []
+    for py in levels:
+        span = _poly_rows(poly_px, py)
+        if span is None:
+            continue
+        x0, x1 = span
+        cx, hw = (x0 + x1) / 2, max(0.5, (x1 - x0) / 2)
+        yc = y(cx, py) if callable(y) else y
+        rw, rd = P.m(hw), P.m(hw) * depth
+        ring = []
+        for k in range(segments):
+            a = 2 * math.pi * k / segments
+            sy = math.sin(a)
+            dy = rd * sy * (1 - flat_back * 0.7 if sy > 0 else 1.0)
+            ring.append(bm.verts.new((P.x(cx) + rw * math.cos(a) * (1 if abs(math.cos(a)) > 0 else 1),
+                                      yc + dy * bulge, P.z(py))))
+        rings.append(ring)
+    if len(rings) < 2:
+        bm.free()
+        return None
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(segments):
+            j = (k + 1) % segments
+            bm.faces.new([r0[k], r0[j], r1[j], r1[k]])
+    for ring, top_end in ((rings[0], True), (rings[-1], False)):
+        c = bm.verts.new(sum((v.co for v in ring), Vector()) / len(ring))
+        for k in range(segments):
+            j = (k + 1) % segments
+            bm.faces.new([ring[k], ring[j], c])
+    return _add(K, bm, mat, name)
 
 
-TRACE["peepal_platform"] = _trace_peepal_roots
+def raster(shape, strokes, grow=0.0):
+    """A bool mask of painted strokes [(px, py, r), ...] polylines drawn as chains of discs (r + grow px)."""
+    from PIL import ImageDraw
+    im = Image.new("L", (shape[1], shape[0]), 0)
+    d = ImageDraw.Draw(im)
+    for pts in strokes:
+        for (x0, y0, r0), (x1, y1, r1) in zip(pts, pts[1:]):
+            n = max(1, int(math.hypot(x1 - x0, y1 - y0) / 3))
+            for k in range(n + 1):
+                t = k / n
+                x, y, r = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, r0 + (r1 - r0) * t + grow
+                d.ellipse((x - r, y - r, x + r, y + r), fill=255)
+    return np.asarray(im) > 127
+
+
+def mask_rule(mask, box):
+    """A leaves_only keep-rule that is a precomputed mask (HxW) seen through box (integer px inside the painting)."""
+    x0, y0, x1, y1 = [int(v) for v in box]
+
+    def keep(rgb, m=mask[y0:y1, x0:x1]):
+        return m if m.shape == rgb.shape[:2] else np.ones(rgb.shape[:2], bool)
+    return keep
+
+
+def ring_tube(K, cx, cy, cz, rx, ry, mat, radius, tilt=(0.0, 0.0), segments=48, wobble=0.0, name="ring"):
+    """A closed loop (a thread tied round a trunk): centre (metres), radii rx, ry, its height varying by
+    tilt = (dz at +x, dz at -y: the front dips)."""
+    pts = []
+    ph = K.rng.uniform(0, 6.28)
+    for k in range(segments + 1):
+        a = 2 * math.pi * k / segments
+        w = 1 + wobble * math.sin(3 * a + ph)
+        x, y = cx + rx * w * math.cos(a), cy + ry * w * math.sin(a)
+        z = cz + tilt[0] * math.cos(a) + tilt[1] * (-math.sin(a))
+        pts.append((x, y, z))
+    pts[-1] = pts[0]
+    return K.tube(pts, radius, mat, segments=6, name=name, cap=False)

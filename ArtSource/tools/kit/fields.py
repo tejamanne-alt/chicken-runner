@@ -625,3 +625,33 @@ def bund_block(K):
             K.card_from_painting(box, (P.x(x_end) + side * 0.04, y, P.z(cy)), yaw=90 + K.rng.uniform(-20, 20),
                                  name="vines", normal=(side, 0, 0.6))
         K.card_from_painting(box, P.pt(cx, cy, hb + 0.03), yaw=180, name="vines", normal=(side, 0.5, 0.6))
+
+
+@fmodel("bund_strip", "fields", kind="prop", atlas=1024)
+def bund_strip(K):
+    """A long strip of paddy bund: a bank of brown earth with sloping ends, a mat of grass over its rounded top and
+    hanging in a ragged fringe over its faces, a few stones at its foot."""
+    P = K.paint
+    K.front_min = 0.12
+    hb, hs = 0.42, 0.33
+    rows = [(14, 118, 1000), (20, 82, 1048), (30, 62, 1076), (45, 56, 1078), (56, 56, 1078), (100, 45, 1090),
+            (140, 27, 1107), (160, 10, 1124), (168, 14, 1120)]
+    outline = lambda py: (interp([(r[0], r[1]) for r in rows])(py), interp([(r[0], r[2]) for r in rows])(py))
+    earth = two_tiles(K, (300, 66, 700, 150), (180, 22, 960, 46), lo=0.45, hi=0.75, soften=0.3)
+    bank(K, outline, 166, 56, 16, hb, hs, earth, nx=64, rough=0.02)
+    # the grass: its ragged crest, its fringe over the front and back faces
+    K.leaves_only((0, 0, 1135, 70), grass_pixels)
+    for cx in range(110, 1060, 44):
+        top = (cx - 40, 4, cx + 40, 30)
+        K.card_from_painting(top, P.pt(cx, 17, 0.0), name="grass", normal=(0, -0.2, 1))
+        K.card_from_painting(top, P.pt(cx + 20, 22, 0.12), yaw=K.rng.uniform(-40, 40), name="grass", normal=(0, 0.2, 1))
+    for cx in range(70, 1080, 40):
+        fr = (cx - 38, 40, cx + 38, 66)
+        K.card_from_painting(fr, P.pt(cx, 53, -hs - 0.015), name="fringe", normal=(0, -0.8, 0.6))
+        K.card_from_painting(fr, P.pt(cx + 15, 53, hs + 0.015), yaw=180, name="fringe", normal=(0, 0.8, 0.6))
+    # stones at the foot
+    stone = K.colour((520, 150, 600, 162), vary=0.15, pct=35)
+    for px, w, y in ((185, 34, -hb - 0.05), (705, 30, -hb - 0.04), (1015, 28, -hb - 0.05), (400, 26, hb + 0.05),
+                     (860, 32, hb + 0.06)):
+        K.block(P.x(px), y, P.z(167) + P.m(w) * 0.2, P.m(w), P.m(w) * 0.8, P.m(w) * 0.5, stone,
+                rot=(0, 0, K.rng.uniform(0, 60)), jitter=P.m(w) * 0.1, bevel=P.m(w) * 0.15, name="stone")
