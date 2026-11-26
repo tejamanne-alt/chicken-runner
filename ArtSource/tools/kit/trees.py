@@ -1360,7 +1360,7 @@ def field_tree_1(K):
                 ys = p["y"] + dy
                 pts, rs = wood.polyline(p, ys)
                 if pts is not None and len(pts) > 1:
-                    thin.append(K.tube(pts, [r * 0.9 for r in rs], bark, segments=6, name="aerial_root"))
+                    thin.append(K.tube(pts, [r * 0.7 for r in rs], bark, segments=6, name="aerial_root"))
     K.fuse(thick, voxel=0.04, faces=11000)
     # the crown
     K.leaves_only((0, 0, 938, 510), foliage_pixels)
@@ -1369,13 +1369,14 @@ def field_tree_1(K):
     crown.cards(50, (110, 95), "back", yaw=30, pitch=20)
     crown.cards(30, (110, 95), "top", yaw=90, region=(0, 0, 938, 250))
     # red earth and pebbles at its foot
-    earth(K, 455, 330, 3.2, (300, 945, 600, 962), h=0.05)
+    zg = P.z(958)                                   # the painted ground line
+    earth(K, 455, 330, 3.2, (300, 945, 600, 962), h=0.05, z=zg - 0.03)
     stone = K.colour((0.32, 0.3, 0.27), vary=0.15)
     for px, w in ((222, 16), (418, 20), (478, 18), (520, 14), (650, 12), (300, 12)):
-        rock(K, px, 966, w, w * 0.6, rng.uniform(-1.6, -0.6), stone)
+        rock(K, px, 960, w, w * 0.6, rng.uniform(-1.6, -0.6), stone)
     for k in range(6):
         a = rng.uniform(0, 2 * math.pi)
-        K.boulder(P.x(455) + math.cos(a) * rng.uniform(1.0, 3.0), math.sin(a) * rng.uniform(1.0, 2.6), 0.06,
+        K.boulder(P.x(455) + math.cos(a) * rng.uniform(1.0, 3.0), math.sin(a) * rng.uniform(1.0, 2.6), zg + 0.04,
                   0.18, 0.14, 0.12, stone)
 
 
