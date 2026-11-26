@@ -1133,7 +1133,7 @@ def stall_d_2(K):
     zf, zb = Z(658), Z(607)
     rr = P.m(12)
     rail = K.projected(squeeze=1.0, keep=[(150, 645, 800, 672)], inset=2)
-    cotw = K.colour((600, 650, 700, 665), vary=0.08)
+    cotw = K.colour((440, 648, 560, 665), vary=0.08)
     block = K.projected(squeeze=1.0, keep=[(108, 622, 152, 700), (388, 620, 428, 700), (793, 622, 832, 700)], inset=2)
     K.tube([(P.x(118), cyf, zf), (P.x(822), cyf, zf)], rr, rail, segments=10, name="rail_front")
     K.tube([(P.x(118), cyb, zb), (P.x(822), cyb, zb)], rr * 0.85, cotw, segments=10, name="rail_back")
@@ -1145,7 +1145,7 @@ def stall_d_2(K):
             K.box(P.x(x0) + 0.008, P.x(x1) - 0.008, y - 0.042, y + 0.042, 0.0, ztop - P.m(40), block, bevel=0.006,
                   name="leg")
     rope_bed(K, P.x(135), P.x(808), cyf + 0.02, cyb - 0.02, zf - 0.005, zb - 0.005,
-             K.colour((470, 618, 520, 628), vary=0.1), pitch=0.06)
+             K.colour((440, 612, 560, 640), vary=0.1, pct=80), pitch=0.075)
     wrap(K, (P.x(152), cyf, zf), (P.x(388), cyf, zf), rr, K.colour((250, 650, 262, 668), vary=0.1), pitch=P.m(17))
 
     def bed(y):
@@ -1177,3 +1177,140 @@ def stall_d_2(K):
         zb_ = bed(y) + 0.015 if bot > 640 else Z(bot)
         K.block(P.x((x0 + x1) / 2), y, (zb_ + Z(top)) / 2, P.m(x1 - x0), P.m(x1 - x0) * 0.9, Z(top) - zb_, jag,
                 rot=(0, 0, rz), bevel=0.01, name="jaggery")
+
+
+def bowl(K, base, r_top, r_bot, h, mat, axis=(0, 0, 1), roll=0.0, segs=24, rim=True, flat=1.0, name="bowl"):
+    """An open woven bowl or basket: its foot centred on base (x, y, z), r_bot round at the foot flaring to r_top
+    at its rim h above, its axis along `axis` (tip it to hang it, lay it on its side or face it to the camera);
+    flat < 1 squashes it into an oval (a tray, a winnower)."""
+    prof = [(0.0, 0.0), (r_bot, 0.0), (r_bot + (r_top - r_bot) * 0.45, h * 0.4), (r_top * 0.97, h * 0.85),
+            (r_top, h)]
+    ob = K.lathe(prof, mat, segments=segs, centre=base, cap=False, wobble=0.012, scale_y=flat, name=name)
+    parts = [ob]
+    if rim:
+        pts = [(base[0] + r_top * math.cos(2 * math.pi * i / 32), base[1] + r_top * flat * math.sin(2 * math.pi * i / 32),
+                base[2] + h) for i in range(33)]
+        parts.append(K.tube(pts, max(0.006, r_top * 0.045), mat, segments=5, name=name + "_rim"))
+    for p in parts:
+        orient(p, base, axis, roll)
+    return parts
+
+
+def basket_stack(K, cx, cy, z0, r_top, r_bot, h, n, mat, flat=1.0, segs=24, lean=(0.0, 0.0), name="stack"):
+    """n baskets nested one in another: one turned shape whose outline steps out at every rim, a rim of cane round
+    each, the top one open."""
+    step = h / (n + 1.6)
+    prof = [(0.0, 0.0), (r_bot, 0.0)]
+    for k in range(n):
+        zr = step * (k + 2.6) if k == n - 1 else step * (k + 1.6)
+        prof += [(r_top * 0.93, zr - step * 0.55), (r_top, zr - 0.004)]
+    prof.append((r_top * 0.96, prof[-1][1] + 0.003))
+    ob = K.lathe([(r, z0 + z) for r, z in prof], mat, segments=segs, centre=(cx, cy, 0.0), cap=False, wobble=0.012,
+                 scale_y=flat, name=name)
+    ins = K.lathe([(r_top * 0.9, z0 + prof[-1][1]), (r_bot * 0.85, z0 + prof[-1][1] - step * 2.2), (0.0, z0 + prof[-1][1] - step * 2.3)],
+                  mat, segments=segs, centre=(cx, cy, 0.0), cap=False, scale_y=flat, name=name + "_in")
+    parts = [ob, ins]
+    for k in range(n):
+        zr = z0 + (step * (k + 2.6) if k == n - 1 else step * (k + 1.6))
+        pts = [(cx + r_top * math.cos(2 * math.pi * i / 28), cy + r_top * flat * math.sin(2 * math.pi * i / 28), zr)
+               for i in range(29)]
+        parts.append(K.tube(pts, max(0.006, r_top * 0.04), mat, segments=5, name=name + "_rim"))
+    if lean != (0.0, 0.0):
+        for p in parts:
+            M = (Matrix.Translation((cx, cy, z0)) @ Matrix.Rotation(math.radians(lean[1]), 4, "Y")
+                 @ Matrix.Rotation(math.radians(lean[0]), 4, "X") @ Matrix.Translation((-cx, -cy, -z0)))
+            p.data.transform(M)
+    return parts
+
+
+# ====================================================================== stall D3: the basket weaver's stall
+@model("stall_d_3", "market", kind="prop", atlas=2048)
+def stall_d_3(K):
+    """A basket weaver's booth: a shaggy hipped thatch on a dark plank booth, baskets, trays and a winnower hanging
+    from its eaves, stacks of nested baskets on a cloth-covered counter inside, and more baskets, stacks and trays
+    piled in front, on the ground and on a low table."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.15
+    weave = ktile(K, (275, 400, 370, 440), vary=0.06)
+    dark = ktile(K, (560, 380, 620, 470), vary=0.05)
+
+    def proj(box, cx=None, sq=0.94):
+        return K.projected(axis_x=P.x(cx if cx is not None else (box[0] + box[2]) / 2), squeeze=sq, keep=[box],
+                           inset=2)
+    # ---------------------------------------------------------------- the thatch and the booth under it
+    straw = ktile(K, (300, 40, 700, 140), vary=0.06)
+    hip_thatch(K, P.x(150), P.x(950), -0.5, 1.0, Z(196), P.x(222), P.x(875), 0.25, Z(28), straw, thick=0.1,
+               shag=0.03, fringe=P.m(16))
+    roof_z = Z(205)
+    K.box(P.x(215), P.x(880), 0.55, 0.62, 0.0, roof_z + 0.15, dark, name="back_wall")
+    plank = K.projected(squeeze=1.0, keep=[(214, 230, 238, 545), (856, 230, 880, 680)], inset=1)
+    for x0, x1 in ((215, 237), (857, 879)):
+        K.box(P.x(x0), P.x(x1), -0.18, 0.62, 0.0, roof_z + 0.1, dark, name="side_wall")
+        K.box(P.x(x0) - 0.005, P.x(x1) + 0.005, -0.22, -0.14, 0.0, roof_z + 0.08, plank, bevel=0.006, name="post")
+    # ---------------------------------------------------------------- the counter inside, under a cloth
+    cloth = K.projected(squeeze=1.0, keep=[(420, 548, 880, 650)], inset=2)
+    K.box(P.x(240), P.x(855), -0.12, 0.5, 0.0, Z(550), cloth, bevel=0.02, name="counter")
+    # the low table in front, right
+    table = K.projected(squeeze=1.0, keep=[(590, 630, 970, 674)], inset=1)
+    K.box(P.x(592), P.x(968), -0.85, -0.38, Z(645), Z(634), table, bevel=0.006, name="table_top")
+    for x in (P.x(605), P.x(950)):
+        for y in (-0.82, -0.42):
+            K.box(x - 0.03, x + 0.03, y - 0.03, y + 0.03, 0.0, Z(645), table, name="table_leg")
+    # ---------------------------------------------------------------- hanging from the eaves
+    rope = K.colour((0.1, 0.06, 0.03), vary=0.1)
+    yh = -0.3
+    hang = []
+    hang += bowl(K, (P.x(208), yh, Z(357)), P.m(76), P.m(58), P.m(85), proj((130, 258, 288, 362)), name="hang1")
+    hang += bowl(K, (P.x(300), yh + 0.15, Z(300)), P.m(70), P.m(48), P.m(55), proj((262, 222, 445, 345)),
+                 axis=(0.5, -0.3, 0.8), name="hang2")
+    hang += bowl(K, (P.x(500), yh + 0.18, Z(272)), P.m(78), P.m(55), P.m(40), proj((418, 215, 582, 328)),
+                 axis=(0.0, -1.0, 0.35), name="hang3")
+    hang += bowl(K, (P.x(648), yh + 0.16, Z(285)), P.m(66), P.m(45), P.m(30), proj((594, 215, 702, 358)),
+                 axis=(0.0, -1.0, 0.15), flat=0.78, roll=90, name="hang4")
+    hang += bowl(K, (P.x(785), yh + 0.25, Z(270)), P.m(80), P.m(60), P.m(25), proj((700, 215, 872, 336)),
+                 axis=(0.0, -1.0, 0.1), flat=0.7, name="hang5")
+    hang += bowl(K, (P.x(870), yh - 0.05, Z(342)), P.m(82), P.m(62), P.m(22), proj((793, 248, 948, 434)),
+                 axis=(0.0, -1.0, 0.2), flat=0.95, roll=90, name="winnower")
+    for x_px, z_px in ((208, 262), (300, 228), (500, 222), (648, 222), (785, 222), (870, 250)):
+        K.tube([(P.x(x_px), yh, P.z(z_px)), (P.x(x_px), yh, roof_z - 0.02)], 0.005, rope, segments=4, name="string")
+    # ---------------------------------------------------------------- stacks on the counter
+    zc = Z(550)
+    stacks = [  # (box, cx, rim hw, foot hw, top py, n, y)
+        ((332, 358, 448, 530), 390, 55, 45, 362, 7, 0.28),
+        ((620, 345, 785, 505), 703, 72, 55, 352, 8, 0.28),
+        ((243, 372, 382, 552), 312, 68, 58, 378, 7, 0.0),
+        ((398, 450, 532, 562), 465, 64, 52, 455, 6, -0.02),
+        ((558, 482, 722, 560), 640, 80, 72, 490, 8, 0.02),
+        ((712, 392, 858, 557), 785, 66, 58, 398, 8, 0.0),
+    ]
+    for box, cx, rt, rb, top, n, y in stacks:
+        basket_stack(K, P.x(cx), y, zc, P.m(rt), P.m(rb), Z(top) - zc, n, proj(box, cx), flat=0.9)
+    # ---------------------------------------------------------------- in front: on the ground and the low table
+    basket_stack(K, P.x(938), -0.18, 0.0, P.m(60), P.m(52), Z(497), 9, proj((875, 492, 1002, 605), 938), flat=0.9)
+    basket_stack(K, P.x(868), -0.6, Z(634), P.m(78), P.m(62), Z(543) - Z(634), 3, proj((788, 537, 948, 652), 868),
+                 flat=0.9)
+    basket_stack(K, P.x(705), -0.68, Z(634), P.m(92), P.m(85), P.m(28), 4, proj((606, 562, 802, 648), 705), flat=0.4,
+                 lean=(0, -12))
+    bowl(K, (P.x(1000), -0.75, 0.0), P.m(70), P.m(55), P.m(18), proj((925, 558, 1057, 674)), axis=(-0.3, -0.25, 1.0),
+         flat=0.75, roll=90, name="winnower2")
+    K.box(P.x(1040), P.x(1050), -0.7, -0.62, 0.0, Z(600), table, name="prop_stick")
+    basket_stack(K, P.x(168), -0.45, Z(560), P.m(76), P.m(62), Z(442) - Z(560), 3, proj((92, 438, 248, 562), 168),
+                 flat=0.9, lean=(0, 6))
+    basket(K, P.x(166), -0.45, 0.0, [(P.m(55), 0.0), (P.m(66), Z(600)), (P.m(74), Z(558))], proj((98, 540, 245, 674)),
+           sy=0.9)
+    bowl(K, (P.x(130), -0.65, Z(640)), P.m(98), P.m(72), P.m(110), proj((0, 560, 205, 674)), axis=(-0.75, -0.25, 0.6),
+         name="lying")
+    bowl(K, (P.x(222), -0.95, Z(674) + 0.05), P.m(70), P.m(55), P.m(55), proj((148, 600, 302, 674)),
+         axis=(0.0, -0.8, 0.6), name="tilted")
+    bowl(K, (P.x(460), -0.9, 0.0), P.m(50), P.m(42), Z(622), proj((408, 615, 512, 674)), name="small")
+    # the square trays leaning against the counter
+    tray = proj((218, 545, 422, 674))
+    for k, (x0, x1, top, y) in enumerate(((222, 330, 548, -0.42), (250, 420, 555, -0.55))):
+        t = K.box(P.x(x0), P.x(x1), y - 0.02, y + 0.02, 0.0, Z(top), tray, bevel=0.012, name="tray")
+        rim_ = K.box(P.x(x0) + 0.02, P.x(x1) - 0.02, y - 0.04, y - 0.02, 0.02, Z(top) - 0.02, tray, bevel=0.01,
+                     name="tray_in")
+        for p in (t, rim_):
+            M = (Matrix.Translation((P.x((x0 + x1) / 2), y, 0.0)) @ Matrix.Rotation(math.radians(-14 - 6 * k), 4, "X")
+                 @ Matrix.Translation((-P.x((x0 + x1) / 2), -y, 0.0)))
+            p.data.transform(M)

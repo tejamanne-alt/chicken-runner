@@ -188,6 +188,22 @@ def rotate(ob, deg, axis, pivot):
     return ob
 
 
+def stone(K, cx, cy, cz, sx, sy, sz, mat, lumps=0.18, subdiv=2, name="stone"):
+    """K.boulder with fewer faces (80 instead of 320): pebbles, rocks round a foot, stones in a heap."""
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=0.5)
+    ph = K.rng.uniform(0, 6.28, 6)
+    for v in bm.verts:
+        d = v.co.normalized()
+        kk = 1 + lumps * (0.5 * math.sin(3 * d.x + ph[0]) * math.sin(2 * d.y + ph[1]) + 0.3 * math.sin(5 * d.z + ph[2])
+                          + 0.2 * math.sin(7 * d.x + 4 * d.y + ph[3]))
+        p = d * 0.5 * kk
+        v.co = Vector((cx + p.x * sx, cy + p.y * sy, max(cz - sz / 2, cz + p.z * sz)))
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob
+
+
 def interp(prof):
     """A function py -> value through [(py, value), ...] (any order)."""
     prof = sorted(prof)
@@ -277,7 +293,7 @@ def pebble(K, px, py, w_px, y, mat, h=0.6):
     """A small stone sitting on the ground at painted (px, py bottom), w_px wide, at depth y."""
     P = K.paint
     s = P.m(w_px)
-    return K.boulder(P.x(px), y, P.z(py) + s * h * 0.45, s, s * 0.8, s * h, mat, lumps=0.25, name="pebble")
+    return stone(K, P.x(px), y, P.z(py) + s * h * 0.45, s, s * 0.8, s * h, mat, lumps=0.25, name="pebble")
 
 
 def tufts(K, box, spots, yaws=(0, 60, -60), name="grass"):
@@ -331,9 +347,9 @@ def haystack(K):
     # the earth it stands on, its stones and weeds
     earth = K.colour((150, 420, 330, 432), vary=0.18, scale=10)
     earth_disc(K, ax, ground_py, P.m(250), P.m(250) * 0.95, earth)
-    stone = K.projected(squeeze=1.0, keep=[rock_box], exclude=[(74, 396, 98, 428)], inset=2)
-    K.boulder(P.x(108), before(108, 20), P.z(ground_py) + P.m(14), P.m(66), P.m(46), P.m(32), stone, name="rock")
-    K.boulder(P.x(330), P.m(170), P.z(ground_py) + P.m(10), P.m(50), P.m(40), P.m(24), stone, name="rock")
+    rockm = K.projected(squeeze=1.0, keep=[rock_box], exclude=[(74, 396, 98, 428)], inset=2)
+    stone(K, P.x(108), before(108, 20), P.z(ground_py) + P.m(14), P.m(66), P.m(46), P.m(32), rockm, name="rock")
+    stone(K, P.x(330), P.m(170), P.z(ground_py) + P.m(10), P.m(50), P.m(40), P.m(24), rockm, name="rock")
     small = K.colour((80, 400, 130, 420), vary=0.12)
     for px, w, y in ((52, 24, before(52, 16)), (160, 30, before(160, 22)), (365, 26, before(365, 18)),
                      (392, 34, before(392, 26)), (450, 18, before(450, 14)), (120, 26, P.m(200)), (300, 22, P.m(225)),
@@ -1166,3 +1182,116 @@ def sluice_gate(K):
     pebbles = K.projected(squeeze=1.0, keep=[(18, 278, 92, 306), (332, 282, 402, 306)], inset=2)
     for px, w in ((40, 34), (75, 30), (355, 30), (388, 26)):
         K.boulder(P.x(px), ydep(300) + 0.05, P.z(300) + P.m(8), P.m(w), P.m(w) * 0.8, P.m(16), pebbles, name="stone")
+
+
+def ring_wall(K, cx, cy, r_out, r_in, z0, z1, courses, n, mat, rim=None, bevel=0.035, gap=0.012, name="course"):
+    """A round wall of dressed stones: `courses` rings of n blocks each, every other ring turned half a block,
+    between radii r_in and r_out from z0 to z1 (the top ring in `rim`'s material, its stones a little proud)."""
+    ch = (z1 - z0) / courses
+    parts = []
+    for c in range(courses):
+        top = c == courses - 1
+        ro = r_out + (0.03 if top else 0.0)
+        for i in range(n):
+            a = 2 * math.pi * (i + 0.5 * (c % 2)) / n
+            rm = (ro + r_in) / 2
+            w = 2 * math.pi * rm / n - gap
+            parts.append(K.block(cx + rm * math.cos(a), cy + rm * math.sin(a), z0 + ch * (c + 0.5),
+                                 w * (ro / rm), ro - r_in, ch - gap, rim if (top and rim) else mat,
+                                 rot=(0, 0, math.degrees(a) + 90), bevel=bevel, name=name))
+    return parts
+
+
+@fmodel("well", "fields", kind="prop", atlas=1024)
+def well(K):
+    """A village draw-well: a round wall of rough-dressed stone courses, two timber posts with a log beam across
+    them, a coil of rope wound on the beam, a pulley wheel hanging under it, a pail on the rope over the opening,
+    the spare rope coiled and hung on the wall, rocks and weeds round its foot."""
+    P = K.paint
+    K.front_min = 0.15
+    cx = P.x(256)
+    R, r_in = P.m(190), P.m(190) - 0.24
+    k = 0.075                                                # the painting looks down on the rim a little
+    stone_m = K.tile((250, 268, 340, 302), soften=0.3, vary=0.05)
+    rim = K.tile((310, 220, 400, 255), soften=0.3, vary=0.05)
+    zb, zt = P.z(352) + k * R, P.z(216) + k * R
+    wall = ring_wall(K, cx, 0.0, R, r_in, zb - 0.06, zt, 5, 12, stone_m, rim=rim, name="course")
+    inner = K.colour((0.06, 0.05, 0.07), vary=0.1)
+    wall.append(K.lathe([(r_in + 0.01, zb - 0.06), (r_in + 0.01, zt - 0.02)], inner, segments=30, centre=(cx, 0, 0),
+                        name="shaft", cap=False))
+    water = K.colour((0.05, 0.09, 0.1), vary=0.15)
+    wall.append(K.lathe([(0.0, zt - 0.55), (r_in + 0.02, zt - 0.55)], water, segments=30, centre=(cx, 0, 0),
+                        name="water"))
+    shear(K, k, 0.0, parts=wall)
+    # the posts, leaning in a little, standing inside the wall; the log beam across their heads
+    timber = K.tile((100, 70, 128, 200), soften=0.15, vary=0.05)
+    post = K.projected(squeeze=1.0, keep=[(84, 8, 145, 214), (356, 8, 418, 214)], inset=2)
+    for (bx, tx) in ((108, 122), (391, 386)):
+        x0, x1 = P.x(bx), P.x(tx)
+        dx = x1 - x0
+        h = P.z(12) - P.z(300)
+        ob = K.block((x0 + x1) / 2, 0.0, (P.z(12) + P.z(300)) / 2, P.m(42), 0.24, h, post,
+                     rot=(0, math.degrees(math.atan2(dx, h)), 0), bevel=0.03, name="post")
+    beam = K.projected(squeeze=1.0, keep=[(78, 28, 422, 58)], exclude=[(228, 15, 290, 70)], inset=2)
+    K.tube([P.pt(80, 43), P.pt(420, 41)], P.m(13), beam, segments=14, name="beam")
+    for x in (80, 420):
+        K.lathe([(0.0, -0.002), (P.m(13), 0.0), (0.0, 0.002)], timber, segments=14, centre=(P.x(x), 0, P.z(42)),
+                name="beam_end")
+    # the rope wound on the beam, the pulley under it, the pail
+    rope = K.colour((0.72, 0.3, 0.03), vary=0.12)
+    for i in range(6):
+        x = 238 + i * 7.5
+        rope_ring(K, P.x(x), 0.0, P.z(42), P.m(17), rope, axis=(0.0, 1.0), thick=P.m(4.5), name="rope_turn")
+    wheel = K.projected(squeeze=1.0, keep=[(224, 62, 292, 118)], inset=1)
+    wl = K.lathe([(0.0, -0.035), (P.m(32), -0.035), (P.m(33), 0.0), (P.m(32), 0.035), (0.0, 0.035)], wheel, segments=24,
+                 centre=(P.x(258), 0, 0), name="pulley")
+    rotate(wl, 90, "X", (P.x(258), 0, 0))
+    for v in wl.data.vertices:
+        v.co.z += P.z(90)
+    K.box(P.x(250), P.x(266), -0.05, 0.05, P.z(78), P.z(55), timber, name="pulley_hanger")
+    K.tube([P.pt(232, 92, -0.02), P.pt(222, 140, -0.05), P.pt(210, 190, -0.2), P.pt(196, 214, -0.9)], P.m(4.5), rope,
+           segments=6, name="rope")
+    K.tube([P.pt(286, 96, 0.0), P.pt(285, 126, 0.0)], P.m(4), rope, segments=6, name="rope")
+    pail = K.projected(axis_x=P.x(275), squeeze=0.9, keep=[(234, 146, 318, 222)], inset=2)
+    K.lathe([(P.m(33), P.z(220)), (P.m(36), P.z(200)), (P.m(41), P.z(160)), (P.m(42), P.z(154)), (P.m(39), P.z(153))],
+            pail, segments=24, centre=(P.x(275), 0, 0), name="pail")
+    K.lathe([(P.m(38), P.z(156)), (0.0, P.z(175))], K.colour((0.07, 0.07, 0.07), vary=0.1), segments=24,
+            centre=(P.x(275), 0, 0), name="pail_inside", cap=False)
+    iron = K.colour((240, 128, 252, 140), vary=0.1)
+    K.tube([(P.x(275) + P.m(42) * math.cos(a), 0.0, P.z(158) + P.m(30) * math.sin(a))
+            for a in np.linspace(0.0, math.pi, 12)], P.m(3), iron, segments=6, name="pail_handle")
+    # the spare rope, coiled and hung over the wall's front
+    hook_x = 175
+    yw = -math.sqrt(max(0.0, R ** 2 - (P.x(hook_x) - cx) ** 2)) - 0.03 - k * 0.0
+    for i, (w, bot) in enumerate(((46, 336), (38, 326), (30, 312), (22, 296))):
+        pts = []
+        for a in np.linspace(0, 2 * math.pi, 22):
+            x = hook_x + (w / 2) * math.sin(a) - 6 + 4 * i
+            yy = 215 + (bot - 215) * (0.5 - 0.5 * math.cos(a))
+            pts.append(P.pt(x, yy, yw - 0.02 * i))
+        K.tube(pts, P.m(6), rope, segments=6, name="coil", cap=False)
+    # the ground round its foot: earth, rocks, weeds
+    earth = K.colour((100, 375, 160, 385), vary=0.18, scale=8)
+    K.lathe([(0.0, P.z(386)), (R + 0.26, P.z(386)), (R + 0.2, P.z(372)), (0.0, P.z(372))], earth, segments=32,
+            centre=(cx, 0, 0), wobble=0.08, name="ground")
+    rocks = K.projected(squeeze=1.0, keep=[(14, 340, 500, 394)], exclude=[(30, 300, 120, 360), (330, 300, 500, 360)],
+                        inset=2)
+    for px, w, h in ((70, 48, 24), (130, 60, 30), (215, 50, 22), (300, 44, 22), (380, 70, 32), (450, 52, 24),
+                     (40, 30, 14), (480, 30, 14)):
+        dxm = P.x(px) - cx
+        y = -math.sqrt(max(0.0, (R + 0.12) ** 2 - dxm ** 2)) - 0.04
+        stone(K, P.x(px), y, P.z(372) + P.m(h) * 0.4, P.m(w), P.m(w) * 0.7, P.m(h), rocks, lumps=0.15, name="rock")
+    for a in (30, 75, 120, 160):
+        t = math.radians(a)
+        stone(K, cx + (R + 0.15) * math.cos(t), (R + 0.15) * math.sin(t), P.z(372) + 0.05, 0.3, 0.22, 0.14, rocks,
+                  lumps=0.15, name="rock")
+    K.leaves_only((0, 300, 515, 394), grass_pixels)
+    for box in ((30, 306, 116, 372), (336, 310, 420, 372), (430, 296, 515, 366), (140, 340, 220, 384)):
+        bx = (box[0] + box[2]) / 2
+        dxm = P.x(bx) - cx
+        y = -math.sqrt(max(0.0, (R + 0.1) ** 2 - dxm ** 2)) - 0.05 if abs(dxm) < R + 0.1 else -0.1
+        K.card_from_painting(box, P.pt(bx, (box[1] + box[3]) / 2, y), name="weeds", normal=(0, -0.3, 1))
+        for a in K.rng.uniform(10, 170, 2):
+            t = math.radians(a)
+            K.card_from_painting(box, (cx + (R + 0.12) * math.cos(t), (R + 0.12) * math.sin(t), P.z((box[1] + box[3]) / 2)),
+                                 yaw=a + 90, name="weeds", normal=(math.cos(t), math.sin(t), 1))

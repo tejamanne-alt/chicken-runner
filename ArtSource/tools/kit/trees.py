@@ -1500,8 +1500,9 @@ def field_tree_3(K):
             spread = (f - 0.5) * 2
             top_py = rng.uniform(140, 330) - 80 * (1 - abs(spread))
             xt = x5 + spread * rng.uniform(40, 120)
-            while top_py < 500 and alpha[int(top_py) - 25:int(top_py) + 1, int(np.clip(xt, 0, P.w - 1))].min() < 0.5:
+            while top_py < 620 and alpha[int(top_py) - 25:int(top_py) + 1, int(np.clip(xt, 0, P.w - 1))].min() < 0.5:
                 top_py += 8                                 # its tip stays among the painted leaves
+                xt = x5 + (xt - x5) * 0.93
             yt = y_base * 2.5 + rng.uniform(-0.5, 0.5)
             yt = float(np.clip(yt, -crown.extent(xt, top_py + 60) * 0.9, crown.extent(xt, top_py + 60) * 0.9))
             pts_px = [(xb, base_py), (xb + (x5 - xb) * 0.5, 640), (x5, 520), (x5 + (xt - x5) * 0.45, 420),
@@ -1577,6 +1578,11 @@ def blade(K, pts, widths, mat, thick=0.18, fold=0.22, roll=0.0, name="blade", si
                     bm.faces.new(q[::-1] if flip else q)
     bm.faces.new([top[0][0], top[0][1], top[0][2], bot[0][1]])
     return _add(K, bm, mat, name, smooth=True)
+
+
+def _bezier(a, c, b, n):
+    return [((1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0],
+             (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]) for t in np.linspace(0, 1, n)]
 
 
 def stroke_field(K, sigma=1.5, rho=5.0):
@@ -1773,16 +1779,19 @@ def field_tree_4(K):
 def needles(rgb):
     """Casuarina needles and the fine dark twigs among them: green to grey-green, not the white halo or the bark."""
     r, g, b, mx, mn = chan(rgb)
-    keep = (g >= r - 2) & (g >= b) & (mx < 236)
+    keep = (g >= r - 2) & (g >= b) & (mn < 200)
     keep |= (mx < 70)
     return ndimage.binary_opening(keep, iterations=1) | (keep & (mx < 120))
 
 
 CASUARINA_TRUNKS = [
-    [(160, 868, 10), (158, 760, 9), (153, 640, 8), (146, 520, 6), (136, 380, 4.5), (128, 240, 3), (125, 110, 2)],
-    [(205, 872, 14), (205, 720, 12.5), (205, 560, 10.5), (206, 400, 8), (206, 250, 5.5), (205, 120, 3.5), (205, 25, 2)],
-    [(242, 868, 9), (243, 760, 8), (245, 640, 7), (249, 520, 5.5), (253, 400, 4), (256, 300, 2.5)],
-    [(272, 865, 11), (275, 740, 9.5), (279, 600, 8), (284, 450, 6), (289, 300, 4), (294, 140, 2.2)],
+    [(164, 868, 8.5), (163, 800, 8), (161, 700, 6.5), (159, 650, 6.2), (155, 560, 5), (148, 450, 4), (140, 330, 3),
+     (133, 230, 2)],
+    [(206, 872, 10.5), (206, 800, 10), (205, 700, 9), (205, 650, 8.8), (205, 560, 8), (206, 420, 6), (206, 280, 4),
+     (205, 150, 2.5), (205, 70, 1.5)],
+    [(239, 868, 8.5), (239, 800, 8), (240, 700, 7), (242, 650, 6), (245, 560, 5), (250, 450, 3.5), (254, 340, 2)],
+    [(268, 866, 8.5), (268, 800, 8), (266, 700, 6), (267, 650, 5.5), (272, 560, 4.5), (280, 420, 3.5), (288, 290, 2.5),
+     (292, 190, 1.5)],
 ]
 
 
@@ -2093,7 +2102,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
     return out
 
 
-TRACE["h2_1"] = lambda K: _trace_grey(K, [(0, 240, 1120, 1100)], (540, 1060), sat=42,
+TRACE["h2_1"] = lambda K: _trace_grey(K, [(0, 240, 1120, 1100)], (540, 1060), sat=42, hole=8000, hi=245,
                                       exclude=[(255, 995, 420, 1090), (535, 1035, 625, 1085)],
                                       extra_rule=lambda rgb: ~((chan(rgb)[0] - chan(rgb)[2] > 55)))
 
@@ -2119,3 +2128,100 @@ def h2_1(K):
     K.leaves_only((240, 920, 860, 1090), plant_pixels)
     undergrowth(K, (260, 930, 820, 1080), 22, (70, 60), (-0.2, 0.2))
     earth(K, 555, 330, P.m(600) * 0.35, (420, 1070, 700, 1085), h=P.m(10), z=zg - P.m(8))
+
+
+def pale_wood(rgb):
+    """The drumstick tree's pale cream-grey bark (and its shaded side), not its green leaflets and pods."""
+    r, g, b, mx, mn = chan(rgb)
+    sat = mx - mn
+    cream = (sat < 62) & (mx > 120) & (r >= g - 12) & (g - b < 50) & ~((g - r > 6) & (g - b > 28) & (mx < 175))
+    return cream & ~((mn > 200) & (sat < 22))
+
+
+DRUM_TRUNK = {"h2_2": [(300, 1052, 24), (298, 900, 21), (297, 750, 18), (298, 650, 16), (296, 590, 14)],
+              "h2_4": [(232, 828, 16), (231, 760, 13), (230, 700, 12), (232, 600, 10.5), (232, 470, 9)]}
+
+
+def _trace_drum(K, box, root, exclude=()):
+    extra = raster((K.paint.h, K.paint.w), [DRUM_TRUNK[K.name]]) & (K.paint.rgba[..., 3] > 0.5)
+    m = wood_mask(K, pale_wood, boxes=[box], exclude=exclude, close=1, hole=150, open_=1, min_area=80, extra=extra)
+    return m, Wood(K, m, root_px=root, spur=1.4, min_len=6)
+
+
+TRACE["h2_2"] = lambda K: _trace_drum(K, (0, 60, 641, 1060), (300, 1045), exclude=[(150, 1000, 400, 1089)])
+TRACE["h2_4"] = lambda K: _trace_drum(K, (0, 0, 473, 822), (232, 818))
+
+
+def drum_pods(K, box):
+    """The drumstick tree's long green pods: saturated green, long and upright (an upright opening drops the
+    leaflets), with their dark outline."""
+    P = K.paint
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    m = (g - b > 45) & (g - r > 12) & (P.rgba[..., 3] > 0.5) & box_mask(r.shape, [box])
+    m = ndimage.binary_closing(m, structure=np.ones((5, 1)), iterations=2)
+    m = ndimage.binary_opening(m, structure=np.ones((45, 1)))
+    m = ndimage.binary_dilation(m, structure=np.ones((3, 3)), iterations=1)
+    m = ndimage.binary_fill_holes(m)
+    return m
+
+
+def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
+    P = K.paint
+    rng = K.rng
+    mask, _ = TRACE[K.name](K)
+    pods = drum_pods(K, crown_box)
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    halo = (mn > 185) & (mx - mn < 40)
+    thick = ndimage.binary_opening(mask, iterations=4)
+    leaves = (P.rgba[..., 3] > 0.5) & ~halo & ~ndimage.binary_dilation(pods, iterations=2) & ~thick
+    box = tuple(int(v) for v in crown_box)
+    wood, crown, bark, thin = traced_tree(K, mask, root, crown_box, centre, dome, mask_rule(leaves, box),
+                                          spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
+                                          n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
+                                          dome_pow=0.6)
+    # the pods: long, thin, ribbed green tubes hanging from the branches, and more round the back
+    hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=2, flatten=0.85, lump=0.05, min_len=40,
+              segments=7)
+    # its foot: a few roots into the ground, and the ground
+    tx, ty, tr = DRUM_TRUNK[K.name][0]
+    for k in range(5):
+        a = 2 * math.pi * (k + rng.uniform(-0.3, 0.3)) / 5
+        r0 = P.m(tr)
+        K.tube([(P.x(tx) + math.cos(a) * r0 * 0.5, math.sin(a) * r0 * 0.5, P.z(ty) + r0 * 0.8),
+                (P.x(tx) + math.cos(a) * r0 * 1.3, math.sin(a) * r0 * 1.3, P.z(ty) + r0 * 0.1),
+                (P.x(tx) + math.cos(a) * r0 * 2.0, math.sin(a) * r0 * 2.0, P.z(ty))],
+               [r0 * 0.35, r0 * 0.2, r0 * 0.05], bark, segments=8, name="root")
+    earth(K, tx, tr * 4, P.m(tr * 3), ground, h=P.m(6), z=P.z(ty) - P.m(4))
+    return wood, crown, bark
+
+
+@model("h2_2", "plants", kind="prop", atlas=2048, leaves=1024)
+def h2_2(K):
+    """A drumstick (moringa) tree: a smooth pale trunk forking into slender limbs, airy sprays of tiny round
+    leaflets, a dozen long green drumstick pods hanging straight down, rocks and a grass tuft at its foot."""
+    P = K.paint
+    drumstick_tree(K, (0, 0, 641, 620), (300, 330), (300, 0, 620), (300, 1045), (200, 90, 50, 20), (70, 60),
+                   (240, 1060, 300, 1075))
+    stone = K.projected(squeeze=1.0, keep=[(160, 1000, 390, 1085)], inset=3)
+    zg = P.z(1080)
+    for px, w, h, y in ((240, 95, 62, -0.06), (175, 50, 25, -0.08), (320, 45, 25, -0.07), (275, 60, 28, 0.08),
+                        (200, 50, 25, 0.07)):
+        K.boulder(P.x(px), y, zg + P.m(h) * 0.5, P.m(w), P.m(w) * 0.7, P.m(h) * 1.1, stone, name="rock")
+    K.leaves_only((320, 985, 395, 1062), plant_pixels)
+    for yaw in (0, 60, -60):
+        K.card_from_painting((320, 985, 395, 1062), (P.x(357), -0.03, P.z(1023)), yaw=yaw, name="grass")
+
+
+@model("h2_4", "plants", kind="prop", atlas=2048, leaves=1024)
+def h2_4(K):
+    """A young drumstick tree: a slim cream trunk, a few slender forking limbs, airy sprays of round leaflets and
+    long green pods hanging in two bunches, grass at its foot."""
+    P = K.paint
+    drumstick_tree(K, (0, 0, 473, 520), (232, 260), (250, 0, 520), (232, 818), (170, 80, 45, 15), (60, 52),
+                   (225, 820, 240, 830))
+    K.leaves_only((180, 790, 290, 835), plant_pixels)
+    for box, cx in (((180, 795, 220, 832), 200), ((250, 795, 290, 832), 270)):
+        for yaw in (0, 60, -60):
+            K.card_from_painting(box, (P.x(cx), K.rng.uniform(-0.03, 0.03), P.z(813)), yaw=yaw, name="grass")

@@ -1135,18 +1135,23 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
     rgb = P.rgba[..., :3] * 255
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
     yy = np.arange(P.h)[:, None]
-    podm = alpha_mask(P) & (r > 150) & (r - b > 55) & (r > g + 15) & (yy > pod_band[0]) & (yy < pod_band[1])
+    # the pods: pale tan (the red earth round them is darker)
+    podm = (alpha_mask(P) & (r > 185) & (g > 135) & (r - b > 50) & (r > g + 15) & (yy > pod_band[0])
+            & (yy < pod_band[1]))
     podm = ndimage.binary_opening(podm, iterations=1)
-    pods = blobs(P, podm, 25)
+    pods = [p for p in blobs(P, podm, 25) if p[2][3] < 400]
+    podm = ndimage.binary_dilation(podm, iterations=2)
     leaves = plant_mask(P) & ~ndimage.binary_dilation(podm, iterations=3)
     card_mask(K, leaves)
     pod_mat = K.tile((0, 0, 1, 1)) if False else K.colour((0.55, 0.3, 0.12), vary=0.12, scale=60)
     shell = K.projected(squeeze=1.0, keep=[(0, pod_band[0], P.w, pod_band[1])], inset=1)
 
     def make(K, fr, ft, yaw, s):
+        if s != 1.0 and K.rng.uniform() < 0.5:
+            return
         e0, e1, hw, area = ft[2]
         a, bb = fr(*e0, out=-0.01), fr(*e1, out=-0.01)
-        capsule(K, a, bb, P.m(hw) * s * 1.05, shell if s == 1.0 else pod_mat, segments=6)
+        capsule(K, a, bb, P.m(hw) * s * 1.35, shell if s == 1.0 else pod_mat, segments=6)
     crop_rows(K, 10, P.w - 8, top_py, base_py, rows, P.z(bed_py), slices, bush_w, step, pods, make,
               scale=(0.78, 0.95), yaw=40, src=at, at=at)
     return pods

@@ -2128,11 +2128,14 @@ def panchayat_office(K):
     body = K.box(X0, X1, Dv, D, 0.0, zt, wall, name="walls")
     K.box(X0, X1, Dv - 0.005, D + 0.005, zp, P.z(750), dado, name="dado")
     K.box(X0, X1, 0.0, Dv, P.z(258), zt, wall, name="upper_wall")
-    K.box(X0 - 0.07, X1 + 0.07, -0.07, D + 0.07, P.z(38), P.z(8), green, bevel=0.012, name="coping")
+    lip = 0.18                                        # the coping: a green lip round the roof's edge
+    for a, b, c, d in ((X0 - 0.07, X1 + 0.07, -0.07, lip), (X0 - 0.07, X1 + 0.07, D - lip, D + 0.07),
+                       (X0 - 0.07, X0 + lip, 0.0, D), (X1 - lip, X1 + 0.07, 0.0, D)):
+        K.box(a, b, c, d, P.z(38), P.z(8), green, bevel=0.012, name="coping")
     K.box(X0 - 0.08, X1 + 0.08, -0.08, D + 0.08, P.z(172), P.z(143), green, bevel=0.012, name="cornice")
     K.box(P.x(8), P.x(1718), -0.38, D + 0.1, P.z(290), P.z(258), green, bevel=0.012, name="sunshade")
-    K.box(X0 + 0.15, X1 - 0.15, 0.15, D - 0.15, P.z(8) - 0.005, P.z(8), K.colour((180, 60, 520, 135), vary=0.08,
-          pct=70), name="roof_deck")
+    K.box(X0 + 0.1, X1 - 0.1, 0.1, D - 0.1, P.z(38), P.z(8) - 0.07, K.colour((180, 60, 520, 135), vary=0.1,
+          pct=75), name="roof_deck")
     for x0, x1 in ((92, 165), (588, 658), (1075, 1148), (1558, 1635)):
         p = K.box(P.x(x0), P.x(x1), 0.0, P.m(x1 - x0), zp, P.z(290), wall, name="pillar")
         K.box(P.x(x0) - 0.005, P.x(x1) + 0.005, -0.005, P.m(x1 - x0) + 0.005, zp, P.z(750), dado, name="pillar_dado")
@@ -2169,4 +2172,248 @@ def panchayat_office(K):
     side_decal(K, (1230, 492, 1416, 668), X1, 1, (Dv + D) / 2, name="side_window")
     # the hand pump on its block
     hand_pump(K, 1779.5, -0.55, keep=[(1640, 615, 1868, 902)], base_box=(1735, 902, 1809, 935))
+    drop_ground_faces(K)
+
+
+CALF_SHED = [(938, 645), (985, 630), (1000, 619), (1055, 619), (1070, 635), (1140, 650), (1210, 650), (1268, 633),
+             (1318, 636), (1350, 658), (1366, 700), (1366, 770), (1378, 862), (1300, 866), (1285, 792), (1170, 802),
+             (1166, 870), (1095, 870), (1050, 818), (1030, 812), (1004, 767), (968, 754), (958, 724), (958, 690),
+             (938, 670)]
+
+
+@model("cattle_shed", "lane", kind="building", atlas=2048)
+def cattle_shed(K):
+    """A cattle shed: a hipped thatch held down with bamboo battens on four rough wooden posts, a mud back wall
+    printed with red handprints, a wooden manger along it, heaps of hay, an earth floor strewn with straw, a rope
+    hanging from the rafters; a calf standing in it (kept as its painted cut-out)."""
+    P = K.paint
+    D = 3.0
+    K.front_min = 0.1
+    halo_exclude(K, [(0, 0, 1657, 894)])
+    K.figure(CALF_SHED, y=1.15, name="calf")
+    thatch_m = K.tile((300, 115, 700, 190), size=0.8, vary=0.06, soften=0.2)
+    wall = K.tile((300, 330, 420, 460), size=0.8, vary=0.04, soften=0.45)
+    earth = K.colour((0.32, 0.2, 0.1), vary=0.12, scale=8)
+    bamboo = K.colour((600, 200, 900, 208), vary=0.08)
+    zf = P.z(872)
+    K.box(P.x(110), P.x(1570), -0.25, D + 0.1, 0.0, zf, earth, bevel=0.02, name="floor")
+    # the roof
+    ze, zr = P.z(285), P.z(16)
+    eave = (P.x(12), P.x(1648), -0.55, D + 0.55)
+    ridge = (P.x(175), P.x(1510))
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.22, shag=0.04, fringe=0.12)
+    K.tube([P.pt(175, 16, D / 2), P.pt(1510, 16, D / 2)], P.m(10), bamboo, segments=8, name="ridge_pole")
+    fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
+    for py, x0, x1 in ((103, 118, 1557), (205, 60, 1607)):
+        y = fy(800, py) - 0.12
+        K.tube([P.pt(x0, py, y), P.pt(x1, py, y)], P.m(8), bamboo, segments=8, name="batten")
+        K.tube([P.pt(x0, py, D - y), P.pt(x1, py, D - y)], P.m(8), bamboo, segments=8, name="batten_back")
+    # rafters under the hip ends and a beam along the posts, front and back
+    for y in (0.0, D - 0.1):
+        K.tube([P.pt(120, 300, y), P.pt(1560, 300, y)], P.m(12), bamboo, segments=8, name="plate")
+    for x in np.linspace(P.x(200), P.x(1480), 8):
+        K.tube([(x, -0.3, ze + 0.02), (x, D / 2, zr - 0.15), (x, D + 0.3, ze + 0.02)], P.m(6), bamboo, segments=6,
+               name="rafter")
+    # the posts, front as painted and the same at the back corners
+    for x0, x1, top in ((130, 195, 310), (825, 885, 300), (1480, 1540, 300)):
+        cx = (x0 + x1) / 2
+        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, top, x1, 880)],
+                        exclude=[(860, 700, 900, 880)] if x0 == 825 else (), inset=3)
+        prof = [(P.m((x1 - x0) / 2 * f), P.z(py)) for f, py in ((1.05, 885), (0.95, 800), (1.0, 650), (0.92, 500),
+                                                                (1.0, 380), (0.95, top))]
+        for y in (0.0, D - 0.1):
+            K.lathe(prof, m, segments=12, centre=(P.x(cx), y, 0.0), wobble=0.06, scale_y=0.9, name="post")
+    # the back wall
+    zw = ze + (zr - ze) * 0.4
+    bw = K.box(P.x(258), P.x(1555), D - 0.2, D, zf, zw, wall, name="back_wall")
+    for x in (450, 1150):                              # two small vents, seen from behind (the hay hides them inside)
+        K.cut(bw, P.x(x) - 0.2, P.x(x) + 0.2, D - 0.08, D + 0.05, P.z(420), P.z(360))
+        K.box(P.x(x) - 0.2, P.x(x) + 0.2, D - 0.1, D - 0.08, P.z(420), P.z(360), K.colour((0.05, 0.03, 0.02)),
+              name="vent_back")
+    # the manger: a long wooden trough on stumpy legs, straw in it
+    mw = K.tile((300, 742, 700, 778), size=0.8, vary=0.05)
+    my0, my1 = D - 0.75, D - 0.22
+    trough = K.box(P.x(228), P.x(825), my0, my1, P.z(800), P.z(720), mw, bevel=0.01, name="manger")
+    K.cut(trough, P.x(245), P.x(808), my0 + 0.07, my1 - 0.07, P.z(760), P.z(700))
+    K.box(P.x(245), P.x(808), my0 + 0.07, my1 - 0.07, P.z(762), P.z(758), K.colour((0.25, 0.15, 0.07), vary=0.1),
+          name="manger_floor")
+    for x in (250, 525, 800):
+        for y in (my0 + 0.06, my1 - 0.06):
+            K.block(P.x(x), y, (zf + P.z(800)) / 2, 0.1, 0.1, P.z(800) - zf, mw, bevel=0.01, name="manger_leg")
+    # hay: the big heaps behind the calf and the one by the post, straw in the manger and on the floor
+    hay = K.projected(squeeze=1.0, keep=[(880, 445, 1480, 880)], exclude=[(940, 615, 1380, 880)], inset=3)
+    for px, py, w, h, y in ((1320, 590, 300, 260, D - 0.75), (1240, 640, 220, 170, D - 0.9), (1120, 640, 260, 150, 1.85),
+                            (1410, 720, 150, 130, 1.6), (990, 790, 190, 170, 1.45), (930, 830, 120, 90, 1.3)):
+        K.boulder(P.x(px), y, P.z(py) - P.m(h) * 0.05, P.m(w), P.m(w) * 0.8, P.m(h), hay, lumps=0.12, name="hay")
+    K.leaves_only((870, 440, 1480, 880), straw_pixels)
+    K.leaves_only((220, 690, 830, 870), straw_pixels)
+    for i in range(70):
+        cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
+        if 950 < cx < 1370 and cy > 615:
+            continue
+        K.card_from_painting((cx - 55, cy - 45, cx + 55, cy + 45), (P.x(cx), K.rng.uniform(1.3, D - 0.5), P.z(cy)),
+                             yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-30, 30), name="hay_tuft")
+    for i in range(10):
+        cx = K.rng.uniform(260, 790)
+        K.card_from_painting((cx - 50, 690, cx + 50, 745), (P.x(cx), K.rng.uniform(my0 + 0.12, my1 - 0.12), P.z(730)),
+                             yaw=K.rng.uniform(-40, 40), name="manger_straw")
+    for i in range(16):
+        cx = K.rng.uniform(900, 1450)
+        y = K.rng.uniform(-0.2, D - 0.3)
+        K.card_from_painting((cx - 60, 820, cx + 60, 870), (P.x(cx) + K.rng.uniform(-1.8, 0.2), y, zf + 0.01),
+                             yaw=K.rng.uniform(-90, 90), pitch=-82, name="floor_straw")
+    # the rope hanging from the rafters
+    rope = K.colour((0.42, 0.28, 0.15), vary=0.1)
+    K.tube([P.pt(1383, 290, 0.9), P.pt(1383, 460, 0.9)], P.m(3), rope, segments=5, name="rope")
+    drop_ground_faces(K)
+
+
+JAR = [(0.86, 0.0), (1.0, 0.05), (1.0, 0.72), (0.93, 0.82), (0.74, 0.87), (0.76, 0.89), (0.8, 0.9), (0.8, 1.0),
+       (0.0, 1.0)]
+
+
+def jar(K, x0, x1, top, bottom, y, prof=JAR, inset=2, name="jar", segments=20):
+    """A glass jar of sweets (or a tin, a bottle) turned from its painted box (px) at depth y, wearing its painted
+    contents and lid all round."""
+    P = K.paint
+    cx, r, h = (x0 + x1) / 2, (x1 - x0) / 2, bottom - top
+    mat = K.projected(axis_x=P.x(cx), squeeze=0.95, keep=[(x0, top, x1, bottom)], inset=inset)
+    return K.lathe([(P.m(r * a), P.z(bottom - h * b)) for a, b in prof], mat, segments=segments,
+                   centre=(P.x(cx), y, 0.0), name=name)
+
+
+def goods_box(K, box, y0, y1, name="goods", bevel=0.004):
+    """A packet, carton or tin box: a slab y0..y1 deep showing the painting inside box (px) on its front and back,
+    its sides in the same colours."""
+    P = K.paint
+    x0, py0, x1, py1 = box
+    return K.box(P.x(x0), P.x(x1), y0, y1, P.z(py1), P.z(py0), K.projected(squeeze=1.0, keep=[box], inset=1),
+                 bevel=bevel, name=name)
+
+
+def banana_bunch(K, stem, tips, y, mat, stalk, name="banana"):
+    """A hanging bunch of bananas: from the stem top (px) each finger a curved tapering tube out to its painted tip
+    (px, py), fanned through a little depth."""
+    P = K.paint
+    sx, sy = stem
+    for i, (tx, ty) in enumerate(tips):
+        dy = (i % 3 - 1) * 0.06
+        mx, my = (sx + tx) / 2 + (ty - sy) * 0.15, (sy + ty) / 2 - abs(tx - sx) * 0.2
+        K.tube([P.pt(sx, sy + 25, y), P.pt(mx, my, y + dy), P.pt(tx, ty, y + dy * 1.5)], [P.m(7), P.m(9), P.m(4)],
+               mat, segments=8, name=name)
+    K.tube([P.pt(sx, sy - 25, y), P.pt(sx, sy + 30, y)], P.m(6), stalk, segments=6, name=name + "_stalk")
+
+
+@model("shop_provisions", "lane", kind="building", atlas=2048)
+def shop_provisions(K):
+    """A provisions shop: a mud-plastered front with a painted signboard, a corrugated tin awning on two rough poles,
+    a big serving window of shelves with rows of sweet jars, strings of packets hanging from a rod, a bunch of
+    bananas, tins and boxes behind, a weighing scale on the counter, a plank door below, a bench, a lime skirting."""
+    P = K.paint
+    D = 3.6
+    K.front_min = 0.05
+    halo_exclude(K, [(0, 0, 1508, 1143)])
+    mud = K.tile((1030, 50, 1340, 240), size=1.0, vary=0.04, soften=0.45)
+    lime = K.tile((170, 1000, 600, 1080), size=1.0, vary=0.04, soften=0.4)
+    tin = K.tile((300, 270, 700, 390), size=1.0, vary=0.04, soften=0.1)
+    timber = K.colour((280, 420, 310, 790), vary=0.08)
+    shelf = K.colour((330, 522, 580, 530), vary=0.08)
+    inside = K.colour((700, 670, 860, 790), vary=0.06)
+    wood = K.tile((640, 840, 880, 1060), vary=0.04)
+    X0, X1 = P.x(160), P.x(1350)
+    zt, zg = P.z(45), P.z(1088)
+    body = K.box(X0, X1, 0.0, D, 0.0, zt, mud, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(990), lime, name="skirting")
+    K.box(P.x(95), P.x(1415), -1.55, D + 0.1, 0.0, P.z(1100) - 0.02, K.colour((300, 1095, 1200, 1110), vary=0.1),
+          name="ground")
+    # the roof: a coping round a real deck
+    cop = K.colour((400, 18, 1000, 40), vary=0.05)
+    lip = 0.15
+    for a, b, c, d in ((X0 - 0.04, X1 + 0.04, -0.04, lip), (X0 - 0.04, X1 + 0.04, D - lip, D + 0.04),
+                       (X0 - 0.04, X0 + lip, 0.0, D), (X1 - lip, X1 + 0.04, 0.0, D)):
+        K.box(a, b, c, d, zt, P.z(15), cop, bevel=0.01, name="coping")
+    K.box(X0 + 0.1, X1 - 0.1, 0.1, D - 0.1, zt, P.z(15) - 0.06, K.colour((1030, 50, 1340, 240), vary=0.1, pct=70),
+          name="roof_deck")
+    # the signboard
+    K.panel((495, 45, 1015, 255), -0.05, depth=0.05, name="signboard")
+    # the tin awning on two poles
+    ya = -1.45
+    corners = [(P.x(18), ya, P.z(405)), (P.x(1497), ya, P.z(405)), (P.x(1350), 0.0, P.z(255)), (P.x(150), 0.0, P.z(255))]
+    def awning(u, v):
+        a = [corners[0][k] + (corners[1][k] - corners[0][k]) * u for k in range(3)]
+        b = [corners[3][k] + (corners[2][k] - corners[3][k]) * u for k in range(3)]
+        p = [a[k] + (b[k] - a[k]) * v for k in range(3)]
+        return (p[0], p[1], p[2] + 0.016 * math.sin(2 * math.pi * u * 40))
+    K.sheet(awning, 320, 4, tin, name="awning", smooth=False, thickness=0.008)
+    for x0, x1 in ((100, 135), (1375, 1410)):
+        cx = (x0 + x1) / 2
+        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 405, x1, 1110)], inset=3)
+        K.lathe([(P.m(18), P.z(1112)), (P.m(16), P.z(800)), (P.m(17), P.z(600)), (P.m(15), P.z(405))], m, segments=10,
+                centre=(P.x(cx), ya + 0.1, 0.0), wobble=0.05, name="pole")
+        K.box(P.x(cx) - 0.04, P.x(cx) + 0.04, ya + 0.05, 0.0, P.z(410), P.z(400), timber, name="awning_bearer")
+    K.box(P.x(30), P.x(1485), ya + 0.03, ya + 0.12, P.z(412), P.z(400), timber, name="awning_beam")
+    # the serving window: a recess into the shop, its frame, shelves and the counter
+    yb = 1.05
+    K.cut(body, P.x(285), P.x(1225), -0.05, yb, P.z(800), P.z(420))
+    K.box(P.x(285), P.x(1225), yb - 0.04, yb, P.z(800), P.z(420), inside, name="shop_inside")
+    for x0, x1 in ((268, 315), (590, 605), (882, 900), (1225, 1240)):
+        K.box(P.x(x0), P.x(x1), -0.04, yb, P.z(820), P.z(405), timber, name="window_post")
+    K.box(P.x(268), P.x(1240), -0.04, yb, P.z(420), P.z(405), timber, name="window_head")
+    K.box(P.x(268), P.x(1240), -0.35, yb, P.z(822), P.z(800), timber, bevel=0.006, name="counter")
+    for x0, x1, py in ((315, 590, 520), (315, 590, 645), (605, 882, 656), (900, 1225, 646), (605, 882, 735)):
+        K.box(P.x(x0), P.x(x1), 0.04, yb - 0.04, P.z(py + 9), P.z(py), shelf, name="shelf")
+    # the jars on the left shelves
+    ys = 0.3
+    for x0, x1 in ((325, 372), (375, 428), (433, 480), (485, 530)):
+        jar(K, x0, x1, 452, 520, ys)
+    for x0, x1 in ((318, 372), (375, 427), (430, 478), (480, 530), (533, 588)):
+        jar(K, x0, x1, 555, 645, ys)
+    for x0, x1 in ((302, 375), (378, 450), (453, 526), (528, 600), (608, 681)):
+        jar(K, x0, x1, 688, 801, ys)
+    goods_box(K, (535, 448, 590, 520), ys - 0.12, ys + 0.12, name="packet_stack")
+    # behind the packets: tins and boxes on the middle shelves
+    for x0, x1 in ((610, 650), (658, 700), (715, 752), (757, 788), (793, 830)):
+        jar(K, x0, x1, 592, 656, 0.75, prof=[(1.0, 0.0), (1.0, 0.9), (0.9, 1.0), (0.0, 1.0)], name="tin")
+    for x0, x1, t in ((680, 740, 688), (745, 800, 685), (805, 870, 688), (920, 980, 690), (1180, 1220, 690)):
+        goods_box(K, (x0, t, x1, 735 if x0 < 900 else 800), 0.6, 0.9, name="carton")
+    # strings of packets hanging from a rod
+    K.tube([P.pt(610, 423, 0.16), P.pt(1090, 423, 0.16)], P.m(4), timber, segments=6, name="rod")
+    strings = [(625, 469, 659, 542), (674, 451, 712, 575), (737, 461, 758, 547), (759, 456, 793, 608),
+               (790, 450, 816, 529), (818, 453, 844, 552), (851, 451, 882, 634), (882, 453, 917, 644),
+               (919, 458, 955, 644), (960, 458, 999, 618), (1001, 458, 1039, 595), (1042, 456, 1082, 603)]
+    cord = K.colour((0.1, 0.08, 0.06), vary=0.05)
+    for i, (x0, t, x1, b) in enumerate(strings):
+        y = 0.14 + 0.03 * (i % 2)
+        goods_box(K, (x0, t, x1, b), y - 0.012, y + 0.012, name="packets")
+        K.tube([P.pt((x0 + x1) / 2, 423, 0.16), P.pt((x0 + x1) / 2, t, y)], P.m(1.5), cord, segments=4, name="string")
+    # the bananas
+    yellow = K.projected(squeeze=1.0, keep=[(1085, 476, 1235, 639)], inset=2)
+    banana_bunch(K, (1169, 476), [(1090, 540), (1100, 560), (1120, 585), (1140, 600), (1165, 610), (1185, 590),
+                                  (1205, 570), (1225, 545), (1230, 520), (1150, 560)], 0.35, yellow,
+                 K.colour((0.25, 0.2, 0.05)))
+    K.tube([P.pt(1169, 423, 0.35), P.pt(1169, 455, 0.35)], P.m(2), cord, segments=4, name="banana_string")
+    # the weighing scale on the counter
+    brass = K.projected(squeeze=1.0, keep=[(955, 600, 1210, 800)], inset=2)
+    zc = P.z(800)
+    K.box(P.x(976), P.x(1179), -0.05, 0.3, zc, P.z(755), brass, bevel=0.01, name="scale_base")
+    K.box(P.x(996), P.x(1037), 0.05, 0.2, P.z(755), P.z(738), brass, name="scale_neck")
+    K.prism([(P.x(x), P.z(y)) for x, y in ((965, 738), (1050, 738), (1060, 640), (1007, 605), (955, 640))], 0.03,
+            0.22, brass, name="scale_dial")
+    K.box(P.x(1062), P.x(1087), 0.08, 0.17, P.z(755), P.z(697), brass, name="pan_post")
+    K.lathe([(0.0, P.z(733)), (P.m(55), P.z(733)), (P.m(55), P.z(720)), (0.0, P.z(722))], brass, segments=24,
+            centre=(P.x(1152), 0.12, 0.0), scale_y=0.6, name="scale_pan")
+    # the plank door under the counter, the bench
+    K.cut(body, P.x(612), P.x(900), -0.05, 0.25, P.z(1072), P.z(822))
+    K.box(P.x(612), P.x(900), 0.12, 0.17, P.z(1072), P.z(822), wood, name="door")
+    bench = K.colour((950, 975, 1300, 990), vary=0.06)
+    K.box(P.x(925), P.x(1340), -0.5, -0.12, P.z(1000), P.z(968), bench, bevel=0.006, name="bench_top")
+    for x0, x1 in ((935, 965), (1280, 1310)):
+        for y in (-0.45, -0.17):
+            K.box(P.x(x0), P.x(x1), y - 0.03, y + 0.03, P.z(1105), P.z(1000), bench, name="bench_leg")
+    # sides and back
+    back_decal(K, (612, 822, 900, 1072), D, name="back_door")
+    for side, x in ((-1, X0), (1, X1)):
+        side_decal(K, (612, 822, 900, 1072), x, side, D * 0.6, name="side_door") if side > 0 else None
+    iron = K.colour((0.04, 0.03, 0.03), vary=0.05)
+    side_window(K, body, -1, D * 0.5, P.z(700), P.z(520), 0.6, timber, iron, K.colour((0.03, 0.02, 0.02)))
     drop_ground_faces(K)

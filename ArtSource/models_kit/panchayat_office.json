@@ -1,0 +1,10 @@
+{
+ "name": "panchayat_office",
+ "folder": "lane",
+ "kind": "building",
+ "width": 8.509,
+ "height": 4.286,
+ "depth": 7.323,
+ "faces": 1135,
+ "source": "blender"
+}
