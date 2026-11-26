@@ -914,3 +914,141 @@ def stall_c_3(K):
             bot = 500 if row is front else 440
             mat = K.projected(squeeze=1.0, keep=[(x0 + 4, top, x1 - 4, bot)], inset=2)
             fold_stack(K, P.x(x0 + 3), P.x(x1 - 3), y, d, zt, Z(top + 4), mat, fold=P.m(13))
+
+
+def ball(K, c, r, mat, squash=1.0, segs=8, rings=5, name="ball"):
+    """A round fruit (a palmyra fruit, a lime, an onion): a low-poly sphere of radius r at c, squashed in z."""
+    prof = [(r * math.sin(math.pi * i / rings), -r * squash * math.cos(math.pi * i / rings)) for i in range(rings + 1)]
+    prof[0] = (0.0, prof[0][1])
+    prof[-1] = (0.0, prof[-1][1])
+    return K.lathe(prof, mat, segments=segs, centre=c, name=name)
+
+
+def cluster(K, cx, cy, cz, rx, ry, rz, n, r, mat, core=None, name="bunch"):
+    """A hanging bunch of round fruit: a core ellipsoid (rx, ry, rz about its middle) studded with n fruits of
+    radius ~r over its surface, more of them low down, so it is a lumpy cluster from every side."""
+    core = core or mat
+    prof = [(rx * 0.86 * math.sin(math.pi * i / 8), -rz * 0.86 * math.cos(math.pi * i / 8)) for i in range(9)]
+    prof[0] = (0.0, prof[0][1])
+    prof[-1] = (0.0, prof[-1][1])
+    K.lathe(prof, core, segments=14, centre=(cx, cy, cz), scale_y=ry / rx, name=name + "_core")
+    golden = math.pi * (3 - math.sqrt(5))
+    for i in range(n):
+        t = (i + 0.5) / n
+        zz = 1 - 2 * t
+        rad = math.sqrt(max(0.0, 1 - zz * zz))
+        th = golden * i + K.rng.uniform(-0.3, 0.3)
+        rr = r * K.rng.uniform(0.85, 1.15)
+        p = (cx + rx * 0.82 * rad * math.cos(th), cy + ry * 0.82 * rad * math.sin(th), cz + rz * 0.82 * zz)
+        ball(K, p, rr, mat, squash=1.05, name=name + "_fruit")
+
+
+# ====================================================================== stall D1: the palmyra-fruit stall
+@model("stall_d_1", "market", kind="prop", atlas=2048)
+def stall_d_1(K):
+    """A palmyra (nungu) seller's stall: a frame of bamboo poles lashed at the corners, palm fronds thrown over it,
+    four big bunches of palmyra fruit hanging under the fronds, a plank counter at the back with baskets of fruit and
+    peeled ice-apples, and more baskets and a cut bunch on the ground in front."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.15
+    yf, yb = -0.55, 0.55
+    # ---------------------------------------------------------------- the frame
+    bam = K.colour((300, 64, 400, 76), vary=0.08)
+    post = K.projected(axis_x=P.x(183), squeeze=0.9, keep=[(170, 200, 197, 610)], inset=2)
+    post2 = K.projected(axis_x=P.x(848), squeeze=0.9, keep=[(834, 200, 862, 615)], inset=2)
+    rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
+    zt = Z(70)
+    for x_px, mat in ((183, post), (848, post2)):
+        bamboo(K, (P.x(x_px), yf, 0.0), (P.x(x_px), yf, zt + 0.04), P.m(12), mat, nodes=0.5, bend=0.0, name="post")
+        bamboo(K, (P.x(x_px), yb, 0.0), (P.x(x_px), yb, zt + 0.04), P.m(10), bam, nodes=0.5, bend=0.0, name="post_b")
+    for x_px in (289, 748):
+        bamboo(K, (P.x(x_px), yb - 0.05, 0.0), (P.x(x_px), yb - 0.05, Z(205)), P.m(8), bam, nodes=0.5, name="post_m")
+    # the top: a bar along the front and the back, side bars, and the crossed stubs at the front corners
+    for y in (yf - 0.02, yb):
+        bamboo(K, (P.x(120), y, zt), (P.x(925), y, zt), P.m(10), bam, node_at=[0.2, 0.45, 0.7], taper=1.0, name="bar")
+    for x_px in (183, 848):
+        bamboo(K, (P.x(x_px), yf, zt + 0.02), (P.x(x_px), yb, zt + 0.02), P.m(9), bam, node_at=[0.5], taper=1.0,
+               name="bar_side")
+        joint(K, (P.x(x_px), yf, zt), (0, 0, 1), (1, 0, 0), P.m(12), rope)
+    bamboo(K, P.pt(192, 62, yf - 0.04), P.pt(146, 12, yf - 0.04), P.m(10), bam, node_at=[], taper=1.0, name="stub")
+    bamboo(K, P.pt(842, 62, yf - 0.04), P.pt(888, 12, yf - 0.04), P.m(10), bam, node_at=[], taper=1.0, name="stub")
+    # the beam the inner bunches hang from, and a few cross-sticks under the fronds
+    bamboo(K, (P.x(183), yb - 0.05, Z(203)), (P.x(848), yb - 0.05, Z(203)), P.m(7), bam, node_at=[], name="beam")
+    for x_px in (330, 520, 700):
+        K.tube([(P.x(x_px), yf, zt + 0.03), (P.x(x_px + 20), yb, zt + 0.03)], P.m(5), bam, segments=6, name="stick")
+    # ---------------------------------------------------------------- the palm fronds, as cards over the frame
+    for box in ((0, 0, 1034, 250), (0, 250, 152, 312), (400, 250, 642, 305), (880, 250, 1034, 312)):
+        K.leaves_only(box, green_leaves)
+    K.card_from_painting((0, 0, 1034, 312), (0.0, yf + 0.06, Z(156)), name="fronds_front")
+    for i in range(26):          # lying over the top, from the front edge to the back
+        px_, py_ = K.rng.uniform(80, 950), K.rng.uniform(70, 200)
+        y = K.rng.uniform(yf, yb + 0.15)
+        K.card_from_painting((px_ - 90, py_ - 60, px_ + 90, py_ + 60), (P.x(px_), y, zt + 0.1 + K.rng.uniform(0, 0.08)),
+                             yaw=K.rng.uniform(-30, 30), pitch=K.rng.uniform(-80, -60), name="frond_top",
+                             normal=(0, 0, 1))
+    for side, x_px in ((-1, 120), (1, 925)):  # hanging down over the ends
+        for i in range(5):
+            py_ = K.rng.uniform(120, 240)
+            src = K.rng.uniform(30, 160) if side < 0 else K.rng.uniform(880, 1000)
+            K.card_from_painting((src - 60, py_ - 80, src + 60, py_ + 80),
+                                 (P.x(x_px) + side * 0.05, K.rng.uniform(yf + 0.1, yb), P.z(py_)),
+                                 yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-15, 15), name="frond_side")
+    for i in range(8):           # and over the back
+        px_, py_ = K.rng.uniform(150, 880), K.rng.uniform(110, 260)
+        K.card_from_painting((px_ - 90, py_ - 80, px_ + 90, py_ + 80), (P.x(px_), yb + 0.08, P.z(py_) + 0.05),
+                             yaw=180 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 20), name="frond_back")
+    # ---------------------------------------------------------------- the hanging bunches
+    stalk = K.colour((230, 232, 245, 255), vary=0.1)
+    bunches = [  # (box px, y, stalk x px, from z)
+        ((150, 262, 306, 526), yf - 0.1, 222, zt),
+        ((300, 276, 402, 492), yf + 0.15, 330, Z(203)),
+        ((640, 252, 762, 502), yf + 0.15, 698, Z(203)),
+        ((718, 252, 882, 496), yf - 0.1, 790, zt),
+    ]
+    for (x0, y0, x1, y1), y, sx, ztop in bunches:
+        mat = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=0.95, keep=[(x0, y0 + 10, x1, y1)], inset=2)
+        rx, rz = P.m(x1 - x0) / 2, P.m(y1 - y0) / 2
+        cluster(K, P.x((x0 + x1) / 2), y, P.z((y0 + y1) / 2) - 0.02, rx * 0.92, rx * 0.8, rz * 0.92,
+                int(26 * (rx * rz) / 0.17 + 10), P.m(24), mat)
+        K.tube([(P.x(sx), y, P.z(y0) - 0.15), (P.x(sx), y, P.z(y0) + 0.05), (P.x(sx), y + 0.02, ztop)],
+               [P.m(13), P.m(11), P.m(5)], stalk, segments=8, name="stalk")
+    # ---------------------------------------------------------------- the counter at the back, its baskets
+    plank = ktile(K, (560, 625, 650, 690), vary=0.08)
+    K.box(P.x(300), P.x(842), 0.0, 0.48, 0.0, Z(600), plank, bevel=0.01, name="counter")
+    K.box(P.x(292), P.x(850), -0.02, 0.5, Z(600), Z(600) + 0.03, plank, bevel=0.006, name="counter_top")
+    weave = ktile(K, (590, 585, 680, 612), vary=0.06)
+    nungu = K.colour((600, 520, 660, 560), vary=0.08, scale=20)
+    dark = K.projected(squeeze=1.0, keep=[(455, 455, 560, 550), (380, 455, 450, 520)], inset=2)
+    zc = Z(600) + 0.03
+    table = [  # (cx px, rim half-width px, rim py, heap profile [(hw, py)], fruit, y)
+        (390, 60, 562, [(56, 562), (50, 540), (38, 525), (20, 512), (0, 508)], nungu, 0.12),
+        (505, 55, 565, [(52, 565), (48, 535), (38, 500), (20, 470), (0, 462)], dark, 0.2),
+        (630, 70, 560, [(66, 560), (60, 530), (45, 510), (22, 500), (0, 497)], nungu, 0.15),
+        (768, 68, 568, [(64, 568), (58, 545), (45, 528), (24, 520), (0, 518)], nungu, 0.12),
+    ]
+    for cx, hw, rim, prof, fruit, y in table:
+        basket(K, P.x(cx), y, zc, [(P.m(hw * 0.7), 0.0), (P.m(hw * 0.95), (Z(rim) - zc) * 0.6), (P.m(hw), Z(rim) - zc)],
+               weave, sy=0.85)
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.9, py + 3) for r, py in prof[1:]], fruit, sy=0.85,
+                    name="heap")
+        pile(K, h, P.x(cx), y, P.m(hw * 0.85), P.m(hw * 0.7), 14, P.m(17), fruit, squash=0.9, elong=1.0,
+             over=P.m(5))
+    # ---------------------------------------------------------------- on the ground in front
+    front = [  # (cx, rim half-width, rim py, heap profile, y)
+        (120, 80, 662, [(78, 662), (72, 630), (55, 605), (30, 590), (0, 585)], -0.85),
+        (405, 95, 668, [(90, 668), (80, 640), (60, 615), (30, 600), (0, 595)], -0.95),
+        (752, 92, 672, [(88, 672), (80, 640), (62, 618), (30, 605), (0, 600)], -0.95),
+        (937, 95, 655, [(92, 655), (85, 625), (65, 600), (35, 585), (0, 580)], -0.85),
+    ]
+    for cx, hw, rim, prof, y in front:
+        basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.85), 0.0), (P.m(hw), Z(rim))], weave, sy=0.85)
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.9, py + 4) for r, py in prof[1:]], nungu, sy=0.85,
+                    name="heap")
+        pile(K, h, P.x(cx), y, P.m(hw * 0.85), P.m(hw * 0.7), 18, P.m(20), nungu, squash=0.9, elong=1.0,
+             over=P.m(6))
+    # a cut bunch lying on the ground at the front left
+    bunch = K.projected(squeeze=1.0, keep=[(160, 545, 320, 700)], inset=2)
+    cluster(K, P.x(240), -0.6, Z(625), P.m(72), P.m(60), P.m(70), 22, P.m(24), bunch)
+    K.tube([P.pt(262, 600, -0.6), P.pt(300, 545, -0.6), P.pt(322, 520, -0.62)], [P.m(12), P.m(11), P.m(9)], stalk,
+           segments=8, name="stalk_cut")

@@ -1,0 +1,10 @@
+{
+ "name": "field_tree_2",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 5.314,
+ "height": 5.688,
+ "depth": 4.148,
+ "faces": 22406,
+ "source": "blender"
+}

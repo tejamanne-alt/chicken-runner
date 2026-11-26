@@ -928,13 +928,15 @@ def canal_piece_1(K):
             centre=(P.x(265), 0, 0), wobble=0.15, name="mound")
 
 
-def shear(K, k, y0, parts=None):
+def shear(K, k, y0, parts=None, kx=0.0):
     """Turns a model built true (level ground, upright stacks) into what the painting shows from its look-down:
     every point is raised by k per metre it lies behind y0 (z += k (y - y0)), so level tops and the ground rise
-    towards the back and face the front camera as they are painted, while every upright stays upright."""
+    towards the back and face the front camera as they are painted, while every upright stays upright. kx also
+    shifts them sideways by kx per metre (a painting whose depth runs off up and to one side)."""
     for ob in parts if parts is not None else K.parts + K.cards_parts:
         for v in ob.data.vertices:
             v.co.z += k * (v.co.y - y0)
+            v.co.x += kx * (v.co.y - y0)
 
 
 def stack(K, cx, cy, w, d, h, courses, mat, z0=0.0, yaw=0.0, name="stack"):
@@ -1002,39 +1004,42 @@ def plan_box(K, origin, ua, up, a0, a1, p0, p1, z0, z1, mat, bevel=0.03, jitter=
 def canal_piece_3(K):
     """Ghat steps down to the canal: three tiers of big dressed stone blocks, each tier set back and up from the
     one below, a shallow stone washing tray on the ground before the lowest step and a brass pot beside it. Built
-    true and level, then raised towards the back as the painting looks down on it."""
+    true and level, then raised (and drawn off to the left) towards the back as the painting looks at it."""
     P = K.paint
     K.front_min = 0.1
-    k, al = 0.36, math.radians(28)
-    ua = (math.cos(al), math.sin(al))                      # along the steps (receding to the right)
-    up = (-math.sin(al), math.cos(al))                     # up the steps (back and to the left)
-    O = (P.x(132), -0.55)                                  # the lowest tier's near corner, on the ground
-    y0 = O[1] - P.z(300) / k
+    k, kx, T = 0.31, -0.6, 0.5
+    Oy = -0.7
+    y0 = Oy - P.z(300) / k
+    O = (P.x(130) - kx * (Oy - y0), Oy)                    # the lowest tier's near left corner, on the ground
+    ua, up = (1.0, 0.0), (0.0, 1.0)
     stone = K.tile((30, 150, 92, 236), soften=0.3, vary=0.05)
     top = K.tile((230, 110, 330, 140), soften=0.3, vary=0.05)
-    T, h = 0.6, 0.4
     blocks = []
-    for i, cuts in enumerate(((0.0, 0.62, 1.28, 2.08), (0.0, 0.95, 1.5, 2.1), (0.0, 0.92, 2.02))):
+    tiers = [((0.0, 0.55, 1.2, 1.8), (0.0, 0.4)), ((0.0, 0.95, 1.48, 1.86), (0.0, 0.4, 0.82)),
+             ((0.0, 0.92, 1.9), (0.0, 0.42, 1.12))]
+    for i, (cuts, levels) in enumerate(tiers):
         for a0, a1 in zip(cuts, cuts[1:]):
-            for c in range(i + 1):                          # its courses, from the ground up
+            for c, (z0, z1) in enumerate(zip(levels, levels[1:])):      # its courses, from the ground up
                 blocks.append(plan_box(K, O, ua, up, a0 + 0.008, a1 - 0.008, i * T + 0.01, (i + 1) * T - 0.01,
-                                       c * h + 0.006, (c + 1) * h - 0.006, stone if c < i else top, bevel=0.045,
+                                       z0 + 0.006, z1 - 0.006, stone if c < len(levels) - 2 else top, bevel=0.045,
                                        jitter=0.01, name="step"))
     # the washing tray on the ground before the lowest step: a rim round a sunk floor
     tray = K.tile((300, 262, 440, 296), soften=0.35, vary=0.04)
-    ta0, ta1, tp0, tp1, th, rim = 0.62, 2.2, -0.86, -0.08, 0.13, 0.09
+    ta0, ta1, tp0, tp1, th, rim = 0.55, 1.95, -0.75, -0.04, 0.13, 0.09
     blocks.append(plan_box(K, O, ua, up, ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor"))
     for a0, a1, p0, p1 in ((ta0, ta1, tp0, tp0 + rim), (ta0, ta1, tp1 - rim, tp1), (ta0, ta0 + rim, tp0, tp1),
                            (ta1 - rim, ta1, tp0, tp1)):
         blocks.append(plan_box(K, O, ua, up, a0, a1, p0, p1, 0.0, th, tray, bevel=0.02, name="tray_rim"))
-    shear(K, k, y0, parts=blocks)
+    shear(K, k, y0, parts=blocks, kx=kx)
     # the brass pot standing on the ground at the right (upright, not raised with the look-down)
     pot = K.projected(axis_x=P.x(497), squeeze=0.9, keep=[(440, 146, 558, 266)], inset=3)
-    yp = O[1] + 0.95
-    zb = k * (yp - y0)
+    yp = Oy + 0.35
+    zb = P.z(262)
     prof = [(32, 262), (44, 255), (53, 238), (56, 215), (52, 198), (40, 186), (27, 178), (25, 170), (33, 163),
             (37, 156), (35, 151)]
     K.lathe([(P.m(r), P.z(y) - P.z(262) + zb) for r, y in prof], pot, segments=32, centre=(P.x(497), yp, 0),
             name="pot", cap=False)
     K.lathe([(P.m(33), P.z(151) - P.z(262) + zb), (P.m(26), P.z(160) - P.z(262) + zb), (0.0, P.z(178) - P.z(262) + zb)],
             K.colour((0.12, 0.07, 0.01), vary=0.1), segments=32, centre=(P.x(497), yp, 0), name="pot_mouth", cap=False)
+    K.lathe([(0.0, zb - 0.6), (P.m(40), zb - 0.6), (P.m(40), zb - 0.005), (0.0, zb - 0.005)], stone, segments=20,
+            centre=(P.x(497), yp, 0), name="pot_footing")

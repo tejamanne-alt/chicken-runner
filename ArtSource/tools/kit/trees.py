@@ -1361,7 +1361,7 @@ def field_tree_1(K):
                 pts, rs = wood.polyline(p, ys)
                 if pts is not None and len(pts) > 1:
                     thin.append(K.tube(pts, [r * 0.7 for r in rs], bark, segments=6, name="aerial_root"))
-    K.fuse(thick, voxel=0.04, faces=11000)
+    K.fuse(thick, voxel=0.04, faces=9000)
     # the crown
     K.leaves_only((0, 0, 938, 510), foliage_pixels)
     crown.cards(230, (110, 95), "volume", yaw=85, pitch=45)
@@ -1411,7 +1411,7 @@ def field_tree_2(K):
     crown = Crown(K, (0, 0, 525, 400), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.7)
     wood.grow(spread=0.6, root_z_px=505, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.85))
     bark = bark_material(K, mask, axis_x=P.x(275), squeeze=0.9)
-    thick, thin = wood.tubes(bark, fuse_r_px=4.0)
+    thick, thin = wood.tubes(bark, fuse_r_px=4.0, rscale=0.88)
     limbs = pick_limbs(wood, py_max=330, r_min=5, min_len=50, n=7)
     picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 130), 0.0) for k, i in enumerate(limbs)]
     wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.85, fuse_r_px=4.0)
@@ -1441,10 +1441,10 @@ def field_tree_2(K):
         K.card_from_painting((cx - 20, 488, cx + 20, 528), (P.x(cx), rng.uniform(0.2, 0.9), P.z(508)),
                              yaw=rng.uniform(-80, 80), name="grass")
     stone = K.tile((250, 528, 272, 542), vary=0.08)
-    for px, w, h, y in ((170, 26, 16, -0.55), (212, 30, 18, -0.7), (258, 30, 20, -0.6), (310, 22, 14, -0.65),
-                        (360, 24, 14, -0.4), (230, 22, 14, 0.7), (300, 26, 16, 0.8), (190, 18, 12, 0.3)):
-        rock(K, px, 545, w, h, y, stone)
-    earth(K, 262, 128, 1.1, (180, 538, 340, 548), h=0.05)
+    for px, w, h, y in ((170, 22, 13, -0.55), (212, 26, 15, -0.7), (258, 26, 16, -0.6), (310, 20, 12, -0.65),
+                        (360, 20, 12, -0.4), (230, 22, 14, 0.7), (300, 26, 16, 0.8), (190, 18, 12, 0.3)):
+        rock(K, px, 541, w, h, y, stone)
+    earth(K, 262, 128, 1.1, (180, 538, 340, 548), h=0.05, z=P.z(541) - 0.03)
 
 
 def culm(K, pts, radius, mat, node_mat, node_every=0.55, node_r=1.18, segments=8, name="culm"):
@@ -1520,3 +1520,325 @@ def field_tree_3(K):
     crown.cards(50, (70, 60), "back", yaw=30, pitch=20)
     crown.cards(20, (70, 60), "top", yaw=90, region=(0, 0, 511, 250))
     earth(K, 245, 120, 0.9, (225, 780, 240, 800), h=0.04)
+
+
+# ====================================================================== solid blades (screwpine, agave, rosettes)
+def blade(K, pts, widths, mat, thick=0.18, fold=0.22, roll=0.0, name="blade", side=None):
+    """A solid blade along pts (metres) with widths (metres; 0 at the tip): its face turned to the camera (-y) and
+    rolled `roll` degrees about its length, folded along its midrib into a shallow V (fold x width), `thick` x width
+    thick. Returns the part."""
+    bm = bmesh.new()
+    n = len(pts)
+    P = [Vector(p) for p in pts]
+    top, bot = [], []
+    for i in range(n):
+        t = (P[min(i + 1, n - 1)] - P[max(i - 1, 0)]).normalized()
+        view = Vector((0, -1, 0))
+        s = t.cross(view) if side is None else Vector(side)
+        if s.length < 1e-4:
+            s = t.cross(Vector((0, 0, 1)))
+        s = (s - t * s.dot(t)).normalized()
+        if roll:
+            s = Matrix.Rotation(math.radians(roll), 3, t) @ s
+        up = s.cross(t).normalized()                      # the blade's face normal (towards the camera)
+        if up.y > 0:
+            up = -up
+        w = widths[i] / 2
+        th = max(0.002, widths[i] * thick) if i < n - 1 else 0.0
+        rowt = [P[i] - s * w + up * fold * w, P[i] + up * th * 0.5, P[i] + s * w + up * fold * w]
+        rowb = [P[i] - s * w + up * fold * w - up * th * 0.3, P[i] - up * th * 0.5, P[i] + s * w + up * fold * w - up * th * 0.3]
+        top.append([bm.verts.new(v) for v in rowt])
+        bot.append([bm.verts.new(v) for v in rowb])
+    for i in range(n - 1):
+        for k in range(2):
+            bm.faces.new([top[i][k], top[i][k + 1], top[i + 1][k + 1], top[i + 1][k]])
+            bm.faces.new([bot[i][k + 1], bot[i][k], bot[i + 1][k], bot[i + 1][k + 1]])
+        bm.faces.new([top[i][0], top[i + 1][0], bot[i + 1][0], bot[i][0]])
+        bm.faces.new([top[i][2], bot[i][2], bot[i + 1][2], top[i + 1][2]])
+    bm.faces.new([top[0][0], bot[0][0], bot[0][1], bot[0][2], top[0][2], top[0][1]])
+    return _add(K, bm, mat, name, smooth=True)
+
+
+def _bezier(a, c, b, n):
+    return [((1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0],
+             (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]) for t in np.linspace(0, 1, n)]
+
+
+def blades_cover(K, mask, bases, n, w_px, len_px=(60, 400), arch=0.3, droop=0.0, profile="strap", tries=6000,
+                 inside=0.9, min_gain=40, target=0.95, seed_pts=None):
+    """Blades that together cover a painted mass of blades (mask, bool HxW) as seen from the front: each runs from one
+    of `bases` (px boxes it may spring from) out through ground not yet covered to the mask's edge, curving (arch:
+    how much it bows, droop: how much it falls at its end), w_px (min, max) wide at its widest. Greedy: every blade
+    must lie inside the mask and cover new ground. Returns [(points px [(x, y)], widths px)]."""
+    rng = K.rng
+    H, W = mask.shape
+    cover = np.zeros_like(mask)
+    total = mask.sum()
+    out = []
+    ys, xs = np.nonzero(mask)
+    from PIL import ImageDraw
+
+    def width_at(t, w0):
+        if profile == "strap":
+            return w0 * (1 - t ** 1.6) * (0.75 + 0.25 * min(1.0, t * 6))
+        if profile == "leaf":
+            return w0 * math.sin(math.pi * min(1.0, 0.08 + t * 0.92)) ** 0.8 * (1 - t ** 3)
+        return w0 * (1 - t)
+    for _ in range(tries):
+        if len(out) >= n or cover.sum() > target * total:
+            break
+        bx0, by0, bx1, by1 = bases[rng.integers(len(bases))]
+        B = (rng.uniform(bx0, bx1), rng.uniform(by0, by1))
+        # a spot not yet covered, which the blade will pass through
+        un = np.nonzero(mask & ~cover)
+        if len(un[0]) == 0:
+            break
+        j = rng.integers(len(un[0]))
+        Q = (float(un[1][j]), float(un[0][j]))
+        d = np.array(Q) - np.array(B)
+        L = float(np.hypot(*d))
+        if L < 8:
+            continue
+        d /= L
+        # run on from Q to the mask's edge
+        T = np.array(Q)
+        while True:
+            nxt = T + d * 3
+            if not (0 <= nxt[0] < W and 0 <= nxt[1] < H) or not mask[int(nxt[1]), int(nxt[0])]:
+                break
+            T = nxt
+        L = float(np.hypot(*(T - np.array(B))))
+        if not (len_px[0] <= L <= len_px[1]):
+            continue
+        perp = np.array([d[1], -d[0]])
+        if perp[1] > 0:
+            perp = -perp
+        C = (np.array(B) + T) / 2 + perp * L * rng.uniform(-arch * 0.3, arch) + np.array([0, 1]) * droop * L * rng.uniform(0, 1)
+        m = max(6, int(L / 13))
+        pts = _bezier(B, C, tuple(T), m)
+        w0 = rng.uniform(*w_px)
+        wd = [width_at(i / (m - 1), w0) for i in range(m)]
+        # its outline
+        left, right = [], []
+        for i in range(m):
+            a = np.array(pts[min(i + 1, m - 1)]) - np.array(pts[max(i - 1, 0)])
+            a /= max(1e-6, np.hypot(*a))
+            nrm = np.array([-a[1], a[0]])
+            left.append(tuple(np.array(pts[i]) + nrm * wd[i] / 2))
+            right.append(tuple(np.array(pts[i]) - nrm * wd[i] / 2))
+        poly = left + right[::-1]
+        im = Image.new("L", (W, H), 0)
+        ImageDraw.Draw(im).polygon(poly, fill=255)
+        bmask = np.asarray(im) > 127
+        area = bmask.sum()
+        if area < 10:
+            continue
+        if (bmask & mask).sum() < inside * area:
+            continue
+        gain = (bmask & mask & ~cover).sum()
+        if gain < min_gain:
+            continue
+        cover |= bmask
+        out.append((pts, wd))
+    return out, cover
+
+
+def place_blades(K, blades, mat, y_of, rolls=35.0, thick=0.18, fold=0.22, name="blade"):
+    """Builds the blades found by blades_cover in 3D: y_of(t, px, py, k) gives each point's depth (k: the blade)."""
+    P = K.paint
+    for k, (pts, wd) in enumerate(blades):
+        n = len(pts)
+        p3 = [(P.x(x), y_of(i / (n - 1), x, y, k), P.z(y)) for i, (x, y) in enumerate(pts)]
+        blade(K, p3, [P.m(w) for w in wd], mat, thick=thick, fold=fold, roll=K.rng.uniform(-rolls, rolls), name=name)
+
+
+@model("field_tree_4", "fields", kind="prop", atlas=2048, leaves=1024)
+def field_tree_4(K):
+    """A screwpine clump: a short brown stump bristling with long, thick, saw-edged blades that shoot up from its top
+    and arch out and droop all round, on red earth with stones."""
+    P = K.paint
+    rng = K.rng
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    halo = (mn > 175) & (mx - mn < 40)
+    stumpish = (r > g + 6) & (r > b + 18) & (mx < 140)
+    plant = opaque & ~halo & box_mask(opaque.shape, [(0, 0, 512, 405)])
+    blades_mask = ndimage.binary_opening(plant & ~stumpish, iterations=1)
+    shape = Crown(K, (0, 0, 512, 410), P.m(480) * 0.36, (260, 260), core=0.25, dome=(260, 0, 420), dome_pow=0.6)
+    # the stump
+    bark = K.tile((255, 330, 300, 395), vary=0.08, soften=0.2)
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((62, 412), (58, 400), (50, 370), (46, 330), (44, 300), (36, 285),
+                                               (0.0, 278))], bark, segments=20, centre=(P.x(272), 0.0, 0.0),
+            wobble=0.08, name="stump")
+    # the blades: solid, saw-edged straps covering the painted mass, springing from the stump's top and sides
+    found, cover = blades_cover(K, blades_mask, [(225, 270, 315, 305), (215, 290, 330, 360), (235, 330, 310, 395)],
+                                170, (11, 19), len_px=(50, 330), arch=0.35, droop=0.15, profile="strap", inside=0.88,
+                                min_gain=35)
+    green = masked_material(K, blades_mask, inset=1)
+
+    def y_of(t, x, y, k, tips={}):
+        if k not in tips:
+            tips[k] = (rng.uniform(-0.25, 0.25), rng.choice([-1, 1]) * rng.uniform(0.3, 1.0))
+        yb, f = tips[k]
+        return yb + f * shape.extent(x, y) * (t ** 1.1)
+    place_blades(K, found, green, y_of, rolls=30, thick=0.16, fold=0.25)
+    # red earth and its stones
+    zg = P.z(425)
+    earth(K, 265, 150, 1.4, (290, 418, 330, 428), h=0.04, z=zg - 0.03)
+    stone = K.tile((172, 405, 192, 418), vary=0.08)
+    for px, w, h, y in ((172, 30, 18, -0.6), (195, 26, 16, -0.75), (225, 18, 10, -0.8), (272, 16, 10, -0.9),
+                        (300, 20, 12, -0.8), (330, 26, 15, -0.7), (360, 22, 14, -0.6), (240, 24, 14, 0.8),
+                        (310, 22, 14, 0.9), (190, 20, 12, 0.6), (350, 18, 12, 0.5)):
+        rock(K, px, 425, w, h, y, stone)
+
+
+def needles(rgb):
+    """Casuarina needles and the fine dark twigs among them: green to grey-green, not the white halo or the bark."""
+    r, g, b, mx, mn = chan(rgb)
+    keep = (g >= r - 2) & (g >= b) & (mx < 236)
+    keep |= (mx < 70)
+    return ndimage.binary_opening(keep, iterations=1) | (keep & (mx < 120))
+
+
+CASUARINA_TRUNKS = [
+    [(160, 868, 10), (158, 760, 9), (153, 640, 8), (146, 520, 6), (136, 380, 4.5), (128, 240, 3), (125, 110, 2)],
+    [(205, 872, 14), (205, 720, 12.5), (205, 560, 10.5), (206, 400, 8), (206, 250, 5.5), (205, 120, 3.5), (205, 25, 2)],
+    [(242, 868, 9), (243, 760, 8), (245, 640, 7), (249, 520, 5.5), (253, 400, 4), (256, 300, 2.5)],
+    [(272, 865, 11), (275, 740, 9.5), (279, 600, 8), (284, 450, 6), (289, 300, 4), (294, 140, 2.2)],
+]
+
+
+@model("field_tree_5", "fields", kind="prop", atlas=2048, leaves=1024)
+def field_tree_5(K):
+    """A stand of four casuarinas: tall, thin, straight grey trunks from one patch of red earth, each a narrow spire of
+    wispy drooping needles."""
+    P = K.paint
+    rng = K.rng
+    crown = Crown(K, (0, 0, 401, 625), P.m(330) * 0.42, (205, 380), core=0.3, dome=(420, 0, 640), dome_pow=0.6)
+    bark = K.tile((198, 700, 212, 840), vary=0.08, soften=0.2)
+    ys = [-0.35, 0.05, 0.45, -0.1]
+    wood = []
+    for (pts, y0) in zip(CASUARINA_TRUNKS, ys):
+        wood.append(limb(K, pts, bark, y=[y0 + rng.uniform(-0.05, 0.05) * i for i in range(len(pts))], segments=10,
+                         name="trunk"))
+    # branches leaning out from each trunk through its spire, under the needles
+    for pts, y0 in zip(CASUARINA_TRUNKS, ys):
+        for k in range(7):
+            i = rng.integers(2, len(pts) - 1)
+            px, py, r = pts[i]
+            if py > 600:
+                continue
+            a = rng.uniform(0, 2 * math.pi)
+            L = P.m(rng.uniform(40, 110)) * (py / 600 + 0.3)
+            x0, z0 = P.x(px), P.z(py)
+            q = [(x0, y0, z0), (x0 + math.cos(a) * L * 0.6, y0 + math.sin(a) * L * 0.6, z0 + L * 0.35),
+                 (x0 + math.cos(a) * L, y0 + math.sin(a) * L, z0 + L * 0.2)]
+            if all(crown.mask[int(np.clip(P.py(v[2]), 0, P.h - 1)), int(np.clip(P.px(v[0]), 0, P.w - 1))] for v in q):
+                wood.append(K.tube(q, [P.m(r) * 0.45, P.m(r) * 0.3, P.m(r) * 0.15], bark, segments=6, name="branch"))
+    # the needles
+    K.leaves_only((0, 0, 401, 640), needles)
+    crown.cards(230, (60, 70), "volume", yaw=85, pitch=40)
+    crown.cards(120, (70, 80), "front", yaw=30, pitch=20)
+    crown.cards(60, (60, 70), "back", yaw=30, pitch=20)
+    # red earth, stones
+    zg = P.z(872)
+    earth(K, 222, 100, 0.8, (220, 866, 236, 878), h=0.04, z=zg - 0.03)
+    stone = K.colour((245, 858, 255, 866), vary=0.1)
+    for px, w, h, y in ((245, 30, 16, -0.4), (285, 22, 12, -0.45), (175, 18, 10, -0.35), (300, 16, 10, 0.4),
+                        (200, 20, 12, 0.5)):
+        rock(K, px, 874, w, h, y, stone)
+
+
+def rosette(K, cx_px, cy_px, r_px, mat, y=0.0, rings=((6, 0.45, 70), (8, 0.75, 45), (11, 1.0, 18)), width=0.5,
+            name="rosette"):
+    """A succulent rosette (echeveria): rings of thick, pointed, cupped leaves round its heart at painted (cx, cy),
+    r px across, the inner ones upright, the outer ones lying open. rings: (count, length x r, tilt degrees)."""
+    P = K.paint
+    c = Vector((P.x(cx_px), y, P.z(cy_px)))
+    R = P.m(r_px)
+    for k, (n, lf, tilt) in enumerate(rings):
+        ph = K.rng.uniform(0, 2 * math.pi)
+        for i in range(n):
+            a = ph + 2 * math.pi * i / n
+            L = R * lf * K.rng.uniform(0.9, 1.1)
+            tl = math.radians(tilt + K.rng.uniform(-8, 8))
+            d = Vector((math.cos(a) * math.cos(tl), math.sin(a) * math.cos(tl), math.sin(tl)))
+            base = c + Vector((math.cos(a), math.sin(a), 0)) * R * 0.08 * k - Vector((0, 0, R * 0.05 * (2 - k)))
+            mid = base + d * L * 0.55 + Vector((0, 0, L * 0.12))
+            tip = base + d * L
+            w = L * width
+            pts = [tuple(base), tuple(base + (mid - base) * 0.5), tuple(mid), tuple(mid + (tip - mid) * 0.6), tuple(tip)]
+            blade(K, pts, [w * 0.5, w * 0.85, w, w * 0.6, 0.0], mat, thick=0.35, fold=0.35,
+                  side=(-math.sin(a), math.cos(a), 0.0), name=name)
+
+
+@model("field_tree_6", "fields", kind="prop", atlas=2048, leaves=1024)
+def field_tree_6(K):
+    """A dry-ground group: an agave of thick, sharp, blue-grey blades, a prickly-pear cactus of jointed flat pads
+    (one with a fruit on top), three fleshy succulent rosettes, stones on red earth."""
+    P = K.paint
+    rng = K.rng
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    halo = (mn > 185) & (mx - mn < 40)
+    # ---- the prickly pear: flat pads, each the painted ellipse, turned a little, at its depth in the plant
+    pads = [(290.1, 41.7, 12.6, 22.8, 103.9, -0.05), (243.7, 42.3, 9.2, 15.7, 99.6, 0.05), (205.3, 60.8, 11.9, 18.5, 61.4, 0.0),
+            (235.7, 86.8, 18.1, 29.9, 86.8, -0.12), (275.0, 74.2, 11.9, 18.0, 59.5, 0.08), (325.8, 77.9, 9.9, 18.0, 92.7, 0.12),
+            (287.5, 111.7, 15.1, 23.7, 80.0, 0.02), (334.9, 112.4, 15.5, 23.3, 129.7, -0.05),
+            (193.0, 121.9, 18.5, 31.7, 55.7, -0.15), (244.6, 131.2, 16.7, 19.1, -137.6, 0.18),
+            (274.1, 145.3, 12.1, 20.7, 88.2, 0.2), (306.0, 154.3, 16.9, 28.0, 114.1, -0.08),
+            (232.2, 168.3, 19.2, 30.5, 66.5, -0.2), (272.6, 190.0, 19.0, 30.0, 95.0, -0.1)]
+    boxes = [(int(cx - 30), int(cy - 30), int(cx + 30), int(cy + 30)) for cx, cy, *_ in pads]
+    pad_mat = K.projected(squeeze=1.0, keep=[(165, 15, 370, 225)], exclude=[(140, 175, 215, 240), (205, 195, 260, 240),
+                                                                             (300, 175, 370, 240)], inset=2)
+
+    def ellipse(cx, cy, a_minor, a_major, ang, n=28):
+        A = math.radians(ang)
+        return [(cx + a_major * math.cos(t) * math.cos(A) - a_minor * math.sin(t) * math.sin(A),
+                 cy + a_major * math.cos(t) * math.sin(A) + a_minor * math.sin(t) * math.cos(A))
+                for t in np.linspace(0, 2 * math.pi, n, endpoint=False)]
+
+    def pad(cx, cy, a0, a1, ang, y, turn, grow=1.12):
+        ob = poly_solid(K, ellipse(cx, cy, a0 * grow, a1 * grow, ang), y, pad_mat, depth=0.3, segments=14,
+                        name="pad")
+        if ob is not None and turn:
+            M = (Matrix.Translation((P.x(cx), y, P.z(cy))) @ Matrix.Rotation(math.radians(turn), 4, "Z")
+                 @ Matrix.Translation((-P.x(cx), -y, -P.z(cy))))
+            ob.data.transform(M)
+        return ob
+    for cx, cy, a0, a1, ang, y in pads:
+        pad(cx, cy, a0, a1, ang, y, rng.uniform(-25, 25))
+    # more pads behind, hidden from the front by the painted ones, so it is a bush of pads from behind too
+    for cx, cy, a0, a1, ang, y in pads[3:]:
+        if rng.uniform() < 0.6:
+            pad(cx + rng.uniform(-6, 6), cy + rng.uniform(-6, 6), a0 * 0.85, a1 * 0.85, ang + rng.uniform(-30, 30),
+                0.3 + rng.uniform(0, 0.15), rng.uniform(-50, 50), grow=1.0)
+    fruit(K, 297, 15, 7, 8, -0.05, K.projected(squeeze=1.0, keep=[(290, 8, 305, 22)], inset=1))
+    # ---- the agave: thick, sharp blades covering the painted rosette from its heart outwards
+    ag = opaque & ~halo & box_mask(opaque.shape, [(0, 60, 192, 224)]) & ~box_mask(opaque.shape, [(140, 170, 220, 240)])
+    ag &= ~((r > g + 5) & (py_mask := box_mask(opaque.shape, [(0, 205, 200, 240)])))
+    ag = ndimage.binary_opening(ag, iterations=1)
+    found, cover = blades_cover(K, ag, [(98, 196, 126, 218), (88, 200, 136, 222)], 70, (16, 30), len_px=(35, 190),
+                                arch=0.15, droop=0.05, profile="leaf", inside=0.9, min_gain=40)
+    agave_mat = masked_material(K, ag, inset=1)
+    shape = Crown(K, (0, 60, 195, 225), P.m(180) * 0.4, (110, 160), core=0.3)
+
+    def y_of(t, x, y, k, tips={}):
+        if k not in tips:
+            tips[k] = rng.choice([-1, 1]) * rng.uniform(0.2, 1.0)
+        return tips[k] * shape.extent(x, y) * t ** 1.2
+    place_blades(K, found, agave_mat, y_of, rolls=25, thick=0.25, fold=0.3, name="agave")
+    # ---- the rosettes
+    ros = opaque & ~halo & box_mask(opaque.shape, [(140, 172, 220, 238), (205, 192, 260, 238), (298, 172, 370, 236)])
+    ros_mat = masked_material(K, ros, inset=1)
+    for cx, cy, rr, y in ((182, 214, 34, -0.15), (233, 220, 22, -0.2), (336, 212, 33, -0.12)):
+        rosette(K, cx, cy, rr, ros_mat, y=y)
+    # ---- red earth and stones
+    zg = P.z(232)
+    earth(K, 190, 180, 0.8, (60, 228, 120, 236), h=0.03, z=zg - 0.02)
+    stone = K.colour((75, 215, 95, 225), vary=0.1)
+    for px, w, h, y in ((38, 22, 10, -0.2), (90, 26, 12, -0.25), (128, 26, 14, -0.3), (262, 14, 8, -0.3),
+                        (290, 18, 10, -0.25), (60, 20, 10, 0.3), (170, 22, 12, 0.35), (280, 20, 10, 0.4)):
+        rock(K, px, 233, w, h, y, stone)

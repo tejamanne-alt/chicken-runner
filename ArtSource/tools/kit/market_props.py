@@ -264,6 +264,46 @@ def basket(K, cx, cy, outer, rim, inner_drop, mat, rim_mat=None, segments=40, na
                    wobble=0.01)
 
 
+def figures(K, figs):
+    """People or animals painted in the piece, kept as painted cut-outs: figs [(polygon px, y metres, name), ...].
+    Like K.figure, but each card is cut to its own traced outline (a polygon, not a rectangle), and all of them share
+    one mask (the union of their outlines), so figures that overlap on the painting (a pair of bullocks, two hens)
+    each keep all of their own pixels and show none of the other's."""
+    from PIL import Image, ImageDraw
+    P = K.paint
+    polys = [[(float(x), float(y)) for x, y in poly] for poly, _, _ in figs]
+    xs = [x for poly in polys for x, _ in poly]
+    ys = [y for poly in polys for _, y in poly]
+    box = (max(0, min(xs)), max(0, min(ys)), min(P.w, max(xs)), min(P.h, max(ys)))
+
+    def keep(rgb, box=box, polys=polys):
+        h, w = rgb.shape[:2]
+        im = Image.new("L", (w, h), 0)
+        d = ImageDraw.Draw(im)
+        for poly in polys:
+            d.polygon([(x - int(round(box[0])), y - int(round(box[1]))) for x, y in poly], fill=255)
+        return np.asarray(im) > 127
+    K.leaf_rules.append((box, keep))
+    out = []
+    for poly, (_, y, name) in zip(polys, figs):
+        K.front_exclude.append(("poly", poly))
+        bm = bmesh.new()
+        vs = [bm.verts.new((P.x(px), y, P.z(py))) for px, py in poly]
+        f = bm.faces.new(vs)
+        layer = bm.loops.layers.uv.new("UVMap")
+        for lp in f.loops:
+            co = lp.vert.co
+            lp[layer].uv = (P.px(co.x) / P.w, 1 - P.py(co.z) / P.h)
+        if f.normal.y > 0:
+            bmesh.ops.reverse_faces(bm, faces=[f])
+        bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method="BEAUTY", ngon_method="EAR_CLIP")
+        ob = _obj(name, bm, None)
+        ob["kit_normal"] = [0.0, -1.0, 0.25]
+        K.cards_parts.append(ob)
+        out.append(ob)
+    return out
+
+
 def blob_card(K, box_px, centre, yaw=0.0, pitch=0.0, n=14, rough=0.3, name="card", normal=None):
     """A cut-out card like card_from_painting, but a ragged round polygon inside box_px instead of a rectangle, so a
     card cut from the middle of a dense bunch of leaves has a leafy edge, not a straight one."""
@@ -447,12 +487,12 @@ def hens_basket(K):
     gold = K.colour((60, 70, 70, 74), vary=0.15, scale=40, pct=85)
     straws(K, 90, P.x(cx), 0.0, P.m(56), P.m(70), P.z(80), P.z(62), gold, length=(P.m(10), P.m(22)), radius=P.m(0.45))
     # the two hens, sitting in the hollow of the nest: the brown one a little in front of the white one
-    K.figure([(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37), (60, 37),
+    figures(K, [([(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37), (60, 37),
               (63, 33), (64, 27), (66, 21), (70, 13), (73, 8), (79, 4), (86, 6), (90, 11), (92, 16), (96, 20),
-              (97, 25), (93, 29), (95, 38), (97, 50), (97, 67)], y=-0.03, name="hen_brown")
-    K.figure([(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7), (123, 11),
+              (97, 25), (93, 29), (95, 38), (97, 50), (97, 67)], -0.03, "hen_brown"),
+                ([(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7), (123, 11),
               (126, 17), (127, 21), (129, 25), (126, 30), (125, 36), (126, 39), (131, 38), (134, 33), (137, 27),
-              (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)], y=0.03, name="hen_white")
+              (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)], 0.03, "hen_white")])
     K.leaves_only((0, 45, 30, 95), straw_pixels)
     K.leaves_only((148, 45, 171, 95), straw_pixels)
     fringe = [(4, 50, 30, 90), (148, 50, 168, 90)]
@@ -899,8 +939,8 @@ def cartwheel(K, cx_px, cy_px, y, r_out_px, r_tyre_px, r_in_px, hub_px, n_spokes
     ro, rt, ri, rh = P.m(r_out_px), P.m(r_tyre_px), P.m(r_in_px), P.m(hub_px)
     w = width
     about_y(K.lathe([(rt, -w / 2), (ro, -w / 2 * 0.95), (ro, w / 2 * 0.95), (rt, w / 2), (rt, -w / 2)], iron,
-                    segments=40, centre=tuple(c), name="tyre", smooth=False, cap=False))
-    about_y(K.lathe([(ri, -w / 2), (rt, -w / 2), (rt, w / 2), (ri, w / 2), (ri, -w / 2)], wood, segments=40,
+                    segments=32, centre=tuple(c), name="tyre", smooth=False, cap=False))
+    about_y(K.lathe([(ri, -w / 2), (rt, -w / 2), (rt, w / 2), (ri, w / 2), (ri, -w / 2)], wood, segments=32,
                     centre=tuple(c), name="felloe", smooth=False, cap=False))
     about_y(K.lathe([(0.0, -hub_len / 2), (rh * 0.75, -hub_len / 2), (rh, -hub_len * 0.25), (rh * 1.05, 0.0),
                      (rh, hub_len * 0.25), (rh * 0.75, hub_len / 2), (0.0, hub_len / 2)], wood, segments=20,
@@ -920,16 +960,16 @@ def coconut_cart(K):
     P = K.paint
     X, Z = P.x, P.z
     # the bullocks (animals: painted cut-outs): the near one hides the pole's end with its hump
-    K.figure([(498, 530), (496, 480), (503, 440), (508, 400), (510, 340), (515, 330), (715, 330), (710, 300),
+    figures(K, [([(498, 530), (496, 480), (503, 440), (508, 400), (510, 340), (515, 330), (715, 330), (710, 300),
               (716, 278), (728, 262), (748, 256), (765, 262), (778, 278), (790, 262), (792, 235), (797, 226),
               (808, 248), (818, 268), (832, 274), (842, 262), (846, 240), (850, 226), (858, 248), (860, 268),
               (872, 280), (880, 335), (910, 350), (912, 395), (880, 410), (855, 440), (850, 470), (848, 574),
-              (500, 574)], y=-0.38, name="bullock_near")
-    K.figure([(848, 574), (850, 470), (855, 440), (880, 410), (912, 395), (910, 350), (880, 335), (872, 280),
+              (500, 574)], -0.38, "bullock_near"),
+                ([(848, 574), (850, 470), (855, 440), (880, 410), (912, 395), (910, 350), (880, 335), (872, 280),
               (880, 270), (895, 262), (902, 240), (905, 225), (915, 240), (925, 262), (940, 270), (955, 262),
               (962, 240), (964, 225), (975, 250), (980, 270), (1000, 290), (1012, 330), (1030, 352), (1036, 375),
               (1028, 394), (1000, 397), (985, 410), (975, 440), (962, 455), (952, 500), (962, 574)],
-             y=0.36, name="bullock_far")
+ 0.36, "bullock_far")])
     wood = K.tile((85, 238, 140, 296), vary=0.08, soften=0.2)
     beam_m = K.tile((60, 302, 125, 326), vary=0.08, soften=0.2)
     dark = K.colour((0.07, 0.04, 0.03), vary=0.08)
@@ -996,11 +1036,11 @@ def coconut_cart(K):
         f = min(1.0, max(0.0, (py - 40) / 170))
         y = -(W - 0.08) * (0.55 + 0.45 * f) + P.m(r) * 0.2
         ellipsoid(K, (X(px), y, Z(py)), (P.m(r) * 1.02, P.m(r) * 0.98, P.m(r) * 0.95), skin, rot=(0, 0, K.rng.uniform(0, 90)),
-                  seg=10, rings=7, lumps=0.04, name="coconut")
+                  seg=9, rings=6, lumps=0.04, name="coconut")
         placed.append(Vector((X(px), y, Z(py))))
     n = 0
     tries = 0
-    while n < 48 and tries < 3000:
+    while n < 36 and tries < 3000:
         tries += 1
         u, v = K.rng.uniform(0.02, 0.98), K.rng.uniform(0.35, 1.0)
         p = Vector(heap(u, v))
@@ -1059,3 +1099,58 @@ def parapet_gap(K):
         K.card_from_painting(box, (P.x(cx), -0.07, P.z(cy)), name="grass")
         for yy, yaw in ((0.02, 60), (0.12, -50), (d + 0.08, 20)):
             K.card_from_painting(box, (P.x(cx) + K.rng.uniform(-0.05, 0.05), yy, P.z(cy)), yaw=yaw, name="grass")
+
+
+@model("tank_wall", "market", kind="building", atlas=2048)
+def tank_wall(K):
+    """The wall of a temple tank: three stone terraces stepping down to the water, the tank's coped wall above
+    them with a carved gateway (pillars, lintel and an arched torana), a flight of steps running down from the
+    gateway into the tank, and little clay lamps burning on brackets along the terraces."""
+    P = K.paint
+    X, Z = P.x, P.z
+    stone = K.tile((600, 140, 760, 196), vary=0.06, soften=0.45)
+    stone2 = K.tile((100, 255, 220, 298), vary=0.06, soften=0.45)
+    cap = K.tile((150, 116, 400, 132), vary=0.05, soften=0.35)
+    yb = 2.35
+    # the terraces and the wall, each set back from the one below
+    K.box(X(5), X(1025), 0.0, yb, 0.0, Z(300), stone2, bevel=0.015, name="terrace1")
+    K.box(X(12), X(1018), 0.55, yb, Z(300), Z(250), stone2, bevel=0.015, name="terrace2")
+    K.box(X(25), X(1005), 1.1, yb, Z(250), Z(200), stone, bevel=0.015, name="terrace3")
+    wall = K.box(X(40), X(993), 1.65, yb, Z(200), Z(133), stone, bevel=0.01, name="wall")
+    K.box(X(38), X(995), 1.6, yb + 0.05, Z(133), Z(113), cap, bevel=0.015, name="coping")
+    # the gateway: an opening through the wall, pillars, capitals, lintel and the torana over it
+    K.cut(wall, X(492), X(553), 1.5, yb + 0.2, Z(206), Z(88))
+    coping = K.parts[-1]
+    K.cut(coping, X(492), X(553), 1.5, yb + 0.2, Z(140), Z(88))
+    gate = K.tile((465, 120, 480, 195), vary=0.05, soften=0.3)
+    for x0, x1 in ((460, 484), (562, 587)):
+        K.box(X(x0), X(x1), 1.5, yb + 0.1, Z(205), Z(88), gate, bevel=0.01, name="gate_pillar")
+        K.box(X(x0 - 5), X(x1 + 5), 1.46, yb + 0.14, Z(90), Z(74), gate, bevel=0.012, name="gate_capital")
+    for x0, x1 in ((484, 492), (553, 562)):
+        K.box(X(x0), X(x1), 1.55, yb + 0.05, Z(205), Z(88), gate, bevel=0.006, name="gate_frame")
+    for x0, x1 in ((492, 506), (539, 553)):
+        K.box(X(x0), X(x1), 1.58, yb + 0.02, Z(118), Z(85), gate, bevel=0.006, name="arch_cusp")
+    K.box(X(484), X(562), 1.55, yb + 0.05, Z(90), Z(80), gate, bevel=0.006, name="arch_head")
+    K.box(X(452), X(592), 1.42, yb + 0.18, Z(75), Z(58), gate, bevel=0.015, name="lintel")
+    K.box(X(462), X(582), 1.5, yb + 0.1, Z(58), Z(50), gate, bevel=0.01, name="lintel_top")
+    torana = [(470, 55), (470, 42), (478, 36), (486, 45), (492, 32), (500, 20), (512, 12), (523, 6), (534, 12),
+              (546, 20), (554, 32), (560, 45), (568, 36), (577, 42), (578, 55)]
+    tor = K.prism([(X(x), Z(y)) for x, y in torana], 1.7, 1.86, gate, name="torana", bevel=0.006)
+    K.cut(tor, X(505), X(541), 1.6, 1.95, Z(52), Z(38))
+    K.box(X(462), X(582), 1.6, 1.96, Z(52), Z(48), gate, name="torana_sill")
+    # the steps down from the gateway into the tank, each narrower than the one below
+    tops = [315, 302, 290, 277, 265, 252, 240, 228, 217, 208]
+    t = 1.65 / len(tops)
+    for k, top in enumerate(tops):
+        L, R = 373 + 9.33 * k, 677 - 9.44 * k
+        K.box(X(L), X(R), -1.65 + k * t, 1.65, 0.0, Z(top), stone2, bevel=0.012, name="step")
+    # the lamps, each on a little stone bracket
+    for px, py, yface in ((172, 217, 1.1), (308, 217, 1.1), (433, 217, 1.1), (610, 217, 1.1), (722, 217, 1.1),
+                          (862, 217, 1.1), (65, 272, 0.55), (230, 272, 0.55), (390, 272, 0.55), (660, 272, 0.55),
+                          (812, 272, 0.55), (968, 272, 0.55), (360, 324, 0.0), (688, 324, 0.0)):
+        y = yface - 0.1
+        if True:
+            K.box(X(px - 9), X(px + 9), y - 0.06, yface + 0.02, Z(py + 4), Z(py), stone, bevel=0.006, name="bracket")
+        diya(K, px, y, py - 6, py, 7, (px - 3, py - 17, px + 3, py - 6), (px - 8, py - 7, px + 8, py), name="lamp")
+    for px in (443, 600):
+        diya(K, px, 1.62, 105, 113, 8, (px - 3, 92, px + 3, 105), (px - 9, 104, px + 9, 113), name="lamp")

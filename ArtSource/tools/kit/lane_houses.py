@@ -7,6 +7,7 @@ from the painting, with a door or window repeated where a real house would have 
 """
 import math
 
+import bpy
 import numpy as np
 from scipy import ndimage
 from mathutils import Matrix, Vector
@@ -1795,4 +1796,156 @@ def house_village_head(K):
     for yaw in (0, 45, -45, 90):
         K.card_from_painting((695, 990, 895, 1176), (P.x(795), yt + K.rng.uniform(-0.04, 0.04), P.z(1083)),
                              yaw=yaw, name="tulsi")
+    drop_ground_faces(K)
+
+
+def prism_yz(K, outline, x0, x1, mat, name="prism_yz"):
+    """An outline [(y, z), ...] in the side plane, extruded across x0..x1 (a ground apron, a gable seen side-on)."""
+    import bmesh
+    bm = bmesh.new()
+    a = [bm.verts.new((x0, y, z)) for y, z in outline]
+    b = [bm.verts.new((x1, y, z)) for y, z in outline]
+    n = len(outline)
+    bm.faces.new(a)
+    bm.faces.new(list(reversed(b)))
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([a[i], a[j], b[j], b[i]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    me.materials.append(mat.mat)
+    K.parts.append(ob)
+    return ob
+
+
+def lashing(K, p, d, r, mat, name="lashing"):
+    """A rope lashing round a pole at point p (m) along direction d: a short fat tube."""
+    d = Vector(d).normalized()
+    p = Vector(p)
+    return K.tube([tuple(p - d * 0.04), tuple(p + d * 0.04)], r, mat, segments=8, name=name)
+
+
+@model("house_being_built", "lane", kind="building", atlas=2048)
+def house_being_built(K):
+    """A mud-brick house going up: its back wall to full height with sloping shoulders, side walls to the eaves, the
+    front wall waist-high with brick piers and a stone lintel over a new door frame; a bamboo scaffold lashed with
+    rope standing inside it, rafters starting to lean on the back wall; a heap of mud and straw, stacks of new roof
+    tiles on a pallet, a pile of bamboo poles, straw strewn over a raised earth apron."""
+    P = K.paint
+    D = 4.4
+    K.front_min = 0.05
+    halo_exclude(K, [(0, 0, 2539, 1096)])
+    brick = K.tile((500, 560, 950, 690), vary=0.04, soften=0.15)
+    inner = K.tile((560, 300, 700, 420), size=0.8, vary=0.05, soften=0.4)
+    earth = K.tile((300, 1045, 1100, 1085), size=1.0, vary=0.08)
+    floor = K.colour((1200, 850, 1300, 880), vary=0.08)
+    bamboo = K.colour((1262, 150, 1276, 240), vary=0.1, scale=20)
+    rope = K.colour((0.32, 0.14, 0.05), vary=0.12)
+    wood = K.colour((1105, 500, 1135, 800), vary=0.08)
+    dark = K.colour((0.06, 0.035, 0.02), vary=0.05)
+    zg = P.z(1000)
+    # the raised earth apron the site stands on, falling gently towards the lane
+    prism_yz(K, [(-2.15, 0.0), (-2.15, P.z(1092)), (-1.9, P.z(1062)), (0.0, zg), (D + 0.5, zg), (D + 0.5, 0.0)],
+             P.x(30), P.x(2490), earth, name="apron")
+    # the walls
+    X0, X1 = P.x(379), P.x(2153)
+    t = P.m(50)
+    back = K.prism([(X0, zg - 0.05), (X1, zg - 0.05), (X1, P.z(259)), (P.x(1988), P.z(24)), (P.x(507), P.z(31)),
+                    (P.x(382), P.z(249))], D - 0.25, D, brick, name="back_wall")
+    for xa, xb in ((X0, X0 + t), (X1 - t, X1)):
+        K.box(xa, xb, 0.0, D - 0.25, zg - 0.05, P.z(255), brick, name="side_wall")
+    for x0, x1, top in ((379, 485, 423), (485, 560, 497), (560, 976, 540), (976, 1100, 460), (1398, 1528, 410),
+                        (1528, 1878, 542), (1878, 2153, 503)):
+        K.box(P.x(x0), P.x(x1), 0.0, 0.25, zg - 0.05, P.z(top), brick, name="front_wall")
+    K.box(X0 + t, X1 - t, 0.25, D - 0.25, zg - 0.05, zg + 0.02, floor, name="floor")
+    for xa, xb in ((X0 + t, X0 + t + 0.01), (X1 - t - 0.01, X1 - t)):
+        K.box(xa, xb, 0.25, D - 0.25, zg, P.z(255), inner, name="inner_face")
+    # the lintel, the door frame and the dark room seen through it
+    K.box(P.x(1038), P.x(1473), -0.03, 0.28, P.z(405), P.z(377), K.colour((1150, 380, 1450, 400), vary=0.06),
+          bevel=0.01, name="lintel")
+    for x0, x1 in ((1100, 1139), (1359, 1398)):
+        K.box(P.x(x0), P.x(x1), 0.02, 0.22, P.z(890), P.z(405), wood, bevel=0.006, name="door_frame")
+    K.box(P.x(1100), P.x(1398), 0.02, 0.22, P.z(428), P.z(405), wood, bevel=0.006, name="door_frame")
+    K.box(P.x(1100), P.x(1398), 0.02, 0.22, zg - 0.01, P.z(890), wood, bevel=0.006, name="door_sill")
+    # the scaffold, standing inside behind the front wall: poles as painted, lashed where they cross
+    ys = 0.45
+    verts = [((529, 196), (529, 540)), ((808, 12), (727, 535)), ((1001, 12), (920, 535)), ((1143, 12), (1124, 346)),
+             ((1269, 12), (1269, 346)), ((1465, 12), (1497, 464)), ((1599, 12), (1662, 503)),
+             ((1744, 20), (1811, 534)), ((1874, 12), (1980, 259)), ((1976, 200), (1976, 503))]
+    horiz = [(71, 482, 2066), (149, 429, 2106), (255, 373, 2172), (412, 488, 2062)]
+    r = P.m(9)
+    def pole_pt(top, bot, py, lean):
+        (tx, ty), (bx, by) = top, bot
+        f = (py - ty) / (by - ty)
+        return (P.x(tx + (bx - tx) * f), ys + lean * (1 - f), P.z(py))
+    for top, bot in verts:
+        lean = 0.6 if top[1] < 30 else 0.0
+        a = pole_pt(top, bot, top[1], lean)
+        b = pole_pt(top, bot, 1000, lean)
+        K.tube([a, b], r, bamboo, segments=8, name="pole")
+        for py, hx0, hx1 in horiz:
+            if top[1] < py < bot[1]:
+                p = pole_pt(top, bot, py, lean)
+                if P.x(hx0) < p[0] < P.x(hx1):
+                    lashing(K, (p[0], p[1] - r * 0.9, p[2]), (Vector(a) - Vector(b)), r * 1.5, rope)
+    for py, hx0, hx1 in horiz:
+        K.tube([P.pt(hx0, py, ys - r * 1.8), P.pt(hx1, py, ys - r * 1.8)], r, bamboo, segments=8, name="ledger")
+        for hx in (hx0 + 25, hx1 - 25):
+            lashing(K, P.pt(hx, py, ys - r * 1.8), (1, 0, 0), r * 1.5, rope)
+    # inside: posts and braces of the roof frame going back to the back wall
+    for (ax, ay, ay_), (bx, by, by_) in (((620, 1000, 1.4), (620, 210, 1.4)), ((1210, 1000, 1.5), (1210, 230, 1.5)),
+                                         ((1700, 1000, 1.3), (1700, 190, 1.3)), ((560, 120, 2.0), (1000, 520, 1.0)),
+                                         ((1600, 120, 2.2), (1900, 480, 1.1)), ((900, 60, D - 0.3), (900, 260, 0.6)),
+                                         ((1450, 60, D - 0.3), (1450, 260, 0.6)), ((700, 60, D - 0.3), (700, 260, 0.6)),
+                                         ((1800, 60, D - 0.3), (1800, 260, 0.6))):
+        K.tube([P.pt(ax, ay, ay_), P.pt(bx, by, by_)], r * 0.9, bamboo, segments=8, name="frame_pole")
+    # the heap of mud and straw
+    mudm = K.projected(squeeze=1.0, keep=[(205, 700, 800, 1010)], inset=2)
+    for px, py, w, h in ((330, 930, 230, 150), (470, 880, 280, 260), (610, 920, 250, 170), (720, 975, 170, 90),
+                         (250, 990, 200, 80), (420, 990, 300, 90)):
+        K.boulder(P.x(px), -0.9 + K.rng.uniform(-0.3, 0.3), P.z(py), P.m(w), P.m(w) * 0.9, P.m(h) * 1.1, mudm,
+                  name="mud")
+    K.leaves_only((150, 690, 1560, 1050), straw_pixels)
+    for i in range(16):
+        cx, cy = K.rng.uniform(250, 780), K.rng.uniform(710, 900)
+        K.card_from_painting((cx - 60, cy - 45, cx + 60, cy + 45), (P.x(cx), K.rng.uniform(-1.5, -0.4), P.z(cy)),
+                             yaw=K.rng.uniform(-70, 70), pitch=K.rng.uniform(-30, 30), name="straw")
+    for i in range(22):
+        cx, cy = K.rng.uniform(180, 1520), K.rng.uniform(950, 1035)
+        y = K.rng.uniform(-1.9, -0.2)
+        zz = zg - (P.z(1000) - P.z(1062)) * min(1.0, -y / 1.9) + 0.01
+        K.card_from_painting((cx - 70, cy - 30, cx + 70, cy + 30), (P.x(cx), y, zz), yaw=K.rng.uniform(-60, 60),
+                             pitch=-80 + K.rng.uniform(-6, 6), name="straw_ground")
+    # stacks of new roof tiles on a pallet
+    tilem = K.projected(squeeze=1.0, keep=[(1470, 780, 1960, 1000)], inset=2)
+    pal = K.colour((1600, 1000, 1900, 1020), vary=0.08)
+    yt = -1.2
+    for sy in (-0.45, 0.0, 0.45):
+        K.box(P.x(1560), P.x(1950), yt + sy - 0.05, yt + sy + 0.05, P.z(1040), P.z(1012), pal, name="pallet_block")
+    for i in range(7):
+        K.box(P.x(1550), P.x(1960), yt - 0.5 + i * 0.165, yt - 0.42 + i * 0.165, P.z(1012), P.z(1000), pal,
+              name="pallet_slat")
+    for x0, x1, top, dy in ((1560, 1700, 800, 0.0), (1700, 1855, 780, 0.15), (1770, 1960, 880, -0.25),
+                            (1640, 1770, 860, -0.3)):
+        K.box(P.x(x0), P.x(x1), yt + dy - 0.22, yt + dy + 0.22, P.z(1000), P.z(top), tilem, bevel=0.01,
+              name="tile_stack")
+    for i, (x, top) in enumerate(((1495, 850), (1525, 845), (1555, 840))):
+        K.block(P.x(x), yt - 0.35, (P.z(top) + P.z(1000)) / 2, P.m(40), 0.25, P.z(top) - P.z(1000), tilem,
+                rot=(0, -12, 0), bevel=0.01, name="tile_leaning")
+    # the pile of bamboo on its pallet, long poles leaning on it
+    yb = -1.0
+    K.box(P.x(1950), P.x(2390), yb - 0.4, yb + 0.4, P.z(1002), P.z(975), pal, name="pallet2")
+    for i in range(14):
+        row, col = divmod(i, 5)
+        y = yb - 0.3 + col * 0.15
+        z = P.z(975) + r * (1 + 2 * row)
+        K.tube([(P.x(1950), y, z), (P.x(2380), y + K.rng.uniform(-0.05, 0.05), z)], r, bamboo, segments=8,
+               name="pile")
+    for (ax, ay), (bx, by), y in (((1790, 690), (2390, 995), -1.4), ((1840, 720), (2350, 990), -1.25),
+                                  ((1900, 760), (2300, 995), -1.15), ((1780, 680), (2200, 1000), -0.7)):
+        K.tube([P.pt(ax, ay, y + 0.3), P.pt(bx, by, y)], r, bamboo, segments=8, name="pole_leaning")
     drop_ground_faces(K)

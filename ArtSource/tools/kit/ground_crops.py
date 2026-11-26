@@ -933,7 +933,10 @@ def crop_strip_3(K):
     a = alpha_mask(P)
     gold = a & (r > 140) & (r - b > 85) & (r > g) & (np.arange(P.h)[:, None] < 230)
     gold = ndimage.binary_opening(ndimage.binary_closing(gold, iterations=2), iterations=2)
-    heads = [c for c in components(gold, 300)]
+    # heads that touch in the painting are split where they meet (an erosion), each grown back on its own
+    lab, n = ndimage.label(ndimage.binary_erosion(gold, iterations=4))
+    grown = ndimage.grey_dilation(lab, size=9) * gold
+    heads = [c for k in range(1, n + 1) for c in components(grown == k, 200)[:1]]
     top_py, base_py = 398, 399
     rows_y = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
     field_bed(K, 28, 1197, top_py, depth, top_box=(300, 386, 420, 396), ridges=0.03, rows=rows_y)
@@ -944,7 +947,7 @@ def crop_strip_3(K):
     painted = []
     for box, area, m, sl in heads:
         top_end, bot_end, d, hw = pca_axis(m, (box[0], box[1]))
-        painted.append((top_end, bot_end, hw))
+        painted.append((top_end, bot_end, min(hw, 15.0)))
     for k, y in enumerate(rows_y):
         for (te, be, hw) in painted:
             dx = 0.0 if k == 0 else K.rng.uniform(-45, 45)
@@ -952,9 +955,11 @@ def crop_strip_3(K):
             if k > 0 and K.rng.uniform() < 0.35:
                 continue
             t0, t1 = te + (dx, dz), be + (dx, dz)
+            hs = 1.0 if k == 0 else K.rng.uniform(0.75, 0.9)
+            t1 = t0 + (t1 - t0) * hs
             mid = (t0 + t1) / 2 + np.array((K.rng.uniform(-3, 3), 0))
             pts = [t0, t0 + (t1 - t0) * 0.15, mid, t0 + (t1 - t0) * 0.85, t1]
-            rad = [hw * 0.3, hw * 0.8, hw * 0.95, hw * 0.8, hw * 0.45]
+            rad = [hw * hs * f for f in (0.3, 0.8, 0.95, 0.8, 0.45)]
             yy = y + (0 if k == 0 else K.rng.uniform(-0.06, 0.06))
             head_tube(K, pts, rad, yy, grain, segments=8)
             # the stalk: from under the head down to the soil, leaning a little
@@ -1051,18 +1056,18 @@ def crop_strip_2(K):
         stook(K, ax, top, tie, foot, rf, P.x(x), y, z0, straw, band, scale=K.rng.uniform(0.8, 0.95))
     # the stubble: hills of cut stalks in rows over the whole field
     stub = K.tile((163, 140, 178, 176), vary=0.1, soften=0.1)
-    rows = [-depth / 2 + 0.1 + k * 0.2 for k in range(7)]
+    rows = [-depth / 2 + 0.1 + k * 0.24 for k in range(6)]
     for k, y in enumerate(rows):
-        x = P.x(20) + K.rng.uniform(0, 0.2)
+        x = P.x(20) + K.rng.uniform(0, 0.25)
         while x < P.x(1170):
             yy = y + K.rng.uniform(-0.04, 0.04)
             ok = all(math.hypot(x - P.x(ax), yy - depth_of(f)) > P.m(rf) + 0.06 for ax, _, _, f, rf in STOOKS)
             if ok:
-                r = K.rng.uniform(0.028, 0.04)
+                r = K.rng.uniform(0.034, 0.046)
                 hh = K.rng.uniform(0.13, 0.22) * (1.0 if k < 2 else 0.85)
                 K.lathe([(r, z0 - 0.01), (r * 0.97, z0 + hh * 0.5), (r * 0.94, z0 + hh), (0.0, z0 + hh)], stub,
                         segments=7, centre=(x, yy, 0.0), wobble=0.08, name="stubble")
-            x += K.rng.uniform(0.17, 0.26)
+            x += K.rng.uniform(0.24, 0.34)
 
 
 # ====================================================================== plants as cards carrying solid parts
