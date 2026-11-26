@@ -1469,18 +1469,22 @@ def bicycle(K):
         hub = [(0.0, -0.055), (P.m(4), -0.055), (P.m(9), -0.035), (P.m(5.5), -0.025), (P.m(5.5), 0.025),
                (P.m(9), 0.035), (P.m(4), 0.055), (0.0, 0.055)]
         axis_lathe(K, [(r_, t_ + 0.0) for r_, t_ in hub], gold, C, tuple(nrm), segments=14, name="hub")
-    al = P.rgba[..., 3] > 0.4
-    opened = ndimage.binary_opening(al, structure=np.ones((5, 5)))
-    thin = al & ~ndimage.binary_dilation(opened, iterations=1)
-    yy, xx = np.mgrid[0:P.h, 0:P.w]
-    spokes = np.zeros_like(al)
+    # the wire spokes, laced: each from a hub flange (alternate sides) to the rim, a little off radial
+    spoke_m = K.colour((40, 170, 70, 200), vary=0.06, pct=85)
+    d = Vector((-c, s, 0.0))
     for (wx, wy), R in wheels:
-        ri = R - 13
-        spokes |= ((xx - wx) / (ri * c)) ** 2 + ((yy - wy) / ri) ** 2 < 1
+        C = Vector(B(wx, wy))
+        n_sp = 36
+        r_rim, r_hub = P.m(R - 12.5), P.m(8.5)
+        for k in range(n_sp):
+            ph = 2 * math.pi * k / n_sp
+            side = 1 if k % 2 else -1
+            lace = math.radians(14) * (1 if (k // 2) % 2 else -1)
+            hub_pt = C + (d * math.cos(ph + lace) + Vector((0, 0, math.sin(ph + lace)))) * r_hub + nrm * (0.028 * side)
+            rim_pt = C + (d * math.cos(ph) + Vector((0, 0, math.sin(ph)))) * r_rim + nrm * (0.004 * side)
+            K.tube([tuple(hub_pt), tuple(rim_pt)], P.m(0.9), spoke_m, segments=4, name="spoke")
     grass_boxes = [(10, 285, 46, 302), (120, 280, 170, 302), (255, 275, 305, 300), (370, 280, 412, 302)]
-    card_mask_all(K, (spokes & thin) | grass_mask(P, grass_boxes))
-    for (wx, wy), R in wheels:
-        plane_card(K, (wx - R, wy - R, wx + R, wy + R), yfun, name="spokes", normal=tuple(nrm))
+    card_mask_all(K, grass_mask(P, grass_boxes))
     # the frame
     tubes = [([B(128, 60), B(122, 112)], 7.5), ([B(136, 79), B(270, 78)], 5.5), ([B(132, 96), B(222, 206)], 6.5),
              ([B(272, 70), B(228, 208)], 6.0), ([B(127, 64), B(127, 30)], 4.5), ([B(270, 56), B(271, 74)], 4.5)]
@@ -1495,16 +1499,17 @@ def bicycle(K):
                tuple(nrm), segments=16, name="bb")
     # the handlebar, swept back, its grips and the brake levers with their rods
     bar_n = [B(127, 30), B(140, 28, 0.08), B(156, 26, 0.16), B(170, 28, 0.21)]
-    bar_f = [B(127, 30), B(117, 26, -0.08), B(106, 19, -0.16), B(97, 14, -0.21)]
-    K.tube(bar_n, P.m(3.6), gold, segments=8, name="bar")
-    K.tube(bar_f, P.m(3.6), gold, segments=8, name="bar")
+    bar_f = [B(127, 30), B(120, 25, -0.08), B(110, 19, -0.15), B(99, 15, -0.2), B(92, 19, -0.23), B(95, 27, -0.24)]
+    chrome = K.colour((0.42, 0.47, 0.6), vary=0.06)
+    K.tube(bar_n, P.m(3.6), chrome, segments=8, name="bar")
+    K.tube(bar_f, P.m(3.6), chrome, segments=8, name="bar")
     grip = K.colour((165, 22, 195, 38), vary=0.08)
     K.tube([B(166, 26, 0.2), B(196, 33, 0.25)], P.m(6.5), grip, segments=10, name="grip")
-    K.tube([B(99, 15, -0.2), B(80, 10, -0.24)], P.m(6.5), grip, segments=10, name="grip")
+    K.tube([B(121, 21, -0.1), B(106, 15, -0.17)], P.m(5.5), grip, segments=10, name="grip")
     for pts in ([B(146, 36, 0.12), B(160, 42, 0.14), B(175, 50, 0.16), B(184, 57, 0.17)],
                 [B(104, 30, -0.12), B(98, 40, -0.14), B(104, 50, -0.15), B(112, 56, -0.15)]):
-        K.tube(pts, P.m(2.2), gold, segments=6, name="lever")
-    K.tube([B(112, 56, -0.12), B(110, 80, -0.05), B(113, 104, -0.02)], P.m(1.6), gold, segments=5, name="brake_rod")
+        K.tube(pts, P.m(2.2), chrome, segments=6, name="lever")
+    K.tube([B(116, 58, -0.12), B(117, 80, -0.05), B(120, 104, -0.02)], P.m(1.6), chrome, segments=5, name="brake_rod")
     # the mudguards over the wheels and the red reflector at the back
     for (wx, wy), R, a0, a1 in (((89, 208), 97.5, -22, 104), ((347.5, 204), 101.0, -6, 146)):
         C = Vector(B(wx, wy))
@@ -1557,11 +1562,11 @@ def bicycle(K):
         v.co.y += yfun(v.co.x) - 0.05 / c
     for side, (ex, ey) in ((1, (230, 252)), (-1, (222, 172))):
         K.tube([B(226, 212, 0.06 * side), B(ex, ey, 0.065 * side)], P.m(3.5), gold, segments=8, name="crank")
-        pedal = K.block(*B(ex + 3, ey + 4 * side, 0.1 * side), P.m(30), 0.07, P.m(10), dark, rot=(0, 0, -28),
-                        bevel=0.004, name="pedal")
+        K.block(*B(ex + 3, ey + 4 * side, 0.1 * side), P.m(30 if side > 0 else 12), 0.07, P.m(10 if side > 0 else 7),
+                dark, rot=(0, 0, -28), bevel=0.004, name="pedal")
     # a side stand folded down on the far side, and the earth
     K.tube([B(300, 212, -0.04), B(306, 260, -0.11), B(310, 302, -0.17)], P.m(2.8), frame, segments=6, name="stand")
-    earth(K, 220, 304, 310, 214, 0.55, (60, 300, 100, 308))
+    earth(K, 220, 304, 310, 214, 0.45, (0.5, 0.24, 0.1))
     for box in grass_boxes:
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         for yaw, dy in ((0, -0.1), (70, 0.08), (-60, 0.2)):

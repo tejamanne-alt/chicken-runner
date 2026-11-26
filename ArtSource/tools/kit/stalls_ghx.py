@@ -1172,7 +1172,7 @@ def stall_h_2(K):
     def tw(u, v):
         px_ = 402 + (553 - 402) * u
         ey, eyy = edge(px_)
-        top_py = 606 + 6 * u
+        top_py = 617 + 13 * max(0.0, (px_ - 490) / 65)
         if px_ < 476:
             ey = 634 + (660 - 634) * (px_ - 338) / (476 - 338)
             eyy = ys["L"] + (ys["F"] - ys["L"]) * (px_ - 338) / (476 - 338)

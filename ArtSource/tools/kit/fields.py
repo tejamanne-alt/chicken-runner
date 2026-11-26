@@ -1879,85 +1879,109 @@ def field_bldg_2(K):
            (0.18, 0.34, 0.51, 0.67, 0.84), bamboo, r_rail=P.m(8), r_rung=P.m(7))
 
 
+def straw_mound(K, ax_px, yc, rpx, rows, mat, sources, n_surface=60, n_skirt=36, size=(44, 38), segments=36,
+                name="heap"):
+    """A round heap of threshed straw (as deep as it is wide) about the vertical through painted x ax_px at depth yc:
+    rpx(py) its painted radius at each painted height, rows (top, base) its painted top and foot; its surface covered
+    with ragged tufts cut from its own painted outline (sources: the heights to cut them from) and a ragged skirt."""
+    P = K.paint
+    top, base = rows
+    pys = list(np.linspace(base, top + 4, 14))
+    prof = [(P.m(rpx(py)) * 0.95, P.z(py)) for py in pys] + [(0.0, P.z(top))]
+    prof[0] = (prof[0][0] * 0.98, 0.0)
+    ob = K.lathe(prof, mat, segments=segments, centre=(P.x(ax_px), yc, 0), wobble=0.05, name=name)
+    straw_fringe(K, ax_px, yc, rpx, (top + 12, base - 30), n_surface, size=size, inset=0.45, sources=sources,
+                 sectors=[(-180, 180)], up=0.5, name="straw")
+    straw_fringe(K, ax_px, yc, rpx, (base - 28, base - 6), n_skirt, size=(size[0] + 8, size[1]), inset=0.35,
+                 sources=sources, z_floor=0.0, sectors=[(-180, 180)], up=0.15, name="straw")
+    return ob
+
+
 @fmodel("field_bldg_3", "fields", kind="building", atlas=2048)
 def field_bldg_3(K):
     """The threshing floor's shed: an open-fronted field shed of bamboo under a thatched gable roof, its front gable
     framed and slatted in bamboo, a tool board inside with sickles and a mallet hung on it, a wooden plough leaning
-    there; slatted bamboo side walls with three rails. Before it the threshing floor's things: two heaps of threshed
-    straw, a stone threshing roller with its axle pins, and a woven winnowing fan leaning on the big heap. The shed
-    runs back to the right as painted."""
+    there; slatted bamboo side walls with three rails. Before it the threshing floor's things: two round heaps of
+    threshed straw, a stone threshing roller on its axle in a wooden pull frame, and a woven winnowing fan leaning on
+    the big heap. The shed is square to us: its long side the painting shows receding is not projected onto the
+    front."""
     P = K.paint
-    K.front_min = 0.08
-    D, kx = 3.4, 0.5
+    K.front_min = 0.2
+    K.front_exclude = [("poly", [(752, 0), (1165, 0), (1165, 466), (878, 466), (878, 176), (752, 8)])]
+    D = 3.4
     bamboo = K.tile((628, 260, 640, 440), soften=0.2, vary=0.05)
     slats = K.tile((900, 280, 1080, 395), soften=0.15, vary=0.04)
     thatch = K.tile((880, 60, 1080, 180), soften=0.2, vary=0.04)
     board = K.tile((680, 345, 760, 420), soften=0.2, vary=0.04)
     x0, x1 = P.x(630), P.x(870)
-    zg, ze, zr = P.z(462), P.z(188), P.z(50)
-    shed = []
+    zg, ze, zr = P.z(462), P.z(188), P.z(28)
     # posts at the corners and the middle of the sides, the front beam, the side and back walls of slats
     for x in (x0, x1):
         for y in (0.0, D / 2, D):
-            shed.append(K.tube([(x, y, zg - 0.05), (x, y, ze + 0.05)], P.m(8), bamboo, segments=8, name="post"))
-    shed.append(K.tube([(P.x(605), -0.02, P.z(185)), (P.x(872), -0.02, P.z(185))], P.m(9), bamboo, segments=8,
-                       name="beam"))
-    shed.append(K.box(x1 - 0.02, x1 + 0.03, 0.0, D, zg, ze, slats, name="side_wall"))
-    shed.append(K.box(x0 - 0.03, x0 + 0.02, 0.0, D, zg, ze, slats, name="side_wall"))
-    shed.append(K.box(x0, x1, D - 0.03, D + 0.02, zg, ze, slats, name="back_wall"))
+            K.tube([(x, y, zg - 0.05), (x, y, ze + 0.05)], P.m(8), bamboo, segments=8, name="post")
+    K.tube([(P.x(605), -0.02, P.z(185)), (P.x(872), -0.02, P.z(185))], P.m(9), bamboo, segments=8, name="beam")
+    K.box(x1 - 0.02, x1 + 0.03, 0.0, D, zg, ze, slats, name="side_wall")
+    K.box(x0 - 0.03, x0 + 0.02, 0.0, D, zg, ze, slats, name="side_wall")
+    K.box(x0, x1, D - 0.03, D + 0.02, zg, ze, slats, name="back_wall")
     for row in (265, 332, 405):
         for x in (x0 - 0.05, x1 + 0.05):
-            shed.append(K.tube([(x, -0.02, P.z(row)), (x, D + 0.02, P.z(row))], P.m(6), bamboo, segments=8, name="rail"))
+            K.tube([(x, -0.02, P.z(row)), (x, D + 0.02, P.z(row))], P.m(6), bamboo, segments=8, name="rail")
+        K.tube([(x0 - 0.02, D + 0.05, P.z(row)), (x1 + 0.02, D + 0.05, P.z(row))], P.m(6), bamboo, segments=8,
+               name="rail")
     # the tool board inside the open front, the dark of the shed behind it, the plough leaning on it
-    shed.append(K.box(P.x(642), P.x(862), 0.5, 0.56, zg, P.z(192), board, name="tool_board"))
-    shed.append(K.box(x0, x1, 0.56, D - 0.05, zg - 0.02, zg + 0.01, K.colour((0.12, 0.08, 0.05), vary=0.1),
-                      name="floor"))
+    K.box(P.x(642), P.x(862), 0.5, 0.56, zg, P.z(192), board, name="tool_board")
+    K.box(x0, x1, 0.0, D - 0.05, zg - 0.02, zg + 0.01, K.colour((0.12, 0.08, 0.05), vary=0.1), name="floor")
     wood = K.colour((700, 395, 760, 420), vary=0.1)
-    shed.append(K.tube([(P.x(655), 0.25, P.z(442)), (P.x(760), 0.36, P.z(372)), (P.x(852), 0.46, P.z(308))],
-                       P.m(7), wood, segments=8, name="plough_beam"))
-    shed.append(K.tube([(P.x(800), 0.42, P.z(440)), (P.x(836), 0.46, P.z(322))], P.m(7), wood, segments=8,
-                       name="plough_stilt"))
+    K.tube([(P.x(655), 0.25, P.z(442)), (P.x(760), 0.36, P.z(372)), (P.x(852), 0.46, P.z(308))], P.m(7), wood,
+           segments=8, name="plough_beam")
+    K.tube([(P.x(800), 0.42, P.z(440)), (P.x(836), 0.46, P.z(322))], P.m(7), wood, segments=8, name="plough_stilt")
     iron = K.colour((790, 360, 820, 400), vary=0.06)
-    shed.append(K.prism([(P.x(782), P.z(440)), (P.x(830), P.z(440)), (P.x(806), P.z(348))], 0.38, 0.42, iron,
-                        name="ploughshare"))
-    # the roof and the front gable of bamboo slats in its frame
-    roof = gable_thatch(K, x1 - x0, D, ze, zr, thatch, over=0.38, thickness=0.22, shag=0.07)
+    K.prism([(P.x(782), P.z(440)), (P.x(830), P.z(440)), (P.x(806), P.z(348))], 0.38, 0.42, iron, name="ploughshare")
+    # the roof and the gables of bamboo slats in their frames, front and back
+    roof = gable_thatch(K, x1 - x0, D, ze, zr, thatch, over=0.3, thickness=0.22, shag=0.07)
     for ob in roof:
         for v in ob.data.vertices:
             v.co.x += x1
-    shed += roof
     gab = K.tile((700, 70, 760, 175), soften=0.2)
-    for y0 in (0.0, D - 0.06):
-        shed.append(K.prism([(x1, ze), (x0, ze), ((x0 + x1) / 2, zr - 0.1)], y0, y0 + 0.06, gab, name="gable"))
-    for (ax, az), (bx, bz) in ((((x0 + x1) / 2, zr), (x0 - 0.25, ze - 0.1)), (((x0 + x1) / 2, zr), (x1 + 0.25, ze - 0.1)),
-                                (((x0 + x1) / 2, zr), ((x0 + x1) / 2, ze)), ((P.x(650), P.z(115)), (P.x(840), P.z(115)))):
-        shed.append(K.tube([(ax, -0.06, az), (bx, -0.06, bz)], P.m(6), bamboo, segments=6, name="frame"))
-    shear(K, 0.0, 0.0, kx=kx, parts=shed)
-    # the straw heaps
-    big = interp([(184, 6), (190, 30), (200, 58), (240, 92), (280, 116), (320, 125), (400, 135), (462, 140)])
-    small = interp([(296, 10), (300, 60), (320, 104), (340, 125), (360, 145), (380, 168), (400, 185), (420, 206),
-                    (440, 224), (462, 232)])
-    straw = turned(K, P.x(456), (380, 230, 520, 320), squeeze=0.9, keep=[(330, 170, 600, 466)],
+    xm = (x0 + x1) / 2
+    for y0, yf in ((0.0, -0.06), (D - 0.06, D + 0.06)):
+        K.prism([(x1, ze), (x0, ze), (xm, zr - 0.1)], y0, y0 + 0.06, gab, name="gable")
+        for (ax, az), (bx, bz) in (((xm, zr), (x0 - 0.22, ze - 0.1)), ((xm, zr), (x1 + 0.22, ze - 0.1)),
+                                    ((xm, zr), (xm, ze)), ((P.x(650), P.z(115)), (P.x(840), P.z(115)))):
+            K.tube([(ax, yf, az), (bx, yf, bz)], P.m(6), bamboo, segments=6, name="frame")
+    # the straw heaps: round mounds as deep as they are wide, ragged with straw all over and round their skirts
+    big = interp([(170, 10), (185, 22), (195, 40), (205, 58), (215, 75), (245, 92), (270, 107), (303, 122), (350, 133),
+                  (400, 138), (462, 140)])
+    small = interp([(300, 8), (303, 20), (309, 35), (315, 50), (319, 65), (328, 80), (340, 95), (350, 110), (372, 125),
+                    (382, 140), (399, 155), (413, 170), (429, 185), (462, 195)])
+    straw = turned(K, P.x(452), (380, 230, 520, 320), squeeze=0.9, keep=[(316, 160, 600, 466)],
                    exclude=[(190, 340, 430, 466), (490, 320, 660, 466)])
-    K.lathe([(P.m(big(py)), P.z(py)) for py in (462, 400, 320, 280, 240, 200, 190, 184)], straw, segments=32,
-            centre=(P.x(456), 0.3, 0), wobble=0.04, scale_y=0.9, name="heap")
-    straw2 = turned(K, P.x(230), (60, 380, 200, 440), squeeze=0.9, keep=[(0, 280, 380, 466)],
+    straw2 = turned(K, P.x(198), (40, 360, 180, 430), squeeze=0.9, keep=[(0, 290, 330, 466)],
                     exclude=[(190, 340, 430, 466)])
-    K.lathe([(P.m(small(py)), P.z(py)) for py in (462, 440, 420, 400, 380, 360, 340, 320, 300, 296)], straw2,
-            segments=32, centre=(P.x(230), 0.25, 0), wobble=0.04, scale_y=0.45, name="heap")
-    K.leaves_only((0, 160, 600, 330), no_halo)
-    straw_fringe(K, 456, 0.3, big, (200, 300), 40, size=(40, 36), inset=0.4, exact_rows=(200, 300), sources=(200, 300),
-                 sectors=[(-25, 0), (0, 180), (-180, -155)], up=0.4)
-    # the stone roller lying on its side, its axle pins
+    K.leaves_only((0, 285, 318, 350), no_halo)
+    K.leaves_only((0, 350, 196, 466), no_halo)
+    K.leaves_only((318, 150, 600, 322), no_halo)
+    straw_mound(K, 452, 1.15, big, (172, 462), straw, sources=(185, 300), n_surface=70, n_skirt=34, name="heap")
+    straw_mound(K, 198, 1.35, small, (302, 462), straw2, sources=(306, 345), n_surface=50, n_skirt=40,
+                size=(40, 34), name="heap")
+    # the stone roller lying on its side, its axle through it, held in a wooden pull frame behind it
+    yr, rr = -0.75, P.m(56)
     roller = K.projected(axis_x=P.x(297), squeeze=1.0, keep=[(224, 344, 372, 462)], inset=2)
-    rl = K.lathe([(0.0, P.x(228)), (P.m(58), P.x(228)), (P.m(60), P.x(300)), (P.m(58), P.x(368)), (0.0, P.x(368))],
-                 roller, segments=24, name="roller")
+    rl = K.lathe([(0.0, P.x(224)), (rr * 0.97, P.x(224)), (rr, P.x(232)), (rr * 1.01, P.x(298)), (rr, P.x(364)),
+                  (rr * 0.97, P.x(372)), (0.0, P.x(372))], roller, segments=28, name="roller")
     rotate(rl, 90, "Y", (0, 0, 0))
     for v in rl.data.vertices:
-        v.co.y -= 0.45
-        v.co.z += P.z(404)
-    pin = K.colour((200, 400, 230, 420), vary=0.08)
-    K.tube([(P.x(196), -0.45, P.z(406)), (P.x(426), -0.45, P.z(406))], P.m(11), pin, segments=10, name="axle")
+        v.co.y += yr
+        v.co.z += rr
+    axle = K.colour((200, 400, 230, 420), vary=0.08)
+    K.tube([(P.x(196), yr, rr), (P.x(426), yr, rr)], P.m(9), axle, segments=10, name="axle")
+    frame = K.colour((0.3, 0.13, 0.06), vary=0.12)
+    for x in (P.x(204), P.x(418)):
+        K.box(x - 0.04, x + 0.04, yr - 0.08, 0.02, rr - 0.05, rr + 0.05, frame, bevel=0.01, name="frame_arm")
+    K.box(P.x(204) - 0.04, P.x(418) + 0.04, -0.06, 0.02, rr - 0.05, rr + 0.05, frame, bevel=0.01, name="frame_bar")
+    for x in (P.x(204), P.x(418)):
+        K.lathe([(0.0, rr - 0.06), (0.025, rr - 0.06), (0.025, rr + 0.06), (0.0, rr + 0.06)], frame, segments=8,
+                centre=(x, yr, 0), name="pin_cap")
     # the winnowing fan: a shallow woven scoop leaning on the big heap
     weave = K.tile((540, 380, 600, 430), soften=0.2)
 
@@ -1965,7 +1989,7 @@ def field_bldg_3(K):
         x = P.x(500) + (P.x(648) - P.x(500)) * u
         zb = P.z(462) + (P.z(330) - P.z(462)) * v
         dip = 0.12 * math.sin(math.pi * u) * (1 - v) ** 0.5
-        return (x - 0.15 * v, -0.55 + 0.45 * v + dip, zb + 0.06 * math.sin(math.pi * u))
+        return (x - 0.15 * v, -0.55 + 0.6 * v + dip, zb + 0.06 * math.sin(math.pi * u))
     K.sheet(scoop, 12, 8, weave, name="winnow", thickness=0.02)
     rim = K.colour((560, 340, 620, 350), vary=0.08)
     K.tube([scoop(u, 1.0) for u in np.linspace(0, 1, 10)], P.m(5), rim, segments=6, name="winnow_rim")
