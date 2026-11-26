@@ -71,6 +71,17 @@ def leafy(rgb, yellow=True):
     return ndimage.binary_opening(keep, iterations=1)
 
 
+def barkish(rgb, dark=60):
+    """Painted bark / wood / clay: warm browns lighter than the ink, not leaf, not the white fringe."""
+    r, g, b, mx, mn = chan(rgb)
+    return (r > g + 6) & (r > b + 18) & (mx > dark) & ~halo(rgb)
+
+
+def not_ink(rgb, dark=60):
+    r, g, b, mx, mn = chan(rgb)
+    return (mx > dark) & ~halo(rgb)
+
+
 def mask_rule(mask, box):
     """A leaves_only rule that is a precomputed full-painting mask seen through box."""
     x0, y0, x1, y1 = [int(v) for v in box]
@@ -181,6 +192,9 @@ def axis_material(K, ok, centre_px, squeeze=0.88, inset=3, name=None):
     out = np.empty_like(a)
     for py in range(H):
         c = centre_px(py)
+        if isinstance(c, (list, tuple)):              # several trunks: squeeze towards the nearest one's axis
+            cs = np.array(c, np.float32)
+            c = cs[np.argmin(np.abs(xs[:, None] - cs[None, :]), axis=1)]
         src = np.clip(c + (xs - c) * squeeze, 0, W - 1)
         for ch in range(3):
             out[py, :, ch] = np.interp(src, xs, a[py, :, ch])
@@ -530,9 +544,8 @@ def h4_1(K):
     opaque = P.rgba[..., 3] > 0.5
     # ---- the trunk, wearing its painted rings all round
     tr_mask = opaque & box_mask(opaque.shape, [(255, 340, 355, 1100)]) & ~ellipse_mask(opaque.shape, H41_NUTS, 3)
-    tr_mask &= ~box_mask(opaque.shape, [(200, 1030, 420, 1171)])
-    tr_mask |= opaque & box_mask(opaque.shape, [(262, 1040, 345, 1095)]) & (chan(rgb)[0] > chan(rgb)[1] + 15)
-    bark = axis_material(K, tr_mask, lambda py: 304.0, squeeze=0.86, inset=3)
+    tr_mask &= barkish(rgb) & ~box_mask(opaque.shape, [(200, 1070, 420, 1171)])
+    bark = axis_material(K, tr_mask, lambda py: 304.0, squeeze=0.84, inset=2)
     trunk(K, H41_TRUNK, bark, segments=18)
     # ---- the crown
     heart = (305, 235)
@@ -550,7 +563,7 @@ def h4_1(K):
     # ---- the boulders and grass at its foot
     rock_boxes = [(165, 1072, 290, 1160), (250, 1095, 320, 1160), (290, 1138, 330, 1164), (310, 1103, 398, 1152),
                   (360, 1076, 432, 1146)]
-    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & ~leafy(rgb, yellow=False), inset=2)
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb) & ~barkish(rgb, 90), inset=2)
     palm_foot(K, [(226, 1158, 122, 86, -0.035), (283, 1160, 66, 60, -0.03), (310, 1164, 40, 24, -0.055),
                   (352, 1152, 88, 50, -0.04), (395, 1146, 72, 70, -0.02), (250, 1155, 70, 50, 0.045),
                   (360, 1152, 80, 55, 0.04)],
@@ -558,3 +571,145 @@ def h4_1(K):
                       (295, 1088, 335, 1122)], [-0.03, -0.035, -0.035, -0.02, -0.06],
               K.colour((0.16, 0.11, 0.06), vary=0.18, scale=40), 300, 150, 0.1, 1160)
     tufts(K, [(200, 1028, 268, 1078), (345, 1033, 405, 1092)], [0.04, 0.035])
+
+
+# ====================================================================== h4_2: the leaning coconut palm
+H42_FRONDS = [
+    ([(265, 185), (282, 105), (320, 55), (378, 25), (438, 15)], 30, 0.25),                # up and over to the right
+    ([(258, 185), (250, 120), (232, 82), (200, 68), (172, 70)], 26, 0.45),                # up, over to the left
+    ([(255, 175), (190, 135), (110, 125), (55, 145), (10, 180)], 33, 0.15),               # top left
+    ([(260, 190), (180, 185), (100, 200), (45, 240), (12, 300)], 38, -0.1),               # left
+    ([(240, 220), (160, 240), (112, 290), (90, 350), (78, 405)], 35, -0.4),               # left, hanging
+    ([(268, 200), (215, 200), (175, 240), (160, 300), (175, 380)], 40, -0.85),            # front left
+    ([(262, 225), (240, 262), (226, 320), (236, 380), (250, 415)], 32, -0.6),             # front, hanging
+    ([(265, 178), (305, 150), (347, 160), (377, 200), (390, 250), (395, 295)], 42, -0.85),  # front right
+    ([(290, 165), (340, 135), (400, 125), (455, 145), (500, 175), (525, 200)], 30, 0.2),  # top right
+    ([(300, 200), (380, 210), (440, 245), (470, 300), (485, 350)], 35, -0.2),             # right, lower
+    ([(290, 215), (345, 240), (385, 290), (398, 345), (400, 400)], 35, -0.5),             # right, hanging
+]
+# the trunk's centre line up its lean, with its radius (measured across the lean)
+H42_TRUNK = [(497, 860, 40), (496, 820, 37), (494, 780, 34), (490, 740, 31), (482, 700, 29), (467, 650, 27),
+             (447, 600, 25), (425, 560, 23), (400, 518, 22), (377, 485, 21), (355, 450, 20), (336, 405, 19),
+             (318, 350, 18), (300, 290, 17), (282, 230, 16), (268, 195, 15)]
+
+
+@model("h4_2", "plants", kind="prop", atlas=2048, leaves=2048)
+def h4_2(K):
+    """A coconut palm leaning out in a long S-curve from mossy boulders: a slender ringed trunk, a head of long arching
+    fronds all round its top, grass at its foot."""
+    P = K.paint
+    rgb = painted_rgb(K)
+    opaque = P.rgba[..., 3] > 0.5
+    r, g, b, mx, mn = chan(rgb)
+    tr_mask = opaque & box_mask(opaque.shape, [(280, 330, 560, 830)]) & barkish(rgb) & ~leafy(rgb)
+    cxs = np.array([p[1] for p in H42_TRUNK][::-1], float), np.array([p[0] for p in H42_TRUNK][::-1], float)
+    bark = axis_material(K, tr_mask, lambda py: float(np.interp(py, *cxs)), squeeze=0.86, inset=3)
+    trunk(K, H42_TRUNK, bark, segments=16, ys=[0.0] * 8 + [0.004, 0.01, 0.016, 0.02, 0.024, 0.026, 0.027, 0.027])
+    heart = (268, 200)
+    palm = Palm(K, heart, R=P.m(270) * 0.85)
+    crown_box = (0, 0, P.w, 440)
+    m = leafy(rgb) & box_mask(opaque.shape, [crown_box]) & ~ndimage.binary_dilation(tr_mask, iterations=2)
+    K.leaves_only(crown_box, mask_rule(m, crown_box))
+    yh = 0.027
+    palm.crown([(s, w, d) for s, w, d in H42_FRONDS], back=1.0, extra=6)
+    for ob in [o for o in K.cards_parts if o.name.startswith("frond")]:
+        for v in ob.data.vertices:
+            v.co.y += yh
+    green = K.colour((262, 190, 275, 200), vary=0.12)
+    K.lathe([(P.m(rr), P.z(py)) for rr, py in ((17, 235), (26, 215), (28, 195), (22, 178), (10, 166), (0.0, 162))],
+            green, segments=16, centre=(P.x(heart[0]), yh, 0.0), name="heart")
+    palm.stalks(green, 6, 4, frac=0.3, heart=(P.x(heart[0]), P.z(heart[1])))
+    for ob in K.parts[-len(palm.spines):]:
+        for v in ob.data.vertices:
+            v.co.y += yh
+    rock_boxes = [(398, 816, 480, 866), (470, 820, 556, 873), (456, 855, 497, 877), (528, 818, 598, 869)]
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb) & ~barkish(rgb, 90), inset=2)
+    palm_foot(K, [(438, 865, 82, 50, -0.025), (512, 872, 86, 52, -0.035), (476, 876, 40, 22, -0.06),
+                  (562, 868, 70, 50, -0.02), (470, 868, 70, 44, 0.04), (540, 868, 70, 46, 0.045)],
+              stone, [(398, 776, 462, 824), (538, 766, 592, 824), (558, 826, 592, 872)], [-0.03, -0.03, -0.05],
+              K.colour((0.16, 0.11, 0.06), vary=0.18, scale=40), 498, 110, 0.08, 870)
+    tufts(K, [(398, 776, 462, 824), (538, 766, 592, 824)], [0.035, 0.035])
+
+
+# ====================================================================== h4_3: twin coconut palms from one clump
+H43_TRUNK_A = [(283, 1040, 33), (283, 950, 30), (289, 880, 28), (304, 800, 27), (330, 740, 26), (346, 700, 25),
+               (363, 660, 24), (389, 600, 23), (411, 540, 21), (421, 500, 20), (431, 460, 19), (440, 420, 18),
+               (449, 380, 17), (461, 300, 16), (475, 215, 15)]
+H43_TRUNK_B = [(323, 1040, 18), (321, 950, 17), (316, 870, 17), (304, 800, 18), (286, 720, 18), (266, 660, 17),
+               (244, 600, 16), (229, 540, 15), (221, 500, 14), (214, 450, 13), (208, 400, 12), (205, 362, 11)]
+H43_FRONDS_A = [
+    ([(486, 192), (475, 106), (443, 43), (400, 18), (365, 7)], 30, 0.3),
+    ([(500, 185), (532, 117), (585, 85), (638, 89), (677, 110)], 30, 0.3),
+    ([(507, 192), (567, 167), (638, 177), (691, 220), (716, 312)], 40, 0.0),
+    ([(507, 206), (567, 227), (620, 256), (656, 312), (674, 394)], 40, -0.35),
+    ([(500, 220), (539, 277), (567, 337), (571, 419), (557, 472)], 38, -0.55),
+    ([(487, 205), (478, 250), (470, 300), (460, 345), (452, 378)], 45, -0.9),
+    ([(470, 213), (407, 266), (386, 320), (379, 373), (390, 458)], 38, -0.5),
+    ([(475, 199), (407, 213), (336, 248), (294, 302), (283, 358)], 40, -0.2),
+    ([(475, 192), (407, 167), (336, 163), (283, 199), (248, 256)], 36, 0.1),
+    ([(475, 188), (425, 131), (372, 106), (301, 106), (241, 149)], 30, 0.35),
+]
+H43_FRONDS_B = [
+    ([(197, 343), (171, 300), (129, 266), (86, 249), (49, 260)], 28, 0.35),
+    ([(205, 345), (212, 300), (230, 265), (255, 237), (275, 225)], 28, 0.45),
+    ([(211, 351), (243, 323), (271, 300), (289, 286)], 26, 0.6),
+    ([(197, 351), (143, 326), (86, 317), (29, 354)], 30, 0.1),
+    ([(197, 360), (143, 357), (71, 369), (29, 406), (9, 471)], 36, -0.2),
+    ([(214, 380), (171, 357), (134, 380), (123, 420), (126, 483)], 40, -0.85),
+    ([(200, 370), (130, 420), (90, 460), (70, 500), (63, 555)], 32, -0.45),
+    ([(205, 365), (185, 410), (165, 460), (160, 510), (166, 575)], 36, -0.6),
+    ([(217, 369), (257, 380), (286, 420), (309, 477), (317, 534)], 40, -0.75),
+    ([(217, 363), (271, 351), (329, 369), (371, 406), (391, 457)], 33, -0.1),
+]
+
+
+@model("h4_3", "plants", kind="prop", atlas=2048, leaves=2048)
+def h4_3(K):
+    """Twin coconut palms from one clump of boulders: two ringed trunks growing out of one foot and crossing, one
+    leaning out to the right and forward, the other to the left and back, each with its own head of arching fronds."""
+    P = K.paint
+    rgb = painted_rgb(K)
+    opaque = P.rgba[..., 3] > 0.5
+    leaf = leafy(rgb)
+    yA = [-0.004, -0.006, -0.01, -0.015, -0.018, -0.02, -0.022, -0.024, -0.026, -0.028, -0.03, -0.031, -0.032,
+          -0.033, -0.034]
+    yB = [0.006, 0.008, 0.014, 0.024, 0.034, 0.042, 0.05, 0.056, 0.06, 0.064, 0.066, 0.068]
+    tr_mask = opaque & barkish(rgb) & ~leaf & box_mask(opaque.shape, [(180, 360, 500, 990)])
+
+    def centres(py):
+        out = []
+        for pts in (H43_TRUNK_A, H43_TRUNK_B):
+            ys = [p[1] for p in pts][::-1]
+            if ys[0] - 20 <= py <= ys[-1] + 20:
+                out.append(float(np.interp(py, ys, [p[0] for p in pts][::-1])))
+        return out or [300.0]
+    bark = axis_material(K, tr_mask, centres, squeeze=0.84, inset=2)
+    a = trunk(K, H43_TRUNK_A, bark, segments=16, ys=yA)
+    b = trunk(K, H43_TRUNK_B, bark, segments=12, ys=yB)
+    K.fuse([a, b], voxel=P.m(3.2), faces=7000)
+    crown_m = leaf & ~ndimage.binary_dilation(tr_mask, iterations=2)
+    K.leaves_only((0, 0, P.w, 600), mask_rule(crown_m, (0, 0, P.w, 600)))
+    green = K.colour((470, 195, 490, 210), vary=0.12)
+    for fr, heart, R, yh, rt in ((H43_FRONDS_B, (205, 362), P.m(200) * 0.85, yB[-1], 11),
+                                 (H43_FRONDS_A, (476, 205), P.m(240) * 0.85, yA[-1], 15)):
+        n0 = len(K.cards_parts)
+        palm = Palm(K, heart, R=R)
+        palm.crown(fr, back=1.0, extra=5)
+        for ob in K.cards_parts[n0:]:
+            for v in ob.data.vertices:
+                v.co.y += yh
+        k0 = len(K.parts)
+        K.lathe([(P.m(rr), P.z(heart[1] + dz)) for rr, dz in ((rt * 0.9, 30), (rt * 1.4, 12), (rt * 1.5, -5),
+                                                                (rt * 1.1, -20), (rt * 0.4, -30), (0.0, -33))],
+                green, segments=14, centre=(P.x(heart[0]), 0.0, 0.0), name="heart")
+        palm.stalks(green, rt * 0.35, rt * 0.22, frac=0.3)
+        for ob in K.parts[k0:]:
+            for v in ob.data.vertices:
+                v.co.y += yh
+    rock_boxes = [(133, 970, 255, 1058), (200, 1004, 306, 1064), (302, 994, 398, 1061)]
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb) & ~barkish(rgb, 90), inset=2)
+    palm_foot(K, [(194, 1057, 122, 88, -0.03), (252, 1063, 104, 58, -0.045), (350, 1060, 94, 66, -0.03),
+                  (240, 1058, 90, 60, 0.05), (330, 1058, 80, 55, 0.055)],
+              stone, [(160, 922, 246, 975), (336, 952, 384, 998), (288, 1004, 335, 1046)], [-0.03, -0.03, -0.055],
+              K.colour((0.16, 0.11, 0.06), vary=0.18, scale=40), 280, 140, 0.1, 1060)
+    tufts(K, [(160, 922, 246, 975), (336, 952, 384, 998)], [0.04, 0.045])

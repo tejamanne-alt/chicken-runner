@@ -1790,7 +1790,7 @@ def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="ca
                0.007, mat, segments=5, name=name + "_hoop")
     K.lathe([(R * 0.14, z_top - 0.01), (R * 0.12, z_top + 0.02)], mat, segments=12, centre=(cx, cy, 0.0),
             name=name + "_cap")
-    rr = (z_top - z_shoulder) * 0.35
+    rr = (z_top - z_shoulder) * 0.26
     K.tube([(cx + rr * 0.9 * math.sin(2 * math.pi * k / 20), cy, z_top + 0.02 + rr + rr * math.cos(2 * math.pi * k / 20))
             for k in range(21)], 0.008, mat, segments=6, name=name + "_ring")
 
@@ -1876,9 +1876,9 @@ def stall_e_3(K):
     base = Vector(tip) - ax * t
     K.tube([tuple(base - ax * 0.15), tuple(Vector(tip))], P.m(7), wood, segments=8, name="shaft")
     # ---------------------------------------------------------------- the birdcage, its cup and the parrot
-    brass = K.colour((95, 635, 200, 660), vary=0.08)
+    brass = K.colour((0.55, 0.34, 0.1), vary=0.08)
     ccy = -0.38
-    birdcage(K, P.x(149), ccy, Z(668), P.m(64), Z(542), Z(482), brass, bars=22, sy=0.8)
+    birdcage(K, P.x(149), ccy, Z(668), P.m(64), Z(542), Z(486), brass, bars=16, sy=0.8)
     K.lathe([(P.m(9), Z(640)), (P.m(14), Z(632)), (P.m(15), Z(622))], K.colour((0.12, 0.1, 0.08), vary=0.05),
             segments=14, centre=(P.x(150), ccy, 0.0), name="cup")
     K.figure([(99, 626), (112, 600), (128, 575), (148, 555), (163, 530), (178, 521), (191, 529), (193, 545),
@@ -1905,3 +1905,204 @@ def stall_e_3(K):
               (330, 652), (290, 640), (245, 612), (232, 580), (250, 560), (272, 545), (282, 480), (298, 420),
               (330, 400), (345, 380), (342, 340)], y=y0 + 0.05, name="astrologer")
     unify_cards(K)
+
+
+def beam(K, a, b, w, h, mat, name="beam"):
+    """A square-sawn timber from a to b, w wide and h deep (a rail, a slanting side board, a brace)."""
+    import bmesh
+    from kitlib import _obj
+    a, b = Vector(a), Vector(b)
+    ax = (b - a).normalized()
+    up = Vector((0, 0, 1)) if abs(ax.z) < 0.95 else Vector((0, 1, 0))
+    side = ax.cross(up).normalized()
+    up = side.cross(ax).normalized()
+    bm = bmesh.new()
+    vs = []
+    for p in (a, b):
+        for s, t in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            vs.append(bm.verts.new(p + side * (s * w / 2) + up * (t * h / 2)))
+    for f in ((0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)):
+        bm.faces.new([vs[i] for i in f])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat)
+    K.parts.append(ob)
+    return ob
+
+
+def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9):
+    """A plank booth: a back wall and two side walls, dark inside, with battens down the outside of the back."""
+    P = K.paint
+    K.box(x0, x1, y1 - 0.04, y1, 0.0, z_top, inside, name="back_wall")
+    K.box(x0, x1, y1, y1 + 0.02, 0.0, z_top, outside, name="back_wall_out")
+    for xa, xb in ((x0, x0 + 0.04), (x1 - 0.04, x1)):
+        K.box(xa, xb, y0, y1, 0.0, z_top, inside, name="side_wall")
+    for x in np.linspace(x0 + 0.04, x1 - 0.04, battens):
+        K.box(x - 0.025, x + 0.025, y1 + 0.02, y1 + 0.04, 0.0, z_top, batten, bevel=0.004, name="batten")
+    K.box(x0, x1, y1 + 0.02, y1 + 0.05, z_top - 0.12, z_top - 0.06, batten, bevel=0.004, name="batten_rail")
+
+
+def scarves(K, items, y, z_rail, x0, x1, rail_mat, name="scarf"):
+    """Cloths (towels, scarves) folded over a rail across the booth: items [(x0_px, x1_px, bottom_py), ...]."""
+    P = K.paint
+    bamboo(K, (x0, y, z_rail), (x1, y, z_rail), 0.012, rail_mat, node_at=[], taper=1.0, name="rail")
+    for a, b, bot in items:
+        mat = K.projected(squeeze=1.0, keep=[(a + 2, P.py(z_rail) - 2, b - 2, bot)], inset=1)
+        hanging_cloth(K, P.x(a + 1), P.x(b - 1), y, z_rail, P.z(bot - 2), mat, back_drop=0.04, folds=2, amp=0.008,
+                      name=name)
+
+
+def jar(K, cx_px, y, bottom_py, top_py, hw_px, contents_box, lid=None, name="jar"):
+    """A glass jar of sweets traced off the painting (its painted glass and contents carried round it), and its lid."""
+    P = K.paint
+    mat = K.projected(axis_x=P.x(cx_px), squeeze=0.93, keep=[contents_box], inset=2)
+    h = bottom_py - top_py
+    prof = [(hw_px * 0.92, bottom_py), (hw_px, bottom_py - 4), (hw_px, top_py + h * 0.22), (hw_px * 0.88, top_py + h * 0.12),
+            (hw_px * 0.82, top_py + h * 0.08)]
+    turned(K, cx_px, prof, y, mat, segs=24, name=name)
+    lid = lid or K.colour((0.45, 0.45, 0.47), vary=0.05)
+    turned(K, cx_px, [(hw_px * 0.86, top_py + h * 0.09), (hw_px * 0.88, top_py + 2), (hw_px * 0.8, top_py)], y, lid,
+           segs=24, name=name + "_lid")
+
+
+# ====================================================================== stall F1: the snack kiosk
+@model("stall_f_1", "market", kind="prop", atlas=2048)
+def stall_f_1(K):
+    """A snack seller's plank kiosk: a canvas awning sloping from the tops of two bamboo posts down to a front bar,
+    a dark booth with two shelves and bright towels hung on a rail, a counter of upright boards with three glass jars
+    of murukku and a plate of snacks on it; the woman sitting on the counter is a painted cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
+    bam = K.colour((60, 300, 76, 400), vary=0.08)
+    yp, yfr = 0.3, -0.78
+    # ---------------------------------------------------------------- posts, the front bar and the awning
+    for x_px, keep in ((66, [(52, 5, 80, 785)]), (706, [(692, 5, 720, 785)])):
+        mat = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=keep, inset=2)
+        bamboo(K, (P.x(x_px), yp, 0.0), (P.x(x_px), yp, Z(10)), P.m(11), mat, nodes=0.5, bend=0.005, taper=0.97,
+               name="post")
+        lashing(K, P.pt(x_px, 48, yp), (0, 0, 1), P.m(11), rope, turns=3)
+        K.tube([(P.x(x_px), yp, Z(205)), (P.x(x_px) + (-0.1 if x_px < 300 else 0.1), yfr, Z(205))], P.m(7), bam,
+               segments=8, name="side_rail")
+    bamboo(K, P.pt(8, 207, yfr), P.pt(768, 207, yfr), P.m(9), bam, node_at=[0.3, 0.7], taper=1.0, name="front_bar")
+    cloth = K.projected(squeeze=1.0, keep=[(30, 40, 750, 252)], exclude=[(48, 30, 85, 62), (690, 30, 728, 62)], inset=3)
+    under = ktile(K, (250, 80, 500, 180), vary=0.05, soften=0.3)
+    awning(K, P.pt(28, 207, yfr + 0.01), P.pt(752, 207, yfr + 0.01), P.pt(76, 45, yp - 0.02), P.pt(698, 45, yp - 0.02),
+           cloth, sag_front=P.m(40), sag_back=P.m(8), belly=0.03, sag_side=0.02, under=under, nu=36, nv=16)
+    # ---------------------------------------------------------------- the booth
+    dark = ktile(K, (240, 440, 420, 500), vary=0.05)
+    planks = ktile(K, (140, 620, 260, 740), vary=0.06)
+    batten = K.colour((150, 640, 200, 700), vary=0.08)
+    zt = Z(232)
+    booth_shell(K, P.x(108), P.x(660), -0.3, 0.5, zt, dark, planks, batten)
+    shelf = K.colour((260, 322, 560, 330), vary=0.06)
+    for py_ in (325, 425):
+        K.box(P.x(215), P.x(568), 0.25, 0.46, Z(py_ + 4), Z(py_), shelf, bevel=0.004, name="shelf")
+    K.box(P.x(212), P.x(222), 0.25, 0.46, Z(432), Z(318), shelf, name="shelf_end")
+    scarves(K, [(170, 225, 355), (235, 256, 275), (265, 298, 380), (305, 365, 297), (415, 472, 312), (500, 540, 315),
+                (565, 600, 357)], -0.05, Z(246), P.x(120), P.x(648), bam)
+    # ---------------------------------------------------------------- the counter
+    front = K.projected(squeeze=1.0, keep=[(110, 596, 660, 785)], inset=1)
+    top = K.projected(squeeze=1.0, keep=[(95, 560, 676, 598)], exclude=[(128, 470, 450, 580), (440, 360, 640, 598)],
+                      inset=1)
+    yc0, yc1 = -0.36, 0.12
+    K.box(P.x(110), P.x(660), yc0, yc1, 0.0, Z(598), front, name="counter")
+    K.box(P.x(96), P.x(676), yc0 - 0.05, yc1 + 0.02, Z(598), Z(576), top, bevel=0.006, name="counter_top")
+    K.box(P.x(110), P.x(660), yc0 - 0.012, yc0, Z(780), Z(756), batten, bevel=0.004, name="plinth")
+    for x_px in (128, 385, 640):
+        K.box(P.x(x_px) - 0.02, P.x(x_px) + 0.02, yc0 - 0.012, yc0, Z(756), Z(606), batten, name="upright")
+    # ---------------------------------------------------------------- on the counter
+    zc = Z(576)
+    for cx, x0, x1 in ((163, 130, 196), (236, 204, 268), (309, 276, 344)):
+        jar(K, cx, -0.12, 578, 478, (x1 - x0) / 2, (x0, 470, x1, 580))
+    plate = K.colour((0.55, 0.55, 0.56), vary=0.05)
+    K.lathe([(0.0, zc), (P.m(38), zc + 0.002), (P.m(48), zc + 0.012), (P.m(50), zc + 0.018)], plate, segments=24,
+            centre=(P.x(397), -0.15, 0.0), scale_y=0.8, cap=False, name="plate")
+    snacks = K.projected(squeeze=1.0, keep=[(355, 535, 440, 570)], inset=1)
+    heap_px(K, 397, -0.15, [(44, 572), (38, 560), (25, 548), (8, 540), (0, 538)], snacks, sy=0.8, name="snacks")
+    # ---------------------------------------------------------------- the woman on the counter
+    K.figure([(547, 364), (566, 376), (568, 410), (582, 445), (590, 470), (592, 505), (612, 522), (628, 538),
+              (626, 560), (600, 578), (585, 590), (520, 594), (463, 580), (445, 552), (448, 528), (468, 505),
+              (475, 470), (484, 440), (503, 428), (500, 408), (512, 392), (528, 368)], y=-0.1, name="vendor")
+    unify_cards(K)
+
+
+# ====================================================================== stall F2: the sweet shop
+@model("stall_f_2", "market", kind="prop", atlas=2048)
+def stall_f_2(K):
+    """A sweet seller's stall: a cream canvas on four bamboo posts, a dark plank booth with towels on a rail, a
+    stepped display stand with eight steel trays heaped with jalebi, laddu, murukku and adhirasam, glass jars and a
+    plate of laddus on its top shelf, on a counter of boards."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
+    bam = K.colour((40, 300, 58, 400), vary=0.08)
+    yf, yb = -0.72, 0.55
+    # ---------------------------------------------------------------- posts and the canvas
+    for (tx, ty), bx, y, keep in (((45, 162), 50, yf, [(30, 155, 68, 778)]), ((748, 162), 745, yf, [(728, 155, 765, 778)]),
+                                 ((100, 12), 103, yb, [(88, 5, 112, 40), (95, 220, 112, 560)]),
+                                 ((682, 12), 680, yb, [(670, 5, 695, 40), (668, 220, 690, 560)])):
+        mat = K.projected(axis_x=P.x((tx + bx) / 2), squeeze=0.9, keep=keep, inset=2)
+        bamboo(K, (P.x(bx), y, 0.0), P.pt(tx, ty, y), P.m(10), mat, nodes=0.5, bend=0.005, name="post")
+    for (a, b, y, j) in (((15, 192), (75, 192), yf, (45, 195)), ((725, 192), (770, 192), yf, (748, 195)),
+                         ((85, 35), (120, 35), yb, (100, 35)), ((665, 35), (700, 35), yb, (682, 35))):
+        bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(9), bam, node_at=[], taper=1.0, name="stub")
+        joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(10), rope)
+    cloth = K.projected(squeeze=1.0, keep=[(30, 25, 760, 245)], exclude=[(85, 5, 120, 50), (665, 5, 700, 50),
+                                                                         (15, 160, 75, 215), (725, 160, 775, 215)], inset=3)
+    under = ktile(K, (250, 80, 500, 180), vary=0.05, soften=0.3)
+    awning(K, P.pt(40, 195, yf + 0.02), P.pt(752, 195, yf + 0.02), P.pt(100, 32, yb - 0.02), P.pt(682, 32, yb - 0.02),
+           cloth, sag_front=P.m(45), sag_back=P.m(12), belly=0.03, sag_side=0.02, under=under, nu=36, nv=16)
+    # ---------------------------------------------------------------- the booth and its towels
+    dark = ktile(K, (300, 320, 420, 380), vary=0.05)
+    planks = ktile(K, (230, 690, 400, 750), vary=0.06)
+    batten = K.colour((300, 660, 400, 676), vary=0.08)
+    booth_shell(K, P.x(108), P.x(692), -0.3, 0.45, Z(225), dark, planks, batten)
+    scarves(K, [(135, 180, 312), (190, 228, 326), (247, 268, 280), (281, 305, 294), (425, 512, 298), (530, 570, 318),
+                (570, 645, 305)], 0.0, Z(232), P.x(120), P.x(680), bam)
+    # ---------------------------------------------------------------- the counter and the stepped stand on it
+    front = K.projected(squeeze=1.0, keep=[(80, 655, 712, 778)], inset=1)
+    K.box(P.x(85), P.x(705), -0.55, 0.0, 0.0, Z(680), front, name="counter")
+    K.box(P.x(76), P.x(712), -0.58, 0.02, Z(680), Z(655), front, bevel=0.006, name="counter_top")
+    wood = K.colour((120, 545, 220, 556), vary=0.08)
+    tiers = [  # (x0, x1 at the front, top py, y0, y1)
+        (88, 705, 655, -0.55, -0.2),
+        (112, 682, 550, -0.2, 0.1),
+        (135, 657, 442, 0.1, 0.4),
+    ]
+    for x0, x1, top, y0, y1 in tiers:
+        K.box(P.x(x0), P.x(x1), y0, y1, Z(top) - 0.03, Z(top), wood, bevel=0.004, name="tier")
+        K.box(P.x(x0), P.x(x1), y1 - 0.03, y1, Z(680), Z(top), wood, name="riser")
+    # the slanting side boards from the top shelf down to the counter
+    for (xa, xb) in ((135, 85), (657, 707)):
+        beam(K, (P.x(xa), 0.38, Z(442)), (P.x(xb), -0.53, Z(655)), 0.03, 0.06, wood, name="side_board")
+        beam(K, (P.x(xa), 0.38, Z(442)), (P.x(xa), 0.38, Z(680)), 0.03, 0.05, wood, name="side_post")
+    # ---------------------------------------------------------------- the trays and their sweets
+    steel = K.projected(squeeze=1.0, keep=[(85, 505, 705, 662)], inset=1)
+    trays = [  # (x0, x1, rim py, bottom py, heap profile, y)
+        (118, 255, 512, 550, -0.05), (258, 395, 512, 550, -0.05), (400, 540, 512, 550, -0.05), (527, 680, 512, 550, -0.05),
+        (86, 260, 608, 660, -0.38), (250, 395, 610, 660, -0.38), (400, 545, 610, 660, -0.38), (537, 705, 608, 660, -0.38),
+    ]
+    heaps = [  # heap top py for each tray, as painted
+        455, 470, 450, 455, 570, 565, 580, 565,
+    ]
+    for (x0, x1, rim, bot, y), peak in zip(trays, heaps):
+        cx, hw = (x0 + x1) / 2, (x1 - x0) / 2
+        zb = Z(bot)
+        K.lathe([(0.0, zb), (P.m(hw) * 0.94, zb), (P.m(hw), Z(rim))], steel, segments=4, centre=(P.x(cx), y, 0.0),
+                scale_y=0.32 / P.m(hw), cap=False, name="tray")
+        sweets = K.projected(squeeze=1.0, keep=[(x0 + 8, peak - 4, x1 - 8, rim + 4)], inset=1)
+        h = heap_px(K, cx, y, [(hw * 0.88, rim + 3), (hw * 0.7, (rim + peak) / 2 + 6), (hw * 0.35, peak + 10), (0, peak + 2)],
+                    sweets, sy=0.12 / P.m(hw * 0.88), name="sweets")
+        on_heap(K, h, P.x(cx), y, 0.11, (x0 + 6, peak, x1 - 6, rim), sweets, dark=85, min_area=60, max_area=2500,
+                rmax=18, flat=0.6)
+    # ---------------------------------------------------------------- the top shelf: jars and a plate of laddus
+    for cx, hw, top in ((176, 29, 355), (244, 29, 355), (461, 21, 377), (517, 23, 364), (573, 23, 364), (628, 23, 364)):
+        jar(K, cx, 0.25, 440, top, hw, (cx - hw, top, cx + hw, 442))
+    plate = K.colour((0.55, 0.55, 0.56), vary=0.05)
+    K.lathe([(0.0, Z(440)), (P.m(50), Z(439)), (P.m(58), Z(432)), (P.m(60), Z(428))], plate, segments=24,
+            centre=(P.x(341), 0.22, 0.0), scale_y=0.6, cap=False, name="plate")
+    lad = K.projected(squeeze=1.0, keep=[(290, 392, 395, 432)], inset=1)
+    hl = heap_px(K, 341, 0.22, [(52, 432), (40, 412), (20, 400), (0, 396)], lad, sy=0.6, name="laddus")
+    on_heap(K, hl, P.x(341), 0.22, P.m(52) * 0.6, (290, 392, 395, 432), lad, dark=85, min_area=25, max_area=600, rmax=12)

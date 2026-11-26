@@ -152,20 +152,16 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     return m
 
 
-_SQUARE = []
-
-
 def guard(K):
     """Gives every material of the model a square image as its active texture node. (Blender's smart UV project
     corrects the islands for the aspect of the active material's active image: a long thin tile there squashes the
     whole atlas into a strip.) Call at the end of a builder."""
     import bpy
-    if not _SQUARE or _SQUARE[0].name not in bpy.data.images:
-        _SQUARE[:] = [bpy.data.images.new("kit_square", 4, 4)]
+    img = bpy.data.images.get("kit_square") or bpy.data.images.new("kit_square", 4, 4)   # (new after each reset)
     for m in list(K._mats.values()):
         if isinstance(m, Mat):
             node = m.nt.nodes.new("ShaderNodeTexImage")
-            node.image = _SQUARE[0]
+            node.image = img
             m.nt.nodes.active = node
 
 
@@ -878,8 +874,8 @@ def canal_bridge(K):
 
 # ====================================================================== the canal's pieces (the D9 sheet)
 def rope_ring(K, cx, cy, cz, r, mat, axis="z", thick=0.012, name="rope"):
-    """A ring of rope (a lashing) of radius r round an axis ("z" vertical, or a direction (dx, dz) in the front plane
-    for one bound round a sloping beam) through (cx, cy, cz)."""
+    """A ring of rope (a lashing) of radius r round an axis through (cx, cy, cz): "z" (round a post), or the
+    direction (dx, dz) in the front plane of the beam it is bound round ((1, 0) for a level beam)."""
     pts = []
     for k in range(17):
         a = 2 * math.pi * k / 16
@@ -1241,7 +1237,7 @@ def well(K):
     rope = K.colour((0.72, 0.3, 0.03), vary=0.12)
     for i in range(6):
         x = 238 + i * 7.5
-        rope_ring(K, P.x(x), 0.0, P.z(42), P.m(17), rope, axis=(0.0, 1.0), thick=P.m(4.5), name="rope_turn")
+        rope_ring(K, P.x(x), 0.0, P.z(42), P.m(17), rope, axis=(1.0, 0.0), thick=P.m(4.5), name="rope_turn")
     wheel = K.projected(squeeze=1.0, keep=[(224, 62, 292, 118)], inset=1)
     wl = K.lathe([(0.0, -0.035), (P.m(32), -0.035), (P.m(33), 0.0), (P.m(32), 0.035), (0.0, 0.035)], wheel, segments=24,
                  centre=(P.x(258), 0, 0), name="pulley")
@@ -1848,8 +1844,7 @@ def field_bldg_1(K):
     P = K.paint
     K.front_min = 0.08
     K.front_exclude = [(664, 352, 1028, 540)]               # the two bullocks
-    stone_m = K.tile((560, 400, 640, 440), soften=0.3, vary=0.05) if False else K.tile((300, 455, 360, 495),
-                                                                                          soften=0.3, vary=0.05)
+    stone_m = K.tile((300, 455, 360, 495), soften=0.3, vary=0.05)
     # the well: four walls of dressed stone courses round a square shaft, seen front and left as painted
     x0, x1, D, kx, kz = P.x(255), P.x(452), 1.4, -0.48, 0.1
     rows = [622, 596, 546, 496, 446, 398]
@@ -1890,7 +1885,7 @@ def field_bldg_1(K):
     rope = K.colour((0.42, 0.28, 0.12), vary=0.1)
     for x in (236, 528, 388):
         for dx in (-9, 0, 9):
-            rope_ring(K, P.x(x + dx), -0.02, P.z(54), P.m(23), rope, axis=(0.0, 1.0), thick=P.m(3.5), name="lashing")
+            rope_ring(K, P.x(x + dx), -0.02, P.z(54), P.m(23), rope, axis=(1.0, 0.0), thick=P.m(3.5), name="lashing")
     wheel = K.projected(squeeze=1.0, keep=[(362, 66, 414, 140)], inset=1)
     wl = K.lathe([(0.0, -0.05), (P.m(26), -0.05), (P.m(27), 0.0), (P.m(26), 0.05), (0.0, 0.05)], wheel, segments=24,
                  centre=(P.x(388), 0, 0), name="pulley")

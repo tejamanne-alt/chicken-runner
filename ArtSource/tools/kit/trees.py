@@ -242,7 +242,7 @@ class Wood:
     """A painted tree's traced wood as a graph of paths (pixel centre lines with radii) and the depth (y, metres) of
     every point, grown out from the root."""
 
-    def __init__(self, K, mask, root_px, spur=1.5, min_len=5, smooth=1.2, step=0.7):
+    def __init__(self, K, mask, root_px, spur=1.5, min_len=5, smooth=1.2, step=1.2):
         self.K, self.P = K, K.paint
         paths, deg, dt = wood_paths(mask, spur, min_len, smooth)
         self.dt = dt
@@ -386,7 +386,7 @@ class Wood:
         out = [0.0]
         while out[-1] < s[-1]:
             ri = float(np.interp(out[-1], s, r))
-            out.append(out[-1] + float(np.clip(ri * self.step, 2.0, 14.0)))
+            out.append(out[-1] + float(np.clip(ri * self.step, 4.0, 18.0)))
         out[-1] = s[-1]
         ss = np.array(out)
         if len(ss) < 2 or s[-1] <= 0:
@@ -734,7 +734,7 @@ def tree_mango_1(K):
     leaves, five mangoes, two rocks and low plants at its foot."""
     P = K.paint
     mask, wood = TRACE["tree_mango_1"](K)
-    crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2, dome=(260, 0, 470))
+    crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2, dome=(260, 0, 470), dome_pow=0.85)
     wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.8))
     bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
     thick, thin = wood.tubes(bark, fuse_r_px=8.0, min_r_px=1.5)
@@ -769,8 +769,8 @@ def tree_mango_1(K):
     undergrowth(K, (20, 470, 520, 700), 34, (80, 70), (-1.5, 1.5))
     K.card_from_painting((10, 520, 150, 705), (P.x(80), -0.35, P.z(612)), name="bush_front")
     K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
-    earth(K, 280, 270, 2.2, (60, 700, 500, 712))
-    undergrowth(K, (20, 560, 520, 700), 16, (70, 60), (0.6, 1.8), name="undergrowth_back")
+    earth(K, 270, 250, 1.7, (0.13, 0.08, 0.025), h=0.035)
+    undergrowth(K, (20, 560, 520, 700), 16, (70, 60), (0.6, 1.6), name="undergrowth_back")
 
 
 # ====================================================================== solids traced off the painting
@@ -1365,7 +1365,7 @@ def field_tree_1(K):
     P = K.paint
     rng = K.rng
     mask, wood = TRACE["field_tree_1"](K)
-    crown = Crown(K, (0, 0, 938, 505), P.m(900) * 0.38, (470, 300), core=0.18, dome=(300, 0, 510), dome_pow=0.7)
+    crown = Crown(K, (0, 0, 938, 505), P.m(900) * 0.38, (470, 300), core=0.18, dome=(300, 0, 510), dome_pow=0.9)
 
     def seed(p, dy):
         return 0.0 if hanging(p) else dy
@@ -1436,7 +1436,7 @@ def field_tree_2(K):
     P = K.paint
     rng = K.rng
     mask, wood = TRACE["field_tree_2"](K)
-    crown = Crown(K, (0, 0, 525, 400), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.7)
+    crown = Crown(K, (0, 0, 525, 400), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.9)
     wood.grow(spread=0.6, root_z_px=505, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.85))
     bark = bark_material(K, mask, axis_x=P.x(275), squeeze=0.9)
     thick, thin = wood.tubes(bark, fuse_r_px=6.0, rscale=0.88, min_r_px=1.2)
@@ -1963,7 +1963,7 @@ def field_tree_6(K):
 # ====================================================================== the generic traced tree (the plants' trees)
 def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spread=0.5, root_z_px=None,
                 card_px=None, n_cards=(220, 90, 50, 25), limb_py_max=None, limb_py_min=None, n_limbs=6, n_roots=4,
-                root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=0.7, fuse_faces=9000,
+                root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=1.0, fuse_faces=9000,
                 rscale=1.0, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
                 min_r_px=0.0):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
@@ -2136,7 +2136,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
     return out
 
 
-TRACE["h2_1"] = lambda K: _trace_grey(K, [(0, 240, 1120, 1100)], (540, 1060), sat=42, hole=8000, hi=245,
+TRACE["h2_1"] = lambda K: _trace_grey(K, [(0, 240, 1120, 1100)], (540, 1060), sat=42, hole=8000,
                                       exclude=[(255, 995, 420, 1090), (535, 1035, 625, 1085)],
                                       extra_rule=lambda rgb: ~((chan(rgb)[0] - chan(rgb)[2] > 55)))
 

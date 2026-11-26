@@ -1,0 +1,10 @@
+{
+ "name": "h4_1",
+ "folder": "plants",
+ "kind": "volume",
+ "width": 0.519,
+ "height": 1.0,
+ "depth": 0.434,
+ "faces": 8022,
+ "source": "blender"
+}

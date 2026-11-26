@@ -1367,6 +1367,21 @@ def barred_window(K, wall, x0, x1, top, bot, bars, frame, dark, iron, depth=0.16
         K.box(a, b, y - 0.03, y + 0.05, c, d, frame, bevel=0.005, name="window_frame")
 
 
+def back_window(K, body, x0, x1, top, bot, y_back, frame, iron, dark, nbars=5):
+    """A barred window in a back wall (its outer face at y_back): a recess, a dark back, iron bars, a frame."""
+    P = K.paint
+    X, Z = P.x, P.z
+    K.cut(body, X(x0), X(x1), y_back - 0.15, y_back + 0.05, Z(bot), Z(top))
+    K.box(X(x0), X(x1), y_back - 0.17, y_back - 0.15, Z(bot), Z(top), dark, name="window_back")
+    for k in range(1, nbars + 1):
+        bx = X(x0) + (X(x1) - X(x0)) * k / (nbars + 1)
+        K.tube([(bx, y_back - 0.03, Z(bot)), (bx, y_back - 0.03, Z(top))], P.m(2.2), iron, segments=6, name="bar")
+    f = P.m(8)
+    for a_, b_, c_, d_ in ((X(x0) - f, X(x0), Z(bot) - f, Z(top) + f), (X(x1), X(x1) + f, Z(bot) - f, Z(top) + f),
+                           (X(x0), X(x1), Z(bot) - f, Z(bot)), (X(x0), X(x1), Z(top), Z(top) + f)):
+        K.box(a_, b_, y_back - 0.04, y_back + 0.03, c_, d_, frame, bevel=0.005, name="window_frame")
+
+
 @model("roof_house_b_1", "market", kind="building", atlas=2048)
 def roof_house_b_1(K):
     """A blue lime-washed house behind a verandah: a red plinth painted with kolams and steps up its middle, four
@@ -1506,14 +1521,14 @@ def roof_house_a_1(K):
     D = 5.0
     wall = K.tile((480, 620, 590, 700), vary=0.05, soften=0.5)
     upper = strip_tile(K, (780, 228, 1120, 245), vary=0.05, soften=0.5)
-    tower = K.tile((125, 270, 200, 340), vary=0.05, soften=0.5)
+    tower = wall                                          # the stair block: the same lime plaster all round
     stone = K.tile((90, 505, 200, 545), vary=0.05, soften=0.2)
     tiles = K.tile((600, 380, 900, 480), vary=0.05)
     wood = K.tile((424, 520, 438, 690), P.m(14), vary=0.06)
     door = K.tile((880, 515, 1035, 710), P.m(155), vary=0.04)
     dark = K.colour((0.04, 0.03, 0.025), vary=0.05)
     iron = K.colour((0.03, 0.025, 0.02), vary=0.05)
-    deck_m = K.colour((700, 195, 850, 208), vary=0.08)
+    deck_m = K.tile((545, 255, 745, 322), vary=0.06, soften=0.55)
     # the house: its front wall up to the parapet, a cornice, sunk panels in the upper wall, door and windows
     body = K.box(X(455), X(1440), 0.0, D, 0.0, Z(212), wall, name="walls")
     K.box(X(450), X(1445), -0.06, D + 0.04, Z(340), Z(328), upper, bevel=0.008, name="band")
@@ -1560,7 +1575,8 @@ def roof_house_a_1(K):
     for k, (x0, x1, top) in enumerate(risers):
         K.box(X(x0), X(x1), -2.4 + k * 0.3, 0.9, 0.0, Z(top), stone, bevel=0.01, name="stone_step")
     # the stair's side wall, climbing back along its left edge with it
-    wedge_wall(K, (X(36), -2.25), (X(118), 0.75), 0.0, Z(690), Z(262), P.m(48), tower, name="stair_parapet")
+    wedge_wall(K, (X(36), -2.25), (X(118), 0.75), max(0.0, Z(690) - 1.0), Z(690), Z(262), P.m(48), tower,
+               name="stair_parapet", z0_b=Z(262) - 1.0)
     K.box(X(96), X(142), 0.55, 0.95, Z(330), Z(255), tower, bevel=0.01, name="stair_newel")
     cake = K.colour((0.17, 0.08, 0.035), vary=0.12)
     dung_cakes(K, [(159, 181, 24), (220, 178, 25), (280, 182, 25), (163, 237, 24), (216, 240, 24), (269, 237, 23)],
@@ -1609,17 +1625,21 @@ def roof_house_a_1(K):
     # the back: a door
     K.quad([(X(1038), D + 0.004, 0.0), (X(878), D + 0.004, 0.0), (X(878), D + 0.004, Z(512)),
             (X(1038), D + 0.004, Z(512))], K.decal((878, 512, 1038, 715)), name="back_door")
+    for x0, x1 in ((605, 708), (1205, 1308)):
+        back_window(K, body, x0, x1, 515, 608, D, wood, iron, dark, nbars=4)
+    back_window(K, tower_ob, 230, 300, 300, 380, D, wood, iron, dark, nbars=3)
 
 
-def wedge_wall(K, a, b, z0, top_a, top_b, thick, mat, name="wall"):
-    """A wall in plan from a to b (x, y metres), standing on z0, its top sloping from top_a to top_b (metres),
-    thick metres through."""
+def wedge_wall(K, a, b, z0, top_a, top_b, thick, mat, name="wall", z0_b=None):
+    """A wall in plan from a to b (x, y metres), standing on z0 (or its bottom sloping from z0 at a to z0_b at b:
+    a stair's balustrade), its top sloping from top_a to top_b (metres), thick metres through."""
     A, B = Vector((a[0], a[1], 0)), Vector((b[0], b[1], 0))
     d = (B - A).normalized()
     n = Vector((-d.y, d.x, 0)) * thick / 2
     bm = bmesh.new()
     pts = [A - n, B - n, B + n, A + n]
-    bot = [bm.verts.new((p.x, p.y, z0)) for p in pts]
+    zb = z0 if z0_b is None else z0_b
+    bot = [bm.verts.new((p.x, p.y, z)) for p, z in zip(pts, (z0, zb, zb, z0))]
     tops = [top_a, top_b, top_b, top_a]
     top = [bm.verts.new((p.x, p.y, t)) for p, t in zip(pts, tops)]
     bm.faces.new(list(reversed(bot)))
@@ -1650,7 +1670,7 @@ def leaning_mat(K, corners, y_bottom, y_top, top_mat, under_mat, name="drying_ma
 
 
 def lean_thatch(K, x_left, x_right_eave, x_right_top, y_eave, y_top, z_eave, z_top, mat, thickness=0.2, shag=0.05,
-                name="thatch"):
+                name="thatch", x_left_top=None):
     """A thatched lean-to against a wall: a lumpy straw slope from its eave (y_eave, z_eave) up to the wall
     (y_top, z_top), x_left..x_right_eave at the eave; its right end hipped in to x_right_top at the wall; a ragged,
     drooping fringe along the eave."""
@@ -1661,10 +1681,11 @@ def lean_thatch(K, x_left, x_right_eave, x_right_top, y_eave, y_top, z_eave, z_t
     def fn(u, v):
         i, j = int(round(u * nu)), int(round(v * nv))
         x1 = x_right_eave + (x_right_top - x_right_eave) * v
+        x0 = x_left if x_left_top is None else x_left + (x_left_top - x_left) * v
         z = z_eave + (z_top - z_eave) * v + shag * noise[j, i]
         if v < 0.08:
             z -= shag * 1.6 * abs(fringe[i])
-        return (x_left + (x1 - x_left) * u, y_eave + (y_top - y_eave) * v, z)
+        return (x0 + (x1 - x0) * u, y_eave + (y_top - y_eave) * v, z)
     return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=thickness)
 
 
@@ -1734,7 +1755,22 @@ def roof_house_a_2(K):
         blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(70) - 0.04, K.rng.uniform(0.1, 1.6), Z(py)),
                   yaw=90 + K.rng.uniform(-20, 20), name="vine_side")
     # the thatched lean-to on its posts, the calf in its shade, the water pot
-    lean_thatch(K, X(958), X(1478), X(1300), -2.2, 0.0, Z(470), Z(252), straw)
+    lean_thatch(K, X(992), X(1478), X(1300), -2.2, 0.0, Z(462), Z(252), straw, x_left_top=X(958))
+    # its ragged fringe as painted: cut-out straw along the eave and down the hip, and round the back of the hip
+    K.leaves_only((940, 240, 1492, 500), straw_pixels)
+    for k in range(7):
+        px = 1000 + k * 68
+        py = 462 - (0 if px < 1300 else (px - 1300) * 0.1)
+        K.card_from_painting((px - 40, py - 30, px + 40, py + 22), (X(px), -2.22, Z(py - 4)), name="thatch_fringe")
+    for k in range(5):
+        t = (k + 0.5) / 5
+        px, py = 1300 + 175 * (1 - t), 255 + 200 * (1 - t)
+        yy = -2.2 * (1 - t)
+        K.card_from_painting((px - 35, py - 30, px + 35, py + 30), (X(px), yy - 0.05, Z(py)), yaw=-60,
+                             name="thatch_hip")
+        px2 = 958 + 34 * (1 - t)
+        K.card_from_painting((995 - 30, 440 - 30, 995 + 30, 440 + 25), (X(px2), yy, Z(py) - 0.05), yaw=80,
+                             name="thatch_end")
     for cx, top in ((1068, 485), (1278, 485), (1422, 472)):
         K.box(X(cx - 6), X(cx + 6), -2.0, -1.88, 0.0, Z(top), wood, bevel=0.005, name="post")
     K.tube([(X(990), -1.94, Z(482)), (X(1460), -1.94, Z(474))], P.m(6), wood, segments=8, name="purlin")
@@ -1746,6 +1782,10 @@ def roof_house_a_2(K):
     # the back: a door
     K.quad([(X(630), D + 0.004, 0.0), (X(478), D + 0.004, 0.0), (X(478), D + 0.004, Z(397)),
             (X(630), D + 0.004, Z(397))], K.decal((478, 397, 630, 612)), name="back_door")
+    for x0, x1 in ((212, 318), (775, 880)):
+        back_window(K, body, x0, x1, 408, 535, D, wood, iron, dark, nbars=5)
+    for side in (-1, 1):
+        side_window(K, body, side, D * 0.55, Z(535), Z(410), 0.8, wood, iron, dark)
 
 
 @model("roof_house_b_2", "market", kind="building", atlas=2048)

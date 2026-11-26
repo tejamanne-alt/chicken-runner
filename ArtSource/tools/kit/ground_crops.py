@@ -386,7 +386,14 @@ def coconut(K):
     iw = int(np.argmax([r for r, _ in prof]))
     pw, pb = prof[iw][1], prof[0][1]
     prof = [(r, pw + (py - pw) * (P.h - 0.5 - pw) / (pb - pw)) if k < iw else (r, py) for k, (r, py) in enumerate(prof)]
-    husk = wrapped(K, P.x(ax), squeeze=0.93, src=filled_source(P, ndimage.binary_erosion(body, iterations=5)))
+    # its lower half carries the painted lower half, let down the same way (and not the painting straight from the
+    # front there, which would leave the painted foot hanging above the real one)
+    src = np.asarray(filled_source(P, ndimage.binary_erosion(body, iterations=5))).copy()
+    t = np.arange(int(pw), P.h)
+    rows = np.clip(np.round(pw + (t - pw) * (pb - pw) / (P.h - 0.5 - pw)).astype(int), 0, P.h - 1)
+    src[int(pw):] = src[rows]
+    K.front_exclude = [(0, int(pw), P.w, P.h)]
+    husk = wrapped(K, P.x(ax), squeeze=0.93, src=Image.fromarray(src, "RGBA"))
     # three faces with a ridge between each (the painted ridge to the right of the middle and two more round it)
     bm = bmesh.new()
     seg = 36
