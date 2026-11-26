@@ -1,0 +1,10 @@
+{
+ "name": "stall_vessels",
+ "folder": "market",
+ "kind": "volume",
+ "width": 3.977,
+ "height": 2.6,
+ "depth": 2.618,
+ "faces": 12467,
+ "source": "blender"
+}

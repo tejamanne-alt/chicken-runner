@@ -934,7 +934,7 @@ def canal_bridge(K):
     K.front_exclude = [("poly", water_poly)]                 # the water drawn from above: its own surface instead
     xL = P.x(200)
     xR = lambda y: P.x(450) + (P.x(332) - P.x(450)) * min(1.0, (y - y_front) / (y_b0 - y_front))
-    earth = sq_tile(K, (466, 84, 520, 102), size=0.45, soften=0.55, vary=0.08)
+    earth = sq_tile(K, (470, 78, 506, 104), size=0.4, soften=0.55, vary=0.08)
     stone_m = K.tile((110, 104, 158, 140), soften=0.3, vary=0.05)
     rock_m = K.tile((86, 150, 140, 182), soften=0.35, vary=0.05)
     zs = 0.40                                                # the walling's top, the banks' inner shoulder
@@ -1128,7 +1128,7 @@ def canal_piece_3(K):
     K.front_min = 0.2
     K.front_exclude = [(0, 0, 118, 351), (100, 318, 430, 340), ("poly", [(228, 238), (470, 182), (534, 236),
                                                                          (534, 336), (350, 336), (228, 304)])]
-    stone = K.tile((30, 150, 92, 236), soften=0.3, vary=0.05)
+    stone = K.tile((34, 152, 90, 232), soften=0.3, vary=0.05)
     top = K.tile((230, 110, 330, 140), soften=0.3, vary=0.05)
     T = 0.55                                                # each tread's depth
     h0 = P.z(263)                                           # the lowest step: the pot stands on it as painted
@@ -1329,7 +1329,7 @@ def well(K):
     water = K.colour((0.05, 0.09, 0.1), vary=0.15)
     K.lathe([(0.0, zt - 0.55), (r_in + 0.02, zt - 0.55)], water, segments=30, centre=(cx, 0, 0), name="water")
     # the posts: rough round timbers leaning in a little, standing inside the wall; the log beam across their heads
-    timber = K.tile((100, 70, 128, 200), soften=0.15, vary=0.05)
+    timber = K.tile((104, 92, 122, 212), soften=0.15, vary=0.05)
     post = K.projected(squeeze=0.9, keep=[(84, 8, 145, 214), (356, 8, 418, 214)], inset=2)
     for bx, tx in ((106, 120), (396, 380)):
         x0, x1 = P.x(bx), P.x(tx)
@@ -1462,7 +1462,7 @@ def pump_house(K):
             (P.x(97), yp, P.z(232))], P.m(11), pipe, segments=12, name="pipe")
     K.tube([(P.x(118), yp, P.z(201)), (P.x(122), yp, P.z(201))], P.m(13), pipe, segments=12, name="pipe_collar")
     # the trough: a low brick channel along the wall, its rim round a floor of water
-    rimm = K.tile((96, 321, 140, 336), soften=0.25, vary=0.04)
+    rimm = K.tile((100, 330, 132, 340), soften=0.25, vary=0.04)
     wt = K.tile((20, 350, 70, 366), vary=0.03)
     t0, t1, zt, rw = -0.05, 0.85, P.z(346), 0.07
     xa, xb = P.x(4), P.x(146)
@@ -1816,7 +1816,7 @@ def field_bldg_2(K):
     D = 2.0
     bamboo = K.tile((80, 520, 98, 660), soften=0.2, vary=0.05)
     mat_wall = K.tile((92, 250, 152, 355), soften=0.25, vary=0.04)
-    thatch = K.tile((300, 90, 470, 190), soften=0.2, vary=0.04)
+    thatch = K.tile((290, 140, 420, 200), soften=0.2, vary=0.04)
     x0, x1 = P.x(76), P.x(330)                             # the hut's walls, front face
     zdeck, zfloor, ze, zr = P.z(398), P.z(368), P.z(232), P.z(64)
     # the stilts and the deck of logs
@@ -1900,7 +1900,7 @@ def field_bldg_3(K):
     D = 3.4
     bamboo = K.tile((628, 260, 640, 440), soften=0.2, vary=0.05)
     slats = K.tile((900, 280, 1080, 395), soften=0.15, vary=0.04)
-    thatch = K.tile((880, 60, 1080, 180), soften=0.2, vary=0.04)
+    thatch = K.tile((880, 110, 1040, 200), soften=0.2, vary=0.04)
     board = K.tile((680, 345, 760, 420), soften=0.2, vary=0.04)
     x0, x1 = P.x(630), P.x(870)
     zg, ze, zr = P.z(462), P.z(188), P.z(28)

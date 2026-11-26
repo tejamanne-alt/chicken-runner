@@ -14,8 +14,10 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from kitlib import Mat, _image, _obj, model
-from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, green_leaves, hanging_cloth, heap,
-                         heap_px, hip_thatch, joint, ktile, lashing, on_heap, pile, rib_umbrella, turned, unify_cards)
+from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, green_leaves, hanging_cloth,
+                         heap, heap_px, hip_thatch, joint, ktile, lashing, on_heap, pile, rib_umbrella, sack, slab,
+                         turned, unify_cards)
+from stalls_cdef import pod as pod_c
 
 
 # ====================================================================== helpers
@@ -497,10 +499,10 @@ def stall_g_2(K):
     bam = K.colour((60, 300, 75, 400), vary=0.08)
     yf, yb = -0.78, 0.72
     # ---------------------------------------------------------------- posts and stubs
-    posts = [((63, 125), (85, 688), 12, yf, [(48, 125, 100, 600)]),
-             ((844, 125), (826, 688), 12, yf, [(816, 125, 858, 540)]),
-             ((140, 6), (156, 688), 9, yb, [(130, 0, 152, 30), (143, 250, 165, 380)]),
-             ((768, 6), (740, 688), 9, yb, [(758, 0, 780, 30), (730, 250, 756, 430)])]
+    posts = [((52, 125), (91, 688), 12, yf, [(38, 125, 104, 600)]),
+             ((848, 125), (801, 688), 12, yf, [(800, 125, 862, 540)]),
+             ((140, 6), (169, 688), 9, yb, [(130, 0, 152, 30), (143, 250, 166, 380)]),
+             ((768, 6), (709, 688), 9, yb, [(758, 0, 780, 30), (728, 250, 754, 430)])]
     for top, bot, rpx, y, keep in posts:
         pole(K, top, bot, rpx, y, keep, nodes=0.5)
     stubs = [((5, 190), (80, 190), yf, (62, 190)), ((830, 190), (897, 190), yf, (846, 190)),
@@ -1911,10 +1913,10 @@ def stall_sweets(K):
     bam = K.colour((60, 300, 75, 400), vary=0.08)
     yf, yb = -0.8, 0.85
     # ---------------------------------------------------------------- posts, stubs and the cloth
-    posts = [((66, 122), (75, 632), 12, yf, [(52, 120, 88, 632)]),
-             ((1008, 122), (1000, 632), 12, yf, [(992, 120, 1024, 632)]),
-             ((147, 10), (160, 500), 10, yb, [(135, 8, 160, 40), (147, 210, 172, 380)]),
-             ((902, 10), (890, 500), 10, yb, [(890, 8, 915, 40), (880, 215, 905, 390)])]
+    posts = [((59, 122), (98, 632), 12, yf, [(46, 120, 112, 632)]),
+             ((1016, 122), (971, 632), 12, yf, [(958, 120, 1030, 632)]),
+             ((142, 10), (168, 500), 10, yb, [(130, 8, 156, 40), (143, 210, 175, 380)]),
+             ((910, 10), (881, 500), 10, yb, [(898, 8, 922, 40), (877, 215, 910, 390)])]
     for top, bot, rpx, y, keep in posts:
         pole(K, top, bot, rpx, y, keep, nodes=0.5)
     stubs = [((15, 160), (75, 160), yf, (62, 160)), ((1000, 160), (1062, 160), yf, (1012, 160)),
@@ -1976,7 +1978,7 @@ def stall_sweets(K):
         m = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - 30, prof[-1][1] - 2, cx + 30, prof[0][1])], inset=1)
         turned(K, cx, prof, y, m, segs=24, name="vessel")
     # ---------------------------------------------------------------- the low stone platform he sits on
-    slab = ktile(K, (470, 505, 560, 525), vary=0.06, soften=0.3)
+    slab = K.colour((650, 505, 672, 522), vary=0.1, scale=6)
     K.box(P.x(430), P.x(935), -0.25, 0.6, 0.0, Z(506), slab, bevel=0.02, name="platform")
     # ---------------------------------------------------------------- jalebi, laddus
     plate = K.colour((0.6, 0.6, 0.62), vary=0.05)
@@ -2012,4 +2014,351 @@ def stall_sweets(K):
     K.figure([(560, 285), (590, 280), (605, 300), (603, 345), (640, 362), (650, 400), (648, 445), (660, 470),
               (655, 500), (620, 510), (560, 512), (500, 505), (478, 485), (485, 455), (500, 440), (508, 380),
               (530, 360), (550, 350), (547, 315)], y=0.1, name="sweet_maker")
+    unify_cards(K)
+
+
+# ====================================================================== the vegetable stall
+@model("stall_veg", "market", kind="prop", atlas=2048)
+def stall_veg(K):
+    """A vegetable stall: a faded red-striped cloth on four bamboo posts with lashed stubs, a big display board
+    sloping down to the customers on trestles, heaped with tomatoes, brinjals, red onions, round gourds, cucumbers
+    and greens, a sack of turmeric, piles of beans and baskets of onions and carrots along its back; gunny sacks of
+    onions, beans and limes, a heap of greens and baskets of sweet potatoes and okra on the ground in front."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.2, 0.12, 0.05), vary=0.1)
+    bam = K.colour((85, 400, 100, 460), vary=0.08)
+    yf, yb = -0.75, 0.85
+    # ---------------------------------------------------------------- posts, stubs and the cloth
+    posts = [((78, 130), (120, 700), 12, yf, [(64, 128, 132, 690)]),
+             ((1047, 130), (1002, 700), 12, yf, [(990, 128, 1062, 690)]),
+             ((255, 12), (271, 500), 11, yb, [(243, 10, 268, 50), (252, 300, 290, 480)]),
+             ((900, 10), (895, 480), 11, yb, [(888, 8, 914, 50), (882, 300, 912, 460)])]
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, nodes=0.5)
+    stubs = [((35, 205), (100, 205), yf, (85, 205)), ((1030, 205), (1088, 205), yf, (1045, 205)),
+             ((205, 52), (280, 52), yb, (256, 50)), ((880, 45), (945, 45), yb, (902, 45))]
+    for a, b, y, j in stubs:
+        bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(10), bam, node_at=[], taper=1.0, name="stub")
+        joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(11), rope)
+    cloth = K.projected(squeeze=1.0, keep=[(90, 38, 1040, 325)],
+                        exclude=[(30, 180, 110, 230), (1020, 180, 1090, 230), (200, 0, 285, 70), (875, 0, 950, 65)],
+                        inset=3)
+    under = ktile(K, (420, 120, 700, 220), vary=0.05, soften=0.3)
+    awning(K, P.pt(98, 196, yf - 0.02), P.pt(1035, 198, yf - 0.02), P.pt(238, 48, yb - 0.02), P.pt(902, 46, yb - 0.02),
+           cloth, sag_front=P.m(118), sag_back=P.m(14), belly=0.06, sag_side=0.03, under=under, nu=44, nv=18,
+           hem=lambda u: 0.03 * math.exp(-((u - 0.13) / 0.012) ** 2) + 0.03 * math.exp(-((u - 0.8) / 0.012) ** 2))
+    # ---------------------------------------------------------------- the sloping display board on its trestles
+    bF, bB = -0.45, 0.45
+    zF, zB = Z(706), Z(552)
+
+    def board_z(y):
+        return zF + (zB - zF) * (y - bF) / (bB - bF)
+
+    def board_y(z):
+        return bF + (z - zF) * (bB - bF) / (zB - zF)
+    top = K.projected(squeeze=1.0, keep=[(100, 548, 1000, 712)], inset=2)
+    slab(K, [(P.x(92), bF, zF), (P.x(1000), bF, zF), (P.x(890), bB, zB), (P.x(222), bB, zB)], 0.04, top, name="board")
+    edge = K.colour((480, 700, 560, 712), vary=0.08)
+    beam(K, (P.x(90), bF - 0.02, zF - 0.01), (P.x(1002), bF - 0.02, zF - 0.01), 0.05, P.m(14), edge, name="board_edge")
+    for xa, xb in ((92, 222), (1000, 890)):
+        beam(K, (P.x(xa), bF, zF + 0.02), (P.x(xb), bB, zB + 0.02), 0.04, 0.06, edge, name="board_side")
+    wood = K.colour((0.4, 0.25, 0.12), vary=0.1)
+    for x_px in (262, 470, 690, 862):
+        x = P.x(x_px)
+        for y in (bF + 0.06, bB - 0.06):
+            K.box(x - 0.04, x + 0.04, y - 0.04, y + 0.04, 0.0, board_z(y) - 0.04, wood, name="trestle_leg")
+        K.box(x - 0.035, x + 0.035, bF + 0.04, bB - 0.04, 0.2, 0.26, wood, name="trestle_bar")
+    # ---------------------------------------------------------------- produce on the board, piece by piece
+    slope = (zB - zF) / (bB - bF)
+
+    def on_board(box, mat, dark=70, min_area=60, long=False, rmax=30, lift=0.0):
+        for cx, cy, L, W, ang in blobs(K, box, dark, min_area):
+            r = min(rmax, W / 2)
+            zc = Z(cy)
+            y = board_y(zc - P.m(r) * 0.8) - lift
+            if long and L > W * 1.6:
+                a = math.radians(ang)
+                dx, dz = math.cos(a), -math.sin(a)
+                d = Vector((dx, dz / slope * 0.5, dz)).normalized()
+                pod_c(K, (P.x(cx), y, zc), P.m(r), P.m(L) * 0.95, mat, yaw=math.degrees(math.atan2(d.y, d.x)),
+                      pitch=math.degrees(math.asin(max(-1.0, min(1.0, d.z)))), segs=7)
+            else:
+                ball(K, (P.x(cx), y, zc), P.m(r), mat, squash=0.9, segs=8, rings=4)
+    regions = [  # box, dark, min area, long, rmax
+        ((118, 548, 338, 704), 70, 60, False, 18),
+        ((275, 552, 462, 708), 40, 120, True, 16),
+        ((445, 548, 606, 708), 70, 60, False, 16),
+        ((600, 600, 752, 708), 70, 60, False, 18),
+        ((600, 552, 752, 612), 60, 150, True, 18),
+        ((745, 545, 882, 716), 60, 200, True, 22)]
+    for box, dark, mn, long, rmax in regions:
+        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        # a bed of the same produce under the top layer, so no board shows between the pieces
+        b0, b1 = box[1], box[3]
+        y0_, y1_ = board_y(Z(b1)), board_y(Z(b0))
+        quad_sheet(K, [(P.x(box[0] + 6), y0_ - 0.03, Z(b1) + 0.02), (P.x(box[2] - 6), y0_ - 0.03, Z(b1) + 0.02),
+                       (P.x(box[2] - 6), y1_ - 0.03, Z(b0) + 0.02), (P.x(box[0] + 6), y1_ - 0.03, Z(b0) + 0.02)], m,
+                   nu=4, nv=3, thick=0.03, name="bed")
+        on_board(box, m, dark, mn, long, rmax)
+    # the greens at the right end of the board
+    K.leaves_only((850, 555, 1000, 715), green_leaves)
+    K.card_from_painting((850, 555, 1000, 715), (P.x(925), board_y(Z(635)) - 0.08, Z(635)), name="greens")
+    for i in range(8):
+        px_, py_ = K.rng.uniform(870, 980), K.rng.uniform(575, 700)
+        K.card_from_painting((px_ - 45, py_ - 35, px_ + 45, py_ + 35), (P.x(px_), board_y(Z(py_)) + K.rng.uniform(-0.05, 0.1), Z(py_)),
+                             yaw=K.rng.uniform(-70, 70), name="greens")
+    # ---------------------------------------------------------------- along the back of the board
+    zb = board_z(0.42)
+    burlap = ktile(K, (40, 770, 200, 810), vary=0.06, soften=0.3)
+    sack(K, P.x(300), 0.42, P.m(60), Z(552), Z(528), Z(488), burlap,
+         K.projected(squeeze=1.0, keep=[(250, 485, 352, 545)], inset=2), z0=zb, sy=0.85, name="turmeric_sack")
+    for box, cx, peak, yy in (((365, 500, 500, 560), 432, 502, 0.42), ((500, 505, 640, 560), 570, 507, 0.42)):
+        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        heap_px(K, cx, yy, [(68, 562), (60, 540), (40, 520), (18, 508), (0, peak)], m, sy=0.45, name="beans",
+                z0=board_z(yy))
+        for i in range(10):
+            pod_c(K, (P.x(cx) + K.rng.uniform(-0.2, 0.2), yy - 0.08 + K.rng.uniform(-0.04, 0.04),
+                      Z(530) + K.rng.uniform(-0.02, 0.05)), 0.012, 0.14, m, yaw=K.rng.uniform(-40, 40),
+                  pitch=K.rng.uniform(-20, 20), segs=5)
+    weave = ktile(K, (660, 545, 760, 565), vary=0.06)
+    for cx, hw, rim, peak, box in ((706, 72, 515, 490, (638, 485, 778, 525)), (855, 75, 505, 465, (785, 460, 930, 515))):
+        basket(K, P.x(cx), 0.42, zb, [(P.m(hw * 0.75), 0.0), (P.m(hw * 0.95), Z(545) - zb), (P.m(hw), Z(rim) - zb)],
+               K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, rim - 4, cx + hw, 572)], inset=2), sy=0.85)
+        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        heap_px(K, cx, 0.42, [(hw * 0.92, rim + 2), (hw * 0.7, rim - 10), (hw * 0.35, peak + 8), (0, peak)], m, sy=0.85,
+                name="basket_heap")
+    carrot = K.projected(squeeze=1.0, keep=[(785, 455, 930, 512)], inset=1)
+    for i in range(12):
+        a = K.rng.uniform(0, 2 * math.pi)
+        d = K.rng.uniform(0, 0.12)
+        pod_c(K, (P.x(855) + d * math.cos(a), 0.42 + d * math.sin(a) * 0.8, Z(488) + 0.02), 0.02, 0.16, carrot,
+              yaw=K.rng.uniform(0, 360), pitch=K.rng.uniform(20, 60), segs=6)
+    # ---------------------------------------------------------------- on the ground in front
+    for cx, hw, rimf, rimb, peak, goods_box, kind in ((122, 98, 742, 712, 705, (50, 700, 195, 740), "nuts"),
+                                                      (328, 102, 752, 712, 700, (235, 700, 420, 760), "greens"),
+                                                      (545, 105, 760, 725, 718, (470, 715, 625, 755), "nuts")):
+        goods = K.projected(squeeze=1.0, keep=[goods_box], inset=1)
+        sack(K, P.x(cx), -1.0, P.m(hw), Z(rimf), Z(rimb), Z(peak), burlap, goods, sy=0.75, name="ground_sack")
+        if kind == "nuts":
+            for bx, by, L, W, ang in blobs(K, goods_box, 70, 40):
+                ball(K, (P.x(bx), -1.0 - P.m(hw) * 0.55, Z(by)), P.m(min(14, W / 2)), goods, squash=0.9, segs=7,
+                     rings=4)
+    for box, cy in (((235, 690, 430, 760), -1.05), ((655, 690, 875, 824), -1.0), ((990, 640, 1130, 760), -0.95)):
+        K.leaves_only(box, green_leaves)
+        cxp = (box[0] + box[2]) / 2
+        K.card_from_painting(box, (P.x(cxp), cy - 0.2, P.z((box[1] + box[3]) / 2)), name="greens")
+        for i in range(5):
+            px_, py_ = K.rng.uniform(box[0] + 30, box[2] - 30), K.rng.uniform(box[1] + 20, box[3] - 20)
+            K.card_from_painting((px_ - 45, py_ - 35, px_ + 45, py_ + 35), (P.x(px_), cy + K.rng.uniform(-0.15, 0.1), P.z(py_)),
+                                 yaw=K.rng.uniform(-70, 70), name="greens")
+    greens = ktile(K, (700, 760, 820, 800), vary=0.06)
+    heap_px(K, 765, -1.0, [(105, 824), (95, 790), (70, 750), (35, 720), (0, 705)], greens, sy=0.55, name="greens_heap")
+    weave2 = ktile(K, (900, 800, 1000, 818), vary=0.06)
+    for cx, hw, rim, y, box in ((965, 95, 765, -1.05, (880, 700, 1050, 790)), (1062, 62, 705, -0.85, (1000, 650, 1125, 735))):
+        basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.8), 0.0), (P.m(hw), Z(rim))],
+               K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, rim - 4, cx + hw, 824)], inset=2), sy=0.8)
+        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        heap_px(K, cx, y, [(hw * 0.9, rim + 2), (hw * 0.6, rim - 20), (0, box[1] + 15)], m, sy=0.8, name="basket_heap")
+    unify_cards(K)
+
+
+# ====================================================================== the vessel seller
+def vessel(K, bank, cx, prof, y=None, mat=None, mouth=True, segs=28, name="pot", depth=0.8, z0=None):
+    """A pot or vessel traced off the painting: prof [(half-width px, py), ...] from its foot up to its rim; standing
+    on the bank where its foot is painted (or at depth y, its foot on z0), its mouth a dark hollow."""
+    P = K.paint
+    bot = prof[0][1]
+    hw = max(r for r, _ in prof)
+    if y is None:
+        y = bank.y(P.z(bot)) + P.m(hw) * depth
+    m = mat or K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, prof[-1][1] - 3, cx + hw, bot)], inset=2)
+    pr = [(P.m(r), P.z(py)) for r, py in prof]
+    floor = bank.z(y) if z0 is None else z0
+    pr[0] = (pr[0][0], min(pr[0][1], floor - 0.01))
+    K.lathe(pr, m, segments=segs, centre=(P.x(cx), y, 0.0), wobble=0.01, name=name)
+    if mouth:
+        rr, rz = pr[-1]
+        K.lathe([(rr * 0.9, rz), (rr * 0.75, rz - 0.04), (0.0, rz - 0.06)], K.colour((0.07, 0.03, 0.015)),
+                segments=20, centre=(P.x(cx), y, 0.0), cap=False, name=name + "_mouth")
+    return y
+
+
+def oil_lamp(K, cx, foot_py, top_py, hw_px, y, mat, tiers=1, name="lamp"):
+    """A brass standing oil lamp (kuthuvilakku): a domed foot, a turned stem, `tiers` wick dishes and a finial,
+    traced between foot_py and top_py."""
+    P = K.paint
+    h = foot_py - top_py
+    prof = [(1.0, 0.0), (0.95, 0.04), (0.45, 0.08), (0.2, 0.12), (0.15, 0.2), (0.22, 0.24), (0.12, 0.3), (0.1, 0.55)]
+    if tiers:
+        prof += [(0.15, 0.6), (1.1, 0.68), (1.15, 0.72), (0.3, 0.74), (0.12, 0.78)]
+    prof += [(0.2, 0.84), (0.1, 0.9), (0.18, 0.94), (0.0, 1.0)]
+    K.lathe([(P.m(hw_px) * r, P.z(foot_py - h * t)) for r, t in prof], mat, segments=16, centre=(P.x(cx), y, 0.0),
+            name=name)
+
+
+def lantern(K, cx, top_py, bot_py, hw_px, y, mat, frame, name="lantern"):
+    """A hurricane lantern: its tank, glass globe in a wire guard, the cap and the bail handle, traced off the
+    painting."""
+    P = K.paint
+    h = bot_py - top_py
+    prof = [(0.7, 1.0), (1.0, 0.95), (1.0, 0.82), (0.75, 0.78), (0.85, 0.7), (0.95, 0.55), (0.85, 0.4), (0.6, 0.33),
+            (0.75, 0.3), (0.7, 0.24), (0.3, 0.2), (0.25, 0.12)]
+    K.lathe([(P.m(hw_px) * r, P.z(top_py + h * t)) for r, t in prof], mat, segments=16, centre=(P.x(cx), y, 0.0),
+            name=name)
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        r = P.m(hw_px) * 1.02
+        K.tube([(P.x(cx) + r * math.cos(a), y + r * math.sin(a), P.z(top_py + h * 0.78)),
+                (P.x(cx) + r * 1.05 * math.cos(a), y + r * 1.05 * math.sin(a), P.z(top_py + h * 0.55)),
+                (P.x(cx) + r * 0.8 * math.cos(a), y + r * 0.8 * math.sin(a), P.z(top_py + h * 0.33))], 0.003, frame,
+               segments=4, name=name + "_guard")
+    K.tube([(P.x(cx) - P.m(hw_px) * 0.8, y, P.z(top_py + h * 0.75))] +
+           [(P.x(cx) - P.m(hw_px) * 0.8 * math.cos(math.pi * i / 8), y, P.z(top_py + h * 0.15) + P.m(hw_px) * 0.5 * math.sin(math.pi * i / 8))
+            for i in range(9)] + [(P.x(cx) + P.m(hw_px) * 0.8, y, P.z(top_py + h * 0.75))], 0.003, frame, segments=4,
+           name=name + "_bail")
+
+
+@model("stall_vessels", "market", kind="prop", atlas=2048)
+def stall_vessels(K):
+    """A brass and copper vessel seller's stall: a shaggy hipped thatch on four poles, a hurricane lantern and two
+    string bags hung from its beams, a two-step stand under a golden cloth with a red border, crowded with brass and
+    copper pots, kudams, jugs and brass oil lamps, a stack of old ledgers; painted clay pots and more brass on the
+    woven mat in front."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.25, 0.16, 0.07), vary=0.1)
+    bank = Bank(-1.05, Z(604), 22.0, flat=1.5, back=0.4)
+    # ---------------------------------------------------------------- the mat floor and the earth
+    earth = K.colour((0.32, 0.17, 0.08), vary=0.12, scale=5)
+    K.grid_plane(P.x(0), P.x(1031), bank.y0 - 0.03, bank.y3 + 0.02, 0.0, 30, 26, earth,
+                 height=lambda x, y: bank.z(y) * _smooth(P.x(0), P.x(25), x) * _smooth(P.x(1031), P.x(1005), x),
+                 name="earth")
+    weave = ktile(K, (300, 630, 500, 660), vary=0.06)
+
+    def mat_f(u, v):
+        py_ = 668 - (668 - 604) * v
+        xl = 10 + (60 - 10) * v
+        xr = 1015 - (1015 - 970) * v
+        p = bank.at(P, xl + (xr - xl) * u, py_, 0.006)
+        if v > 0.999:
+            p = Vector((p.x, bank.y1 + 1.2, bank.top + 0.006))
+        return tuple(p)
+    K.sheet(mat_f, 24, 10, weave, name="mat", thickness=0.006)
+    # ---------------------------------------------------------------- posts, beams and the thatch
+    yfp, ybp = -0.4, 0.75
+    zb = Z(170)
+    posts = [((150, 170), (150, 560), 13, yfp, [(136, 170, 164, 420)]),
+             ((870, 170), (870, 560), 13, yfp, [(857, 170, 884, 470)]),
+             ((216, 170), (216, 445), 11, ybp, [(204, 170, 229, 330)]),
+             ((799, 170), (799, 445), 11, ybp, [(787, 170, 812, 380)])]
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, z_top=zb + 0.04, z_bot=bank.z(y) - 0.05, nodes=0.45)
+    bam = K.colour((140, 300, 160, 400), vary=0.08)
+    for y in (yfp, ybp):
+        bamboo(K, (P.x(120), y, zb), (P.x(900), y, zb), P.m(9), bam, node_at=[0.3, 0.7], taper=1.0, name="beam")
+    for xf, xb in ((150, 216), (870, 799)):
+        bamboo(K, (P.x(xf), yfp - 0.08, zb + 0.03), (P.x(xb), ybp + 0.08, zb + 0.03), P.m(8), bam, node_at=[0.5],
+               taper=1.0, name="tie")
+        lashing(K, (P.x(xf), yfp, zb), (0, 0, 1), P.m(13), rope, turns=2.5)
+    straw = ktile(K, (300, 40, 700, 120), vary=0.06)
+    ye0, ye1, yr = -1.0, 1.15, 0.17
+    hip_thatch(K, P.x(60), P.x(965), ye0, ye1, Z(148), P.x(150), P.x(870), yr, Z(14), straw, thick=0.14, shag=0.035,
+               fringe=P.m(8), nu=140, nv=9)
+    for x_px in np.linspace(170, 850, 7):
+        x = P.x(x_px)
+        K.tube([(x, ye0 + 0.12, Z(148) + 0.02), (x, yr, Z(14) - 0.08), (x, ye1 - 0.12, Z(148) + 0.02)], P.m(5), bam,
+               segments=6, name="rafter")
+    posts_x = [(136, 164), (204, 229), (787, 812), (857, 884)]
+
+    def ends(rgb, x0=30):
+        k = straw_keep(rgb)
+        for a, b in posts_x:
+            k[:, max(0, a - x0):max(0, b - x0)] = False
+        return k
+    fringe_cards(K, (30, 120, 990, 190), ye0 - 0.02, ye1 + 0.02, P.x(60) - 0.05, P.x(965) + 0.05, keep=ends, pitch=12)
+    # ---------------------------------------------------------------- the lantern and the string bags
+    tin = K.projected(axis_x=P.x(832), squeeze=0.93, keep=[(810, 200, 856, 282)], inset=2)
+    wire = K.colour((0.2, 0.2, 0.2))
+    lantern(K, 832, 200, 282, 20, yfp - 0.02, tin, wire)
+    K.tube([P.pt(832, 205, yfp - 0.02), (P.x(832), yfp - 0.02, zb)], 0.004, rope, segments=4, name="lantern_string")
+    import market_props as MP
+    for cx, top, bot, hw in ((252, 190, 255, 26), (285, 182, 245, 22)):
+        m = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, top, cx + hw, bot)], inset=2)
+        MP.ellipsoid(K, (P.x(cx), yfp + 0.06, P.z((top + bot) / 2 + 6)), (P.m(hw), P.m(hw) * 0.85, P.m(bot - top) / 2 * 0.8),
+                     m, seg=12, rings=8, lumps=0.08, name="string_bag")
+        K.tube([P.pt(cx, top + 4, yfp + 0.06), (P.x(cx), yfp + 0.06, zb)], 0.004, rope, segments=4, name="bag_string")
+    # ---------------------------------------------------------------- the two-step stand under its cloth
+    cloth = ktile(K, (300, 562, 520, 596), vary=0.05, soften=0.3)
+    front = K.projected(squeeze=1.0, keep=[(140, 440, 880, 625)], inset=2)
+    s1y, s2y, sby = -0.38, 0.05, 0.62
+    z1, z2 = Z(553), Z(443)
+    zt = bank.top
+    K.box(P.x(148), P.x(868), s1y, sby, zt - 0.02, z1, cloth, bevel=0.015, name="step1")
+    K.box(P.x(163), P.x(830), s2y, sby, z1 - 0.02, z2, cloth, bevel=0.015, name="step2")
+    K.sheet(lambda u, v: (P.x(148) + (P.x(868) - P.x(148)) * u, s1y - 0.006 - 0.006 * math.sin(2 * math.pi * 9 * u) * (1 - v),
+                          zt + (z1 - zt) * v), 40, 3, front, name="step1_cloth", thickness=0.004)
+    K.sheet(lambda u, v: (P.x(163) + (P.x(830) - P.x(163)) * u, s2y - 0.006 - 0.005 * math.sin(2 * math.pi * 8 * u) * (1 - v),
+                          z1 + (z2 - z1) * v), 40, 3, front, name="step2_cloth", thickness=0.004)
+    red = K.colour((300, 606, 500, 616), vary=0.08)
+    K.box(P.x(145), P.x(871), s1y - 0.014, sby + 0.01, zt - 0.01, zt + P.m(12), red, name="border")
+    # ---------------------------------------------------------------- the vessels on the top step
+    top_row = [(265, [(45, 445), (60, 420), (63, 380), (56, 345), (40, 328), (46, 320), (44, 315)]),
+               (372, [(36, 445), (48, 420), (48, 385), (40, 362), (33, 356), (38, 351)]),
+               (467, [(33, 445), (43, 420), (42, 400), (35, 386), (38, 380)]),
+               (558, [(30, 445), (42, 420), (43, 400), (35, 382), (38, 375), (36, 371)]),
+               (650, [(34, 445), (43, 415), (42, 385), (32, 360), (28, 353), (33, 346)]),
+               (703, [(18, 440), (21, 410), (20, 385), (13, 370), (15, 362)])]
+    y2 = (s2y + sby) / 2 - 0.05
+    for cx, prof in top_row:
+        vessel(K, bank, cx, prof, y=y2, z0=z2)
+    brass = K.colour((745, 380, 752, 420), vary=0.08)
+    oil_lamp(K, 747, 445, 290, 26, y2, brass)
+    # the copper pots stacked on the right end of the steps
+    vessel(K, bank, 808, [(25, 553), (52, 520), (54, 490), (42, 468), (36, 463), (40, 458)], y=s2y - 0.1, z0=z1)
+    vessel(K, bank, 802, [(20, 440), (30, 425), (34, 400), (32, 392)], y=s2y - 0.1, z0=Z(458), mouth=True)
+    # ---------------------------------------------------------------- the vessels on the lower step
+    y1 = (s1y + s2y) / 2
+    low_row = [(210, [(40, 553), (48, 520), (50, 480), (38, 450), (30, 440), (37, 432), (35, 427)]),
+               (312, [(40, 553), (55, 510), (52, 470), (35, 447), (32, 442), (37, 437)]),
+               (383, [(28, 568), (36, 540), (35, 515), (25, 500), (22, 495), (27, 490)]),
+               (435, [(30, 553), (37, 520), (36, 490), (28, 470), (25, 462), (30, 456)]),
+               (493, [(18, 553), (22, 530), (22, 500), (16, 488), (18, 482)]),
+               (557, [(25, 557), (34, 530), (33, 505), (25, 490), (23, 484), (27, 477)]),
+               (628, [(24, 558), (32, 535), (31, 510), (24, 497), (22, 492), (27, 487)]),
+               (697, [(22, 560), (30, 540), (29, 520), (18, 505), (13, 497), (16, 490)])]
+    for cx, prof in low_row:
+        vessel(K, bank, cx, prof, y=y1 - (0.08 if cx == 383 else 0.0), z0=z1)
+    oil_lamp(K, 755, 565, 455, 22, y1 - 0.05, brass)
+    oil_lamp(K, 690, 498, 420, 18, y1 + 0.08, brass, tiers=1, name="lamp_small")
+    K.leaves_only((715, 300, 790, 340), fire_pixels)
+    K.leaves_only((730, 460, 775, 495), fire_pixels)
+    K.leaves_only((662, 425, 718, 455), fire_pixels)
+    for box, yy in (((715, 300, 790, 340), y2), ((730, 460, 775, 495), y1 - 0.05), ((662, 425, 718, 455), y1 + 0.08)):
+        for yaw in (0, 90):
+            K.card_from_painting(box, (P.x((box[0] + box[2]) / 2), yy, P.z((box[1] + box[3]) / 2)), yaw=yaw,
+                                 name="flames", normal=(0, -1, 0.3))
+    books = K.projected(squeeze=1.0, keep=[(765, 505, 862, 560)], inset=1)
+    for k, (a, b) in enumerate(((505, 520), (520, 535), (535, 548), (548, 560))):
+        K.block(P.x(813), y1 + 0.05, (P.z(b) + P.z(a)) / 2, P.m(95), 0.24, P.z(a) - P.z(b), books,
+                rot=(0, 0, K.rng.uniform(-4, 4)), bevel=0.004, name="ledger")
+    # ---------------------------------------------------------------- on the mat in front
+    ground_pots = [(100, [(25, 528), (40, 500), (39, 470), (28, 440), (24, 432), (30, 425)], None),
+                   (68, [(26, 590), (40, 560), (38, 525), (28, 508), (24, 503), (30, 498)], None),
+                   (103, [(30, 640), (52, 600), (50, 560), (36, 540), (32, 535), (38, 530)], None),
+                   (190, [(26, 645), (35, 615), (34, 585), (25, 568), (23, 563), (29, 558)], None),
+                   (262, [(24, 645), (33, 615), (32, 588), (24, 572), (22, 567), (28, 563)], None),
+                   (905, [(22, 560), (32, 530), (30, 505), (22, 494), (26, 488)], None),
+                   (848, [(35, 640), (56, 595), (54, 560), (38, 535), (33, 528), (38, 520)], None),
+                   (942, [(36, 635), (54, 590), (52, 560), (38, 543), (34, 538), (38, 532)], None)]
+    for cx, prof, _ in ground_pots:
+        vessel(K, bank, cx, prof)
+    # ---------------------------------------------------------------- behind the stand: spare pots stacked mouth down
+    clay = K.colour((480, 520, 520, 540), vary=0.08)
+    for k, x_px in enumerate((300, 520, 700)):
+        for j in range(2):
+            K.lathe([(0.0, 0.0), (0.14, 0.02), (0.2, 0.12), (0.17, 0.24), (0.1, 0.28)], clay, segments=20,
+                    centre=(P.x(x_px) + j * 0.05, sby + 0.3, bank.top + j * 0.2), wobble=0.02, name="spare_pot")
     unify_cards(K)
