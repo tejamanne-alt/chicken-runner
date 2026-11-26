@@ -1624,16 +1624,20 @@ def h6_4(K):
                     0.03),
                    ([(236, 546, 3.5), (205, 505, 3), (160, 470, 2.6), (120, 420, 2.2), (100, 350, 1.8)], 0.035)):
         n = len(pts)
-        limb(K, pts, wood, y=[y * min(1.0, i / 2.0) for i in range(n)], segments=6, name="stem")
-    flowers = (((mn > 200) & (mx - mn < 45)) | ((g > r + 5) & (g > b + 20)) | (mx < 80)) & opaque
-    flowers &= ndimage.binary_erosion(opaque, iterations=3) & ~ndimage.binary_dilation(
-        bamboo_ok(rgb, opaque) & ndimage.binary_opening(bamboo_ok(rgb, opaque), iterations=3), iterations=1)
+        limb(K, [(x, y_, r * 0.6) for x, y_, r in pts], wood, y=[y * min(1.0, i / 2.0) for i in range(n)],
+             segments=6, name="stem")
+    haze = (mx - mn < 26) & (mx < 222) & (mx > 95)                    # the grey haze painted behind the vine
+    bam_px = bamboo_ok(rgb, opaque) & box_mask(opaque.shape, [(25, 30, 435, 548)])
+    bam_px = ndimage.binary_dilation(ndimage.binary_opening(bam_px, iterations=2), iterations=2)
+    poles_m = box_mask(opaque.shape, [(72, 30, 100, 552), (370, 40, 397, 548), (28, 84, 430, 112),
+                                      (28, 252, 414, 276), (38, 398, 424, 422)])
+    flowers = opaque & ~haze & ~(bam_px & poles_m)
     flowers = ndimage.binary_opening(flowers, iterations=1)
     fb = (0, 0, P.w, 500)
     K.leaves_only(fb, mask_rule(flowers, fb))
-    scatter_cards(K, (10, 0, 480, 500), 110, (48, 44), (-0.075, -0.03), flowers, name="jasmine")
-    scatter_cards(K, (10, 0, 480, 500), 50, (44, 40), (-0.11, 0.06), flowers, yaw=75, pitch=40, name="jasmine")
-    scatter_cards(K, (60, 40, 420, 500), 60, (44, 40), (0.02, 0.07), flowers, name="jasmine_back",
+    scatter_cards(K, (10, 0, 480, 520), 160, (62, 56), (-0.075, -0.03), flowers, name="jasmine")
+    scatter_cards(K, (10, 0, 480, 520), 70, (56, 50), (-0.11, 0.06), flowers, yaw=75, pitch=40, name="jasmine")
+    scatter_cards(K, (60, 40, 420, 520), 90, (58, 52), (0.02, 0.07), flowers, name="jasmine_back",
                   normal=(0, 0.4, 1))
     # ---- grass at the posts' feet, the earth
     gm = leafy(rgb) & ~halo(rgb) & opaque

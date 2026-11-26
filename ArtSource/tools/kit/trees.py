@@ -376,6 +376,9 @@ class Wood:
         """A path resampled every ~step x radius px and smoothed: [(x, y, z) metres], [radius metres]."""
         P = self.P
         pts, r = p["pts"], p["r"]
+        if len(r) > 6:                                    # the distance map is noisy: a limb tapers smoothly
+            r = ndimage.median_filter(r, size=7, mode="nearest")
+            r = ndimage.uniform_filter1d(r, size=7, mode="nearest")
         y = p["y"] if ys is None else ys
         seg = np.hypot(*np.diff(pts, axis=0).T)
         s = np.concatenate([[0], np.cumsum(seg)])
@@ -1344,7 +1347,7 @@ def shrine_tree(K):
 def _trace_field_tree_1(K):
     def rule(rgb):
         r, g, b, mx, mn = chan(rgb)
-        return grey_bark(rgb, sat=40, lo=45, hi=225) & ~((r - g > 14) & (mx < 110))
+        return grey_bark(rgb, sat=40, lo=45, hi=200) & ~((r - g > 14) & (mx < 110))
     mask = wood_mask(K, rule, boxes=[(0, 280, 938, 960)], close=2, hole=600, min_area=30)
     return mask, Wood(K, mask, root_px=(470, 930), spur=1.3, min_len=6)
 
