@@ -895,9 +895,9 @@ def shrine_stone(K):
              (177, 36)]
     pts = [(X(x), yfr, Z(y)) for x, y in front]
     flower_chain(K, pts, r, marigold, P.m(15.5), reds=[(X(97), yfr, Z(119)), (X(173), yfr, Z(118))], red_mat=red)
-    back = [(X(177), yfr * 0.4, Z(31)), (X(174), 0.04, Z(27)), (X(172), yb + r * 0.6, Z(34)),
-            (X(155), yb + r * 0.7, Z(50)), (X(133), yb + r * 0.7, Z(56)), (X(111), yb + r * 0.7, Z(50)),
-            (X(95), yb + r * 0.6, Z(36)), (X(93), 0.04, Z(29)), (X(90), yfr * 0.4, Z(32))]
+    back = [(X(181), yfr * 0.5, Z(42)), (X(184), 0.04, Z(44)), (X(178), yb + r * 0.6, Z(48)),
+            (X(156), yb + r * 0.7, Z(60)), (X(133), yb + r * 0.7, Z(64)), (X(110), yb + r * 0.7, Z(60)),
+            (X(89), yb + r * 0.6, Z(50)), (X(84), 0.04, Z(46)), (X(86), yfr * 0.5, Z(43))]
     flower_chain(K, back, r, marigold, P.m(16), name="flower_back")
     # the pendant of red flowers at the garland's foot
     for x, y, rr in ((126, 171, 9), (140, 171, 9), (133, 179, 8), (133, 165, 7)):
@@ -908,7 +908,7 @@ def shrine_stone(K):
     for x, y, rr, m in ((77, 205, 4, marigold), (93, 205, 5, marigold), (117, 204, 5, marigold), (124, 205, 5, red),
                         (136, 205, 6, red), (147, 205, 5, marigold), (208, 206, 5, marigold), (215, 207, 4, red),
                         (110, 206, 4, marigold)):
-        boulder_ball(K, (X(x), K.rng.uniform(-0.26, -0.2), Z(201) + P.m(rr) * 0.5), (P.m(rr), P.m(rr), P.m(rr) * 0.6),
+        boulder_ball(K, (X(x), K.rng.uniform(-0.27, -0.22), Z(201) + P.m(rr) * 0.2), (P.m(rr), P.m(rr), P.m(rr) * 0.45),
                      m, lumps=0.3, name="offering")
     # leaves growing at the slab's sides (cards), and the earth
     for box in ((16, 160, 64, 212), (204, 162, 252, 210), (6, 218, 40, 246)):
@@ -920,3 +920,252 @@ def shrine_stone(K):
     K.leaves_only((238, 222, 266, 248), tulsi_pixels)
     K.card_from_painting((238, 222, 266, 248), (X(252), -0.28, Z(235)), name="fallen_flowers")
     earth(K, 138, 246, 250, 122, 0.36, (0.2, 0.1, 0.045), pebbles=[(35, 244, 12)], pebble_box=(30, 240, 45, 248))
+
+
+def bar(K, pts, w, t, mat, y0=0.0, segments=10, name="bar", taper=None):
+    """A flat bar (a pump handle, a link) along pts [(x, y, z)] lying in the x-z plane at depth y0: a tube w
+    across, squashed to t thick in y."""
+    ob = K.tube(pts, w / 2, mat, segments=segments, name=name, taper=taper)
+    for v in ob.data.vertices:
+        v.co.y = y0 + (v.co.y - y0) * (t / w)
+    return ob
+
+
+def axis_y_disc(K, c, r, thick, mat, segments=20, name="disc", bevel=0.25):
+    """A round boss or knob facing the camera: a short cylinder about the y axis, its edges rounded."""
+    b = thick * bevel
+    return axis_lathe(K, [(0.0, 0.0), (r - b, 0.0), (r, b), (r, thick - b), (r - b, thick), (0.0, thick)], mat,
+                      (c[0], c[1] - thick / 2, c[2]), (0, 1, 0), segments=segments, name=name)
+
+
+@model("hand_pump", "lane", kind="prop")
+def hand_pump(K):
+    """A village hand pump: its green cast-iron barrel and pump head on a flanged foot set in a stone block, the
+    curved handle on its pivot and link, the spout with a drop of water at its mouth; a steel bucket stands under
+    the spout in a puddle on the raised earth round the pump."""
+    P = K.paint
+    X, Z = P.x, P.z
+    cx, cy = 256, 0.06
+    Xc = X(cx)
+    body = K.projected(axis_x=Xc, squeeze=0.93, keep=[(214, 96, 296, 300)], exclude=[(190, 108, 222, 160)], inset=2)
+    head = K.projected(axis_x=Xc, squeeze=0.93, keep=[(208, 76, 302, 99)], inset=1)
+    K.lathe(prof(P, [(0, 296), (42, 296), (42, 284), (39, 282), (38, 266), (40.5, 262), (38, 258), (30, 256),
+                     (29, 254), (29, 172), (31, 169), (35, 166), (35.5, 156), (33, 153), (34, 150), (34.5, 100),
+                     (36, 98), (0, 98)]), body, segments=40, centre=(Xc, cy, 0), name="barrel")
+    K.lathe(prof(P, [(0, 97.5), (45, 97.5), (46, 95), (46, 83), (44, 80), (0, 80)]), head, segments=6,
+            centre=(Xc, cy, 0), name="head", smooth=False)
+    iron = K.colour((240, 300, 270, 320), vary=0.1) if False else K.colour((0.12, 0.2, 0.06), vary=0.1)
+    brass = K.colour((248, 50, 258, 75), vary=0.08)
+    for bx in (233, 276):
+        K.lathe(prof(P, [(0, 81), (6, 81), (6, 76), (4, 74), (0, 74)]), head, segments=12, centre=(X(bx), cy - 0.05, 0),
+                name="bolt")
+        K.lathe(prof(P, [(0, 81), (6, 81), (6, 76), (4, 74), (0, 74)]), head, segments=12, centre=(X(bx), cy + 0.06, 0),
+                name="bolt")
+    # the plunger rod up to the handle's pivot, and its collar
+    K.tube([(X(253), cy, Z(82)), (X(253), cy, Z(34))], P.m(6.5), brass, segments=12, name="rod")
+    K.lathe(prof(P, [(0, 62), (8.5, 62), (8.5, 55), (0, 55)]), brass, segments=12, centre=(X(253), cy, 0), name="collar")
+    # the handle: a curved flat bar from its pivot boss over the head and down to the round grip end
+    hm = K.projected(axis_x=X(330), squeeze=1.0, keep=[(236, 4, 432, 214)], exclude=[(236, 50, 300, 214)], inset=1)
+    arm = [(257, 22), (266, 14), (278, 10), (292, 12), (305, 20), (317, 33), (327, 52), (334, 72), (341, 93),
+           (349, 113), (357, 131), (367, 146), (381, 160), (396, 174), (408, 186), (415, 196)]
+    bar(K, [P.pt(x, y, cy) for x, y in arm], P.m(14), P.m(9), hm, y0=cy, segments=12, name="handle")
+    axis_y_disc(K, (X(255), cy, Z(33)), P.m(15), P.m(16), hm, name="pivot_boss")
+    axis_y_disc(K, (X(415.5), cy, Z(198.5)), P.m(13.5), P.m(13), hm, name="grip")
+    for c, rr in (((255, 33), 5), ((415.5, 198.5), 4.5)):
+        axis_y_disc(K, (X(c[0]), cy - P.m(9), Z(c[1])), P.m(rr), P.m(4), brass, name="pin")
+    # the link from the head up to the handle, with its pin
+    bar(K, [P.pt(304, 98, cy - 0.03), P.pt(308, 76, cy - 0.03), P.pt(311, 56, cy - 0.03)], P.m(15), P.m(6), hm,
+        y0=cy - 0.03, name="link")
+    axis_y_disc(K, (X(311), cy - 0.035, Z(55)), P.m(9.5), P.m(8), hm, name="link_pin")
+    # the spout: out of the barrel, its collar, the elbow down to the mouth, a drop falling from it
+    sp = K.projected(axis_x=X(195), squeeze=1.0, keep=[(148, 108, 238, 175)], inset=1)
+    axis_lathe(K, [(0.0, 0.0), (P.m(22), 0.0), (P.m(23), P.m(4)), (P.m(23), P.m(16)), (P.m(20), P.m(19)),
+                   (0.0, P.m(19))], sp, (X(238), cy - 0.02, Z(135)), (-1, -0.25, 0), segments=20, name="spout_collar")
+    K.tube([(X(225), cy - 0.03, Z(135)), (X(200), cy - 0.04, Z(135)), (X(186), cy - 0.045, Z(137)),
+            (X(174), cy - 0.05, Z(145)), (X(170), cy - 0.05, Z(156))], P.m(16), sp, segments=16, name="spout")
+    axis_lathe(K, [(0.0, 0.0), (P.m(19), 0.0), (P.m(20), P.m(3)), (P.m(20), P.m(12)), (P.m(17), P.m(14)),
+                   (P.m(9), P.m(14)), (0.0, P.m(13))], sp, (X(170), cy - 0.05, Z(172)), (0, 0, 1), segments=20,
+               name="spout_mouth")
+    drop = K.colour((0.55, 0.7, 0.85), vary=0.05)
+    K.lathe(prof(P, [(0, 182), (3.2, 180), (3.0, 176), (1.5, 173), (0, 171)]), drop, segments=10,
+            centre=(X(166), cy - 0.05, 0), name="drop")
+    # the stone block the pump stands in
+    stone = K.tile((200, 300, 245, 340), vary=0.08, soften=0.35)
+    stone_block(K, [(188, 345), (327, 345), (327, 286), (188, 286)][::-1], cy - 0.22, cy + 0.22, stone, bevel=0.015,
+                jitter=0.003, name="block")
+    rock = K.colour((300, 325, 320, 335), vary=0.1)
+    for x, y, s in ((312, 330, 26), (290, 338, 16)):
+        K.boulder(X(x), cy - 0.24, Z(y), P.m(s), P.m(s) * 0.8, P.m(s) * 0.6, rock, name="rock")
+    # the steel bucket under the spout: its tapered body, rolled rim, ribbed foot, the inside, its bail on two lugs
+    bx, by = 130.5, -0.17
+    steel = K.projected(axis_x=X(bx), squeeze=0.93, keep=[(64, 216, 197, 344)], inset=2)
+    K.lathe(prof(P, [(0, 342), (40, 342), (42.5, 339), (42.5, 334), (40.5, 331), (41, 325), (39.5, 321), (39, 316),
+                     (41.5, 304), (44, 292), (47, 280), (51, 270), (55, 262), (58, 250), (60, 240), (61, 230),
+                     (62.5, 226), (62.5, 221), (60.5, 219.5), (58.5, 221)]), steel, segments=40,
+            centre=(X(bx), by, 0), name="bucket", cap=False)
+    inside = K.colour((150, 225, 170, 232), vary=0.08)
+    K.lathe(prof(P, [(58.5, 221), (56, 240), (48, 290), (40, 330), (0, 332)]), inside, segments=40,
+            centre=(X(bx), by, 0), name="bucket_inside", cap=False)
+    water = K.colour((0.35, 0.5, 0.65), vary=0.08)
+    K.lathe(prof(P, [(0, 300), (45.5, 300)]), water, segments=40, centre=(X(bx), by, 0), name="bucket_water")
+    for side in (-1, 1):
+        axis_lathe(K, [(0.0, 0.0), (P.m(5), 0.0), (P.m(5), P.m(4)), (0.0, P.m(4))], steel,
+                   (X(bx) + side * P.m(59.5), by, Z(246)), (side, 0, 0), segments=10, name="lug")
+    bail = []
+    for i in range(17):
+        a = math.pi * i / 16
+        bail.append((X(bx) - math.cos(a) * P.m(63), by - math.sin(a) * P.m(62), Z(246) - math.sin(a) * P.m(14)))
+    K.tube(bail, P.m(2.2), steel, segments=6, name="bail")
+    # the raised earth round the pump, wet in a puddle where the bucket stands
+    earth(K, 176, 345, 394, 172, 0.5, (8, 335, 40, 350), grass=[(42, 314, 88, 340), (226, 326, 258, 350),
+                                                                 (338, 296, 398, 332)])
+    puddle = K.colour((70, 350, 110, 366), vary=0.15, scale=6)
+    def wet(u, v):
+        a = 2 * math.pi * u
+        rx, ry = P.m(120) * (1 + 0.12 * math.sin(3 * a + 1)), 0.27 * (1 + 0.1 * math.sin(2 * a))
+        return (X(160) + rx * v * math.cos(a), -0.2 + ry * v * math.sin(a), Z(345) + 0.006)
+    K.sheet(wet, 36, 4, puddle, name="puddle")
+
+
+def image_tile(K, pil, size_w, key, vary=0.05, blend=0.25):
+    """A seamless, box-projected material from a PIL image (a patch of the painting reworked: un-foreshortened,
+    stacked), one tile across size_w metres, keeping its proportions."""
+    from kitlib import Mat, _image, _vary, seamless
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(f"{K.name}_itile{len(K._mats)}")
+    img = _image(seamless(pil.convert("RGB"), blend), m.mat.name)
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    tex = m.nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    tex.projection = "BOX"
+    tex.projection_blend = 0.25
+    mp = m.nt.nodes.new("ShaderNodeMapping")
+    sh = size_w * pil.height / pil.width
+    mp.inputs["Scale"].default_value = (1 / size_w, 1 / size_w, 1 / sh)
+    m.nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+    m.nt.links.new(mp.outputs[0], tex.inputs["Vector"])
+    col = tex.outputs["Color"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / size_w)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def cushion(K, corners, thick, mat, n=14, name="cushion"):
+    """A stuffed cushion: its seam through four corners (bottom-left, bottom-right, top-right, top-left; metres),
+    puffed `thick` to each side of it, flat towards its pointed corners."""
+    import bmesh
+    from mathutils import Vector
+    from kitlib import _obj
+    C = [Vector(c) for c in corners]
+    nrm = (C[1] - C[0]).cross(C[3] - C[0]).normalized()
+
+    def mid(u, v):
+        return C[0].lerp(C[1], u).lerp(C[3].lerp(C[2], u), v)
+    bm = bmesh.new()
+    grid = {}
+    for side in (1, -1):
+        for j in range(n + 1):
+            for i in range(n + 1):
+                u, v = i / n, j / n
+                if (i in (0, n) or j in (0, n)) and side == -1:
+                    grid[(side, i, j)] = grid[(1, i, j)]
+                    continue
+                f = (max(0.0, 1 - abs(2 * u - 1) ** 2.5) * max(0.0, 1 - abs(2 * v - 1) ** 2.5)) ** 0.55
+                grid[(side, i, j)] = bm.verts.new(mid(u, v) + nrm * side * thick * f)
+    for side in (1, -1):
+        for j in range(n):
+            for i in range(n):
+                q = [grid[(side, i, j)], grid[(side, i + 1, j)], grid[(side, i + 1, j + 1)], grid[(side, i, j + 1)]]
+                bm.faces.new(q if side == 1 else q[::-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob
+
+
+@model("rope_cot", "lane", kind="prop", atlas=2048)
+def rope_cot(K):
+    """A charpai: four turned wooden legs with knobbed finials, joined at the square blocks on their tops by the
+    frame's four rails, the coir rope woven across between them as the bed and wrapped round the rails, sagging a
+    little; a patchwork cushion lies at its head. It stands on ground that falls a little towards the camera."""
+    import numpy as np
+    from PIL import Image
+    P = K.paint
+    X, Z = P.x, P.z
+    K.front_exclude.append((345, 50, 400, 112))          # the painted sparkle on the rope: light, not a thing
+    yF, yB = -0.4, 0.4
+    tilt = P.m(24) / (yB - yF)
+    # the legs: (centre px, depth, keep box, lathe profile (r px, py) from the foot up, block (x0, x1, top, bottom))
+    legs = [
+        (54, yF, (26, 36, 84, 266),
+         [(0, 263), (23, 263), (23, 246), (21.5, 238), (18.5, 232), (15.5, 228), (16.5, 224), (14.5, 220),
+          (16.5, 216), (18.5, 212), (20.5, 208), (22, 204), (22, 190), (19.5, 184), (15, 180), (19.5, 176),
+          (19.5, 168), (17, 162), (18, 157)], (28, 80, 96, 157),
+         [(18, 96), (15.5, 92), (15.5, 88), (20, 84), (20, 76), (17, 72), (13.5, 68), (13.5, 64), (16, 60), (18.5, 56),
+          (19, 50), (17, 44), (12, 41), (0, 40)]),
+        (473.5, yF, (448, 64, 502, 268),
+         [(0, 265), (22, 265), (21, 256), (19.5, 252), (19.5, 232), (15.5, 228), (17.5, 224), (13.5, 220), (14.5, 216),
+          (16.5, 212), (17.5, 208), (18.5, 204), (19.5, 200), (20.5, 196), (19.5, 192), (18.5, 188), (16.5, 184),
+          (13.5, 180), (17.5, 176), (18.5, 172), (17.5, 168), (16.5, 164), (17.5, 158)], (449, 499, 100, 157),
+         [(18.5, 100), (17.5, 96), (13.5, 92), (17.5, 88), (18.5, 84), (19.5, 80), (18.5, 76), (16.5, 72), (10.5, 68),
+          (0, 67)]),
+        (103.5, yB, (82, 140, 126, 246),
+         [(0, 242), (19, 242), (19, 238), (16.5, 236), (16.5, 228), (17.5, 224), (17.5, 212), (13.5, 208), (14.5, 204),
+          (11.5, 200), (12.5, 196), (14.5, 192), (16.5, 188), (17.5, 184), (18.5, 180), (18.5, 176), (16.5, 172),
+          (14.5, 168), (12.5, 164), (16.5, 160), (17.5, 156), (16.5, 152), (17.5, 148)], (82, 126, 82, 148),
+         [(17, 82), (15, 78), (13, 74), (17, 70), (18, 64), (16, 58), (11, 55), (0, 54)]),
+        (437, yB, (410, 140, 452, 246),
+         [(0, 242), (23, 242), (24, 238), (19, 234), (19, 230), (20, 226), (20.5, 222), (22, 218), (21, 214),
+          (19, 210), (16, 206), (16, 202), (15, 198), (16, 194), (18, 190), (20, 186), (21, 182), (21, 174),
+          (19, 170), (16, 166), (16, 162), (20, 158), (19, 154), (20, 150)], (414, 460, 80, 150),
+         [(17, 80), (16, 76), (13, 70), (15, 66), (17, 62), (18, 58), (17, 52), (15, 46), (11, 41), (0, 38)]),
+    ]
+    blockm = K.tile((36, 104, 72, 150), vary=0.06, soften=0.3)
+    for i, (cx, yy, keep, low, blk, top) in enumerate(legs):
+        wood = K.projected(axis_x=X(cx), squeeze=0.92, keep=[keep], inset=2)
+        lift = tilt * yy
+        K.lathe([(P.m(r), Z(py) + lift) for r, py in low], wood, segments=24, centre=(X(cx), yy, 0), name="leg")
+        x0, x1, t_py, b_py = blk
+        hw = P.m(x1 - x0) / 2
+        K.box(X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py) + lift, Z(t_py) + lift, blockm, bevel=0.008,
+              name="block")
+        decal_faces(K, (32, 102, 77, 152), X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py) + lift, Z(t_py) + lift,
+                    faces=("back", "left", "right"))
+        tcx = cx if i != 3 else 444
+        K.lathe([(P.m(r), Z(py) + lift) for r, py in top], wood, segments=24, centre=(X(tcx), yy, 0), name="finial")
+    # the frame's rails, wrapped in rope
+    wrap = K.tile((150, 114, 250, 146), vary=0.06, soften=0.15)
+    rail_r = P.m(17)
+    fz, bz = Z(130) + tilt * yF, Z(90) + tilt * yB
+    fz = Z(130)
+    corners = {"FL": (X(54), yF, Z(130)), "FR": (X(473.5), yF, Z(130)), "BL": (X(103.5), yB, Z(92)),
+               "BR": (X(437), yB, Z(92))}
+    for a, b, r in (("FL", "FR", rail_r), ("BL", "BR", P.m(12)), ("FL", "BL", P.m(13)), ("FR", "BR", P.m(13))):
+        K.tube([corners[a], corners[b]], r, wrap, segments=12, name="rail")
+    # the woven bed between the rails, sagging a little in the middle; its weave un-foreshortened from the painting
+    weave_src = P.crop((240, 97, 340, 113)).convert("RGB")
+    weave_img = weave_src.resize((weave_src.width, weave_src.height * 3), Image.BICUBIC)
+    weave = image_tile(K, weave_img, P.m(100) * 0.55, ("weave",), vary=0.06)
+    FL, FR, BL, BR = [np.array(corners[k]) for k in ("FL", "FR", "BL", "BR")]
+    inset = 0.045
+
+    def bed(u, v):
+        a = FL + (FR - FL) * u
+        b = BL + (BR - BL) * u
+        p = a + (b - a) * v
+        sag = 0.045 * math.sin(math.pi * u) * math.sin(math.pi * v) ** 0.8
+        p = p + np.array([0, 0, P.m(8) - sag])
+        # pull the edges in to the rails' inner sides
+        p[1] += inset * (1 - 2 * v) * 0.0
+        return tuple(p)
+    K.sheet(bed, 36, 14, weave, name="bed", thickness=0.014)
+    # the patchwork cushion at the head, leaning back against the far rail
+    pil = proj(K, X(150), 1.0, polys=[[(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]], inset=3)
+    cushion(K, [(X(108), yF + 0.18, Z(110)), (X(234), yF + 0.18, Z(96)), (X(170), yB - 0.12, Z(9)),
+                (X(63), yB - 0.12, Z(12))], 0.075, pil, name="cushion")
+    earth(K, 263, 251, 266, 255, 0.62, (180, 250, 230, 258), tilt=tilt,
+          grass=[(8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
+                 (420, 240, 462, 262), (490, 248, 510, 262)])

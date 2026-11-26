@@ -1446,7 +1446,7 @@ def granary(K):
     plaster = K.tile((92, 222, 186, 300), soften=0.45, vary=0.04)
     stone_m = K.tile((52, 350, 160, 372), soften=0.3, vary=0.05)
     pillar = K.tile((70, 420, 110, 520), soften=0.3, vary=0.05)
-    tiles = K.tile((110, 90, 270, 175), soften=0.15, vary=0.04)
+    tiles = K.tile((160, 100, 330, 180), soften=0.15, vary=0.04)
     xl, xr = P.x(82), P.x(370)
     body = K.box(xl, xr, 0.0, D, P.z(345), P.z(200) - 0.05, plaster, name="walls")
     # the platform, the staddle stones under its corners and the middle of its long sides
@@ -1601,81 +1601,67 @@ def hut_with_pen(K):
 def field_shrine(K):
     """A wayside shrine at the field's edge, of whitewashed dressed stone: a stepped plinth, a square cella with a
     deep niche holding a painted Ganesha on his pedestal, a projecting cornice, two diminishing upper tiers (a small
-    niche with a golden image in the first), a squared dome crowned by a row of kalasha finials, and a saffron
-    swallow-tailed flag on a pole. It stands turned a little, as painted, so we see its front and right side; its
-    other two sides carry blind niches."""
+    niche with a golden image in the first), a squared dome crowned by a ring of kalasha finials, and a saffron
+    swallow-tailed flag on a pole. A true square block facing us: the shaded right side the painting shows in
+    perspective is not projected onto the front; its real sides are the same stone, with blind niches."""
     P = K.paint
-    K.front_min = 0.1
-    phi = 25.0
-    cphi, sphi = math.cos(math.radians(phi)), math.sin(math.radians(phi))
-    W = 1.74
-    C = (P.x(230), 0.0)
+    K.front_min = 0.2
+    K.front_exclude = [(234, 280, 339, 532), (220, 128, 339, 282)]     # the painted right side, in perspective
     stone_m = K.tile((36, 340, 76, 470), soften=0.35, vary=0.04)
-    cx, cy = -W / 2, W / 2                                  # the shrine's axis in the local frame
+    ax = P.x(140)                                           # the shrine's axis
+    hb = P.m(99)                                            # the cella's half width
+    cy = hb                                                 # its front face on y = 0
+    parts = {}
 
-    def half(px0):                                          # half-size of a square tier whose front-left edge is at px0
-        return (-(W / 2) * cphi + (W / 2) * sphi - (px0 - 230) / P.ppm) / (cphi + sphi)
-    parts = []
-
-    def tier(px0, r_top, r_bot, mat=stone_m, bevel=0.015, name="tier"):
-        h = half(px0)
-        ob = K.box(cx - h, cx + h, cy - h, cy + h, P.z(r_bot), P.z(r_top), mat, bevel=bevel, name=name)
-        parts.append(ob)
+    def tier(h_px, r_top, r_bot, mat=stone_m, bevel=0.015, name="tier"):
+        h = P.m(h_px)
+        ob = K.box(ax - h, ax + h, cy - h, cy + h, P.z(r_bot), P.z(r_top), mat, bevel=bevel, name=name)
+        parts[name] = (ob, h)
         return ob, h
-    tier(10, 496, 524, name="plinth")
-    tier(20, 480, 496, name="plinth")
-    body, hb = tier(32, 320, 480, name="cella")
-    tier(12, 300, 322, name="cornice")
-    tier(22, 284, 300, name="cornice_top")
-    t1, h1 = tier(78, 232, 284, name="tier1")
-    tier(88, 226, 234, name="tier1_cap")
-    t2, h2 = tier(104, 172, 226, name="tier2")
-    hd = half(110)
+    tier(112, 496, 525, name="plinth")
+    tier(106, 480, 496, name="plinth_top")
+    body, _ = tier(99, 320, 480, name="cella")
+    tier(113, 300, 322, name="cornice")
+    tier(106, 284, 300, name="cornice_top")
+    t1, h1 = tier(74, 232, 284, name="tier1")
+    tier(66, 226, 234, name="tier1_cap")
+    t2, h2 = tier(58, 172, 226, name="tier2")
+    hd = P.m(56)
     dome = K.lathe([(hd * 1.414, P.z(172)), (hd * 1.38, P.z(160)), (hd * 1.25, P.z(145)), (hd * 0.95, P.z(133)),
-                    (hd * 0.5, P.z(127)), (0.0, P.z(125))], stone_m, segments=4, centre=(cx, cy, 0), name="dome",
+                    (hd * 0.5, P.z(127)), (0.0, P.z(125))], stone_m, segments=4, centre=(ax, cy, 0), name="dome",
                    smooth=False)
-    rotate(dome, 45, "Z", (cx, cy, 0))
-    parts.append(dome)
+    rotate(dome, 45, "Z", (ax, cy, 0))
     for i in range(4):
         for j in range(3):
             a = math.radians(90 * i)
             t = (j - 1) * hd * 0.6
-            fx = cx + math.cos(a) * hd * 0.95 - math.sin(a) * t
+            fx = ax + math.cos(a) * hd * 0.95 - math.sin(a) * t
             fy = cy + math.sin(a) * hd * 0.95 + math.cos(a) * t
-            parts.append(K.lathe([(0.0, P.z(136)), (P.m(9), P.z(132)), (P.m(10), P.z(126)), (P.m(6), P.z(120)),
-                                  (0.0, P.z(116))], stone_m, segments=8, centre=(fx, fy, 0), name="kalasha"))
+            K.lathe([(0.0, P.z(136)), (P.m(9), P.z(132)), (P.m(10), P.z(126)), (P.m(6), P.z(120)), (0.0, P.z(116))],
+                    stone_m, segments=8, centre=(fx, fy, 0), name="kalasha")
     # the niche in the front with the painted image on its pedestal; the small upper niche with the golden one
-    lx = lambda px: -(230 - px) / P.ppm / cphi              # a painted x on the front face, along the wall
-    fy0 = cy - hb                                           # the cella's front face
-    K.cut(body, lx(80), lx(182), fy0 - 0.05, fy0 + 0.42, P.z(478), P.z(330))
-    parts.append(K.box(lx(80), lx(182), fy0 + 0.36, fy0 + 0.4, P.z(478), P.z(330), stone_m, name="niche_back"))
-    parts.append(K.box(lx(112), lx(178), fy0 + 0.2, fy0 + 0.36, P.z(478), P.z(462), stone_m, bevel=0.01,
-                       name="pedestal"))
-    parts.append(K.panel((116, 372, 182, 462), fy0 + 0.27, depth=0.08, name="image"))
+    K.cut(body, P.x(80), P.x(182), -0.05, 0.42, P.z(478), P.z(330))
+    K.box(P.x(80), P.x(182), 0.36, 0.4, P.z(478), P.z(330), stone_m, name="niche_back")
+    K.box(P.x(112), P.x(178), 0.2, 0.36, P.z(478), P.z(462), stone_m, bevel=0.01, name="pedestal")
+    K.panel((116, 372, 182, 462), 0.27, depth=0.08, name="image")
     fy1 = cy - h1
-    K.cut(t1, lx(124), lx(172), fy1 - 0.05, fy1 + 0.22, P.z(282), P.z(234))
-    parts.append(K.box(lx(124), lx(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back"))
-    parts.append(K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image"))
-    # blind niches in the other three walls
-    for ang in (180, 270):                                  # (the right side is painted plain)
+    K.cut(t1, P.x(124), P.x(172), fy1 - 0.05, fy1 + 0.22, P.z(282), P.z(234))
+    K.box(P.x(124), P.x(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back")
+    K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image")
+    # blind niches in the other three walls of the cella, and in the first tier
+    for ang in (90, 180, 270):
         a = math.radians(ang)
         nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction
         tx, ty = math.cos(a), math.sin(a)
-        mx, my = cx + nx * hb, cy + ny * hb
-        x0, x1 = sorted((mx - tx * 0.32 - nx * 0.12, mx + tx * 0.32 + nx * 0.12))
-        y0, y1 = sorted((my - ty * 0.32 - ny * 0.12, my + ty * 0.32 + ny * 0.12))
-        K.cut(body, x0, x1, y0, y1, P.z(470), P.z(345))
-    # the flag on its pole
+        for hh, w, d, z0, z1, ob in ((hb, 0.32, 0.12, P.z(470), P.z(345), body), (h1, 0.16, 0.08, P.z(280), P.z(238), t1)):
+            mx, my = ax + nx * hh, cy + ny * hh
+            x0, x1 = sorted((mx - tx * w - nx * d, mx + tx * w + nx * d))
+            y0, y1 = sorted((my - ty * w - ny * d, my + ty * w + ny * d))
+            K.cut(ob, x0, x1, y0, y1, z0, z1)
+    # the flag on its pole, standing at the back of the dome and leaning over to the right as painted
     pole = K.colour((186, 60, 196, 110), vary=0.08)
-    top = (C[0] + (lx(205) - cx) * 0, 0)
-    parts.append(K.tube([(cx, cy, P.z(128)), (cx, cy, P.z(10))], P.m(4), pole, segments=8, name="pole"))
-    place(parts, -phi, C)
-    pole_ob = parts[-1]
-    bx = sum(v.co.x for v in pole_ob.data.vertices) / len(pole_ob.data.vertices)
-    by = sum(v.co.y for v in pole_ob.data.vertices) / len(pole_ob.data.vertices)
-    for v in pole_ob.data.vertices:                         # lean it as painted: its head over to the right
-        t = (v.co.z - P.z(128)) / (P.z(10) - P.z(128))
-        v.co.x += t * (P.x(205) - P.x(186))
+    by = cy + hd * 0.5
+    K.tube([(P.x(186), by, P.z(140)), (P.x(205), by, P.z(10))], P.m(4), pole, segments=8, name="pole")
     K.leaves_only((196, 4, 312, 126), everything)
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by, P.z(64)), name="flag", normal=(0, -0.5, 0.5))
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by + 0.12, P.z(64)), yaw=-20, name="flag",

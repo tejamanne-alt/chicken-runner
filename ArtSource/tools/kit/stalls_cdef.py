@@ -1060,7 +1060,7 @@ def stall_d_1(K):
     zc = Z(600) + 0.03
     table = [  # (cx px, rim half-width px, rim py, heap profile [(hw, py)], fruit, y)
         (390, 60, 562, [(56, 562), (50, 540), (38, 525), (20, 512), (0, 508)], nungu, 0.12),
-        (505, 55, 565, [(52, 565), (48, 535), (38, 500), (20, 470), (0, 462)], dark, 0.2),
+        (505, 55, 565, [(52, 565), (48, 535), (38, 505), (20, 484), (0, 478)], dark, 0.2),
         (630, 70, 560, [(66, 560), (60, 530), (45, 510), (22, 500), (0, 497)], nungu, 0.15),
         (768, 68, 568, [(64, 568), (58, 545), (45, 528), (24, 520), (0, 518)], nungu, 0.12),
     ]
@@ -1967,25 +1967,51 @@ def beam(K, a, b, w, h, mat, name="beam"):
     return ob
 
 
-def wall_behind(K, keep, hole, strip, row_to, others=()):
-    """A projected material for a wall painted behind a vendor: the painting inside `keep`, with the vendor's box
-    `hole` filled row by row with the wall's own colour at that height (the median of the painted wall in the
-    column strip (x0, x1) beside them, no lower than row_to), and the goods in `others` filled from their nearest
-    wall pixels. So from an angle the wall behind the cut-out is the same painted wall, not a dark silhouette."""
-    keep_l, exclude = [tuple(keep)], tuple(tuple(b) for b in others) + (tuple(hole),)
-    key = ("src", tuple(keep_l), exclude, 2)
-    if key not in K._mats:
-        from PIL import Image
-        base = np.asarray(K.source(keep_l, tuple(others), 2)).astype(np.float32).copy()
-        orig = np.asarray(K.paint.img).astype(np.float32)
-        x0, y0, x1, y1 = [int(v) for v in hole]
-        for py_ in range(y0, y1):
-            r = min(py_, row_to)
-            base[py_, x0:x1, :3] = np.median(orig[r, strip[0]:strip[1], :3], axis=0)
-        from scipy import ndimage
-        base[y0:y1, x0:x1, :3] = ndimage.uniform_filter(base[y0 - 4:y1 + 4, x0:x1, :3], size=(9, 1, 1))[4:-4]
-        K._mats[key] = Image.fromarray(base.clip(0, 255).astype(np.uint8), "RGBA")
-    return K.projected(squeeze=1.0, keep=keep_l, exclude=exclude, inset=2)
+def wall_behind(K, keep, poly, others=()):
+    """A projected material for a wall painted behind a vendor: the painting inside `keep`, with the vendor's outline
+    `poly` filled row by row from the painted wall just left and right of them (blended across), and the goods in
+    `others` (boxes) filled from their nearest wall pixels. So from an angle the wall behind the cut-out is the same
+    painted wall, not a silhouette."""
+    from PIL import Image, ImageDraw
+    from scipy import ndimage
+    keep_l, others = [tuple(keep)], tuple(tuple(b) for b in others)
+    key = ("src", tuple(keep_l), others, 2)
+    base = np.asarray(K.source(keep_l, others, 2)).astype(np.float32).copy()
+    orig = np.asarray(K.paint.img).astype(np.float32)
+    h, w = orig.shape[:2]
+    m = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(m).polygon([(float(x), float(y)) for x, y in poly], fill=255)
+    mask = ndimage.binary_dilation(np.asarray(m) > 127, iterations=3)
+    bad = np.zeros((h, w), bool)
+    for x0, y0, x1, y1 in others:
+        bad[int(y0):int(y1), int(x0):int(x1)] = True
+    bad |= orig[..., 3] < 128
+    last = None
+    for row in range(h):
+        xs = np.nonzero(mask[row])[0]
+        if len(xs) == 0:
+            continue
+        l, r = xs.min(), xs.max()
+        sides = []
+        for a, b in ((l - 9, l - 2), (r + 2, r + 9)):
+            a, b = max(0, a), min(w, b)
+            ok = ~bad[row, a:b] & ~mask[row, a:b]
+            sides.append(np.median(orig[row, a:b][ok][:, :3], axis=0) if ok.sum() >= 3 else None)
+        if sides[0] is None and sides[1] is None:
+            if last is None:
+                continue
+            sides = list(last)
+        elif sides[0] is None:
+            sides[0] = sides[1]
+        elif sides[1] is None:
+            sides[1] = sides[0]
+        last = tuple(sides)
+        t = np.linspace(0, 1, r - l + 1)[:, None]
+        base[row, l:r + 1, :3] = sides[0] * (1 - t) + sides[1] * t
+    sm = ndimage.uniform_filter(base[..., :3], size=(7, 7, 1))
+    base[mask, :3] = sm[mask]
+    K._mats[key] = Image.fromarray(base.clip(0, 255).astype(np.uint8), "RGBA")
+    return K.projected(squeeze=1.0, keep=keep_l, exclude=others, inset=2)
 
 
 def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9, back=None):
@@ -2025,6 +2051,11 @@ def jar(K, cx_px, y, bottom_py, top_py, hw_px, contents_box, lid=None, name="jar
            segs=24, name=name + "_lid")
 
 
+VENDOR_F1 = [(547, 364), (566, 376), (568, 410), (582, 445), (590, 470), (592, 505), (612, 522), (628, 538),
+             (626, 560), (600, 578), (585, 590), (520, 594), (463, 580), (445, 552), (448, 528), (468, 505),
+             (475, 470), (484, 440), (503, 428), (500, 408), (512, 392), (528, 368)]
+
+
 # ====================================================================== stall F1: the snack kiosk
 @model("stall_f_1", "market", kind="prop", atlas=2048)
 def stall_f_1(K):
@@ -2055,8 +2086,7 @@ def stall_f_1(K):
     planks = ktile(K, (140, 620, 260, 740), vary=0.06)
     batten = K.colour((150, 640, 200, 700), vary=0.08)
     zt = Z(232)
-    back = wall_behind(K, (225, 245, 650, 598), (440, 360, 640, 598), (420, 438), 530,
-                       others=[(165, 240, 605, 385), (128, 465, 450, 598)])
+    back = wall_behind(K, (225, 245, 650, 598), VENDOR_F1, others=[(165, 240, 605, 385), (128, 465, 450, 598)])
     booth_shell(K, P.x(108), P.x(660), -0.3, 0.5, zt, dark, planks, batten, back=back)
     shelf = K.colour((260, 322, 560, 330), vary=0.06)
     for py_ in (325, 425):
@@ -2085,9 +2115,7 @@ def stall_f_1(K):
     snacks = K.projected(squeeze=1.0, keep=[(355, 535, 440, 570)], inset=1)
     heap_px(K, 397, -0.15, [(44, 572), (38, 560), (25, 548), (8, 540), (0, 538)], snacks, sy=0.8, name="snacks")
     # ---------------------------------------------------------------- the woman on the counter
-    K.figure([(547, 364), (566, 376), (568, 410), (582, 445), (590, 470), (592, 505), (612, 522), (628, 538),
-              (626, 560), (600, 578), (585, 590), (520, 594), (463, 580), (445, 552), (448, 528), (468, 505),
-              (475, 470), (484, 440), (503, 428), (500, 408), (512, 392), (528, 368)], y=-0.1, name="vendor")
+    K.figure(VENDOR_F1, y=-0.1, name="vendor")
     unify_cards(K)
 
 
@@ -2306,6 +2334,11 @@ def broom(K, neck, top, spread, mat, handle, rope, z_foot, flat=0.45, name="broo
             scale_y=flat * 1.5, name=name + "_handle")
 
 
+SELLER_F4 = [(430, 362), (458, 368), (472, 390), (468, 420), (462, 445), (495, 460), (510, 500), (518, 545),
+             (530, 560), (540, 590), (530, 612), (490, 620), (440, 622), (380, 622), (345, 612), (338, 585),
+             (352, 555), (365, 545), (370, 500), (385, 460), (415, 445), (408, 420), (405, 390)]
+
+
 # ====================================================================== stall F4: mats, brooms and rope
 @model("stall_f_4", "market", kind="prop", atlas=2048)
 def stall_f_4(K):
@@ -2329,7 +2362,7 @@ def stall_f_4(K):
     dark = ktile(K, (305, 380, 365, 520), vary=0.05, soften=0.5)
     wall = K.colour((140, 220, 160, 280), vary=0.08)
     batten = K.colour((75, 300, 86, 400), vary=0.08)
-    back = wall_behind(K, (100, 200, 712, 740), (330, 355, 545, 625), (312, 328), 510,
+    back = wall_behind(K, (100, 200, 712, 740), SELLER_F4,
                        others=[(80, 250, 310, 560), (500, 245, 705, 560), (0, 515, 360, 750), (475, 495, 770, 750)])
     booth_shell(K, P.x(95), P.x(712), -0.32, 0.8, Z(200), dark, wall, batten, battens=10, back=back)
     for x0, x1 in ((70, 88), (690, 708)):
@@ -2398,8 +2431,5 @@ def stall_f_4(K):
                                  (662, 574, 36, (-40, -10), -0.28)):
         coil(K, (P.x(cx), y, P.z(cy)), P.m(R), P.m(7), ropes, tilt=tilt)
     # ---------------------------------------------------------------- the old man on his seat
-    K.figure([(430, 362), (458, 368), (472, 390), (468, 420), (462, 445), (495, 460), (510, 500), (518, 545),
-              (530, 560), (540, 590), (530, 612), (490, 620), (440, 622), (380, 622), (345, 612), (338, 585),
-              (352, 555), (365, 545), (370, 500), (385, 460), (415, 445), (408, 420), (405, 390)], y=-0.05,
-             name="mat_seller")
+    K.figure(SELLER_F4, y=-0.05, name="mat_seller")
     unify_cards(K)

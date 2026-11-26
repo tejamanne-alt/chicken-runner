@@ -726,6 +726,8 @@ class Crown:
         x0, y0, x1, y1 = region or self.region
         alpha = P.rgba[..., 3]
         cx, cy = self.c
+        if layer != "front":
+            n = int(round(n * 1.3))                       # blobs cover less than rectangles: a few more of them
         placed = tries = 0
         while placed < n and tries < n * 40:
             tries += 1

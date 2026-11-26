@@ -13,7 +13,7 @@ import bmesh
 import numpy as np
 from mathutils import Matrix, Vector
 
-from kitlib import _obj, model
+from kitlib import Mat, _image, _obj, model
 from stalls_cdef import (_smooth, bamboo, basket_stack, beam, hanging_cloth, heap_px, hip_thatch, joint, ktile,
                          lashing, turned, unify_cards)
 
@@ -148,6 +148,62 @@ def quad_sheet(K, corners, mat, nu=8, nv=6, thick=0.01, sag=0.0, name="mat"):
     return K.sheet(f, nu, nv, mat, name=name, thickness=thick)
 
 
+def lean_projected(K, top_px, bot_px, squeeze=0.85, keep=None, inset=2):
+    """K.projected for a leaning pole: the painting projected through it along y, squeezed towards the pole's own
+    axis at every height (the line from bot_px to top_px), so its painted shading and node rings carry round it and
+    its ink outline does not smear over its sides."""
+    P = K.paint
+    key = ("lean", tuple(top_px), tuple(bot_px), squeeze, tuple(tuple(b) for b in keep) if keep else None, inset)
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(f"{K.name}_lean{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    x0, z0 = P.x(bot_px[0]), P.z(bot_px[1])
+    x1, z1 = P.x(top_px[0]), P.z(top_px[1])
+    k = (x1 - x0) / (z1 - z0) if abs(z1 - z0) > 1e-6 else 0.0
+    axis = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["Z"], z0), k), x0)
+    x = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["X"], axis), squeeze), axis)
+    u = op("ADD", op("DIVIDE", x, P.W), 0.5)
+    v = op("DIVIDE", sep.outputs["Z"], P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(K.source(keep, (), inset), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
+def pole(K, top_px, bot_px, rpx, y, keep, z_top=None, z_bot=0.0, nodes=0.48, squeeze=0.85, name="post", y_top=None):
+    """A bamboo post standing where it is painted (from bot_px up to top_px), at depth y (or leaning from y at its
+    foot to y_top at its top), wearing its own painted bamboo all round."""
+    P = K.paint
+    mat = lean_projected(K, top_px, bot_px, squeeze, keep)
+    zt = P.z(top_px[1]) if z_top is None else z_top
+    xb = P.x(bot_px[0])
+    xt = P.x(top_px[0])
+    k = (xt - xb) / (P.z(top_px[1]) - P.z(bot_px[1]))
+    a = (xb + (z_bot - P.z(bot_px[1])) * k, y, z_bot)
+    b = (xb + (zt - P.z(bot_px[1])) * k, y if y_top is None else y_top, zt)
+    return bamboo(K, a, b, P.m(rpx), mat, nodes=nodes, bend=0.004, taper=0.96, name=name)
+
+
 def straw_keep(rgb):
     """Card pixels for thatch: straw and palm-leaf (warm, light) and the dark ink round it, not the wall, rags or
     goods painted behind the fringe."""
@@ -271,10 +327,7 @@ def stall_g_1(K):
              ((290, 250), (292, 660), 10, ybp, [(280, 250, 302, 405)]),
              ((829, 250), (829, 660), 10, ybp, [(818, 250, 840, 395)])]
     for top_, bot, rpx, y, keep in posts:
-        mat = K.projected(axis_x=P.x((top_[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
-        zt = roof_under(y) - 0.02
-        bamboo(K, (P.x(bot[0]), y, 0.0), (P.x(top_[0]) + (P.x(top_[0]) - P.x(bot[0])) * 0.15, y, zt), P.m(rpx), mat,
-               nodes=0.48, bend=0.005, taper=0.95, name="post")
+        pole(K, top_, bot, rpx, y, keep, z_top=roof_under(y) - 0.02)
     zb = Z(232)
     for y, x0, x1 in ((yfp, 110, 995), (ybp, 265, 855)):
         z = min(zb, roof_under(y) - 0.04)
@@ -449,9 +502,7 @@ def stall_g_2(K):
              ((140, 6), (156, 688), 9, yb, [(130, 0, 152, 30), (143, 250, 165, 380)]),
              ((768, 6), (740, 688), 9, yb, [(758, 0, 780, 30), (730, 250, 756, 430)])]
     for top, bot, rpx, y, keep in posts:
-        mat = K.projected(axis_x=P.x((top[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
-        bamboo(K, P.pt(bot[0], 688, y), P.pt(top[0], top[1], y), P.m(rpx), mat, nodes=0.5, bend=0.005, taper=0.95,
-               name="post")
+        pole(K, top, bot, rpx, y, keep, nodes=0.5)
     stubs = [((5, 190), (80, 190), yf, (62, 190)), ((830, 190), (897, 190), yf, (846, 190)),
              ((100, 40), (178, 40), yb, (141, 40)), ((760, 42), (828, 42), yb, (767, 42))]
     for a, b, y, j in stubs:
@@ -561,3 +612,208 @@ def stall_g_2(K):
     K.box(P.x(560), P.x(740), 0.5, 0.9, 0.0, 0.34, tin, bevel=0.012, name="trunk")
     K.box(P.x(556), P.x(744), 0.49, 0.91, 0.34, 0.37, tin, bevel=0.01, name="trunk_lid")
     K.box(P.x(640), P.x(660), 0.485, 0.495, 0.25, 0.35, K.colour((0.55, 0.45, 0.2), vary=0.05), name="hasp")
+
+
+# ====================================================================== stall G3: the banana stall
+def loft(K, rings, mat, segs=16, name="loft", smooth=True):
+    """A closed round body through rings [(cx, cy, z, rx, ry), ...] (metres) from the top down, capped at both ends:
+    a bunch, a sack, a bundle whose outline is traced off the painting ring by ring."""
+    bm = bmesh.new()
+    vs = []
+    for cx, cy, z, rx, ry in rings:
+        vs.append([bm.verts.new((cx + rx * math.cos(2 * math.pi * i / segs), cy + ry * math.sin(2 * math.pi * i / segs), z))
+                   for i in range(segs)])
+    for r0, r1 in zip(vs, vs[1:]):
+        for i in range(segs):
+            j = (i + 1) % segs
+            bm.faces.new([r0[i], r0[j], r1[j], r1[i]])
+    for ring, (cx, cy, z, _, _) in ((vs[0], rings[0]), (vs[-1], rings[-1])):
+        c = bm.verts.new((cx, cy, z))
+        for i in range(segs):
+            bm.faces.new([ring[i], ring[(i + 1) % segs], c])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=smooth)
+    K.parts.append(ob)
+    return ob
+
+
+def mask_rings(K, box, py0, py1, step=10, alpha=0.5):
+    """The painted outline of a thing inside box, row by row from py0 down to py1: [(py, centre px, half-width px)],
+    a little smoothed."""
+    P = K.paint
+    a = P.rgba[..., 3]
+    x0, _, x1, _ = [int(v) for v in box]
+    out = []
+    for py in np.arange(py0, py1 + 0.1, step):
+        row = np.nonzero(a[int(min(P.h - 1, py)), x0:x1] > alpha)[0]
+        if len(row) == 0:
+            continue
+        l, r = x0 + row[0], x0 + row[-1]
+        out.append([float(py), (l + r) / 2, (r - l) / 2])
+    arr = np.array(out)
+    if len(arr) > 2:
+        for k in (1, 2):
+            arr[1:-1, k] = (arr[:-2, k] + 2 * arr[1:-1, k] + arr[2:, k]) / 4
+    return [tuple(r) for r in arr]
+
+
+def banana_bunch(K, box, py0, py1, y, mat, core=0.7, depth=0.82, hands=5, per=10, finger=None, scale=1.0, dz=0.0,
+                 name="bunch"):
+    """A hanging bunch of bananas traced off the painting: a core the shape of the painted bunch (inside box, from
+    py0 down to py1, its stalk trimmed off) hung at depth y, wrapped in hands of curved fingers lying up its sides,
+    their tips a little proud, so it reads as fingers from every side and keeps the painted outline from the front.
+    scale / dz: a smaller copy (hung behind, hidden from the front). Returns the core's rings."""
+    P = K.paint
+    rows = mask_rings(K, box, py0, py1, 6)
+    mx = max(r[2] for r in rows)
+    while len(rows) > 3 and rows[0][2] < 0.5 * mx:
+        rows = rows[1:]
+    while len(rows) > 3 and rows[-1][2] < 0.32 * mx:
+        rows = rows[:-1]
+    zc = P.z((rows[0][0] + rows[-1][0]) / 2)
+    rings = []
+    for py, cx, hw in rows:
+        z = zc + (P.z(py) - zc) * scale + dz
+        r = P.m(hw) * core * scale
+        rings.append((P.x(cx), y, z, r, r * depth))
+    t, bt = rings[0], rings[-1]
+    rings = ([(t[0], y, t[2] + 0.035 * scale, t[3] * 0.45, t[4] * 0.45), (t[0], y, t[2] + 0.02 * scale, t[3] * 0.82, t[4] * 0.82)]
+             + rings + [(bt[0], y, bt[2] - 0.03 * scale, bt[3] * 0.5, bt[4] * 0.5)])
+    loft(K, rings, mat, segs=14, name=name)
+    fl = finger or P.m(56) * scale
+    fr = fl * 0.19
+    import market_props as MP
+    z_top, z_bot = rings[1][2], rings[-2][2]
+    zs = [r[2] for r in rings]
+
+    def ring_at(z):
+        for r0, r1 in zip(rings, rings[1:]):
+            if r1[2] <= z <= r0[2]:
+                f = (z - r1[2]) / max(1e-6, r0[2] - r1[2])
+                return [r1[k] + (r0[k] - r1[k]) * f for k in range(5)]
+        return list(rings[0] if z > zs[0] else rings[-1])
+    for k in range(hands):
+        zh = z_top - fl * 0.55 - (z_top - z_bot - fl * 0.75) * k / max(1, hands - 1)
+        cx, cy, _, rx, ry = ring_at(zh)
+        ph = K.rng.uniform(0, 6.28)
+        for j in range(per):
+            a = ph + 2 * math.pi * (j + K.rng.uniform(-0.15, 0.15)) / per
+            n = Vector((math.cos(a), math.sin(a), 0))
+            rb = Vector((rx * math.cos(a), ry * math.sin(a), 0))
+            base = Vector((cx, cy, zh - fl * 0.42)) + rb * 0.92
+            tip = Vector((cx, cy, zh + fl * 0.45)) + rb * 1.0 + n * fr * 0.9
+            MP.pod(K, tuple(base), tuple(tip), fr, fr * 0.55, mat, bend=tuple(n * fr * 0.9), n=4, seg=5,
+                   name=name + "_finger")
+    return rings
+
+
+def stalk(K, pts_px, y, r_px, mat, name="stalk"):
+    """A banana stalk (or any cut stem) through painted points, with its cut end."""
+    P = K.paint
+    pts = [(P.x(px), y, P.z(py)) for px, py in pts_px]
+    return K.tube(pts, [P.m(r_px) * (1.0 - 0.15 * i / max(1, len(pts) - 1)) for i in range(len(pts))], mat, segments=8,
+                  name=name)
+
+
+@model("stall_g_3", "market", kind="prop", atlas=2048)
+def stall_g_3(K):
+    """A banana stall: a hipped roof of woven green coconut leaf on four bamboo posts, a bamboo ridge pole on lashed
+    king posts, and bunches of raw green and ripe yellow bananas hung on strings from its beams in two rows, a third
+    row hung behind them."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.12, 0.09, 0.04), vary=0.1)
+    bam = K.colour((125, 520, 140, 600), vary=0.08)
+    string = K.colour((0.45, 0.42, 0.36), vary=0.05)
+    yfp, ybp = -0.55, 0.75
+    # ---------------------------------------------------------------- posts and the frame under the roof
+    posts = [((132, 195), (130, 672), 12, yfp, [(118, 190, 147, 255), (118, 505, 147, 672)]),
+             ((882, 195), (884, 672), 12, yfp, [(868, 190, 897, 240), (868, 470, 897, 672)]),
+             ((240, 200), (240, 672), 10, ybp, [(228, 200, 252, 250), (228, 495, 252, 672)]),
+             ((762, 200), (762, 672), 10, ybp, [(750, 200, 774, 240), (750, 520, 774, 672)])]
+    zb = Z(204)
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, z_top=zb + 0.05, nodes=0.5)
+    for (xf, xb_) in ((132, 240), (882, 762)):
+        bamboo(K, (P.x(xf), yfp - 0.1, zb), (P.x(xb_), ybp + 0.1, zb), P.m(8), bam, node_at=[0.5], taper=1.0,
+               name="tie")
+        lashing(K, (P.x(xf), yfp, zb), (0, 0, 1), P.m(12), rope, turns=2.5)
+        lashing(K, (P.x(xb_), ybp, zb), (0, 0, 1), P.m(10), rope, turns=2.5)
+    # the side eave poles (their cut ends poke out under the roof's front corners), the beams the bunches hang from
+    for (fx, fz), (bx, bz) in (((42, 196), (110, 180)), ((978, 190), (915, 176))):
+        bamboo(K, (P.x(fx), -1.25, Z(fz)), (P.x(bx), 1.22, Z(bz)), P.m(11), bam, node_at=[0.3, 0.7], taper=1.0,
+               name="eave_pole")
+    yrow = (-0.98, -0.3, 0.4)
+    for y in yrow:
+        t = (y - (yfp - 0.1)) / (ybp - yfp + 0.2)
+        xl = P.x(132) + (P.x(240) - P.x(132)) * max(0.0, t)
+        xr = P.x(882) + (P.x(762) - P.x(882)) * max(0.0, t)
+        if y < yfp:
+            xl, xr = P.x(60), P.x(960)
+        bamboo(K, (xl - 0.06, y, zb + 0.03), (xr + 0.06, y, zb + 0.03), P.m(8), bam, node_at=[0.25, 0.5, 0.75],
+               taper=1.0, name="beam")
+    # ---------------------------------------------------------------- the woven palm-leaf roof
+    weave = ktile(K, (300, 60, 700, 175), vary=0.06)
+    ye0, ye1 = -1.2, 1.2
+    hip_thatch(K, P.x(48), P.x(975), ye0, ye1, Z(196), P.x(170), P.x(855), 0.0, Z(48), weave, thick=0.05,
+               shag=0.012, fringe=P.m(6), nu=110, nv=6)
+    for x_px in np.linspace(160, 860, 7):
+        x = P.x(x_px)
+        K.tube([(x, ye0 + 0.12, Z(196) + 0.02), (x, 0.0, Z(48) - 0.04), (x, ye1 - 0.12, Z(196) + 0.02)], P.m(5), bam,
+               segments=6, name="rafter")
+    posts_x = [(118, 147), (868, 897), (228, 252), (750, 774)]
+
+    def leaf_ends(rgb, x0=0):
+        k = straw_keep(rgb)
+        for a, b in posts_x:
+            k[:, max(0, a - x0):max(0, b - x0)] = False
+        return k
+    fringe_cards(K, (0, 178, 1015, 222), ye0 - 0.02, ye1 + 0.02, P.x(48) - 0.04, P.x(975) + 0.04, keep=leaf_ends,
+                 pitch=10)
+    ridge = K.projected(squeeze=1.0, keep=[(145, 26, 882, 46)], inset=1)
+    bamboo(K, P.pt(145, 36, 0.0), P.pt(882, 36, 0.0), P.m(9), ridge, node_at=[0.2, 0.33, 0.5, 0.62, 0.8], taper=1.0,
+           name="ridge_pole")
+    for x_px in (183, 830):
+        kp = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=[(x_px - 13, 6, x_px + 13, 30)], inset=1)
+        bamboo(K, (P.x(x_px), 0.04, zb + 0.03), (P.x(x_px), 0.04, Z(8)), P.m(11), kp, node_at=[], taper=1.0,
+               name="king_post")
+        joint(K, P.pt(x_px, 35, 0.04), (0, 0, 1), (1, 0, 0), P.m(11), rope)
+    # ---------------------------------------------------------------- the bunches
+    stem = K.colour((165, 520, 180, 570), vary=0.1)
+    bunches = [  # box, body top py, bottom py, row, top stalk px, bottom stalk px, hands, per hand
+        ((58, 230, 196, 520), 262, 505, 0, [(150, 236), (148, 262)], [(166, 500), (172, 545), (178, 582)], 6, 10),
+        ((150, 225, 252, 500), 262, 482, 1, [(210, 230), (212, 262)], [(218, 478), (226, 500), (232, 515)], 5, 8),
+        ((250, 235, 360, 505), 262, 490, 0, [(306, 238), (310, 262)], [(310, 490), (310, 528)], 6, 9),
+        ((352, 240, 442, 420), 260, 410, 1, [(400, 238), (402, 258)], [], 4, 8),
+        ((440, 268, 548, 360), 280, 350, 0, [(490, 270), (490, 290)], [], 2, 10),
+        ((548, 230, 648, 470), 255, 455, 1, [(600, 236), (600, 258)], [(598, 455), (595, 466)], 5, 8),
+        ((645, 235, 752, 505), 258, 480, 0, [(695, 240), (695, 260)], [(690, 478), (688, 500)], 6, 9),
+        ((752, 235, 852, 520), 258, 490, 1, [(800, 238), (800, 258)], [(790, 490), (785, 515)], 6, 8),
+        ((835, 222, 958, 475), 255, 455, 0, [(888, 226), (890, 256)], [(898, 455), (900, 470)], 5, 9),
+    ]
+    mats = []
+    for box, t, b, row, top, bot, hands, per in bunches:
+        y = yrow[row]
+        cx = (box[0] + box[2]) / 2
+        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(box[0], t - 6, box[2], b + 8)], inset=2)
+        mats.append(m)
+        banana_bunch(K, box, t - 14, b + 6, y, m, hands=hands, per=per)
+        stalk(K, top, y, 7, stem, name="stalk")
+        if bot:
+            stalk(K, bot, y, 8, stem, name="stalk")
+            K.lathe([(P.m(8), -0.005), (P.m(8), 0.0), (0.0, 0.002)], K.colour((0.5, 0.45, 0.25), vary=0.05), segments=8,
+                    centre=(P.x(bot[-1][0]), y, P.z(bot[-1][1])), name="cut_end")
+        K.tube([(P.x(top[0][0]), y, P.z(top[0][1])), (P.x(top[0][0]), y, zb + 0.02)], 0.004, string, segments=4,
+               name="string")
+    # the row hung behind them (hidden from the front behind the big bunches): the same bananas, swapped round
+    for k, (src, at) in enumerate(((6, 0), (0, 2), (8, 6), (2, 8))):
+        box, t, b = bunches[at][0], bunches[at][1], bunches[at][2]
+        sbox, st, sb = bunches[src][0], bunches[src][1], bunches[src][2]
+        cx, scx = (box[0] + box[2]) / 2, (sbox[0] + sbox[2]) / 2
+        m = K.projected(axis_x=P.x(cx), squeeze=0.9, dx=P.x(scx) - P.x(cx), dz=P.z((st + sb) / 2) - P.z((t + b) / 2),
+                        keep=[(sbox[0], st - 6, sbox[2], sb + 8)], inset=2)
+        rings = banana_bunch(K, box, t - 14, b + 6, yrow[2], m, hands=4, per=8, scale=0.85, dz=0.04)
+        K.tube([(rings[0][0], yrow[2], rings[0][2]), (rings[0][0], yrow[2], zb + 0.02)], P.m(7), stem, segments=8,
+               name="stalk")
+    unify_cards(K)

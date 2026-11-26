@@ -1,0 +1,10 @@
+{
+ "name": "hand_pump",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 1.304,
+ "height": 1.2,
+ "depth": 1.029,
+ "faces": 4263,
+ "source": "blender"
+}
