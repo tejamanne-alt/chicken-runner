@@ -1053,3 +1053,127 @@ def stall_d_1(K):
     cluster(K, P.x(240), -0.6, Z(625), P.m(72), P.m(60), P.m(70), 22, P.m(24), bunch)
     K.tube([P.pt(262, 600, -0.6), P.pt(300, 545, -0.6), P.pt(322, 520, -0.62)], [P.m(12), P.m(11), P.m(9)], stalk,
            segments=8, name="stalk_cut")
+
+
+def rope_bed(K, x0, x1, y0, y1, z0, z1, mat, pitch=0.055, r=0.006, name="cord"):
+    """The woven rope bed of a string cot, from its front rail (y0, z0) to its back rail (y1, z1): cords strung
+    across and along, sagging a little, with the gaps between them open."""
+    def z_at(y, sag):
+        t = (y - y0) / (y1 - y0)
+        return z0 + (z1 - z0) * t - sag * math.sin(math.pi * t)
+    n_along = max(2, int((y1 - y0) / pitch))
+    for i in range(1, n_along):
+        y = y0 + (y1 - y0) * i / n_along
+        pts = [(x0 + (x1 - x0) * k / 6, y, z_at(y, 0.02) - 0.012 * math.sin(math.pi * k / 6)) for k in range(7)]
+        K.tube(pts, r, mat, segments=4, name=name)
+    n_across = max(2, int((x1 - x0) / (pitch * 1.3)))
+    for i in range(1, n_across):
+        x = x0 + (x1 - x0) * i / n_across
+        pts = [(x, y0 + (y1 - y0) * k / 4, z_at(y0 + (y1 - y0) * k / 4, 0.02) + 0.004) for k in range(5)]
+        K.tube(pts, r, mat, segments=4, name=name)
+
+
+def wrap(K, a, b, r, mat, pitch=0.11, rope=0.007, name="wrap"):
+    """Rope wound round a rail from a to b (a helix of the given pitch)."""
+    a, b = Vector(a), Vector(b)
+    L = (b - a).length
+    ax = (b - a).normalized()
+    u = Vector((0, 0, 1)) if abs(ax.z) < 0.9 else Vector((1, 0, 0))
+    u = (u - ax * u.dot(ax)).normalized()
+    w = ax.cross(u)
+    n = max(1, int(L / pitch))
+    pts = []
+    for i in range(n * 6 + 1):
+        t = i / (n * 6)
+        ang = 2 * math.pi * n * t
+        pts.append(tuple(a + ax * (L * t) + (u * math.cos(ang) + w * math.sin(ang)) * (r + rope)))
+    return K.tube(pts, rope, mat, segments=5, name=name)
+
+
+# ====================================================================== stall D2: pots and jaggery
+@model("stall_d_2", "market", kind="prop", atlas=2048)
+def stall_d_2(K):
+    """A potter's and jaggery seller's pitch: an indigo cloth slung from four bamboo posts with lashed cross-stubs,
+    over a string cot propped up at the back, with four clay pots (painted white bands) on its rope-wound end and
+    blocks of palm jaggery on a banana leaf at the other."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.1
+    yf, yb = -0.62, 0.62
+    rope = K.colour((0.1, 0.06, 0.03), vary=0.1)
+    bam = K.colour((60, 300, 75, 400), vary=0.08)
+    # ---------------------------------------------------------------- posts and stubs
+    posts = [  # (top px, bottom px, radius px, y, keep)
+        ((57, 172), (80, 705), 12, yf, [(40, 165, 92, 705)]),
+        ((885, 170), (860, 705), 13, yf, [(845, 165, 902, 705)]),
+        ((158, 10), (180, 705), 10, yb, [(145, 0, 172, 70), (150, 280, 192, 700)]),
+        ((785, 10), (768, 705), 10, yb, [(772, 0, 798, 68), (752, 275, 790, 610)]),
+    ]
+    for top, bot, rpx, y, keep in posts:
+        mat = K.projected(axis_x=P.x((top[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
+        bamboo(K, P.pt(bot[0], 713, y), P.pt(top[0], top[1], y), P.m(rpx), mat, nodes=0.45, bend=0.006, taper=0.95,
+               name="post")
+    stubs = [((8, 222), (75, 220), yf, (57, 225)), ((868, 215), (932, 213), yf, (885, 218)),
+             ((106, 68), (175, 68), yb, (158, 66)), ((768, 66), (832, 66), yb, (785, 64))]
+    for a, b, y, j in stubs:
+        bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(11), bam, node_at=[0.55], taper=1.0, name="stub")
+        joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(12), rope)
+    # the back bar the cloth's back edge is tied along
+    bamboo(K, P.pt(160, 74, yb + 0.03), P.pt(785, 72, yb + 0.03), P.m(8), bam, node_at=[0.3, 0.62], taper=1.0,
+           name="back_bar")
+    # ---------------------------------------------------------------- the cloth
+    cloth = K.projected(squeeze=1.0, keep=[(60, 55, 885, 285)],
+                        exclude=[(30, 160, 82, 250), (860, 160, 912, 250), (140, 40, 178, 90), (770, 40, 805, 88)],
+                        inset=3)
+    under = ktile(K, (300, 100, 600, 200), vary=0.05, soften=0.3)
+    awning(K, P.pt(66, 232, yf + 0.03), P.pt(876, 230, yf + 0.03), P.pt(160, 66, yb - 0.02), P.pt(782, 64, yb - 0.02),
+           cloth, sag_front=P.m(50), sag_back=P.m(12), belly=0.05, sag_side=0.02, under=under, nu=40, nv=18)
+    # ---------------------------------------------------------------- the string cot, propped up at its back
+    cyf, cyb = -0.42, 0.36
+    zf, zb = Z(658), Z(607)
+    rr = P.m(12)
+    rail = K.projected(squeeze=1.0, keep=[(150, 645, 800, 672)], inset=2)
+    cotw = K.colour((600, 650, 700, 665), vary=0.08)
+    block = K.projected(squeeze=1.0, keep=[(108, 622, 152, 700), (388, 620, 428, 700), (793, 622, 832, 700)], inset=2)
+    K.tube([(P.x(118), cyf, zf), (P.x(822), cyf, zf)], rr, rail, segments=10, name="rail_front")
+    K.tube([(P.x(118), cyb, zb), (P.x(822), cyb, zb)], rr * 0.85, cotw, segments=10, name="rail_back")
+    for x_px in (130, 812):
+        K.tube([(P.x(x_px), cyf, zf), (P.x(x_px), cyb, zb)], rr * 0.85, cotw, segments=10, name="rail_side")
+    for x_px, (x0, x1) in ((130, (110, 150)), (408, (390, 426)), (812, (795, 830))):
+        for y, ztop in ((cyf, Z(624)), (cyb, zb + 0.06)):
+            K.box(P.x(x0), P.x(x1), y - 0.05, y + 0.05, ztop - P.m(40), ztop, block, bevel=0.008, name="leg_block")
+            K.box(P.x(x0) + 0.008, P.x(x1) - 0.008, y - 0.042, y + 0.042, 0.0, ztop - P.m(40), block, bevel=0.006,
+                  name="leg")
+    rope_bed(K, P.x(135), P.x(808), cyf + 0.02, cyb - 0.02, zf - 0.005, zb - 0.005,
+             K.colour((470, 618, 520, 628), vary=0.1), pitch=0.06)
+    wrap(K, (P.x(152), cyf, zf), (P.x(388), cyf, zf), rr, K.colour((250, 650, 262, 668), vary=0.1), pitch=P.m(17))
+
+    def bed(y):
+        return zf + (zb - zf) * (y - cyf) / (cyb - cyf)
+    # ---------------------------------------------------------------- the pots
+    pots = [  # (cx, profile [(hw, py)], y)
+        (262, [(45, 560), (68, 520), (70, 505), (55, 488), (38, 472), (36, 462), (40, 455), (35, 451)], 0.18),
+        (360, [(32, 622), (55, 605), (63, 572), (55, 535), (35, 518), (32, 512), (36, 506), (33, 503)], 0.05),
+        (220, [(40, 646), (65, 625), (75, 585), (72, 555), (55, 530), (45, 518), (50, 510), (52, 500), (48, 497)], -0.2),
+        (338, [(25, 647), (42, 635), (47, 612), (42, 592), (27, 580), (22, 574), (26, 570), (24, 566)], -0.3),
+    ]
+    inside = K.colour((0.06, 0.025, 0.012), vary=0.05)
+    for cx, prof, y in pots:
+        x0, x1 = cx - max(r for r, _ in prof), cx + max(r for r, _ in prof)
+        mat = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(x0, prof[-1][1] - 4, x1, prof[0][1])], inset=3)
+        prof_m = [(P.m(r), P.z(py)) for r, py in prof]
+        prof_m[0] = (prof_m[0][0], min(prof_m[0][1], bed(y) - 0.005))
+        K.lathe(prof_m, mat, segments=32, centre=(P.x(cx), y, 0.0), wobble=0.01, name="pot", cap=True)
+        rim_r, rim_z = prof_m[-1]
+        K.lathe([(rim_r * 0.92, rim_z + 0.002), (rim_r * 0.8, rim_z - 0.05), (0.0, rim_z - 0.07)], inside, segments=24,
+                centre=(P.x(cx), y, 0.0), name="pot_mouth", cap=False)
+    # ---------------------------------------------------------------- the jaggery on its leaf
+    leaf = K.colour((690, 655, 740, 672), vary=0.12)
+    leaf_sheet(K, (P.x(690), cyf + 0.25), 0.62, 0.3, 75, leaf, surface=lambda x, y: bed(y) + 0.01, curl=0.01,
+               name="banana_leaf")
+    jag = K.projected(squeeze=1.0, keep=[(640, 552, 772, 652)], inset=2)
+    for (x0, x1, top, bot), y, rz in (((640, 700, 590, 648), -0.18, 8), ((697, 770, 596, 652), -0.16, -6),
+                                      ((680, 740, 555, 610), -0.1, 4)):
+        zb_ = bed(y) + 0.015 if bot > 640 else Z(bot)
+        K.block(P.x((x0 + x1) / 2), y, (zb_ + Z(top)) / 2, P.m(x1 - x0), P.m(x1 - x0) * 0.9, Z(top) - zb_, jag,
+                rot=(0, 0, rz), bevel=0.01, name="jaggery")

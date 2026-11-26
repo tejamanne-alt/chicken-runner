@@ -1088,3 +1088,81 @@ def canal_piece_4(K):
     # the sill across the channel's floor
     sill = K.colour((40, 170, 150, 190), vary=0.1, pct=40)
     K.box(P.x(162), P.x(388), d0, d1, -0.02, 0.04, sill, name="sill")
+
+
+@fmodel("sluice_gate", "fields", kind="prop", atlas=1024)
+def sluice_gate(K):
+    """A field-channel sluice: a plank gate with iron bolts between two pillars of rough stone, raised by a brass
+    screw through a crossbar with a T-handle; low stone walls lining the channel in front of it, water running out
+    under the gate between them, ferns and stones at their feet. Built true, then raised towards the back as the
+    painting looks down on it (the water and the walls' tops face us as painted)."""
+    P = K.paint
+    K.front_min = 0.1
+    k, zg = 0.35, P.z(240)                                  # the look-down; the water's level at the gate
+
+    def ydep(py):                                           # true depth of a painted point on the water
+        return (P.z(py) - zg) / k
+    stone = K.tile((100, 110, 140, 240), soften=0.3, vary=0.05)
+    wall = K.tile((40, 176, 96, 270), soften=0.3, vary=0.05)
+    wood = K.tile((160, 125, 265, 200), soften=0.15, vary=0.05)
+    brass = K.projected(squeeze=1.0, keep=[(140, 4, 282, 116)], inset=2)
+    parts = []
+    # the pillars: two rough blocks each, either side of the gate
+    for x0, x1 in ((93, 151), (271, 330)):
+        w = P.m(x1 - x0)
+        parts.append(K.block((P.x(x0) + P.x(x1)) / 2, 0.0, (zg - 0.25 + P.z(100)) / 2, w, 0.34, P.z(100) - zg + 0.25,
+                             stone, bevel=0.03, jitter=0.01, name="pillar"))
+        parts.append(K.block((P.x(x0) + P.x(x1)) / 2, 0.0, (P.z(100) + P.z(66)) / 2 + 0.01, w * 0.98, 0.33,
+                             P.z(66) - P.z(100), stone, bevel=0.03, jitter=0.01, name="pillar_top"))
+    # the gate: planks with a rail and bolts, in the gap between the pillars
+    for i in range(6):
+        x0 = 151 + (271 - 151) * i / 6
+        parts.append(K.box(P.x(x0) + 0.004, P.x(x0 + 20) - 0.004, -0.03, 0.04, zg - 0.1, P.z(117), wood, bevel=0.006,
+                           name="plank"))
+    parts.append(K.box(P.x(153), P.x(272), -0.07, -0.03, P.z(230), P.z(205), wood, bevel=0.008, name="rail"))
+    iron = K.colour((157, 128, 170, 140), vary=0.1)
+    for px, py in ((163, 135), (264, 135), (165, 218), (262, 218)):
+        parts.append(K.lathe([(P.m(7), 0.0), (P.m(6), 0.012), (0.0, 0.02)], iron, segments=10,
+                             centre=(P.x(px), 0.0, 0.0), name="bolt"))
+        rotate(parts[-1], -90, "X", (P.x(px), 0.0, 0.0))
+        for v in parts[-1].data.vertices:
+            v.co.y -= 0.07 if py > 200 else 0.03
+            v.co.z += P.z(py)
+    # the screw: a threaded rod through a crossbar between the pillars, the T-handle on top
+    parts.append(K.tube([P.pt(146, 90), P.pt(278, 90)], P.m(9), brass, segments=10, name="crossbar"))
+    parts.append(K.box(P.x(188), P.x(227), -0.07, 0.07, P.z(103), P.z(78), brass, bevel=0.015, name="nut"))
+    parts.append(K.tube([P.pt(207, 117), P.pt(207, 22)], P.m(9), brass, segments=12, name="screw"))
+    pts = [(P.x(207) + P.m(10) * math.cos(i * 0.55), P.m(10) * math.sin(i * 0.55),
+            P.z(112) + (P.z(32) - P.z(112)) * i / 119) for i in range(120)]
+    parts.append(K.tube(pts, P.m(2.8), brass, segments=5, name="thread"))
+    parts.append(K.box(P.x(193), P.x(224), -0.06, 0.06, P.z(28), P.z(8), brass, bevel=0.012, name="cap"))
+    parts.append(K.tube([P.pt(146, 17), P.pt(266, 17)], P.m(6.5), brass, segments=10, name="handle"))
+    for x in (146, 266):
+        parts.append(K.lathe([(0.0, P.z(28)), (P.m(9), P.z(25)), (P.m(9), P.z(9)), (0.0, P.z(6))], brass,
+                             segments=10, centre=(P.x(x), 0, 0), name="knob"))
+        rotate(parts[-1], 90, "Y", (P.x(x), 0, P.z(17)))
+    # the low walls lining the channel, from the pillars out towards us
+    for x0, x1, front in ((32, 128, 280), (300, 392, 282)):
+        yf = ydep(front)
+        top = P.z(170) - k * yf
+        parts.append(K.block((P.x(x0) + P.x(x1)) / 2, (yf - 0.17) / 2, (zg - 0.2 + top) / 2, P.m(x1 - x0), -0.17 - yf,
+                             top - zg + 0.2, wall, bevel=0.03, jitter=0.012, name="wall"))
+    # the water: out under the gate and down the channel towards us; and still behind the gate
+    wtile = K.tile((150, 252, 300, 300), vary=0.04)
+    opaque = alpha_at(K)
+    relief(K, lambda px, py: opaque(px, py) and 96 <= px <= 338 and py >= 236,
+           lambda px, py: ydep(max(py, 240)) - 0.03, wtile, step=4, box=(90, 232, 345, 323), name="water")
+    parts.append(K.box(P.x(150), P.x(272), 0.05, 0.7, zg - 0.04, zg + 0.02, wtile, name="water_behind"))
+    shear(K, k, 0.0, parts=parts)
+    # ferns on the walls and at their feet, stones in the water's edge
+    K.leaves_only((0, 100, 419, 323), grass_pixels)
+    for box, y in (((8, 104, 112, 192), -0.25), ((8, 222, 108, 292), -0.62), ((312, 106, 412, 190), -0.25),
+                   ((312, 232, 412, 292), -0.62)):
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, y), name="fern", normal=(0, -0.3, 1))
+        for j in range(2):
+            K.card_from_painting(box, (P.x(cx + K.rng.uniform(-15, 15)), y + K.rng.uniform(0.1, 0.35), P.z(cy)),
+                                 yaw=K.rng.uniform(-80, 80), name="fern", normal=(0, -0.3, 1))
+    pebbles = K.projected(squeeze=1.0, keep=[(18, 278, 92, 306), (332, 282, 402, 306)], inset=2)
+    for px, w in ((40, 34), (75, 30), (355, 30), (388, 26)):
+        K.boulder(P.x(px), ydep(300) + 0.05, P.z(300) + P.m(8), P.m(w), P.m(w) * 0.8, P.m(16), pebbles, name="stone")

@@ -1950,3 +1950,223 @@ def house_being_built(K):
                                   ((1900, 760), (2300, 995), -1.15), ((1780, 680), (2200, 1000), -0.7)):
         K.tube([P.pt(ax, ay, y + 0.3), P.pt(bx, by, y)], r, bamboo, segments=8, name="pole_leaning")
     drop_ground_faces(K)
+
+
+def hip_roof_tiles(K, eave, ridge, ze, zr, mat, courses, ym=None, nu=40, name="roof"):
+    """A hipped roof of country tiles: eave (x0, x1, y0, y1) at ze, ridge (x0, x1) at zr over ym (default the
+    middle): two long slopes and two hip ends, each in `courses` rows."""
+    ex0, ex1, ey0, ey1 = eave
+    rx0, rx1 = ridge
+    ym = (ey0 + ey1) / 2 if ym is None else ym
+    tiled_quad(K, [(ex0, ey0, ze), (ex1, ey0, ze), (rx1, ym, zr), (rx0, ym, zr)], mat, courses, nu=nu, name=name)
+    tiled_quad(K, [(ex1, ey1, ze), (ex0, ey1, ze), (rx0, ym, zr), (rx1, ym, zr)], mat, courses, nu=nu, name=name)
+    tiled_quad(K, [(ex0, ey1, ze), (ex0, ey0, ze), (rx0, ym, zr), (rx0, ym, zr)], mat, courses, nu=8, name=name)
+    tiled_quad(K, [(ex1, ey0, ze), (ex1, ey1, ze), (rx1, ym, zr), (rx1, ym, zr)], mat, courses, nu=8, name=name)
+
+
+@model("house_tiled_gate", "lane", kind="building", atlas=2048)
+def house_tiled_gate(K):
+    """A compound: a lime-washed wall with two square pillars and a wooden double gate with iron strap hinges and a
+    bolt, a mango tree inside it hung with mangoes, a tiled house set back in the courtyard, and at the right the
+    family's tiled house standing on the lane with a blue barred window, its rafter ends under the eave, a ledge with
+    pots along its foot."""
+    from trees import fruit, limb
+    from kitlib import foliage_pixels
+    P = K.paint
+    D, Ys, Db = 5.5, 3.6, 4.0                    # the house on the lane; the set-back house's front and depth
+    K.front_min = 0.1
+    halo_exclude(K, [(0, 0, 2088, 1114)])
+    plaster = K.tile((100, 720, 300, 880), size=1.0, vary=0.04, soften=0.5)
+    house_w = K.tile((1200, 640, 1420, 940), size=1.2, vary=0.04, soften=0.5)
+    pillar = K.tile((520, 700, 580, 900), size=0.5, vary=0.04, soften=0.5)
+    roof_m = K.tile((1250, 280, 1650, 480), vary=0.04, soften=0.1)
+    roof_b = K.tile((880, 440, 1030, 590), size=P.m(280), vary=0.04, soften=0.1)   # clear of the mango's leaves
+    earth = K.colour((1200, 1062, 1700, 1095), vary=0.1, scale=8)
+    ledge = K.colour((1300, 1045, 1700, 1055), vary=0.06)
+    wood = K.tile((650, 700, 860, 980), vary=0.04)
+    post = K.colour((600, 700, 615, 1000), vary=0.06)
+    iron = K.colour((0.05, 0.05, 0.06), vary=0.05)
+    blue = K.colour((1450, 700, 1462, 800), vary=0.05)
+    dark = K.colour((0.04, 0.04, 0.06), vary=0.0)
+    timber = K.colour((1200, 565, 1235, 585), vary=0.08)
+    zg = P.z(1100)
+    K.box(P.x(25), P.x(1990), -0.55, 7.9, 0.0, zg, earth, name="ground")
+    # the compound wall: front, the pillars and the gate, round the left side and the back of the courtyard
+    t = 0.25
+    K.box(P.x(30), P.x(502), 0.0, t, zg, P.z(660), plaster, bevel=0.03, name="wall")
+    K.box(P.x(1004), P.x(1145), 0.0, t, zg, P.z(657), plaster, bevel=0.03, name="wall")
+    K.box(P.x(30), P.x(30) + t, 0.0, Ys + Db, zg, P.z(660), plaster, bevel=0.03, name="wall_side")
+    K.box(P.x(30), P.x(681), Ys + Db - t, Ys + Db, zg, P.z(660), plaster, bevel=0.03, name="wall_back")
+    for x0, x1 in ((502, 585), (915, 1004)):
+        K.box(P.x(x0), P.x(x1), -0.08, t + 0.08, zg, P.z(634), pillar, bevel=0.02, name="gate_pillar")
+    for x0, x1 in ((585, 625), (890, 915)):
+        K.box(P.x(x0), P.x(x1), 0.02, 0.2, zg, P.z(664), post, bevel=0.006, name="gate_post")
+    # the gate: two plank leaves, strap hinges and a bolt; battens and a brace behind
+    for x0, x1 in ((625, 757), (757, 890)):
+        K.box(P.x(x0) + 0.004, P.x(x1) - 0.004, 0.08, 0.13, P.z(1078), P.z(667), wood, name="gate_leaf")
+        for py in (705, 1005):
+            K.box(P.x(x0) + 0.05, P.x(x1) - 0.05, 0.13, 0.16, P.z(py + 16), P.z(py), wood, name="gate_batten")
+        K.block((P.x(x0) + P.x(x1)) / 2, 0.145, (P.z(1005) + P.z(721)) / 2, 0.06, 0.03,
+                math.hypot(P.m(x1 - x0) - 0.1, P.z(721) - P.z(1005)), wood,
+                rot=(0, math.degrees(math.atan2(P.m(x1 - x0) - 0.1, P.z(721) - P.z(1005))) * (1 if x0 < 700 else -1), 0),
+                name="gate_brace")
+    for py in (700, 1000):
+        for x0, x1 in ((627, 735), (772, 880)):
+            K.box(P.x(x0), P.x(x1), 0.07, 0.085, P.z(py + 18), P.z(py), iron, name="strap")
+    K.tube([P.pt(722, 872, 0.065), P.pt(830, 872, 0.065)], P.m(5), iron, segments=6, name="bolt")
+    # the set-back house in the courtyard: walls, a window over the gate, a hipped roof of small tiles
+    sb = K.box(P.x(681), P.x(1145), Ys, Ys + Db, zg, P.z(590), house_w, name="setback_walls")
+    K.cut(sb, P.x(748), P.x(844), Ys - 0.05, Ys + 0.12, P.z(669), P.z(626))
+    K.box(P.x(748), P.x(844), Ys + 0.08, Ys + 0.1, P.z(669), P.z(626), dark, name="setback_window")
+    K.box(P.x(830), P.x(1000), Ys - 0.02, Ys + 0.01, zg, P.z(700), wood, name="setback_door")
+    back_decal(K, (748, 626, 844, 669), Ys + Db + 0.002, x_shift=P.m(60), name="setback_back_window")
+    hip_roof_tiles(K, (P.x(628), P.x(1190), Ys - 0.45, Ys + Db + 0.45), (P.x(720), P.x(1145)), P.z(598), P.z(420),
+                   roof_b, courses=5, name="setback_roof")
+    # the house on the lane: walls, its plinth ledge, the window, rafter ends, a hipped roof with ridge tiles
+    X0, X1 = P.x(1144), P.x(1974)
+    body = K.box(X0, X1, 0.0, D, zg, P.z(560), house_w, name="house_walls")
+    K.box(P.x(1120), X1 + 0.02, -0.32, D + 0.02, zg, P.z(1042), ledge, bevel=0.01, name="ledge")
+    barred_window(K, body, (1445, 629, 1663, 894), (1469, 653, 1636, 869), (1488, 1518, 1547, 1575, 1604, 1624),
+                  (763,), blue, blue, dark, depth=0.18)
+    for x0, x1 in ((1197, 1238), (1429, 1469), (1677, 1714), (1876, 1917)):
+        K.box(P.x(x0), P.x(x1), -0.5, 0.0, P.z(588), P.z(560), timber, name="rafter_end")
+        K.box(P.x(x0), P.x(x1), D, D + 0.5, P.z(588), P.z(560), timber, name="rafter_end")
+    K.box(P.x(1050), P.x(2070), -0.56, -0.5, P.z(560), P.z(544), timber, name="fascia")
+    K.box(P.x(1050), P.x(2070), D + 0.5, D + 0.56, P.z(560), P.z(544), timber, name="fascia")
+    hip_roof_tiles(K, (P.x(1038), P.x(2080), -0.56, D + 0.56), (P.x(1111), P.x(2007)), P.z(548), P.z(275), roof_m,
+                   courses=5, name="roof")
+    ridge = K.colour((1300, 240, 1600, 260), vary=0.06)
+    K.tube([P.pt(1111, 262, D / 2), P.pt(2007, 262, D / 2)], P.m(16), ridge, segments=10, name="ridge")
+    for x in np.linspace(1150, 1960, 9):
+        K.lathe([(P.m(20), P.z(276)), (P.m(22), P.z(262)), (P.m(20), P.z(246)), (P.m(14), P.z(238))], ridge,
+                segments=12, centre=(P.x(x), D / 2, 0.0), scale_y=1.4, name="ridge_tile")
+    side_decal(K, (1445, 629, 1663, 894), X1, 1, D * 0.5, name="side_window")
+    back_decal(K, (1445, 629, 1663, 894), D, x_shift=P.m(-150), name="back_window")
+    # a door into the house from the courtyard, in its left wall
+    K.box(X0 - 0.06, X0, 1.3, 2.3, zg, P.z(640), post, bevel=0.006, name="side_door_frame")
+    K.box(X0 - 0.07, X0 - 0.02, 1.38, 2.22, zg, P.z(655), wood, name="side_door")
+    # pots: one on the ledge, two by the wall, a bowl at the left
+    pot(K, 1196, [(18, 1050), (28, 1043), (36, 1025), (37, 1010), (31, 995), (24, 989), (26, 984), (25, 982)],
+        keep=[(1155, 978, 1237, 1053)], y=-0.17)
+    pot(K, 1070, [(17, 1106), (26, 1098), (31, 1080), (31, 1062), (26, 1050), (28, 1044), (27, 1041)],
+        keep=[(1036, 1038, 1104, 1107)], y=-0.25)
+    pot(K, 1013, [(12, 1106), (16, 1098), (18, 1080), (17, 1076)], keep=[(993, 1073, 1033, 1107)], y=-0.2,
+        mouth=False)
+    pot(K, 473, [(12, 1100), (20, 1092), (25, 1078), (24, 1070)], keep=[(447, 1066, 499, 1101)], y=-0.25)
+    # the mango tree inside the wall: trunk and limbs fused, a card crown, mangoes
+    yt = 1.6
+    bark = K.projected(axis_x=P.x(415), squeeze=0.9, keep=[(260, 470, 640, 660)], exclude=[(0, 655, 2088, 1114)])
+    wood_parts = [limb(K, [(415, 1100, 48), (415, 800, 42), (415, 660, 40), (420, 600, 34)], bark, y=yt,
+                       segments=14, name="trunk")]
+    for pts, ys in (([(410, 610, 22), (375, 545, 18), (340, 480, 14), (320, 420, 9)], [yt, yt, yt - 0.1, yt - 0.2]),
+                    ([(400, 600, 18), (330, 570, 13), (275, 555, 9), (200, 520, 6)], [yt, yt - 0.1, yt - 0.2, yt - 0.3]),
+                    ([(440, 600, 22), (460, 540, 18), (475, 480, 13), (490, 400, 8)], [yt, yt, yt + 0.1, yt + 0.2]),
+                    ([(450, 610, 18), (520, 570, 14), (580, 540, 10), (640, 510, 7)], [yt, yt, yt - 0.1, yt - 0.1]),
+                    ([(420, 600, 18), (420, 520, 14), (430, 430, 10)], [yt, yt + 0.5, yt + 0.9]),
+                    ([(425, 600, 18), (400, 520, 13), (380, 440, 9)], [yt, yt - 0.5, yt - 0.9])):
+        wood_parts.append(limb(K, pts, bark, y=ys, segments=10, name="limb"))
+    K.fuse(wood_parts, voxel=0.035, faces=4000)
+    crown_d = P.m(870) * 0.72
+    K.leaves_only((0, 0, 880, 650), foliage_pixels)
+    K.canopy((5, 15, 870, 645), crown_d, n=140, size_px=(115, 100), yaw=40, pitch=25, bulge=0.35,
+             centre_px=(430, 320), centre_y=yt)
+    K.canopy((5, 15, 870, 645), crown_d * 0.25, n=55, size_px=(125, 110), yaw=20, pitch=10,
+             centre_y=yt - crown_d * 0.32, bulge=1.0, centre_px=(430, 320))
+    mango = K.projected(squeeze=1.0, keep=[(170, 315, 205, 360), (275, 430, 310, 475), (580, 475, 615, 520),
+                                           (683, 390, 718, 435), (165, 590, 200, 640), (630, 585, 665, 630)], inset=2)
+    stalk = K.colour((0.1, 0.18, 0.03))
+    for px, py in ((187, 337), (292, 452), (597, 497), (700, 412), (182, 614), (647, 607)):
+        fruit(K, px, py, 15, 22, yt - crown_d * 0.38, mango, stalk)
+        fruit(K, px + K.rng.uniform(-60, 60), py + K.rng.uniform(-40, 20), 15, 22,
+              yt + crown_d * K.rng.uniform(-0.1, 0.4), mango, stalk)
+    drop_ground_faces(K)
+
+
+def hand_pump(K, cx_px, y, keep, base_box=None, name="pump"):
+    """A cast-iron hand pump, its column turned from the painted outline (as measured on panchayat_office's), with
+    its rings, the spout, the curved handle on its pivot and the link rod; on a concrete block (base_box px)."""
+    P = K.paint
+    iron = K.projected(axis_x=P.x(cx_px), squeeze=0.92, keep=keep, inset=2)
+    prof = [(38, 901), (36, 893), (20, 878), (19.5, 875), (18.5, 800), (21, 781), (23, 778), (21, 775), (18.5, 770),
+            (18.5, 735), (21, 731), (23, 728), (21, 726), (18.5, 722), (18.5, 690), (21.5, 688), (21.5, 680),
+            (14, 678)]
+    K.lathe([(P.m(r), P.z(py)) for r, py in prof], iron, segments=20, centre=(P.x(cx_px), y, 0.0), name=name)
+    K.tube([P.pt(1798, 757, y), P.pt(1850, 757, y), P.pt(1856, 762, y), P.pt(1856, 779, y)], P.m(7), iron,
+           segments=10, name=name + "_spout")
+    K.tube([P.pt(x, py, y) for x, py in ((1784, 640), (1768, 628), (1750, 628), (1735, 642), (1715, 680), (1690, 718),
+                                         (1665, 745), (1652, 770))],
+           [P.m(r) for r in (7, 8, 8, 7, 6, 5.5, 5, 5)], iron, segments=10, name=name + "_handle")
+    K.tube([P.pt(1777, 640, y), P.pt(1777, 682, y)], P.m(3), iron, segments=6, name=name + "_rod")
+    for dy in (-0.035, 0.035):
+        K.block(P.x(1745), y + dy, P.z(655), P.m(18), 0.012, P.m(40), iron, rot=(0, -30, 0), name=name + "_pivot")
+    if base_box:
+        x0, y0, x1, y1 = base_box
+        hw = P.m(x1 - x0) / 2
+        K.box(P.x(x0), P.x(x1), y - hw, y + hw, P.z(y1), P.z(y0), K.projected(squeeze=1.0, keep=[base_box], inset=2),
+              bevel=0.01, name=name + "_base")
+
+
+@model("panchayat_office", "lane", kind="building", atlas=2048)
+def panchayat_office(K):
+    """The panchayat office: a flat-roofed block with green cornices and a deep green sunshade slab over a veranda of
+    four square pillars, the yellow dado running round; on the veranda wall a framed window, a double door with its
+    bolt, a clock and a casement window, a bench; a plinth with a front step; a hand pump at its corner."""
+    P = K.paint
+    D, Dv = 6.5, 1.5                                  # the building's depth; the veranda's
+    K.front_min = 0.1
+    halo_exclude(K, [(1600, 580, 1872, 943)])
+    wall = K.tile((180, 60, 520, 135), size=1.2, vary=0.04, soften=0.45)
+    dado = K.tile((180, 760, 380, 865), size=0.9, vary=0.04, soften=0.4)
+    green = K.colour((300, 265, 900, 285), vary=0.05)
+    plinth = K.tile((100, 880, 600, 930), size=1.0, vary=0.04, soften=0.3)
+    wood = K.tile((760, 440, 860, 840), vary=0.04)
+    frame = K.colour((225, 410, 235, 630), vary=0.06)
+    glass = K.colour((300, 450, 400, 600), vary=0.03)
+    X0, X1 = P.x(92), P.x(1635)
+    zt, zp = P.z(38), P.z(873)
+    # the block behind the veranda, the upper wall over the veranda, roof deck and cornices
+    body = K.box(X0, X1, Dv, D, 0.0, zt, wall, name="walls")
+    K.box(X0, X1, Dv - 0.005, D + 0.005, zp, P.z(750), dado, name="dado")
+    K.box(X0, X1, 0.0, Dv, P.z(258), zt, wall, name="upper_wall")
+    K.box(X0 - 0.07, X1 + 0.07, -0.07, D + 0.07, P.z(38), P.z(8), green, bevel=0.012, name="coping")
+    K.box(X0 - 0.08, X1 + 0.08, -0.08, D + 0.08, P.z(172), P.z(143), green, bevel=0.012, name="cornice")
+    K.box(P.x(8), P.x(1718), -0.38, D + 0.1, P.z(290), P.z(258), green, bevel=0.012, name="sunshade")
+    K.box(X0 + 0.15, X1 - 0.15, 0.15, D - 0.15, P.z(8) - 0.005, P.z(8), K.colour((180, 60, 520, 135), vary=0.08,
+          pct=70), name="roof_deck")
+    for x0, x1 in ((92, 165), (588, 658), (1075, 1148), (1558, 1635)):
+        p = K.box(P.x(x0), P.x(x1), 0.0, P.m(x1 - x0), zp, P.z(290), wall, name="pillar")
+        K.box(P.x(x0) - 0.005, P.x(x1) + 0.005, -0.005, P.m(x1 - x0) + 0.005, zp, P.z(750), dado, name="pillar_dado")
+    # the plinth and the step
+    K.box(P.x(78), P.x(1648), -0.3, D + 0.05, 0.0, zp, plinth, bevel=0.01, name="plinth")
+    K.box(P.x(650), P.x(1085), -0.6, -0.3, 0.0, P.z(903), plinth, bevel=0.01, name="step")
+    # the veranda wall: door, windows, the clock, the bench
+    K.cut(body, P.x(757), P.x(978), Dv - 0.05, Dv + 0.25, zp, P.z(430))
+    K.box(P.x(757), P.x(978), Dv + 0.14, Dv + 0.19, zp, P.z(430), wood, name="door")
+    for a, b, c, d in ((735, 757, 408, 873), (978, 1000, 408, 873), (757, 978, 408, 430)):
+        K.box(P.x(a), P.x(b), Dv - 0.04, Dv + 0.14, P.z(d), P.z(c), frame, bevel=0.006, name="door_frame")
+    iron = K.colour((0.1, 0.1, 0.1), vary=0.05)
+    K.tube([P.pt(855, 640, Dv - 0.02), P.pt(935, 640, Dv - 0.02)], P.m(4), iron, segments=6, name="bolt")
+    for (fx0, fy0, fx1, fy1), (ox0, oy0, ox1, oy1) in (((222, 405, 555, 640), (240, 423, 537, 622)),
+                                                         ((1230, 492, 1416, 668), (1246, 508, 1400, 652))):
+        K.cut(body, P.x(ox0), P.x(ox1), Dv - 0.05, Dv + 0.15, P.z(oy1), P.z(oy0))
+        K.box(P.x(ox0), P.x(ox1), Dv + 0.08, Dv + 0.1, P.z(oy1), P.z(oy0), glass, name="glass")
+        for a, b, c, d in ((fx0, ox0, fy0, fy1), (ox1, fx1, fy0, fy1), (ox0, ox1, fy0, oy0), (ox0, ox1, oy1, fy1)):
+            K.box(P.x(a), P.x(b), Dv - 0.04, Dv + 0.08, P.z(d), P.z(c), frame, bevel=0.005, name="window_frame")
+    K.box(P.x(1316), P.x(1330), Dv - 0.03, Dv + 0.08, P.z(652), P.z(508), frame, name="mullion")
+    face = K.projected(axis_x=P.x(1324), squeeze=1.0, keep=[(1262, 343, 1387, 468)], inset=2)
+    wall_disc(K, P.x(1324), Dv, P.z(405), P.m(62), 0.06, face, name="clock", wobble=0.0)
+    bench = K.colour((1200, 774, 1500, 784), vary=0.06)
+    for y0, y1 in ((Dv - 0.42, Dv - 0.38), (Dv - 0.06, Dv - 0.02)):
+        for x0, x1 in ((1158, 1172), (1488, 1502)):
+            K.box(P.x(x0), P.x(x1), y0, y1, zp, P.z(785), bench, name="bench_leg")
+        K.box(P.x(1165), P.x(1495), y0, y1, P.z(852), P.z(843), bench, name="bench_rail")
+    K.box(P.x(1148), P.x(1515), Dv - 0.45, Dv, P.z(785), P.z(773), bench, bevel=0.005, name="bench_top")
+    # the back and sides: a door and windows repeated, side windows
+    back_decal(K, (735, 408, 1000, 873), D)
+    back_decal(K, (222, 405, 555, 640), D, x_shift=P.m(-30), name="back_window")
+    back_decal(K, (1230, 492, 1416, 668), D, x_shift=P.m(30), name="back_window")
+    side_decal(K, (1230, 492, 1416, 668), X0, -1, (Dv + D) / 2, name="side_window")
+    side_decal(K, (1230, 492, 1416, 668), X1, 1, (Dv + D) / 2, name="side_window")
+    # the hand pump on its block
+    hand_pump(K, 1779.5, -0.55, keep=[(1640, 615, 1868, 902)], base_box=(1735, 902, 1809, 935))
+    drop_ground_faces(K)

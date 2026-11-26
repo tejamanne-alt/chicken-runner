@@ -1538,8 +1538,9 @@ def field_tree_3(K):
 # ====================================================================== solid blades (screwpine, agave, rosettes)
 def blade(K, pts, widths, mat, thick=0.18, fold=0.22, roll=0.0, name="blade", side=None):
     """A solid blade along pts (metres) with widths (metres; 0 at the tip): its face turned to the camera (-y) and
-    rolled `roll` degrees about its length, folded along its midrib into a shallow V (fold x width), `thick` x width
-    thick. Returns the part."""
+    rolled `roll` degrees about its length, cupped along its midrib into a shallow V (fold x width), `thick` x width
+    thick at the midrib and thin at its edges (a lens in section: two skins meeting at the edges, so it unwraps into
+    two broad pieces of texture, not many slivers). Returns the part."""
     bm = bmesh.new()
     n = len(pts)
     P = [Vector(p) for p in pts]
@@ -1557,24 +1558,25 @@ def blade(K, pts, widths, mat, thick=0.18, fold=0.22, roll=0.0, name="blade", si
         if up.y > 0:
             up = -up
         w = widths[i] / 2
-        th = max(0.002, widths[i] * thick) if i < n - 1 else 0.0
-        rowt = [P[i] - s * w + up * fold * w, P[i] + up * th * 0.5, P[i] + s * w + up * fold * w]
-        rowb = [P[i] - s * w + up * fold * w - up * th * 0.3, P[i] - up * th * 0.5, P[i] + s * w + up * fold * w - up * th * 0.3]
-        top.append([bm.verts.new(v) for v in rowt])
-        bot.append([bm.verts.new(v) for v in rowb])
+        th = max(1e-4, widths[i] * thick)
+        el, er = P[i] - s * w + up * fold * w, P[i] + s * w + up * fold * w
+        if i == n - 1:
+            v = bm.verts.new(P[i])
+            top.append([v, v, v])
+            bot.append([v, v, v])
+            continue
+        l, r = bm.verts.new(el), bm.verts.new(er)
+        top.append([l, bm.verts.new(P[i] + up * th * 0.5), r])
+        bot.append([l, bm.verts.new(P[i] - up * th * 0.5), r])
     for i in range(n - 1):
         for k in range(2):
-            bm.faces.new([top[i][k], top[i][k + 1], top[i + 1][k + 1], top[i + 1][k]])
-            bm.faces.new([bot[i][k + 1], bot[i][k], bot[i + 1][k], bot[i + 1][k + 1]])
-        bm.faces.new([top[i][0], top[i + 1][0], bot[i + 1][0], bot[i][0]])
-        bm.faces.new([top[i][2], bot[i][2], bot[i + 1][2], top[i + 1][2]])
-    bm.faces.new([top[0][0], bot[0][0], bot[0][1], bot[0][2], top[0][2], top[0][1]])
+            for row, flip in ((top, False), (bot, True)):
+                q = [row[i][k], row[i][k + 1], row[i + 1][k + 1], row[i + 1][k]]
+                q = [v for j, v in enumerate(q) if v not in q[:j]]
+                if len(q) >= 3:
+                    bm.faces.new(q[::-1] if flip else q)
+    bm.faces.new([top[0][0], top[0][1], top[0][2], bot[0][1]])
     return _add(K, bm, mat, name, smooth=True)
-
-
-def _bezier(a, c, b, n):
-    return [((1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0],
-             (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]) for t in np.linspace(0, 1, n)]
 
 
 def stroke_field(K, sigma=1.5, rho=5.0):
@@ -1708,7 +1710,7 @@ def blades_cover(K, mask, bases, n, w_px, len_px=(60, 400), profile="strap", tri
         ImageDraw.Draw(im).polygon(left + right[::-1], fill=255)
         bmask = np.asarray(im) > 127
         area = bmask.sum()
-        if area < 10 or (bmask & mask).sum() < (inside - (0.06 if from_tip else 0.0)) * area:
+        if area < 10 or (bmask & mask).sum() < (inside - (0.04 if from_tip else 0.0)) * area:
             continue
         gain = (bmask & mask & ~cover).sum()
         if gain < (min_gain * 0.3 if from_tip else min_gain):
@@ -1748,7 +1750,7 @@ def field_tree_4(K):
             wobble=0.08, name="stump")
     # the blades: solid, saw-edged straps covering the painted mass, springing from the stump's top and sides
     found, cover = blades_cover(K, blades_mask, [(225, 270, 315, 305), (215, 290, 330, 360), (235, 330, 310, 395)],
-                                175, (10, 17), len_px=(50, 360), profile="strap", inside=0.93, min_gain=35, arch=0.6)
+                                120, (13, 20), len_px=(50, 360), profile="strap", inside=0.96, min_gain=45, arch=0.6)
     green = masked_material(K, blades_mask, inset=1)
 
     def y_of(t, x, y, k, tips={}):
@@ -1757,6 +1759,7 @@ def field_tree_4(K):
         yb, f = tips[k]
         return yb + f * shape.extent(x, y) * (t ** 1.3)
     place_blades(K, found, green, y_of, rolls=15, thick=0.14, fold=0.15)
+    K.ao = 0.25
     # red earth and its stones
     zg = P.z(425)
     earth(K, 265, 150, 1.4, (290, 418, 330, 428), h=0.04, z=zg - 0.03)
@@ -1984,7 +1987,7 @@ def h1_1(K):
                 n_cards=(240, 100, 55, 25))
 
 
-TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 0, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200)
+TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 120, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200)
 
 
 @model("h1_2", "plants", kind="prop", atlas=2048, leaves=1024)
@@ -1997,7 +2000,7 @@ def h1_2(K):
                 n_cards=(170, 80, 45, 15), card_px=(75, 65))
 
 
-TRACE["h1_3"] = lambda K: _trace_grey(K, [(0, 0, 864, 1024)], (150, 1000),
+TRACE["h1_3"] = lambda K: _trace_grey(K, [(0, 190, 864, 1024)], (150, 1000),
                                       exclude=[(393, 525, 424, 960), (533, 518, 564, 955), (372, 832, 598, 958)])
 
 

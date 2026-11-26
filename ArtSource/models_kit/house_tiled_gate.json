@@ -1,0 +1,10 @@
+{
+ "name": "house_tiled_gate",
+ "folder": "lane",
+ "kind": "building",
+ "width": 9.967,
+ "height": 5.317,
+ "depth": 8.621,
+ "faces": 13996,
+ "source": "blender"
+}
