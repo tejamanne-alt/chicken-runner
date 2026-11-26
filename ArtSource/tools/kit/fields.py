@@ -152,6 +152,35 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     return m
 
 
+_SQUARE = []
+
+
+def guard(K):
+    """Gives every material of the model a square image as its active texture node. (Blender's smart UV project
+    corrects the islands for the aspect of the active material's active image: a long thin tile there squashes the
+    whole atlas into a strip.) Call at the end of a builder."""
+    import bpy
+    if not _SQUARE or _SQUARE[0].name not in bpy.data.images:
+        _SQUARE[:] = [bpy.data.images.new("kit_square", 4, 4)]
+    for m in list(K._mats.values()):
+        if isinstance(m, Mat):
+            node = m.nt.nodes.new("ShaderNodeTexImage")
+            node.image = _SQUARE[0]
+            m.nt.nodes.active = node
+
+
+def fmodel(name, folder="fields", **kw):
+    """@model, with guard() run after the builder."""
+    def wrap(fn):
+        def run(K):
+            fn(K)
+            guard(K)
+        run.__doc__ = fn.__doc__
+        model(name, folder, **kw)(run)
+        return fn
+    return wrap
+
+
 def rotate(ob, deg, axis, pivot):
     """Turns a part's mesh (not its object) by deg degrees about axis ("X", "Y", "Z") through pivot (x, y, z)."""
     M = Matrix.Translation(pivot) @ Matrix.Rotation(math.radians(deg), 4, axis) @ Matrix.Translation(-Vector(pivot))
@@ -259,7 +288,7 @@ def tufts(K, box, spots, yaws=(0, 60, -60), name="grass"):
 
 
 # ====================================================================== haystacks
-@model("haystack", "fields", kind="prop", atlas=1024)
+@fmodel("haystack", "fields", kind="prop", atlas=1024)
 def haystack(K):
     """A big turned stack of paddy straw: a round cone of layered straw, ragged all round, two poles crossed through
     its top and tied with a coil of straw rope, on a patch of earth with stones and weeds."""
@@ -332,7 +361,7 @@ def jag(ob, n_ring, z_lo, z_hi, every=2):
     return ob
 
 
-@model("haystack_small", "fields", kind="prop", atlas=1024)
+@fmodel("haystack_small", "fields", kind="prop", atlas=1024)
 def haystack_small(K):
     """A small turned stack of straw round a pole, the pole's top standing out of a wooden cap, the straw layered in
     tiers and hanging in points round its foot."""
@@ -366,7 +395,7 @@ def haystack_small(K):
 
 
 # ====================================================================== the scarecrow
-@model("scarecrow", "fields", kind="prop", atlas=1024)
+@fmodel("scarecrow", "fields", kind="prop", atlas=1024)
 def scarecrow(K):
     """A scarecrow: a pole with a crossbar, dressed in a white kurta with a red cotton scarf over one shoulder, a
     painted clay pot for a head, fists of straw out of its sleeves and a straw skirt below its hem, its pole stood
@@ -549,7 +578,7 @@ def bank(K, outline, bot_py, sh_py, crest_py, hd_bot, hd_sh, mat, nx=48, rough=0
     return ob
 
 
-@model("bund_block", "fields", kind="prop", atlas=1024)
+@fmodel("bund_block", "fields", kind="prop", atlas=1024)
 def bund_block(K):
     """A block of paddy bund: a bank of red earth with a trodden, rounded top, cracked and crumbling faces, weeds and
     grass along its crest and its foot, vines over its ends and stones on it and round it."""

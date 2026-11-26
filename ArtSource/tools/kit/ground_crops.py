@@ -66,8 +66,9 @@ def stone_masks(P, dark=95, ink=85, min_px=25, grow=3):
         m = lab == i
         if m.sum() < min_px:
             continue
-        ring = ndimage.binary_dilation(m, iterations=3) & ~m
-        if (~solid[ring]).mean() > 0.25:            # the white halo outside the outline, not a stone
+        rgb = P.rgba[..., :3][m] * 255
+        pale = (rgb.min(-1) > 150) & (rgb.max(-1) - rgb.min(-1) < 40)
+        if (~solid[m]).mean() > 0.3 or pale.mean() > 0.6:     # the pale halo outside an outline, not a stone
             continue
         m = ndimage.binary_dilation(m, iterations=grow) & a
         ys, xs = np.nonzero(m)
