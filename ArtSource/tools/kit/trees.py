@@ -440,6 +440,16 @@ class Wood:
                                      name="limb_turned", inside=self.hidden)
         return thick, thin
 
+    def at(self, px, py):
+        """The depth (metres) of the traced wood nearest to painted (px, py)."""
+        best = None
+        for p in self.paths:
+            d = np.hypot(p["pts"][:, 0] - px, p["pts"][:, 1] - py)
+            i = int(np.argmin(d))
+            if best is None or d[i] < best[0]:
+                best = (float(d[i]), float(p["y"][i]), float(p["r"][i]))
+        return best[1], best[2]
+
     def hidden(self, v):
         """True where a point (metres) lies inside the painting's opaque outline (so from the front it is hidden
         behind what is painted there)."""
@@ -1972,3 +1982,53 @@ def h1_1(K):
     traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_leaves, spread=0.55,
                 root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
                 n_cards=(240, 100, 55, 25))
+
+
+TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 0, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200)
+
+
+@model("h1_2", "plants", kind="prop", atlas=2048, leaves=1024)
+def h1_2(K):
+    """A young tree: a slim straight grey trunk on a few thin roots, forking high into slender limbs and twigs under
+    loose sprays of compound leaves."""
+    mask, _ = TRACE["h1_2"](K)
+    traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_leaves, spread=0.6,
+                root_z_px=900, limb_py_max=520, limb_py_min=150, n_limbs=6, n_roots=4, root_py=920,
+                n_cards=(170, 80, 45, 15), card_px=(75, 65))
+
+
+TRACE["h1_3"] = lambda K: _trace_grey(K, [(0, 0, 864, 1024)], (150, 1000),
+                                      exclude=[(393, 525, 424, 960), (533, 518, 564, 955), (372, 832, 598, 958)])
+
+
+@model("h1_3", "plants", kind="prop", atlas=2048, leaves=1024)
+def h1_3(K):
+    """A leaning tree with a swing: a grey trunk curving up from a splayed foot into a long limb, a plank seat hung
+    from the limb on two ropes looped round it, and a crown of feathery compound leaves."""
+    P = K.paint
+    rng = K.rng
+    mask, _ = TRACE["h1_3"](K)
+    wood, crown, bark, thin = traced_tree(K, mask, (150, 1000), (90, 0, 864, 535), (480, 270), (280, 0, 540),
+                                          sage_leaves, spread=0.5, root_z_px=960, limb_py_max=470, limb_py_min=200,
+                                          n_limbs=6, n_roots=3, root_py=975, n_cards=(190, 90, 45, 20),
+                                          card_px=(90, 80))
+    # the swing: two ropes looped round the limb, each splitting into a V to the ends of a plank seat
+    rope = K.colour((400, 650, 416, 760), vary=0.08)
+    plank = K.tile((400, 874, 570, 896), vary=0.06)
+    for (lx, ly), (kx, ky), (sx0, sx1) in (((407, 512), (408, 822), (392, 422)), ((549, 485), (548, 822), (536, 562))):
+        yb, rb = wood.at(lx, ly)
+        rr = P.m(rb)
+        wrap_limb(K, (P.x(lx - 10), yb, P.z(ly + 6)), (P.x(lx + 10), yb, P.z(ly - 6)), rr, rope, 4, P.m(3.5),
+                  wobble=0.15, name="rope_loop")
+        top = (P.x(lx), yb, P.z(ly) - rr)
+        knot = (P.x(kx), yb, P.z(ky))
+        K.tube([top, (P.x(kx), yb, (top[2] + knot[2]) / 2), knot], P.m(3.2), rope, segments=6, name="rope")
+        K.lathe([(P.m(4), P.z(ky + 14)), (P.m(6), P.z(ky + 6)), (P.m(6), P.z(ky - 6)), (P.m(4), P.z(ky - 14))], rope,
+                segments=10, centre=(P.x(kx), yb, 0.0), name="knot")
+        for sx, dy in ((sx0, -P.m(28)), (sx1, P.m(28))):
+            K.tube([knot, (P.x(sx), yb + dy, P.z(870))], P.m(2.6), rope, segments=6, name="rope_v")
+            K.tube([(P.x(sx), yb + dy, P.z(880)), (P.x(sx) + 0.002, yb + dy, P.z(935))], P.m(2.2), rope, segments=5,
+                   name="rope_end")
+    ys, _ = wood.at(470, 495)
+    K.block((P.x(383) + P.x(582)) / 2, ys, P.z(882), P.m(200), P.m(62), P.m(22), plank, rot=(0, 3.4, 0),
+            bevel=P.m(2), name="seat")
