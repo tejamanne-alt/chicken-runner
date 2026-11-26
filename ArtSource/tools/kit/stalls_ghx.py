@@ -1451,3 +1451,162 @@ def stall_h_3(K):
     p = ramp.at(P, 811, 882, 0.03)
     K.block(p.x, p.y - 0.03, p.z, P.m(122), 0.14, 0.05, flat, rot=(a, 0, 0), bevel=0.006, name="flat_stone")
     unify_cards(K)
+
+
+# ====================================================================== the small stalls, painted turned a little
+class Turned:
+    """A stall painted from a little to its left: built square in its own frame (x across, y back) and turned by
+    `deg` about z through (cx, 0), so its back is to the left. w(x_px, y_local, z) -> the world point at depth
+    y_local whose painted x is x_px."""
+
+    def __init__(self, P, deg, cx=0.0):
+        self.P, self.t, self.cx = P, math.radians(deg), cx
+        self.c, self.s = math.cos(self.t), math.sin(self.t)
+        self.M = (Matrix.Translation((cx, 0, 0)) @ Matrix.Rotation(self.t, 4, "Z"))
+
+    def local_x(self, x_px, y_l):
+        return (self.P.x(x_px) - self.cx + y_l * self.s) / self.c
+
+    def w(self, x_px, y_l, z):
+        xl = self.local_x(x_px, y_l)
+        return Vector((self.cx + xl * self.c - y_l * self.s, xl * self.s + y_l * self.c, z))
+
+    def l2w(self, x_l, y_l, z):
+        return Vector((self.cx + x_l * self.c - y_l * self.s, x_l * self.s + y_l * self.c, z))
+
+    def apply(self, parts):
+        for p in parts:
+            p.data.transform(self.M)
+        return parts
+
+
+def collect(K):
+    """The parts added since: n = collect(K); ... K.parts[n:]"""
+    return len(K.parts)
+
+
+def scallop_cloth(K, x0, x1, y_top, z_top, y_bot, z_bot, mat, hem=0.0, n_scallop=0, drop=0.0, nu=40, nv=6, sag=0.0,
+                  name="cloth"):
+    """A cloth stretched from its top edge (x0..x1 at y_top, z_top) to its bottom edge (y_bot, z_bot), and below that
+    a valance hanging `drop` with a scalloped hem (n_scallop scallops) when hem > 0."""
+    def f(u, v):
+        x = x0 + (x1 - x0) * u
+        y = y_top + (y_bot - y_top) * v
+        z = z_top + (z_bot - z_top) * v - sag * math.sin(math.pi * u) * math.sin(math.pi * v)
+        return (x, y, z)
+    parts = [K.sheet(f, nu, nv, mat, name=name, thickness=0.008)]
+    if drop > 0:
+        def g(u, v):
+            x = x0 + (x1 - x0) * u
+            z = z_bot - drop * v
+            if v > 0.99 and n_scallop:
+                z -= hem * (1 - abs(math.cos(math.pi * u * n_scallop)) ** 0.6)
+            return (x, y_bot - 0.004, z)
+        parts.append(K.sheet(g, n_scallop * 6 if n_scallop else nu, 2, mat, name=name + "_valance", thickness=0.006))
+    return parts
+
+
+@model("stall_high", "market", kind="prop", atlas=2048)
+def stall_high(K):
+    """A small grocer's stall, painted turned a little to its left: a striped red-and-cream awning on a gable of
+    bamboo poles over four lashed bamboo posts, a bamboo counter with cane-woven sides and a checked cloth hung over
+    its front, a gunny sack of rice, bowls heaped with turmeric, chilli powder and dal, a brass pot, a bottle of oil
+    and a steel pot."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    T = Turned(P, 15.8, 0.0265)
+    n0 = collect(K)
+    bam = K.colour((60, 150, 70, 200), vary=0.08)
+    rope = K.colour((0.35, 0.2, 0.06), vary=0.1)
+    yf, yb = -0.4, 0.7
+    a_ = 1.1
+    # ---------------------------------------------------------------- posts and frame (in the stall's own frame)
+    for x, y, top, r in ((-a_, yf, Z(8), 0.06), (a_, yf, Z(10), 0.06), (-a_, yb, Z(84), 0.05), (a_, yb, Z(84), 0.05)):
+        bamboo(K, (x, y, 0.0), (x, y, top), r, bam, nodes=0.55, bend=0.0, taper=0.97, name="post")
+        K.lathe([(r * 1.15, top - 0.02), (r * 1.2, top + 0.02), (r * 0.8, top + 0.05)], bam, segments=10,
+                centre=(x, y, 0.0), name="post_cap")
+    zr = Z(20)
+    bamboo(K, (-a_ - 0.08, yf, zr), (a_ + 0.08, yf, zr), 0.035, bam, node_at=[0.25, 0.5, 0.75], taper=1.0,
+           bend=0.0, name="ridge")
+    for x in (-a_, a_):
+        bamboo(K, (x, yf - 0.06, Z(82)), (x, yb + 0.06, Z(82)), 0.04, bam, node_at=[0.5], taper=1.0, name="side_beam")
+        bamboo(K, (x, yf, zr), (x, yb + 0.08, Z(86)), 0.03, bam, node_at=[0.5], taper=1.0, name="rafter_back")
+        bamboo(K, (x, yf, zr), (x * 1.14, yf - 0.5, Z(80)), 0.025, bam, node_at=[], taper=1.0, name="rafter_front")
+        for y in (yf, yb):
+            lashing(K, (x, y, Z(82)), (0, 0, 1), 0.06, rope, turns=2.5)
+        joint(K, (x, yf, zr), (0, 0, 1), (1, 0, 0), 0.06, rope, rope=0.008)
+    bamboo(K, (-a_, yb, Z(84)), (a_, yb, Z(84)), 0.035, bam, node_at=[0.5], taper=1.0, name="back_beam")
+    # braces from the posts up to the beams
+    for x in (-a_, a_):
+        for y in (yf, yb):
+            K.tube([(x, y, Z(130)), (x, y + (0.18 if y == yf else -0.18), Z(84) - 0.02)], 0.018, bam, segments=6,
+                   name="brace")
+    # ---------------------------------------------------------------- the counter
+    cane = ktile(K, (232, 232, 285, 278), vary=0.06)
+    K.box(-a_ + 0.06, a_ - 0.06, -0.32, 0.5, 0.06, Z(221), cane, name="counter")
+    top_w = K.colour((150, 215, 200, 220), vary=0.08)
+    K.box(-a_ - 0.02, a_ + 0.02, -0.36, 0.54, Z(221), Z(214), top_w, bevel=0.01, name="counter_top")
+    for y in (-0.36, 0.54):
+        bamboo(K, (-a_ - 0.04, y, Z(218)), (a_ + 0.04, y, Z(218)), 0.04, bam, node_at=[0.3, 0.7], taper=1.0,
+               name="counter_rail")
+    for x in (-a_ + 0.04, a_ - 0.04):
+        bamboo(K, (x, -0.36, Z(218)), (x, 0.54, Z(218)), 0.04, bam, node_at=[0.5], taper=1.0, name="counter_rail")
+        bamboo(K, (x, -0.36, Z(270)), (x, 0.54, Z(270)), 0.03, bam, node_at=[0.5], taper=1.0, name="counter_rail")
+    for x in (-a_ + 0.04, a_ - 0.04):
+        for y in (-0.33, 0.51):
+            K.tube([(x, y, 0.0), (x, y, Z(220))], 0.04, bam, segments=8, name="counter_leg")
+    T.apply(K.parts[n0:])
+    # ---------------------------------------------------------------- the awning (built in place, in the world)
+    stripes = K.projected(squeeze=1.0, keep=[(56, 12, 314, 112)], exclude=[(40, 0, 80, 30), (275, 0, 312, 30)],
+                          inset=2)
+    n1 = collect(K)
+    scallop_cloth(K, -a_ - 0.08, a_ + 0.12, yf, zr + 0.03, yf - 0.48, Z(76), stripes, hem=P.m(9), n_scallop=11,
+                  drop=Z(76) - Z(88), sag=0.03, name="awning")
+    scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), stripes, hem=P.m(7), n_scallop=10,
+                  drop=Z(88) - Z(104), sag=0.02, name="awning_back")
+    T.apply(K.parts[n1:])
+    # ---------------------------------------------------------------- the front cloth over the counter
+    towel = K.projected(squeeze=1.0, keep=[(98, 213, 226, 288)], inset=1)
+    n2 = collect(K)
+
+    def tw(u, v):
+        xl = -0.62 + 1.2 * u
+        if v < 0.15:
+            return (xl, -0.36 + 0.25 * (1 - v / 0.15), Z(214) + 0.008)
+        t_ = (v - 0.15) / 0.85
+        return (xl, -0.37 - 0.01 * math.sin(u * 12) * t_, Z(214) + (Z(286) - Z(214)) * t_)
+    K.sheet(tw, 16, 10, towel, name="towel", thickness=0.005)
+    T.apply(K.parts[n2:])
+    # ---------------------------------------------------------------- the goods (placed where painted)
+    zc = Z(214)
+    burlap = K.projected(axis_x=P.x(112), squeeze=0.93, keep=[(74, 150, 152, 214)], inset=1)
+    rice = K.projected(squeeze=1.0, keep=[(88, 138, 140, 160)], inset=1)
+    p = T.w(112, 0.25, 0.0)
+    K.lathe([(P.m(30), zc), (P.m(37), Z(200)), (P.m(38), Z(180)), (P.m(36), Z(165)), (P.m(37), Z(158)),
+             (P.m(33), Z(156))], burlap, segments=24, centre=(p.x, p.y, 0.0), wobble=0.04, name="sack")
+    K.lathe([(P.m(34), Z(158)), (P.m(25), Z(150)), (P.m(10), Z(145)), (0.0, Z(144))], rice, segments=24,
+            centre=(p.x, p.y, 0.0), wobble=0.03, name="rice")
+    bowls = [  # cx, half-width, rim py, bottom py, peak py, local y
+        (135, 34, 205, 216, 186, -0.05), (193, 37, 186, 216, 168, 0.2), (236, 20, 204, 218, 198, -0.1)]
+    for cx, hw, rim, bot, peak, yl in bowls:
+        p = T.w(cx, yl, 0.0)
+        wood = K.projected(axis_x=p.x, squeeze=0.93, keep=[(cx - hw, rim - 2, cx + hw, bot)], inset=1)
+        K.lathe([(P.m(hw) * 0.6, Z(bot)), (P.m(hw) * 0.9, Z((rim + bot) / 2)), (P.m(hw), Z(rim))], wood, segments=24,
+                centre=(p.x, p.y, 0.0), name="bowl")
+        heapm = K.projected(squeeze=1.0, keep=[(cx - hw + 4, peak - 1, cx + hw - 4, rim + 1)], inset=1)
+        K.lathe([(P.m(hw) * 0.95, Z(rim) - 0.005), (P.m(hw) * 0.6, Z((rim + peak) / 2)), (0.0, Z(peak))], heapm,
+                segments=24, centre=(p.x, p.y, 0.0), wobble=0.03, name="heap")
+    for cx, prof, yl in ((86, [(10, 215), (12, 205), (11, 193), (8, 188), (9, 186)], -0.1),
+                         (262, [(11, 218), (13, 205), (12, 193), (9, 188), (10, 186)], 0.0)):
+        p = T.w(cx, yl, 0.0)
+        m = K.projected(axis_x=p.x, squeeze=0.93, keep=[(cx - 13, 185, cx + 13, 218)], inset=1)
+        K.lathe([(P.m(r), Z(py)) for r, py in prof], m, segments=20, centre=(p.x, p.y, 0.0), name="pot")
+    p = T.w(239, 0.25, 0.0)
+    m = K.projected(axis_x=p.x, squeeze=0.93, keep=[(232, 176, 246, 205)], inset=1)
+    K.lathe([(P.m(6), Z(205)), (P.m(6), Z(188)), (P.m(3), Z(182)), (P.m(3), Z(176))], m, segments=12,
+            centre=(p.x, p.y, 0.0), name="bottle")
+    p = T.w(57, 0.15, 0.0)
+    m = K.projected(axis_x=p.x, squeeze=0.93, keep=[(44, 184, 75, 212)], inset=1)
+    K.lathe([(P.m(12), zc), (P.m(15), Z(196)), (P.m(15), Z(188))], m, segments=20, centre=(p.x, p.y, 0.0), cap=False,
+            name="basket")

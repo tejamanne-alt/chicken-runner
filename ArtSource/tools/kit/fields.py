@@ -1963,7 +1963,7 @@ def field_bldg_3(K):
     straw = turned(K, P.x(452), (380, 230, 520, 320), squeeze=0.9, keep=[(316, 160, 600, 466)],
                    exclude=[(190, 340, 430, 466), (490, 320, 660, 466)], inset=7, side="noty", side_from=0.3,
                    side_to=0.6)
-    straw2 = turned(K, P.x(198), (40, 360, 180, 430), squeeze=0.9, keep=[(0, 290, 330, 466)],
+    straw2 = turned(K, P.x(198), (80, 385, 190, 440), squeeze=0.9, keep=[(0, 290, 330, 466)],
                     exclude=[(190, 340, 430, 466)], inset=7, side="noty", side_from=0.3, side_to=0.6)
     K.leaves_only((0, 285, 318, 350), no_halo)
     K.leaves_only((0, 350, 196, 466), no_halo)
