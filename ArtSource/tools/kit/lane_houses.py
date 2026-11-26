@@ -1886,6 +1886,9 @@ def house_being_built(K):
                     (P.x(382), P.z(249))], D - 0.25, D, brick, name="back_wall")
     for xa, xb in ((X0, X0 + t), (X1 - t, X1)):
         K.box(xa, xb, 0.0, D - 0.25, zg - 0.05, P.z(255), brick, name="side_wall")
+    # a window opening left in the back wall, a wooden lintel over it
+    K.cut(back, P.x(1550), P.x(1800), D - 0.3, D + 0.05, P.z(700), P.z(470))
+    K.box(P.x(1530), P.x(1820), D - 0.27, D + 0.02, P.z(470), P.z(445), wood, bevel=0.006, name="back_lintel")
     for x0, x1, top in ((379, 485, 423), (485, 560, 497), (560, 976, 540), (976, 1100, 460), (1398, 1528, 410),
                         (1528, 1878, 542), (1878, 2153, 503)):
         K.box(P.x(x0), P.x(x1), 0.0, 0.25, zg - 0.05, P.z(top), brick, name="front_wall")
