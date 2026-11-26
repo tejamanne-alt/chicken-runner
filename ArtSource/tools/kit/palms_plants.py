@@ -325,6 +325,25 @@ def trunk(K, pts, mat, segments=16, ys=None, name="trunk"):
                   name=name)
 
 
+def recalc(ob):
+    """Recomputes a part's normals outwards (after its vertices were moved about)."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
+def along_x(K, outline_yz, x0, x1, mat, name="along_x", bevel=0.0):
+    """A profile [(y, z)] in a side plane, extruded along x from x0 to x1 (a coping, a cap, a sloping sill)."""
+    ob = K.prism(outline_yz, 0.0, 1.0, mat, name=name, bevel=bevel)
+    for v in ob.data.vertices:
+        yv, zv, xv = v.co.x, v.co.z, v.co.y
+        v.co = Vector((x0 + xv * (x1 - x0), yv, zv))
+    return recalc(ob)
+
+
 def ellipsoid(K, c, r3, mat, seg=16, rings=10, lumps=0.0, rot=(0, 0, 0), name="ellipsoid"):
     """An ellipsoid (centre c metres, radii r3), lumpy if asked, turned rot degrees (x, y, z)."""
     bm = bmesh.new()
@@ -1456,19 +1475,11 @@ def h6_2(K):
     K.box(P.x(62), P.x(632), -t, t, zb, ztop, plaster, name="wall")
     # the pillar at its left end, a little proud of the wall, its cap
     K.box(P.x(16), P.x(72), -t - 0.03, t + 0.03, zb, ztop, plaster, bevel=0.004, name="pillar")
-    K.prism([(-t - 0.045, P.z(178)), (t + 0.045, P.z(178)), (t + 0.045, P.z(140)), (0.0, P.z(132)),
-             (-t - 0.045, P.z(146))], 0, 1, coping, name="pillar_cap")
-    cap = K.parts[-1]
-    for v in cap.data.vertices:                   # the prism was built in (x, z): swing it to run along x
-        yv, zv, xv = v.co.x, v.co.z, v.co.y
-        v.co = Vector((P.x(10) + xv * (P.x(76) - P.x(10)), yv, zv))
+    along_x(K, [(-t - 0.045, P.z(178)), (t + 0.045, P.z(178)), (t + 0.045, P.z(140)), (0.0, P.z(132)),
+                (-t - 0.045, P.z(146))], P.x(10), P.x(76), coping, name="pillar_cap")
     # the coping along the top: sloping back a little, so from the front its top shows as the painted band
-    K.prism([(-t - 0.025, P.z(176)), (t + 0.025, P.z(176)), (t + 0.025, P.z(150)), (0.0, P.z(138)),
-             (-t - 0.025, P.z(150))], 0, 1, coping, name="coping")
-    cp = K.parts[-1]
-    for v in cp.data.vertices:
-        yv, zv, xv = v.co.x, v.co.z, v.co.y
-        v.co = Vector((P.x(70) + xv * (P.x(646) - P.x(70)), yv, zv))
+    along_x(K, [(-t - 0.025, P.z(176)), (t + 0.025, P.z(176)), (t + 0.025, P.z(150)), (0.0, P.z(138)),
+                (-t - 0.025, P.z(150))], P.x(70), P.x(646), coping, name="coping")
     # the brick showing where the plaster has fallen: the painted patches repeated on the back and the far end
     for box, x_back in (((70, 330, 140, 498), 470), ((500, 365, 628, 498), 80), ((560, 178, 630, 280), 160)):
         x0, y0, x1, y1 = box
