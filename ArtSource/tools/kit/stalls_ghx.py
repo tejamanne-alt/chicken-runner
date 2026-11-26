@@ -13,7 +13,7 @@ import bmesh
 import numpy as np
 from mathutils import Matrix, Vector
 
-from kitlib import Mat, _image, _obj, model
+from kitlib import Mat, _image, _obj, model, plant_pixels
 from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, green_leaves, hanging_cloth,
                          heap, heap_px, hip_thatch, joint, ktile, lashing, on_heap, pile, rib_umbrella, sack, slab,
                          turned, unify_cards)
@@ -2361,4 +2361,274 @@ def stall_vessels(K):
         for j in range(2):
             K.lathe([(0.0, 0.0), (0.14, 0.02), (0.2, 0.12), (0.17, 0.24), (0.1, 0.28)], clay, segments=20,
                     centre=(P.x(x_px) + j * 0.05, sby + 0.3, bank.top + j * 0.2), wobble=0.02, name="spare_pot")
+    unify_cards(K)
+
+
+# ====================================================================== the flower seller
+def garland(K, box, y, mat=None, strands=2, string_to=None, name="garland"):
+    """A hanging garland of strung flowers traced off the painting (box px): `strands` ropes of flower heads side by
+    side, each a lumpy tube (one flower head per bump) wearing the painted flowers all round, the string it hangs
+    by up to string_to (z)."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    w = (x1 - x0) / strands
+    mat = mat or K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=0.95, keep=[box], inset=2)
+    r = P.m(w) * 0.46
+    L = P.m(y1 - y0)
+    n = max(4, int(L / (r * 0.9)))
+    ph = K.rng.uniform(0, 6.28)
+    for k in range(strands):
+        cx = P.x(x0 + w * (k + 0.5))
+        pts, radii = [], []
+        for i in range(n + 1):
+            t = i / n
+            z = P.z(y0 + 4) - (L - 8 / P.ppm) * t
+            pts.append((cx + 0.004 * math.sin(7 * t + ph + k), y + 0.004 * math.cos(5 * t + k), z))
+            radii.append(r * (0.82 + 0.18 * abs(math.sin(math.pi * i * 0.5 + k))) * (0.35 if i in (0, n) else 1.0))
+        K.tube(pts, radii, mat, segments=8, name=name)
+    if string_to is not None:
+        string = K.colour((0.3, 0.22, 0.12), vary=0.05)
+        K.tube([(P.x((x0 + x1) / 2), y, P.z(y0) - 0.01), (P.x((x0 + x1) / 2), y, string_to)], 0.004, string, segments=4,
+               name=name + "_string")
+
+
+def tipped_stack(K, bank, cx, R_px, rb_px, back_py, front_py, bottom_py, n, mat, y=None, name="stack"):
+    """A stack of n nested baskets, tipped towards the camera so its top rim is the painted ellipse (back_py to
+    front_py), its foot on the bank at bottom_py (or at depth y)."""
+    P = K.paint
+    R, rb = P.m(R_px), P.m(rb_px)
+    s = max(0.0, min(0.8, (P.z(back_py) - P.z(front_py)) / 2 / R))
+    th = math.asin(s)
+    rim_z = (P.z(back_py) + P.z(front_py)) / 2
+    yy = (bank.y(P.z(bottom_py)) + rb * math.cos(th)) if y is None else y
+    foot_z = bank.z(yy)
+    h = (rim_z - foot_z) / max(0.3, math.cos(th))
+    return basket_stack(K, P.x(cx), yy, foot_z, R, rb, h, n, mat, flat=1.0, lean=(math.degrees(th), 0.0), name=name)
+
+
+@model("stall_flowers", "market", kind="prop", atlas=2048)
+def stall_flowers(K):
+    """A flower seller's stall: a hipped roof of woven green coconut-leaf mat on four bamboo posts, a bamboo ridge pole
+    on crossed stubs, fifteen garlands of marigold, jasmine, crossandra and rose hung on strings from the front beam,
+    and woven baskets all round on a rise of red earth: empty ones stacked to sell, one heaped with lotus and rose
+    buds on stalks, one with pink buds, one with marigolds, one with its lid on; the old flower seller sitting on her
+    mat is a painted cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.25, 0.18, 0.08), vary=0.1)
+    bank = Bank(-1.3, Z(645), 22.0, flat=1.1, back=0.4)
+    # ---------------------------------------------------------------- the earth and her mat
+    earth = ktile(K, (330, 715, 560, 760), vary=0.08, soften=0.4)
+    K.grid_plane(P.x(0), P.x(922), bank.y0 - 0.03, bank.y3 + 0.02, 0.0, 30, 28, earth,
+                 height=lambda x, y: bank.z(y) * _smooth(P.x(0), P.x(20), x) * _smooth(P.x(922), P.x(900), x),
+                 name="earth")
+    matw = ktile(K, (380, 690, 560, 705), vary=0.06)
+
+    def mat_f(u, v):
+        py_ = 712 - (712 - 607) * v
+        xl = 325 + (355 - 325) * v
+        xr = 610 - (610 - 585) * v
+        return tuple(bank.at(P, xl + (xr - xl) * u, py_, 0.008))
+    K.sheet(mat_f, 12, 8, matw, name="mat", thickness=0.006)
+    # ---------------------------------------------------------------- posts, beams, roof
+    bam = K.colour((95, 300, 110, 400), vary=0.08)
+    yfp, ybp = -0.35, 0.75
+    zb = Z(205)
+    posts = [((103, 200), (103, 650), 11, yfp, [(91, 200, 116, 540)]),
+             ((797, 200), (797, 650), 11, yfp, [(784, 200, 809, 540)]),
+             ((172, 200), (172, 560), 10, ybp, [(160, 200, 184, 470)]),
+             ((726, 200), (726, 560), 10, ybp, [(714, 200, 739, 470)])]
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, z_top=zb + 0.04, z_bot=bank.z(y) - 0.05, nodes=0.45)
+    for y in (yfp, ybp):
+        bamboo(K, (P.x(80), y, zb), (P.x(830), y, zb), P.m(8), bam, node_at=[0.3, 0.7], taper=1.0, name="beam")
+    for xf, xb in ((103, 172), (797, 726)):
+        bamboo(K, (P.x(xf), yfp - 0.08, zb + 0.025), (P.x(xb), ybp + 0.08, zb + 0.025), P.m(8), bam, node_at=[0.5],
+               taper=1.0, name="tie")
+        lashing(K, (P.x(xf), yfp, zb), (0, 0, 1), P.m(11), rope, turns=2.5)
+    for (fx, fz), x_end in (((38, 190), 115), ((868, 185), 790)):
+        bamboo(K, (P.x(fx), -0.95, Z(fz)), (P.x(fx) + (P.x(x_end) - P.x(fx)) * 0.3, 1.15, Z(fz) - 0.02), P.m(12), bam,
+               node_at=[0.35, 0.7], taper=1.0, name="eave_pole")
+    yr = 0.2
+    weave = ktile(K, (300, 70, 650, 170), vary=0.06)
+    palm_roof(K, (P.x(48), P.x(858)), (P.x(118), P.x(808)), (-0.8, 1.15), yr, Z(200), Z(42), weave,
+              (40, 180, 880, 215), posts_x=[(91, 116), (160, 184), (714, 739), (784, 809)])
+    ridge = K.projected(squeeze=1.0, keep=[(85, 22, 815, 42)], inset=1)
+    bamboo(K, P.pt(85, 32, yr), P.pt(815, 32, yr), P.m(9), ridge, node_at=[0.2, 0.36, 0.52, 0.68, 0.84], taper=1.0,
+           name="ridge_pole")
+    for x_px in (130, 762):
+        kp = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=[(x_px - 12, 6, x_px + 12, 24)], inset=1)
+        bamboo(K, (P.x(x_px), yr + 0.04, zb + 0.03), (P.x(x_px), yr + 0.04, Z(8)), P.m(11), kp, node_at=[], taper=1.0,
+               name="king_post")
+        joint(K, P.pt(x_px, 32, yr + 0.04), (0, 0, 1), (1, 0, 0), P.m(11), rope)
+    # ---------------------------------------------------------------- the garlands
+    yg = yfp - 0.05
+    garlands = [(115, 242, 150, 462), (152, 240, 188, 450), (190, 245, 226, 460), (230, 248, 273, 465),
+                (277, 248, 306, 415), (312, 248, 354, 447), (360, 248, 400, 398), (404, 252, 442, 415),
+                (454, 252, 490, 402), (500, 245, 540, 410), (545, 245, 590, 445), (603, 248, 648, 462),
+                (652, 248, 690, 415), (698, 243, 735, 452), (742, 240, 780, 440)]
+    for k, box in enumerate(garlands):
+        garland(K, box, yg - 0.03 * (k % 2), string_to=zb - 0.01)
+    # ---------------------------------------------------------------- the baskets
+    wv = ktile(K, (95, 660, 160, 700), vary=0.06)
+    wv_in = ktile(K, (205, 500, 265, 514), vary=0.06)
+    ground = bank.y
+
+    def bmat(cx, R, top, bot):
+        return K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - R - 4, top - 4, cx + R + 4, bot + 2)], inset=2)
+    # at the back, stacked
+    tipped_stack(K, bank, 234, 56, 48, 492, 520, 645, 4, bmat(234, 56, 492, 600), y=0.3, name="stack_c")
+    tipped_stack(K, bank, 713, 58, 50, 497, 525, 645, 5, bmat(713, 58, 497, 600), y=0.3, name="stack_h")
+    tipped_stack(K, bank, 298, 54, 46, 545, 568, 645, 2, bmat(298, 54, 545, 640), y=0.0, name="stack_d")
+    tipped_stack(K, bank, 615, 38, 33, 545, 562, 645, 2, bmat(615, 38, 545, 640), y=0.02, name="stack_g")
+    tipped_stack(K, bank, 725, 64, 56, 555, 578, 645, 3, bmat(725, 64, 555, 645), y=-0.05, name="stack_h2")
+    tipped_basket(K, 185, 60, 50, 562, 585, 660, bmat(185, 60, 562, 650), inside=wv_in, ground=ground, name="basket_b")
+    # in front, with goods
+    buds = K.projected(squeeze=1.0, keep=[(40, 560, 165, 630)], inset=2)
+    tipped_basket(K, 101, 64, 52, 612, 640, 728, bmat(101, 64, 612, 728), goods=buds, ground=ground, dome=0.35,
+                  name="basket_a")
+    lid = K.projected(squeeze=1.0, keep=[(180, 620, 312, 652)], inset=2)
+    tipped_basket(K, 245, 67, 58, 622, 650, 712, bmat(245, 67, 622, 712), goods=lid, ground=ground, dome=0.08,
+                  name="basket_e")
+    pink = K.projected(squeeze=1.0, keep=[(120, 665, 255, 695)], inset=1)
+    tipped_basket(K, 187, 77, 64, 662, 697, 750, bmat(187, 77, 662, 750), goods=pink, ground=ground, dome=0.2,
+                  name="basket_f")
+    marigold = K.projected(squeeze=1.0, keep=[(745, 625, 875, 650)], inset=1)
+    tipped_basket(K, 808, 74, 62, 620, 650, 735, bmat(808, 74, 620, 735), goods=marigold, ground=ground, dome=0.15,
+                  name="basket_i")
+    tipped_basket(K, 695, 80, 66, 655, 690, 760, bmat(695, 80, 655, 760), inside=wv_in, ground=ground, name="basket_j")
+    # the lotus and rose buds on their stalks, standing up out of basket A
+    def buds_keep(rgb):
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        k = ~((g >= r - 8) & (g > b + 15))                 # not the green bamboo post behind them
+        k[78:] = False                                     # not the basket's rim
+        return k
+    K.leaves_only((20, 535, 160, 632), buds_keep)
+    ya = bank.y(Z(728)) + P.m(52)
+    for yaw, dy in ((0, -0.12), (65, 0.0), (-65, 0.0), (90, 0.05)):
+        K.card_from_painting((20, 535, 160, 632), (P.x(90), ya + dy, Z(583)), yaw=yaw, name="buds", normal=(0, -1, 0.4))
+    # ---------------------------------------------------------------- behind her: a basket of loose flowers for
+    # stringing, and a bundle of banana-fibre string
+    loose = K.colour((0.75, 0.38, 0.05), vary=0.2, scale=30)
+    yb_ = 0.35
+    tipped_basket(K, 470, 60, 50, 560, 570, 645, wv, goods=loose, ground=lambda z: yb_, dome=0.3, name="basket_loose")
+    fibre = K.colour((0.6, 0.5, 0.3), vary=0.1)
+    coil = K.lathe([(0.0, 0.0), (0.1, 0.0), (0.1, 0.06), (0.0, 0.06)], fibre, segments=16,
+                   centre=(P.x(560), 0.45, bank.top), name="fibre_coil")
+    _ = coil
+    # ---------------------------------------------------------------- the flower seller
+    K.figure([(468, 432), (492, 430), (500, 445), (500, 490), (520, 505), (535, 530), (542, 560), (545, 590),
+              (560, 610), (578, 640), (580, 670), (560, 690), (530, 700), (450, 700), (390, 700), (362, 680),
+              (362, 650), (385, 615), (398, 590), (402, 550), (410, 520), (438, 502), (437, 470), (440, 445),
+              (455, 433)], y=bank.y(Z(700)) + 0.12, name="flower_seller")
+    unify_cards(K)
+
+
+@model("flower_stall", "market", kind="prop", atlas=2048)
+def flower_stall(K):
+    """A small flower stall, painted turned a little to its left: a thatched lean-to roof on four lashed bamboo posts
+    with braced sides, mango leaves tied at its corners, six doubled garlands of marigold, jasmine and rose hung on
+    hooks under it, a bamboo counter heaped with marigolds, jasmine buds and roses, a tub under it and a basket of
+    loose petals on the ground."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    T = Turned(P, 14.0, -0.058)
+    bam = K.colour((40, 100, 46, 140), vary=0.08)
+    rope = K.colour((0.45, 0.3, 0.1), vary=0.1)
+    yf, yb = -0.3, 0.35
+    a_ = 0.74
+    n0 = collect(K)
+    # ---------------------------------------------------------------- the frame (in the stall's own frame)
+    for x, y, top, r in ((-a_, yf, Z(10), P.m(9)), (a_, yf, Z(16), P.m(8)), (-a_, yb, Z(22), P.m(6)),
+                         (a_, yb, Z(22), P.m(6))):
+        bamboo(K, (x, y, 0.0), (x, y, top), r, bam, nodes=0.4, bend=0.0, taper=0.97, name="post")
+        K.lathe([(r * 1.05, top - 0.01), (r * 1.1, top + 0.01), (r * 0.7, top + 0.03)], bam, segments=10,
+                centre=(x, y, 0.0), name="post_cap")
+    zr = Z(30)
+    for y, z in ((yf - 0.02, Z(42)), (yb + 0.02, Z(28))):
+        bamboo(K, (-a_ - 0.12, y, z), (a_ + 0.12, y, z), P.m(6), bam, node_at=[0.3, 0.7], taper=1.0, name="beam")
+    for x in (-a_, a_):
+        bamboo(K, (x, yf - 0.05, Z(38)), (x, yb + 0.05, Z(26)), P.m(5), bam, node_at=[0.5], taper=1.0, name="side_beam")
+        K.tube([(x, yf, Z(90)), (x, yb, Z(45))], P.m(4), bam, segments=6, name="brace")
+        K.tube([(x, yb, Z(90)), (x, yf, Z(45))], P.m(4), bam, segments=6, name="brace")
+        for y, z in ((yf, Z(42)), (yb, Z(28))):
+            joint(K, (x, y, z), (0, 0, 1), (1, 0, 0), P.m(8), rope, rope=0.006)
+    # the hook beam under the roof's front edge
+    bamboo(K, (-a_, yf + 0.04, Z(53)), (a_, yf + 0.04, Z(53)), P.m(4), bam, node_at=[0.5], taper=1.0, name="hook_beam")
+    # ---------------------------------------------------------------- the counter, its legs and shelf
+    zc = Z(203)
+    slat = K.colour((120, 203, 160, 208), vary=0.08)
+    for k in range(7):
+        y = yf + 0.02 + (yb - yf - 0.04) * (k + 0.5) / 7
+        bamboo(K, (-a_ - 0.05, y, zc - 0.015), (a_ + 0.08, y, zc - 0.015), P.m(5), slat, node_at=[0.4, 0.8], taper=1.0,
+               name="slat")
+    for y in (yf - 0.04, yb + 0.02):
+        bamboo(K, (-a_ - 0.08, y, zc - 0.02), (a_ + 0.12, y, zc - 0.02), P.m(8), bam, node_at=[0.25, 0.5, 0.75],
+               taper=1.0, name="counter_rail")
+    for x in (-a_ + 0.04, a_ - 0.04):
+        bamboo(K, (x, yf - 0.06, zc - 0.03), (x, yb + 0.04, zc - 0.03), P.m(6), bam, node_at=[0.5], taper=1.0,
+               name="counter_rail")
+        for y in (yf - 0.02, yb):
+            K.tube([(x, y, 0.0), (x, y, zc - 0.03)], P.m(9), bam, segments=10, name="counter_leg")
+            lashing(K, (x, y, zc - 0.03), (0, 0, 1), P.m(9), rope, turns=2)
+        bamboo(K, (x, yf - 0.02, Z(234)), (x, yb, Z(234)), P.m(5), bam, node_at=[], taper=1.0, name="stretcher")
+    bamboo(K, (-a_, yf - 0.02, Z(234)), (a_, yf - 0.02, Z(234)), P.m(5), bam, node_at=[0.5], taper=1.0,
+           name="stretcher")
+    T.apply(K.parts[n0:])
+    # ---------------------------------------------------------------- the thatch
+    straw = ktile(K, (60, 26, 180, 44), vary=0.06)
+    front_th = K.projected(squeeze=1.0, keep=[(6, 18, 219, 52)], exclude=[(28, 5, 50, 30), (178, 10, 196, 32)], inset=1)
+    n1 = collect(K)
+
+    def roof(u, v, drop=0.0):
+        x = -a_ - 0.2 + (2 * a_ + 0.42) * u
+        y = yf - 0.18 + (yb + 0.12 - yf + 0.18) * v
+        z = Z(50) + (Z(22) - Z(50)) * v - 0.01 * math.sin(math.pi * u) - drop
+        return (x, y, z)
+    K.sheet(roof, 24, 8, front_th, name="thatch", thickness=0.05)
+    K.sheet(lambda u, v: roof(u, v, 0.04), 24, 8, straw, name="thatch_under", thickness=0.01)
+    T.apply(K.parts[n1:])
+    # mango leaves tied at the front corners
+    for box, (px_, py_) in (((4, 32, 34, 94), (18, 62)), ((196, 48, 218, 84), (207, 66))):
+        K.leaves_only(box, green_leaves)
+        for yaw in (0, 70):
+            p = T.w(px_, yf - 0.1, P.z(py_))
+            K.card_from_painting(box, tuple(p), yaw=yaw + math.degrees(T.t), name="mango_leaves")
+    # ---------------------------------------------------------------- the garlands
+    yg = yf + 0.04
+    for box in ((49, 57, 72, 156), (71, 57, 86, 147), (86, 57, 110, 160), (108, 57, 130, 150), (130, 58, 154, 156),
+                (154, 59, 179, 156)):
+        p = T.w((box[0] + box[2]) / 2, yg, 0.0)
+        garland(K, box, p.y, strands=2 if box[2] - box[0] > 18 else 1, string_to=Z(53))
+    # ---------------------------------------------------------------- the heaps on the counter
+    for (x0, x1, top), yl in (((43, 110, 164), -0.02), ((91, 156, 164), 0.06), ((136, 206, 163), -0.02)):
+        cx = (x0 + x1) / 2
+        p = T.w(cx, yl, 0.0)
+        m = K.projected(squeeze=1.0, keep=[(x0, top, x1, 202)], inset=1)
+        hw = (x1 - x0) / 2
+        K.lathe([(P.m(hw), zc - 0.01), (P.m(hw) * 0.95, zc + (Z(top) - zc) * 0.4), (P.m(hw) * 0.7, zc + (Z(top) - zc) * 0.8),
+                 (P.m(hw) * 0.35, Z(top) - 0.01), (0.0, Z(top))], m, segments=24, centre=(p.x, p.y, 0.0),
+                scale_y=0.8, wobble=0.05, name="flower_heap")
+        import market_props as MP
+        for bx, by, L, W, ang in blobs(K, (x0, top, x1, 200), 60, 15):
+            q = T.w(bx, yl - P.m(hw) * 0.55, P.z(by))
+            MP.ellipsoid(K, tuple(q), (P.m(W / 2), P.m(W / 2) * 0.8, P.m(W / 2) * 0.8), m, seg=8, rings=5, name="flower")
+    m = K.projected(squeeze=1.0, keep=[(15, 178, 33, 200)], inset=1)
+    p = T.w(24, 0.0, 0.0)
+    K.lathe([(P.m(10), zc - 0.01), (P.m(8), Z(186)), (0.0, Z(178))], m, segments=16, centre=(p.x, p.y, 0.0),
+            name="flower_heap")
+    # ---------------------------------------------------------------- the tub under the counter, the basket of petals
+    tub = K.projected(axis_x=T.w(106, 0.05, 0).x, squeeze=0.93, keep=[(82, 212, 130, 251)], inset=1)
+    p = T.w(106, 0.05, 0.0)
+    K.lathe([(P.m(22), 0.0), (P.m(24), Z(240)), (P.m(24), Z(214)), (P.m(22), Z(212))], tub, segments=24,
+            centre=(p.x, p.y, 0.0), name="tub")
+    weave = K.projected(axis_x=P.x(171), squeeze=0.93, keep=[(130, 218, 213, 258)], inset=1)
+    petals = K.projected(squeeze=1.0, keep=[(140, 209, 210, 228)], inset=1)
+    tipped_basket(K, 171, 41, 33, 219, 232, 258, weave, goods=petals, ground=lambda z: -0.6, dome=0.3,
+                  name="petal_basket")
+    shadow = K.colour((20, 254, 120, 258), vary=0.05)
+    K.lathe([(0.0, 0.0), (1.1, 0.0), (1.05, 0.005), (0.0, 0.007)], shadow, segments=32, centre=(T.cx, -0.05, -0.004),
+            scale_y=0.55, cap=False, name="ground")
     unify_cards(K)

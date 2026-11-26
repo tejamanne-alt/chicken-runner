@@ -1,0 +1,10 @@
+{
+ "name": "flower_stall",
+ "folder": "market",
+ "kind": "volume",
+ "width": 2.183,
+ "height": 2.6,
+ "depth": 1.466,
+ "faces": 8495,
+ "source": "blender"
+}
