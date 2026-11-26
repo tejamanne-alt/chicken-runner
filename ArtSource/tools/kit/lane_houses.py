@@ -721,14 +721,16 @@ def house_mud_tin(K):
                                            (128, 260, 268, 333), (916, 252, 1012, 303), (1248, 282, 1338, 328),
                                            (952, 5, 1012, 32)], inset=2)
     ys = lambda z: slope_y(-ov, depth / 2, ze, zr, z)
+    tilt = math.degrees(math.atan2(zr - ze, depth / 2 + ov))
+    lift = 1.0 / math.sin(math.radians(tilt))        # at a fixed height, how far forward a thing must sit per m off the tin
     for px, py, w, h in ((340, 76, 82, 40), (602, 60, 90, 38), (885, 60, 58, 32), (198, 298, 138, 70),
                          (964, 280, 94, 48), (1293, 306, 88, 44), (982, 20, 58, 26), (285, 90, 22, 12),
                          (270, 320, 30, 14)):
         z = P.z(py)
-        K.boulder(P.x(px), ys(z) - P.m(h) * 0.1, z, P.m(w), P.m(w) * 0.7, P.m(h) * 1.05, stone, name="stone")
+        hh = P.m(h) * 0.35
+        K.boulder(P.x(px), ys(z) - hh * lift * 0.8, z, P.m(w), P.m(w) * 0.7, P.m(h) * 1.05, stone, name="stone")
     tyre_m = K.projected(axis_x=P.x(1107), squeeze=0.95, keep=[(990, 176, 1224, 313)], inset=2)
-    tilt = math.degrees(math.atan2(zr - ze, depth / 2 + ov))
-    tyre(K, 1107, 244, 88, 28, ys(P.z(244)) - 0.06, tilt, tyre_m)
+    tyre(K, 1107, 244, 88, 28, ys(P.z(244)) - P.m(28) * lift, tilt, tyre_m)
     # the door: a plank door recessed in its frame
     K.cut(body, P.x(588), P.x(830), -0.05, 0.22, P.z(1080), P.z(475))
     K.box(P.x(588), P.x(830), 0.1, 0.15, P.z(1080), P.z(475), blue, name="door")
@@ -749,20 +751,189 @@ def house_mud_tin(K):
         return tuple(a[k] + (b[k] - a[k]) * v for k in range(3))
     K.sheet(flap, 4, 4, plank, name="flap", smooth=False, thickness=0.03)
     K.tube([P.pt(1057, 791, -0.02), P.pt(1135, 645, fy * 0.95)], 0.013, frame, segments=6, name="stick")
-    # the side walls: a smaller flap window each side; the back: the door again
+    # the side walls: a window each side with its plank flap shut; the back: the door again
     for side in (-1, 1):
         xw = X1 if side > 0 else X0
-        K.cut(body, xw - 0.25, xw + 0.25, depth * 0.55 - 0.3, depth * 0.55 + 0.3, P.z(716), P.z(526))
-        K.box(xw - side * 0.22, xw - side * 0.19, depth * 0.55 - 0.3, depth * 0.55 + 0.3, P.z(716), P.z(526), dark,
-              name="side_window_back")
-        for a, b, c, d in ((-0.36, -0.3, 0, 0), (0.3, 0.36, 0, 0)):
-            K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), depth * 0.55 + a, depth * 0.55 + b,
-                  P.z(724), P.z(511), frame, bevel=0.005, name="side_window_frame")
-        K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), depth * 0.55 - 0.36, depth * 0.55 + 0.36,
-              P.z(526), P.z(511), frame, bevel=0.005, name="side_window_frame")
-        K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), depth * 0.55 - 0.36, depth * 0.55 + 0.36,
-              P.z(724), P.z(712), frame, bevel=0.005, name="side_window_frame")
-        hx = xw + side * 0.03
-        K.block(hx + side * 0.18, depth * 0.55, P.z(526) - 0.2, 0.42, 0.62, 0.03, plank, rot=(0, side * -48, 0),
-                name="side_flap")
+        yc = depth * 0.55
+        K.cut(body, xw - 0.25, xw + 0.25, yc - 0.3, yc + 0.3, P.z(716), P.z(526))
+        K.box(min(xw, xw - side * 0.06), max(xw, xw - side * 0.06), yc - 0.3, yc + 0.3, P.z(716), P.z(526), plank,
+              name="side_flap")
+        for a0, a1, z0, z1 in ((-0.36, -0.3, 724, 511), (0.3, 0.36, 724, 511), (-0.36, 0.36, 526, 511),
+                               (-0.36, 0.36, 724, 712)):
+            K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), yc + a0, yc + a1, P.z(z0), P.z(z1), frame,
+                  bevel=0.005, name="side_window_frame")
+        for zz in (560, 640):
+            K.box(min(xw, xw + side * 0.03), max(xw, xw + side * 0.03), yc - 0.28, yc + 0.28, P.z(zz + 8), P.z(zz),
+                  frame, name="flap_batten")
     back_decal(K, (553, 442, 866, 1085), depth)
+
+
+def tin_panel(K, plane, a0, a1, z0, z1, mat, pitch=0.1, amp=0.015, name="tin_panel", wave_top=0.0):
+    """A corrugated tin sheet nailed on a wall, its corrugations running up and down: plane ('y', y, side) for a
+    front/back wall (spanning x a0..a1) or ('x', x, side) for a side wall (spanning y a0..a1); side -1/+1 is which
+    way it faces. wave_top lets its top edge sag a little (an old sheet)."""
+    kind, c, side = plane
+
+    def f(u, v):
+        a = a0 + (a1 - a0) * u
+        z = z0 + (z1 - z0) * v - wave_top * math.sin(math.pi * u) * v
+        off = c + side * (0.012 + amp * (1 + math.sin(2 * math.pi * (a - a0) / pitch)))
+        return (a, off, z) if kind == "y" else (off, a, z)
+    n = max(4, int(abs(a1 - a0) / pitch * 4))
+    return K.sheet(f, n, 2, mat, name=name, smooth=False, thickness=0.006)
+
+
+def plank_panel(K, plane, a0, a1, z0, z1, mat, name="planks", out=0.02):
+    """A patch of boards nailed over a wall: a slab `out` m proud of the plane ('x'|'y', coordinate, side)."""
+    kind, c, side = plane
+    o0, o1 = sorted((c, c + side * out))
+    if kind == "y":
+        return K.box(a0, a1, o0, o1, z0, z1, mat, bevel=0.004, name=name)
+    return K.box(o0, o1, a0, a1, z0, z1, mat, bevel=0.004, name=name)
+
+
+def hip_tin_courses(K, eave, ridge, ze, zr, mats, split=0.5, pitch=0.12, amp=0.024, lap=0.035, name="tin"):
+    """A hipped tin roof laid in two courses of sheets (the lower one from the eave, the upper one lapping over it
+    from `split` of the way up), each course a run of sheets of different tins (mats, cycled): front and back
+    slopes, two hip ends, caps on the hips and ridge."""
+    ex0, ex1, ey0, ey1 = eave
+    rx0, rx1 = ridge
+    ym = (ey0 + ey1) / 2
+
+    def course(front, v0, v1, lift, x_cuts, mat, k):
+        def f(u, v):
+            vv = v0 + (v1 - v0) * v
+            xa, xb = ex0 + (rx0 - ex0) * vv, ex1 + (rx1 - ex1) * vv
+            ua, ub = x_cuts
+            x = xa + (xb - xa) * (ua + (ub - ua) * u)
+            y0 = ey0 if front else ey1
+            y = y0 + (ym - y0) * vv
+            z = ze + (zr - ze) * vv + lift + amp * math.sin(2 * math.pi * (x - ex0) / pitch) + 0.004 * k
+            return (x, y - (lift if front else -lift) * 0.3, z)
+        n = max(4, int((ex1 - ex0) * (x_cuts[1] - x_cuts[0]) / pitch * 4))
+        return K.sheet(f, n, 3, mat, name=name, smooth=False, thickness=0.008)
+    cuts = [0.0, 0.23, 0.45, 0.62, 0.8, 1.0]
+    for front in (True, False):
+        for row, (v0, v1, lift) in enumerate(((0.0, split + 0.06, 0.0), (split, 1.0, lap))):
+            off = 1 if row else 0
+            for k in range(len(cuts) - 1):
+                course(front, v0, v1, lift, (cuts[k], cuts[k + 1]), mats[(k + off + (0 if front else 2)) % len(mats)], k)
+
+    def hip(left):
+        def f(u, v):
+            ya, yb = ey0 + (ym - ey0) * v, ey1 + (ym - ey1) * v
+            y = ya + (yb - ya) * u
+            x0 = ex0 if left else ex1
+            r = rx0 if left else rx1
+            z = ze + (zr - ze) * v + amp * math.sin(2 * math.pi * (y - ey0) / pitch)
+            return (x0 + (r - x0) * v, y, z)
+        return K.sheet(f, int((ey1 - ey0) / pitch * 3), 3, mats[0 if left else 1], name=name + "_hip", smooth=False,
+                       thickness=0.008)
+    hip(True)
+    hip(False)
+    cap = mats[0]
+    for (xa, ya), xr in (((ex0, ey0), rx0), ((ex0, ey1), rx0), ((ex1, ey0), rx1), ((ex1, ey1), rx1)):
+        K.tube([(xa, ya, ze + 0.03), (xr, ym, zr + 0.05)], 0.035, cap, segments=6, name="hip_cap")
+
+
+@model("house_plank_sheet", "lane", kind="building", atlas=2048)
+def house_plank_sheet(K):
+    """A shack of old planks and patched corrugated tin under a hipped roof of mismatched tin sheets in two courses: a
+    doorway hung with a saree for a curtain, a window with three pots of chillies on its sill, corner posts, a
+    plastic basin by the door."""
+    P = K.paint
+    D = 3.4
+    K.front_min = 0.05
+    orange = K.tile((110, 290, 370, 640), size=0.9, vary=0.04)
+    grey = K.tile((110, 670, 370, 990), size=0.9, vary=0.04)
+    blue = K.tile((770, 290, 950, 990), size=0.6, vary=0.04)
+    rust = K.tile((1262, 700, 1428, 990), size=0.6, vary=0.04)
+    brown = K.tile((965, 755, 1240, 990), size=0.9, vary=0.04)
+    post = K.colour((84, 300, 100, 600), vary=0.08)
+    frame = K.colour((380, 500, 405, 900), vary=0.08)
+    dark = K.colour((0.035, 0.025, 0.03), vary=0.0)
+    earth = K.colour((300, 1004, 800, 1022), vary=0.12, scale=10)
+    roof_mats = [K.tile((470, 60, 640, 150), size=0.7, vary=0.04), K.tile((110, 60, 300, 140), size=0.7, vary=0.04),
+                 K.tile((900, 175, 1080, 250), size=0.7, vary=0.04), K.tile((1150, 60, 1380, 130), size=0.7, vary=0.04),
+                 K.tile((60, 165, 280, 250), size=0.7, vary=0.04)]
+    X0, X1 = P.x(84), P.x(1448)
+    ze, zr = P.z(268), P.z(32)
+    zg = P.z(1002)
+    body = K.box(X0 + 0.02, X1 - 0.02, 0.02, D - 0.02, 0.0, ze + 0.04, orange, name="walls")
+    K.box(P.x(78), P.x(1455), -0.12, D + 0.12, 0.0, zg, earth, bevel=0.02, name="floor_slab")
+    # corner posts
+    for x in (X0 + 0.04, X1 - 0.04):
+        for y in (0.04, D - 0.04):
+            K.box(x - 0.045, x + 0.045, y - 0.045, y + 0.045, 0.0, ze + 0.02, post, bevel=0.008, name="post")
+    # the front's patches stand proud of the frame where they are painted (the painting lands on them)
+    plank_panel(K, ("y", 0.0, -1), P.x(762), P.x(955), zg, ze, blue, name="front_tin")
+    plank_panel(K, ("y", 0.0, -1), P.x(1300), P.x(1432), P.z(632), P.z(400), grey, name="torn_sheet", out=0.03)
+    # the side walls and the back: the same planks and tin, patched
+    for side, x in ((-1, X0), (1, X1)):
+        segs = ((0.0, 1.2, orange if side < 0 else blue), (1.2, 2.3, grey if side < 0 else brown), (2.3, D, rust))
+        for a0, a1, m in segs:
+            if m in (grey, blue):
+                tin_panel(K, ("x", x, side), a0 + 0.05, a1, zg, ze, m, wave_top=0.03)
+            else:
+                plank_panel(K, ("x", x, side), a0 + 0.05, a1, zg, ze, m)
+    for a0, a1, m in ((X0, X0 + 1.1, grey), (X0 + 1.1, X0 + 2.5, brown), (X0 + 2.5, X1, rust)):
+        if m is grey:
+            tin_panel(K, ("y", D, 1), a0 + 0.05, a1, zg, ze, m, wave_top=0.04)
+        else:
+            plank_panel(K, ("y", D, 1), a0 + 0.05, a1, zg, ze, m)
+    # a side window on the right (boarded), a back door
+    for a, b, c, d in ((1.45, 2.15, P.z(720), P.z(700)), (1.45, 2.15, P.z(420), P.z(400)), (1.45, 1.5, P.z(720), P.z(400)),
+                       (2.1, 2.15, P.z(720), P.z(400))):
+        K.box(X1 + 0.02, X1 + 0.06, a, b, c, d, frame, bevel=0.004, name="side_window_frame")
+    K.box(X1 + 0.015, X1 + 0.03, 1.5, 2.1, P.z(700), P.z(420), dark, name="side_window")
+    for a0, a1 in ((X0 + 1.45, X0 + 1.5), (X0 + 2.25, X0 + 2.3)):
+        K.box(a0, a1, D + 0.02, D + 0.07, zg, P.z(380), frame, bevel=0.004, name="back_door_frame")
+    K.box(X0 + 1.45, X0 + 2.3, D + 0.02, D + 0.07, P.z(380), P.z(350), frame, bevel=0.004, name="back_door_frame")
+    K.box(X0 + 1.5, X0 + 2.25, D + 0.02, D + 0.045, zg, P.z(380), brown, name="back_door")
+    # the roof
+    hip_tin_courses(K, (P.x(20), P.x(1530), -0.3, D + 0.3), (P.x(102), P.x(1445)), ze, zr, roof_mats)
+    K.box(P.x(100), P.x(1447), D / 2 - 0.12, D / 2 + 0.12, zr, zr + 0.09, roof_mats[2], bevel=0.01, name="ridge_board")
+    # the doorway: frame, a dark room, the saree on its rod
+    K.cut(body, P.x(410), P.x(727), -0.05, 0.7, zg, P.z(380))
+    K.box(P.x(410), P.x(727), 0.65, 0.7, zg, P.z(380), dark, name="room")
+    for x0, x1 in ((372, 410), (727, 762)):
+        K.box(P.x(x0), P.x(x1), -0.04, 0.08, zg, P.z(345), frame, bevel=0.006, name="door_post")
+    K.box(P.x(372), P.x(762), -0.04, 0.08, P.z(380), P.z(345), frame, bevel=0.006, name="door_head")
+    K.box(P.x(372), P.x(762), -0.06, 0.02, P.z(345), P.z(290), K.tile((400, 295, 740, 340)), bevel=0.006, name="lintel")
+    cloth = K.projected(axis_x=P.x(600), squeeze=1.0, keep=[(505, 395, 735, 975), (430, 385, 735, 520)], inset=3)
+    def xl(py):
+        pts = ((382, 425), (520, 450), (650, 485), (800, 510), (975, 510))
+        for (a, xa), (b, xb) in zip(pts, pts[1:]):
+            if a <= py <= b:
+                return xa + (xb - xa) * (py - a) / (b - a)
+        return 510
+    def curtain(u, v):
+        py = 382 + (975 - 382) * v
+        x0 = xl(py)
+        px = x0 + (735 - x0) * u
+        fold = 0.035 * math.sin(u * math.pi * 7 + v * 1.5) * (0.3 + 0.7 * v)
+        return (P.x(px), 0.1 + fold, P.z(py))
+    K.sheet(curtain, 28, 20, cloth, name="saree", thickness=0.006)
+    K.tube([P.pt(412, 384, 0.08), P.pt(725, 384, 0.08)], 0.012, frame, segments=6, name="rod")
+    # the window: frame, mullion, dark panes, its sill with three pots of chillies
+    K.cut(body, P.x(983), P.x(1227), -0.05, 0.35, P.z(717), P.z(427))
+    K.box(P.x(983), P.x(1227), 0.3, 0.33, P.z(717), P.z(427), dark, name="window_back")
+    wf = K.colour((960, 400, 1250, 425), vary=0.08)
+    for a, b, c, d in ((953, 983, 393, 720), (1227, 1257, 393, 720), (983, 1227, 393, 427), (1093, 1120, 427, 717)):
+        K.box(P.x(a), P.x(b), -0.04, 0.06, P.z(d), P.z(c), wf, bevel=0.006, name="window_frame")
+    K.box(P.x(937), P.x(1277), -0.2, 0.04, P.z(747), P.z(720), wf, bevel=0.008, name="sill")
+    for cx, x0, x1, top, r_top, r_bot in ((1017, 977, 1057, 660, 40, 26), (1107, 1072, 1143, 677, 35, 24),
+                                          (1196, 1157, 1235, 660, 39, 26)):
+        pot(K, cx, [(r_bot, 720), (r_top * 0.85, 690), (r_top, 668), (r_top, top)], keep=[(x0, top - 2, x1, 721)],
+            y=-0.09, mouth=False, segments=20)
+    K.leaves_only((925, 500, 1280, 690))
+    for cx, cy in ((1015, 600), (1105, 640), (1195, 590)):
+        for yaw in (0, 60, -60):
+            K.card_from_painting((cx - 80, cy - 100, cx + 80, cy + 85), (P.x(cx), -0.09 + K.rng.uniform(-0.03, 0.03),
+                                 P.z(cy - 7)), yaw=yaw + K.rng.uniform(-10, 10), name="chilli")
+    # the plastic basin by the door
+    basin = K.projected(axis_x=P.x(902), squeeze=0.95, keep=[(820, 986, 984, 1036)], inset=2)
+    K.lathe([(P.m(66), 0.0), (P.m(72), P.m(15)), (P.m(80), P.m(44)), (P.m(82), P.m(48)), (P.m(76), P.m(46))], basin,
+            segments=28, centre=(P.x(902), -0.45, 0.0), name="basin")
+    K.lathe([(P.m(74), P.m(44)), (P.m(60), P.m(20)), (0.0, P.m(16))], K.colour((0.05, 0.25, 0.25), vary=0.05),
+            segments=28, centre=(P.x(902), -0.45, 0.0), name="basin_water", cap=False)

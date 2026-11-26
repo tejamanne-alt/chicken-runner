@@ -539,8 +539,10 @@ def bank(K, outline, bot_py, sh_py, crest_py, hd_bot, hd_sh, mat, nx=48, rough=0
         for j in range(nj):
             jj = (j + 1) % nj
             bm.faces.new([rings[i][j], rings[i][jj], rings[i + 1][jj], rings[i + 1][j]])
-    bm.faces.new(list(reversed(rings[0])))
-    bm.faces.new(rings[-1])
+    for ring in (rings[0], rings[-1]):                     # the ends: a fan round their middle
+        c = bm.verts.new(tuple(sum((v.co for v in ring), Vector()) / len(ring)))
+        for j in range(nj):
+            bm.faces.new([c, ring[j], ring[(j + 1) % nj]])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     ob = _obj(name, bm, mat, smooth=True)
     K.parts.append(ob)
@@ -566,11 +568,12 @@ def bund_block(K):
                         (180, 40, 18, hb + 0.08), (520, 56, 26, hb + 0.1)):
         K.boulder(P.x(px), y, P.z(200) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.75, P.m(h), stone, name="stone")
     clod = K.colour((330, 170, 420, 195), vary=0.15)
-    for k in range(14):
+    for k in range(12):
         px = K.rng.uniform(60, 680)
         y = K.rng.choice([-1, 1]) * (hb + K.rng.uniform(0.02, 0.08))
         s = K.rng.uniform(0.04, 0.08)
-        K.boulder(P.x(px), y, P.z(200) + s * 0.3, s, s * 0.8, s * 0.6, clod, lumps=0.3, name="clod")
+        K.block(P.x(px), y, P.z(200) + s * 0.25, s, s * 0.8, s * 0.5, clod, rot=(0, 0, K.rng.uniform(0, 90)),
+                jitter=s * 0.12, name="clod")
     # grass and weeds: along the crest, along both feet, and over the two ends
     K.leaves_only((0, 0, 718, 216), grass_pixels)
     for cx in range(70, 690, 46):

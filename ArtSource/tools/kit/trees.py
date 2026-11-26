@@ -740,3 +740,19 @@ def tree_mango_1(K):
     K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
     earth(K, 280, 270, 2.2, (60, 700, 500, 712))
     undergrowth(K, (20, 560, 520, 700), 16, (70, 60), (0.6, 1.8), name="undergrowth_back")
+
+
+def brown_wood(rgb):
+    r, g, b, mx, mn = chan(rgb)
+    return (r - b > 45) & (mx < 225) & (r > g) & (g > b)
+
+
+def _trace_peepal_roots(K):
+    """The peepal's foot: the trunk below the threads and the roots spreading over the platform's top."""
+    P = K.paint
+    extra = box_mask((P.h, P.w), [(700, 1000, 1140, 1150)])
+    mask = wood_mask(K, brown_wood, boxes=[(380, 940, 1480, 1205)], close=3, hole=3000, extra=extra)
+    return mask, Wood(K, mask, root_px=(920, 945), spur=1.2, min_len=8)
+
+
+TRACE["peepal_platform"] = _trace_peepal_roots

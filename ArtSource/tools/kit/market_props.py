@@ -38,7 +38,7 @@ def black_tank(K):
     K.tube([(P.x(cx), P.m(78), P.z(172)), (P.x(cx), P.m(98), P.z(172))], 0.035, plastic, segments=10, name="outlet")
     # the stone slab and its two piers
     slab_m = K.tile((60, 190, 220, 207), vary=0.06, soften=0.35)
-    pier_m = K.tile((155, 218, 208, 268), vary=0.06, soften=0.3)
+    pier_m = K.tile((155, 218, 208, 268), vary=0.06, soften=0.45)
     d = P.m(92)
     K.box(P.x(26), P.x(222), -d, d, P.z(210), P.z(184), slab_m, bevel=0.015, name="slab")
     for x0, x1 in ((34, 103), (150, 214)):
@@ -70,6 +70,7 @@ def brass_vessels(K):
     """Four polished brass vessels on a stone ledge: a big kudam behind, a smaller one in front, a little pot and a
     lidded canister."""
     P = K.paint
+    K.front_exclude = [(70, 86, 90, 152)]         # the shadowed gap between the pots: the kudam's own brass there
     inside = K.colour((0.12, 0.05, 0.01), vary=0.1)
     vessels = [
         # centre px, depth y, keep boxes, profile [(r px, y px)] from the foot up, mouth (r px, top py)
