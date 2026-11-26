@@ -188,6 +188,21 @@ def scoop(K, tip, butt, r, wood, name="scoop"):
     return ob
 
 
+def mud_bed(K, x0, x1, yfront, y1, h, mat, nx=44, ny=22, edge=0.14, lump=0.01, name="bed"):
+    """A raised bed of packed earth, flat-topped and a little lumpy, its front a steep rounded bank: x0..x1, from
+    yfront (metres, or a function of x) back to y1, h tall."""
+    yf = yfront if callable(yfront) else (lambda x: yfront)
+    ymin = min(yf(x0 + (x1 - x0) * i / 20) for i in range(21)) - 0.02
+    ph = K.rng.uniform(0, 6.28, 4)
+
+    def height(x, y):
+        k = _smooth(yf(x), yf(x) + edge, y) * _smooth(x0, x0 + edge * 0.6, x) * _smooth(x1, x1 - 0.02, x)
+        k *= _smooth(y1, y1 - edge, y)
+        n = math.sin(x * 7 + ph[0]) * math.sin(y * 6 + ph[1]) + 0.5 * math.sin(x * 17 + y * 11 + ph[2])
+        return k * (h + lump * n)
+    return K.grid_plane(x0, x1, ymin, y1, 0.0, nx, ny, mat, height=height, name=name)
+
+
 def earth_patch(K, cx, cy, rx, ry, mat, z=0.0, h=0.025, name="ground"):
     """The packed earth a stall stands on: a low, uneven disc."""
     return K.lathe([(0.0, z), (rx, z), (rx * 0.97, z + h * 0.6), (rx * 0.85, z + h), (0.0, z + h)], mat, segments=32,
@@ -202,7 +217,7 @@ def stall_c_1(K):
     roots, wooden scoops stuck in two, brass pots in front, a plank platform raising the back row."""
     P = K.paint
     K.front_min = 0.12
-    yf, yb = -0.85, 0.85
+    yf, yb = 0.3, 1.05
     # ---------------------------------------------------------------- the four bamboo posts
     def post_x(top, k, py):
         return top[0] + (py - top[1]) * k
@@ -235,15 +250,12 @@ def stall_c_1(K):
            hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2))
     # ---------------------------------------------------------------- the ground, the platform for the back row
     earth = K.tile((1010, 712, 1110, 785), vary=0.08, soften=0.3)
-    earth_patch(K, P.x(560), 0.05, 1.95, 1.05, earth)
-    K.block(P.x(1062), 0.25, P.z(700) / 2, P.m(124), 1.3, P.z(700), earth, bevel=0.05, jitter=0.01, name="bank")
+    earth_patch(K, P.x(560), -0.1, 1.95, 1.35, earth)
+    plat = P.z(700)
+    # the back half stands on a raised bed of packed earth (its bank shows at the right, past the last sack)
+    mud_bed(K, P.x(150), P.x(1124), lambda x: -0.12 - 0.18 * _smooth(P.x(440), P.x(520), x), 1.2, plat, earth)
     plank = K.colour((0.22, 0.12, 0.05), vary=0.12, scale=8)
-    brick = K.colour((0.32, 0.1, 0.05), vary=0.15)
-    for x in (P.x(185), P.x(530), P.x(870)):
-        for y in (0.3, 0.8):
-            K.block(x, y, 0.13, 0.22, 0.11, 0.26, brick, bevel=0.01, name="brick")
-    for i, y in enumerate(np.linspace(0.22, 0.88, 5)):
-        K.box(P.x(170), P.x(890), y - 0.07, y + 0.07, 0.26, 0.3, plank, bevel=0.006, name="plank")
+
     # ---------------------------------------------------------------- the goods
     burlap = K.tile((50, 670, 200, 770), vary=0.06, soften=0.3)
     burlap2 = K.tile((830, 680, 990, 770), vary=0.06, soften=0.3)
@@ -259,45 +271,49 @@ def stall_c_1(K):
     orange = K.tile((320, 560, 420, 600), vary=0.05)
     Z = P.z
     sacks = [  # (cx px, half-width px, rim front py, rim back py, peak py, y, z0, cloth, goods)
-        (290, 98, 490, 432, 422, 0.5, 0.3, burlap, chilli),
-        (480, 86, 545, 500, 478, 0.32, 0.3, burlap2, turmeric),
-        (640, 86, 525, 495, 490, 0.5, 0.3, burlap, grain),
-        (778, 88, 500, 458, 452, 0.55, 0.3, burlap2, grain),
-        (235, 76, 578, 530, 528, 0.02, 0.0, burlap, lentil),
-        (380, 90, 620, 556, 545, -0.05, 0.0, burlap2, orange),
-        (730, 80, 650, 600, 588, 0.0, 0.0, burlap, roots),
-        (828, 78, 590, 545, 540, 0.1, 0.0, burlap2, brownl),
-        (137, 107, 650, 595, 565, -0.35, 0.0, burlap, chilli),
-        (555, 86, 655, 590, 572, -0.33, 0.0, burlap2, roots),
-        (905, 95, 655, 605, 595, -0.35, 0.0, burlap, white),
-        (317, 88, 690, 645, 640, -0.56, 0.0, burlap2, grain9),
-        (772, 93, 735, 690, 680, -0.58, 0.0, burlap, yellow),
+        # the back row, on the earth bed
+        (290, 98, 490, 432, 422, 0.62, plat, burlap, chilli),
+        (480, 86, 545, 500, 478, 0.5, plat, burlap2, turmeric),
+        (640, 86, 525, 495, 490, 0.64, plat, burlap, grain),
+        (778, 88, 500, 458, 452, 0.68, plat, burlap2, grain),
+        # the middle row, on the bed's front
+        (235, 76, 578, 530, 528, 0.02, plat, burlap, lentil),
+        (828, 78, 590, 545, 540, 0.0, plat, burlap2, brownl),
+        # on the ground in front of the bed
+        (380, 90, 620, 556, 545, -0.42, 0.0, burlap2, orange),
+        (730, 80, 650, 600, 588, -0.55, 0.0, burlap, roots),
+        (137, 107, 650, 595, 565, -0.6, 0.0, burlap, chilli),
+        (555, 86, 655, 590, 572, -0.62, 0.0, burlap2, roots),
+        (905, 95, 655, 605, 595, -0.62, 0.0, burlap, white),
+        # the front row
+        (317, 88, 690, 645, 640, -0.98, 0.0, burlap2, grain9),
+        (772, 93, 735, 690, 680, -1.0, 0.0, burlap, yellow),
     ]
     for cx, hw, f, b, pk, y, z0, cl, gd in sacks:
         sack(K, P.x(cx), y, P.m(hw), Z(f), Z(b), Z(pk), cl, gd, z0=z0, sy=0.82, wobble=0.035)
     # a crate behind the turmeric with a brass pot on it, and a small brass pot on a stool by the roots
-    crate(K, P.x(370), P.x(450), 0.58, 0.82, 0.3, Z(515), plank, slats=3)
+    crate(K, P.x(370), P.x(450), 0.78, 1.0, plat, Z(515), plank, slats=3)
     brass = K.projected(axis_x=P.x(410), squeeze=0.92, keep=[(380, 455, 442, 512)], inset=2)
-    turned(K, 410, [(22, 515), (28, 505), (30, 485), (27, 468), (24, 462), (28, 457), (26, 454)], 0.7, brass)
-    K.box(P.x(705), P.x(748), 0.22, 0.38, 0.0, Z(595), plank, bevel=0.005, name="stool")
+    turned(K, 410, [(22, 515), (28, 505), (30, 485), (27, 468), (24, 462), (28, 457), (26, 454)], 0.89, brass)
+    K.box(P.x(705), P.x(748), 0.28, 0.44, plat, Z(595), plank, bevel=0.005, name="stool")
     brass2 = K.projected(axis_x=P.x(725), squeeze=0.92, keep=[(700, 528, 752, 595)], inset=2)
-    turned(K, 725, [(20, 595), (24, 585), (25, 560), (22, 542), (25, 535), (24, 529)], 0.3, brass2)
+    turned(K, 725, [(20, 595), (24, 585), (25, 560), (22, 542), (25, 535), (24, 529)], 0.36, brass2)
     # brass pots in front
     brass3 = K.projected(axis_x=P.x(632), squeeze=0.92, keep=[(578, 683, 686, 793)], inset=2)
-    turned(K, 632, [(42, 793), (49, 775), (50, 740), (45, 713), (40, 703), (47, 696), (49, 688), (45, 685)], -0.78,
+    turned(K, 632, [(42, 793), (49, 775), (50, 740), (45, 713), (40, 703), (47, 696), (49, 688), (45, 685)], -1.28,
            brass3, segs=32)
     brass4 = K.projected(axis_x=P.x(445), squeeze=0.92, keep=[(413, 706, 478, 785)], inset=2)
-    turned(K, 445, [(22, 783), (28, 772), (30, 750), (25, 728), (23, 720), (29, 713), (30, 709), (27, 707)], -0.8, brass4)
+    turned(K, 445, [(22, 783), (28, 772), (30, 750), (25, 728), (23, 720), (29, 713), (30, 709), (27, 707)], -1.3, brass4)
     brass5 = K.projected(axis_x=P.x(537), squeeze=0.92, keep=[(508, 730, 565, 788)], inset=2)
-    turned(K, 537, [(20, 788), (25, 775), (26, 758), (22, 745), (25, 739), (24, 735)], -0.86, brass5)
+    turned(K, 537, [(20, 788), (25, 775), (26, 758), (22, 745), (25, 739), (24, 735)], -1.36, brass5)
     # the scoops
     scoopw = K.colour((640, 470, 660, 500), vary=0.08)
-    scoop(K, P.pt(338, 678, -0.5), P.pt(408, 582, -0.6), P.m(22), scoopw)
-    scoop(K, P.pt(630, 515, 0.45), P.pt(678, 433, 0.38), P.m(24), scoopw)
-    K.tube([P.pt(528, 750, -0.86), P.pt(518, 718, -0.88)], P.m(5), scoopw, segments=6, name="spoon")
+    scoop(K, P.pt(338, 678, -0.98), P.pt(408, 582, -1.08), P.m(22), scoopw)
+    scoop(K, P.pt(630, 515, 0.6), P.pt(678, 433, 0.52), P.m(24), scoopw)
+    K.tube([P.pt(528, 750, -1.36), P.pt(518, 718, -1.38)], P.m(5), scoopw, segments=6, name="spoon")
     # a loose heap of chillies spilling at the front-left, modelled pods on the two chilli heaps
     pod = K.colour((150, 600, 165, 615), vary=0.15, scale=30)
-    for cx, hw, f, b, pk, y, n in ((137, 107, 650, 595, 565, -0.35, 26), (290, 98, 490, 432, 422, 0.5, 22)):
+    for cx, hw, f, b, pk, y, n in ((137, 107, 650, 595, 565, -0.6, 26), (290, 98, 490, 432, 422, 0.62, 22)):
         tilt = (Z(b) - Z(f)) / 2
         for i in range(n):
             ang = K.rng.uniform(0, 2 * math.pi)

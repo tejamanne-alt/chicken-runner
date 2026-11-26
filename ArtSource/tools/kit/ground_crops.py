@@ -179,11 +179,255 @@ def stones(K, depth_scale=0.55, dark=95, ink=85, min_px=25):
 @model("pebbles", "ground", kind="flat")
 def pebbles(K):
     """Five loose stones of different sizes and colours, each faceted like the painted ones, lying on the ground."""
-    stones(K, depth_scale=0.5)
+    stones(K, depth_scale=0.55)
 
 
 @model("pebble_cluster", "ground", kind="flat")
 def pebble_cluster(K):
     """A small cluster of brown pebbles round one bigger stone, each lying on the ground, the hidden ones going on
     under the stones in front of them."""
-    stones(K, depth_scale=0.5, dark=120, ink=85, min_px=12)
+    stones(K, depth_scale=0.7, dark=120, ink=85, min_px=12)
+
+
+# ====================================================================== helpers: cards
+def card_mask(K, mask):
+    """The one rule for this model's cards: they show only the painting's pixels where `mask` (bool HxW) is set."""
+    full = mask.copy()
+    K.leaves_only((0, 0, K.paint.w, K.paint.h), lambda rgb: full[:rgb.shape[0], :rgb.shape[1]])
+
+
+def no_halo(P, width=3, bright=150, sat=45):
+    """The painting's opaque pixels less the pale fringe some cut-outs keep round their outline and the pale haze
+    patches left in their gaps."""
+    a = alpha_mask(P)
+    rgb = P.rgba[..., :3] * 255
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    pale = (mn > bright) & (mx - mn < sat)
+    near = ndimage.binary_dilation(~a, iterations=width)
+    halo = pale & near
+    # haze: pale, washed-out patches (white smoke in a weed's gaps), however far from the edge
+    haze = (mn > 175) & (mx - mn < 30)
+    return a & ~halo & ~haze
+
+
+def plant_mask(P, white=False):
+    """Plants: green, yellow-green, golden and brown stalks, flowers, their dark outline; not the pale halo and haze.
+    white=True also keeps white (cotton bolls)."""
+    rgb = P.rgba[..., :3] * 255
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    keep = no_halo(P)
+    if not white:
+        keep &= ~((mn > 165) & (mx - mn < 40))
+    return keep
+
+
+def tri_sheet(K, mask, step, yfn, mat, eps=1.2, back_y=None, thickness=0.0, name="sheet", smooth=True,
+              extra=None, min_area=30):
+    """A sheet on the painted outline of `mask`: its outline (eps px) and points every `step` px inside it (plus
+    `extra` [(px, py)]), triangulated, each point at depth yfn(px, py) metres. back_y: close it as a slab down to a flat
+    back at y = back_y (a relief: mud, a rut); thickness: give it a thickness behind the sheet (a leaf)."""
+    from scipy.spatial import Delaunay
+    P = K.paint
+    m8 = mask.astype(np.uint8) * 255
+    cs, _ = cv2.findContours(m8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    pts = []
+    for c in cs:
+        if cv2.contourArea(c) < min_area:
+            continue
+        c = cv2.approxPolyDP(c, eps, True)[:, 0, :].astype(float)
+        pts += [(x + 0.5, y + 0.5) for x, y in c]
+    bpts = np.array(pts)
+    dist = ndimage.distance_transform_edt(mask)
+    ys, xs = np.mgrid[step / 2:P.h:step, step / 2:P.w:step]
+    inner = [(x + K.rng.uniform(-step * 0.2, step * 0.2), y + K.rng.uniform(-step * 0.2, step * 0.2))
+             for x, y in zip(xs.ravel(), ys.ravel())
+             if dist[min(P.h - 1, int(y)), min(P.w - 1, int(x))] > step * 0.45]
+    if extra is not None:
+        inner += [(x, y) for x, y in extra if dist[min(P.h - 1, int(y)), min(P.w - 1, int(x))] > 1.5]
+    allp = np.vstack([bpts, np.array(inner)]) if inner else bpts
+    tri = Delaunay(allp)
+    grown = ndimage.binary_dilation(mask, iterations=1)
+    bm = bmesh.new()
+    vs = [bm.verts.new((P.x(px), yfn(px, py), P.z(py))) for px, py in allp]
+    for t in tri.simplices:
+        cx, cy = allp[t].mean(0)
+        if not grown[min(P.h - 1, int(cy)), min(P.w - 1, int(cx))]:
+            continue
+        try:
+            f = bm.faces.new([vs[i] for i in t])
+        except ValueError:
+            continue
+        f.normal_update()
+        if f.normal.y > 0:
+            f.normal_flip()
+    loose = [v for v in bm.verts if not v.link_faces]
+    bmesh.ops.delete(bm, geom=loose, context="VERTS")
+    if back_y is not None:
+        edges = [e for e in bm.edges if e.is_boundary]
+        ret = bmesh.ops.extrude_edge_only(bm, edges=edges)
+        new_vs = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
+        for v in new_vs:
+            v.co.y = back_y
+        new_es = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMEdge) and g.is_boundary]
+        bmesh.ops.holes_fill(bm, edges=new_es, sides=0)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=smooth)
+    if thickness:
+        mod = ob.modifiers.new("solid", "SOLIDIFY")
+        mod.thickness = thickness
+        mod.offset = -1.0
+    K.parts.append(ob)
+    return ob
+
+
+def ring_cards(K, box, base_px, yaws, y=0.0, scale=(0.85, 1.0), spread=0.0, normal_up=0.6, name="blades"):
+    """Copies of the painting inside `box` (a tuft, a rosette, a bush) stood round its foot (base_px, painted), each
+    turned to one of `yaws` degrees and scaled, its foot up to `spread` metres off the middle, so it is a tuft from
+    every side. Returns the cards."""
+    P = K.paint
+    bx, by = base_px
+    x0, y0, x1, y1 = box
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    out = []
+    for yaw in yaws:
+        s = K.rng.uniform(*scale)
+        a = K.rng.uniform(0, 2 * math.pi)
+        R = Vector((math.cos(math.radians(yaw)), math.sin(math.radians(yaw)), 0))
+        foot = Vector((P.x(bx), y, P.z(by))) + Vector((math.cos(a), math.sin(a), 0)) * spread * K.rng.uniform(0.2, 1.0)
+        centre = foot + R * (P.m(cx - bx) * s) + Vector((0, 0, P.m(by - cy) * s))
+        n = Vector((-R.y, R.x, 0)) * 0.3 + Vector((0, -0.25, normal_up))
+        out.append(K.card_from_painting(box, tuple(centre), yaw=yaw, scale=s, name=name, normal=tuple(n)))
+    return out
+
+
+# ====================================================================== the coconut and its husk
+@model("coconut", "ground", kind="prop")
+def coconut(K):
+    """A fallen coconut in its husk: a three-sided turned nut, its ridges running from end to end, the painted husk
+    all round it, a few loose fibres standing off it."""
+    P = K.paint
+    body = ndimage.binary_opening(alpha_mask(P), iterations=4)
+    ys, xs = np.nonzero(body)
+    top, bot = ys.min(), ys.max()
+    rows = np.linspace(bot, top, 16)
+    prof, axes = [], []
+    for py in rows:
+        r = int(np.clip(round(py), top, bot))
+        cols = np.nonzero(body[r])[0]
+        if len(cols) == 0:
+            continue
+        prof.append(((cols.max() - cols.min() + 1) / 2, py))
+        axes.append((cols.max() + cols.min() + 1) / 2)
+    ax = float(np.median(axes))
+    prof[0] = (prof[0][0] * 0.7, prof[0][1])
+    prof[-1] = (prof[-1][0] * 0.6, prof[-1][1])
+    husk = K.projected(axis_x=P.x(ax), squeeze=0.93, keep=[(0, 0, P.w, P.h)], inset=5)
+    # three faces with a ridge between each (the painted ridge to the right of the middle and two more round it)
+    bm = bmesh.new()
+    seg = 36
+    rings = []
+    for k, (rp, py) in enumerate(prof):
+        ring = []
+        for i in range(seg):
+            a = 2 * math.pi * i / seg
+            lobe = 1 + 0.045 * math.cos(3 * (a - math.radians(90)))
+            r = P.m(rp) * lobe
+            ring.append(bm.verts.new((P.x(ax) + r * math.cos(a), r * math.sin(a), P.z(py))))
+        rings.append(ring)
+    for r0, r1 in zip(rings, rings[1:]):
+        for i in range(seg):
+            j = (i + 1) % seg
+            bm.faces.new([r0[i], r0[j], r1[j], r1[i]])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    K.parts.append(_obj("nut", bm, husk, smooth=True))
+    # the stalk end: a small knob at the top
+    K.lathe([(P.m(14), 0.0), (P.m(12), P.m(6)), (P.m(6), P.m(10)), (0.0, P.m(11))],
+            K.colour((90, 30, 130, 50), vary=0.1), segments=12, centre=(P.x(ax) + P.m(4), 0.0, P.z(top) - P.m(7)),
+            name="stalk_end")
+    # loose fibres: the pale strands painted off its outline, where they are painted and stood round it
+    card_mask(K, alpha_mask(P) & ~body)
+    boxes = [(28, 15, 62, 62), (2, 72, 22, 108), (112, 2, 140, 24), (196, 138, 218, 168), (165, 190, 198, 210),
+             (118, 205, 142, 235), (172, 25, 195, 42)]
+    for (x0, y0, x1, y1) in boxes:
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        K.card_from_painting((x0, y0, x1, y1), P.pt(cx, cy, 0.0), name="fibre", normal=(0, -0.5, 0.8))
+        d = abs(P.m(cx - ax))
+        for k in range(2):
+            th = K.rng.uniform(15, 165) * (1 if k else -1)          # round the back, or round the front
+            t = math.radians(th if cx > ax else 180 - th)
+            cen = (P.x(ax) + d * math.cos(t), d * math.sin(t), P.z(cy))
+            yaw = math.degrees(t) if cx > ax else math.degrees(t) + 180
+            K.card_from_painting((x0, y0, x1, y1), cen, yaw=yaw, name="fibre",
+                                 normal=(math.cos(t), math.sin(t), 0.6))
+
+
+@model("husk", "ground", kind="prop")
+def husk(K):
+    """A broken half of a coconut husk: a thick boat of fibre, its outside to the front, its hollow to the back,
+    torn fibrous edges and loose strands standing off its rim."""
+    P = K.paint
+    a = alpha_mask(P)
+    body = ndimage.binary_opening(a, iterations=5)
+    lab, n = ndimage.label(body)
+    sizes = ndimage.sum(body, lab, range(1, n + 1))
+    body = lab == (1 + int(np.argmax(sizes)))
+    body = ndimage.binary_closing(body, iterations=3) & a
+    poly = contour(body, eps=3.0)
+    outside = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=5)
+    inside = K.colour((150, 60, 250, 100), vary=0.15, scale=30, pct=70)
+    depth = P.m(150) * 0.75                                    # a half husk about as deep as it is high
+    # the outer shell: rings from the rim (on the back plane) out to the front
+    pts = np.array(poly, float)
+    c = pts.mean(0) + np.array((10, 8))
+    bm = bmesh.new()
+    rim_y = depth * 0.45
+    outer = [(1.0, 0.0), (0.92, 0.45), (0.72, 0.8), (0.4, 0.97), (0.0, 1.0)]
+    inner = [(0.86, 0.12), (0.66, 0.42), (0.36, 0.62), (0.0, 0.68)]
+    rings = []
+    for s, f in outer + inner:
+        ring = []
+        for px, py in pts:
+            q = c + (np.array((px, py)) - c) * s
+            jit = K.rng.uniform(-0.04, 0.04) if 0 < s < 1 else 0
+            ring.append(bm.verts.new((P.x(q[0]), rim_y - depth * f * (1 + jit), P.z(q[1]))))
+        rings.append(ring)
+    n = len(pts)
+    no = len(outer)
+    for k in range(no - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new([rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i]])
+    # the rim between outside and inside, then the hollow
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([rings[0][j], rings[0][i], rings[no][i], rings[no][j]])
+    for k in range(no, no + len(inner) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new([rings[k][j], rings[k][i], rings[k + 1][i], rings[k + 1][j]])
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj("shell", bm, outside, smooth=True)
+    ob.data.materials.append(inside.mat)
+    # the hollow's faces (facing back, +y) take the pale inner fibre
+    for p in ob.data.polygons:
+        if p.normal.y > 0.35 and p.center.y < rim_y - 0.002:
+            p.material_index = 1
+    K.parts.append(ob)
+    # the torn, fibrous edges and loose strands: the painting outside the shell's body, as cards round the rim
+    fringe = a & ~ndimage.binary_erosion(body, iterations=6)
+    card_mask(K, fringe & no_halo(P, width=2))
+    lab, n = ndimage.label(ndimage.binary_dilation(a & ~body, iterations=2))
+    for i in range(1, n + 1):
+        sl = ndimage.find_objects((lab == i).astype(int))[0]
+        y0, y1, x0, x1 = sl[0].start, sl[0].stop, sl[1].start, sl[1].stop
+        if (y1 - y0) * (x1 - x0) < 30:
+            continue
+        box = (x0 - 2, y0 - 2, x1 + 2, y1 + 2)
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        K.card_from_painting(box, P.pt(cx, cy, rim_y - depth * 0.2), name="strand", normal=(0, -0.4, 0.9))
+        K.card_from_painting(box, P.pt(cx + K.rng.uniform(-6, 6), cy, rim_y - depth * 0.05),
+                             yaw=K.rng.uniform(40, 80) * K.rng.choice([-1, 1]), name="strand", normal=(0, 0.2, 1))

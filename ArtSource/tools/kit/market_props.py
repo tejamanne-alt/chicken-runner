@@ -274,21 +274,23 @@ def veg_basket(K):
     wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(16, 62, 150, 129)], inset=2)
     basket(K, cx, 0.0, [(40, 128.5), (45, 127), (51, 119), (56, 109), (60, 98), (62.5, 88), (64, 79)],
            (67, 62, 77), 16, wicker)
-    ground_disc(K, cx, 129, 72, 0.22, (8, 124, 30, 128))
+    ground_disc(K, cx, 129, 70, 0.16, (8, 124, 30, 128), h=0.004)
     R = P.m(64)                                   # the basket's radius at the rim, metres
     zr = P.z(64)
-    # the heap inside: a dome of greens the vegetables lie on
-    heap = K.colour((120, 25, 150, 45), vary=0.15, scale=20)
-    K.lathe([(0.0, zr + P.m(18)), (R * 0.6, zr + P.m(14)), (R * 0.9, zr + P.m(4)), (R * 0.98, zr - P.m(2))], heap,
+    # the heap inside: a low dome of dark leaves the vegetables lie on
+    heap = K.colour((0.05, 0.09, 0.015), vary=0.2, scale=25)
+    K.lathe([(0.0, zr + P.m(10)), (R * 0.6, zr + P.m(7)), (R * 0.9, zr + P.m(1)), (R * 0.98, zr - P.m(3))], heap,
             segments=32, centre=(P.x(cx), 0, 0), name="heap", cap=False)
-    # okra fanned up on the left, front and back
+    # okra fanned up on the left, a bunch going back through the basket
     okra = K.colour((25, 20, 45, 45), vary=0.15, scale=30)
     fan = [((45, 58), (18, 25)), ((50, 55), (30, 16)), ((55, 50), (40, 15)), ((60, 48), (55, 8)), ((66, 45), (68, 12)),
-           ((72, 42), (80, 15)), ((40, 60), (10, 45)), ((48, 58), (20, 38)), ((44, 60), (8, 56))]
+           ((72, 42), (80, 15)), ((40, 60), (10, 45)), ((48, 58), (20, 38)), ((44, 60), (8, 56)), ((52, 56), (36, 26)),
+           ((62, 50), (62, 18)), ((58, 52), (48, 22))]
     for k, ((ax, ay), (bx, by)) in enumerate(fan):
-        for y in (-R * 0.35, R * 0.05, R * 0.45):
-            jx, jy = K.rng.uniform(-4, 4), K.rng.uniform(-3, 3)
-            pod(K, P.pt(ax, ay, y), P.pt(bx + jx, by + jy, y + K.rng.uniform(-0.04, 0.04)), P.m(5), P.m(1.6), okra,
+        for y in (-R * 0.3, -R * 0.05, R * 0.2, R * 0.45, R * 0.7):
+            jx, jy = K.rng.uniform(-5, 5), K.rng.uniform(-3, 4)
+            yb = y + K.rng.uniform(-0.03, 0.03)
+            pod(K, P.pt(ax + jx * 0.5, ay, y), P.pt(bx + jx, by + jy, yb), P.m(6.5), P.m(2.6), okra,
                 bend=(0, 0, P.m(2)), seg=5, name="okra")
     # the pale gourd lying at the front left
     gourd = K.colour((30, 52, 42, 62), vary=0.1)
@@ -313,17 +315,18 @@ def veg_basket(K):
                   name="tomato")
         K.lathe([(P.m(4), 0.0), (P.m(1), P.m(1.5)), (0.0, P.m(1.5))], cap, segments=6,
                 centre=(P.x(px), y, P.z(py) + P.m(r) * 0.84), name="tomato_cap")
-    # the spinach: leaf cards through the right of the heap and round the back
+    # the spinach: the painted bunch on the right, repeated through the basket's depth and round its back
     K.leaves_only((0, 0, 164, 70), green_pixels)
-    for i in range(34):
-        px, py = K.rng.uniform(98, 155), K.rng.uniform(18, 60)
-        y = K.rng.uniform(-R * 0.3, R * 0.8)
-        K.card_from_painting((px - 16, py - 14, px + 16, py + 14), (P.x(px), y, P.z(py)), yaw=K.rng.uniform(-70, 70),
-                             pitch=K.rng.uniform(-30, 30), name="spinach")
-    for i in range(16):
-        px, py = K.rng.uniform(20, 150), K.rng.uniform(15, 45)
-        y = K.rng.uniform(R * 0.3, R * 0.9)
-        src = (K.rng.uniform(105, 150), K.rng.uniform(20, 55))
-        card = K.card_from_painting((src[0] - 16, src[1] - 14, src[0] + 16, src[1] + 14), (P.x(px), y, P.z(py) - 0.02),
-                                    yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-30, 30), name="spinach_back")
+    for i in range(30):
+        px, py = K.rng.uniform(100, 152), K.rng.uniform(16, 50)
+        y = K.rng.uniform(-R * 0.2, R * 0.85)
+        K.card_from_painting((px - 18, py - 16, px + 18, py + 16), (P.x(px), y, P.z(py)), yaw=K.rng.uniform(-60, 60),
+                             pitch=K.rng.uniform(-25, 25), name="spinach")
+    for i in range(14):
+        # bunches round the back left, cut from the painted bunch's top edge so their outline is the leaves'
+        sx, sy = K.rng.uniform(105, 150), K.rng.uniform(22, 34)
+        px = K.rng.uniform(25, 100)
+        y = K.rng.uniform(R * 0.45, R * 0.9)
+        K.card_from_painting((sx - 18, sy - 16, sx + 18, sy + 22), (P.x(px), y, P.z(sy + 8)), yaw=K.rng.uniform(-70, 70),
+                             pitch=K.rng.uniform(-20, 20), name="spinach_back")
     K.card_from_painting((95, 10, 160, 66), (P.x(127.5), -R * 0.25, P.z(38)), name="spinach_front")
