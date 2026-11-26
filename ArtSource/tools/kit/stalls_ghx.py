@@ -1080,7 +1080,7 @@ def stall_h_2(K):
     bank = Bank(-1.1, Z(730), 14.2, flat=0.25, back=0.45)
     slope = math.degrees(math.atan2(bank.top, bank.y1 - bank.y0))
     # ---------------------------------------------------------------- the earth
-    earth = ktile(K, (250, 745, 600, 800), vary=0.08, soften=0.35)
+    earth = ktile(K, (40, 790, 140, 885), vary=0.08, soften=0.4)
     xl, xr = P.x(4), P.x(1046)
 
     def ground(x, y):
@@ -1131,51 +1131,59 @@ def stall_h_2(K):
     for xa in (745, 835):
         K.tube([P.pt(xa, 332, ym - 0.01), P.pt(792, 294, ym + 0.01)], 0.003, rope, segments=4, name="mirror_string")
     K.tube([P.pt(792, 294, ym + 0.01), P.pt(792, 294, ybp)], 0.004, K.colour((0.2, 0.2, 0.2)), segments=4, name="nail")
-    # ---------------------------------------------------------------- the stool, standing on the rise
+    # ---------------------------------------------------------------- the stool, standing on the rise, turned half
+    # towards the customer: each leg from its painted foot to its painted top, the seat through its painted corners
     wood = ktile(K, (382, 690, 420, 760), vary=0.08)
     seat_w = ktile(K, (350, 640, 470, 655), vary=0.08)
-    feet = {"FL": (355, 825), "FR": (442, 860), "BR": (557, 820), "BL": (473, 790)}
-    F = {k: Vector((P.x(px), bank.y(P.z(py)), P.z(py))) for k, (px, py) in feet.items()}
-    c = sum(F.values(), Vector()) / 4
-    ex = ((F["FR"] - F["FL"]) + (F["BR"] - F["BL"])).normalized()
-    n = bank.normal()
-    ey = n.cross(ex).normalized() * -1
-    if ey.y < 0:
-        ey = -ey
-    sx = ((F["FR"] - F["FL"]).length + (F["BR"] - F["BL"]).length) / 2
-    sy = ((F["BL"] - F["FL"]).length + (F["BR"] - F["FR"]).length) / 2
-    h = 0.6
-    M = Matrix(((ex.x, ey.x, n.x, c.x), (ex.y, ey.y, n.y, c.y), (ex.z, ey.z, n.z, c.z), (0, 0, 0, 1)))
-    parts = []
-    seat = (sx * 0.43, sy * 0.43)
-    parts.append(K.box(-seat[0] - 0.02, seat[0] + 0.02, -seat[1] - 0.02, seat[1] + 0.02, h - 0.05, h, seat_w, bevel=0.006,
-                       name="stool_seat"))
-    for s1 in (-1, 1):
-        for s2 in (-1, 1):
-            parts.append(beam(K, (s1 * sx / 2, s2 * sy / 2, 0.0), (s1 * seat[0] * 0.9, s2 * seat[1] * 0.9, h - 0.05),
-                              0.055, 0.055, wood, name="stool_leg"))
-    for s in (-1, 1):
-        parts.append(beam(K, (-sx * 0.47, s * sy * 0.47, 0.2), (sx * 0.47, s * sy * 0.47, 0.2), 0.05, 0.035, wood,
-                          name="stretcher"))
-        parts.append(beam(K, (s * sx * 0.47, -sy * 0.47, 0.25), (s * sx * 0.47, sy * 0.47, 0.25), 0.05, 0.035, wood,
-                          name="stretcher"))
-        parts.append(beam(K, (-seat[0], s * seat[1] * 0.95, h - 0.08), (seat[0], s * seat[1] * 0.95, h - 0.08), 0.04,
-                          0.05, wood, name="apron"))
-    transform(parts, M)
-    # the towel thrown over the seat, hanging down its right-hand side
+    legs = {  # foot px, top px
+        "L": ((355, 826), (352, 652)), "F": ((442, 860), (450, 676)), "R": ((557, 821), (553, 648)),
+        "B": ((474, 792), (470, 640))}
+    corners = {"L": (338, 634), "F": (476, 660), "R": (567, 628), "B": (434, 611)}
+    ys = {k: bank.y(P.z(f[1])) for k, (f, _) in legs.items()}
+    th = 0.05
+    from stalls_cdef import slab
+    slab(K, [(P.x(corners[k][0]), ys[k], P.z(corners[k][1])) for k in ("L", "F", "R", "B")], th, seat_w,
+         name="stool_seat")
+    tops = {}
+    for k, ((fx, fy), (tx, ty)) in legs.items():
+        a_ = (P.x(fx), ys[k], P.z(fy) - 0.03)
+        b_ = (P.x(tx), ys[k] + (0.0 if k != "F" else 0.03), P.z(corners[k][1]) - th)
+        beam(K, a_, b_, 0.055, 0.055, wood, name="stool_leg")
+        tops[k] = (Vector(a_), Vector(b_))
+    for k1, k2, t_ in (("L", "F", 0.38), ("F", "R", 0.42), ("R", "B", 0.38), ("B", "L", 0.42)):
+        p1 = tops[k1][0].lerp(tops[k1][1], t_)
+        p2 = tops[k2][0].lerp(tops[k2][1], t_)
+        beam(K, tuple(p1), tuple(p2), 0.045, 0.035, wood, name="stretcher")
+        q1 = tops[k1][0].lerp(tops[k1][1], 0.9)
+        q2 = tops[k2][0].lerp(tops[k2][1], 0.9)
+        beam(K, tuple(q1), tuple(q2), 0.03, 0.05, wood, name="apron")
+    # the towel thrown over the seat, hanging down over its front-right edge
     towel = K.projected(squeeze=1.0, keep=[(398, 604, 556, 738)], inset=2)
+    A = np.array([[P.x(corners[k][0]), P.z(corners[k][1]), 1.0] for k in corners])
+    coef = np.linalg.lstsq(A, np.array([ys[k] for k in corners]), rcond=None)[0]
+
+    def seat_y(x, z):
+        return float(coef[0] * x + coef[1] * z + coef[2])
+
+    def edge(px_):
+        t_ = max(0.0, min(1.0, (px_ - 476) / (567 - 476)))
+        return 660 + (628 - 660) * t_, ys["F"] + (ys["R"] - ys["F"]) * t_
 
     def tw(u, v):
-        x = -seat[0] * 0.2 + (seat[0] * 0.9) * u
-        if v < 0.55:
-            yy = seat[1] * (1.0 - 2.0 * v / 0.55)
-            z = h + 0.008
-            p = Vector((x, yy, z))
-        else:
-            t_ = (v - 0.55) / 0.45
-            p = Vector((x, -seat[1] - 0.01 - 0.02 * math.sin(t_ * math.pi), h + 0.008 - 0.26 * t_))
-        p.y += 0.006 * math.sin(u * 9)
-        return tuple(M @ p)
+        px_ = 402 + (553 - 402) * u
+        ey, eyy = edge(px_)
+        top_py = 606 + 6 * u
+        if px_ < 476:
+            ey = 634 + (660 - 634) * (px_ - 338) / (476 - 338)
+            eyy = ys["L"] + (ys["F"] - ys["L"]) * (px_ - 338) / (476 - 338)
+        if v < 0.45:
+            py_ = top_py + (ey - top_py) * v / 0.45
+            x, z = P.x(px_), P.z(py_)
+            return (x, seat_y(x, z) - 0.002, z + 0.008)
+        t_ = (v - 0.45) / 0.55
+        bot = 736 if px_ > 470 else ey + 4
+        py_ = ey + (bot - ey) * t_
+        return (P.x(px_), eyy - 0.012 - 0.015 * math.sin(math.pi * t_), P.z(py_))
     K.sheet(tw, 10, 14, towel, name="towel", thickness=0.006)
     # ---------------------------------------------------------------- the brass basin and the soap
     brass = K.projected(axis_x=P.x(752), squeeze=0.92, keep=[(645, 780, 860, 888)], inset=2)

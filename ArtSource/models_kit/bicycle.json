@@ -1,0 +1,10 @@
+{
+ "name": "bicycle",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 1.7,
+ "height": 1.205,
+ "depth": 1.159,
+ "faces": 4600,
+ "source": "blender"
+}
