@@ -2181,7 +2181,7 @@ CALF_SHED = [(938, 645), (985, 630), (1000, 619), (1055, 619), (1070, 635), (114
              (938, 670)]
 
 
-@model("cattle_shed", "lane", kind="building", atlas=2048)
+@model("cattle_shed", "lane", kind="building", atlas=2048, leaves=2048)
 def cattle_shed(K):
     """A cattle shed: a hipped thatch held down with bamboo battens on four rough wooden posts, a mud back wall
     printed with red handprints, a wooden manger along it, heaps of hay, an earth floor strewn with straw, a rope
@@ -2247,9 +2247,10 @@ def cattle_shed(K):
         K.boulder(P.x(px), y, P.z(py) - P.m(h) * 0.05, P.m(w), P.m(w) * 0.8, P.m(h), hay, lumps=0.12, name="hay")
     K.leaves_only((870, 440, 1480, 880), straw_pixels)
     K.leaves_only((220, 690, 830, 870), straw_pixels)
-    for i in range(70):
+    calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
+    for i in range(140):
         cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
-        if 950 < cx < 1370 and cy > 615:
+        if cx + 55 > calf[0] and cx - 55 < calf[2] and cy + 45 > calf[1]:
             continue
         K.card_from_painting((cx - 55, cy - 45, cx + 55, cy + 45), (P.x(cx), K.rng.uniform(1.3, D - 0.5), P.z(cy)),
                              yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-30, 30), name="hay_tuft")
@@ -2258,9 +2259,9 @@ def cattle_shed(K):
         K.card_from_painting((cx - 50, 690, cx + 50, 745), (P.x(cx), K.rng.uniform(my0 + 0.12, my1 - 0.12), P.z(730)),
                              yaw=K.rng.uniform(-40, 40), name="manger_straw")
     for i in range(16):
-        cx = K.rng.uniform(900, 1450)
+        cx = K.rng.uniform(840, 878) if i % 2 else K.rng.uniform(1436, 1470)
         y = K.rng.uniform(-0.2, D - 0.3)
-        K.card_from_painting((cx - 60, 820, cx + 60, 870), (P.x(cx) + K.rng.uniform(-1.8, 0.2), y, zf + 0.01),
+        K.card_from_painting((cx - 50, 820, cx + 50, 870), (P.x(cx) + K.rng.uniform(-1.8, 0.2), y, zf + 0.01),
                              yaw=K.rng.uniform(-90, 90), pitch=-82, name="floor_straw")
     # the rope hanging from the rafters
     rope = K.colour((0.42, 0.28, 0.15), vary=0.1)
@@ -2313,7 +2314,7 @@ def shop_provisions(K):
     D = 3.6
     K.front_min = 0.05
     halo_exclude(K, [(0, 0, 1508, 1143)])
-    mud = K.tile((1030, 50, 1340, 240), size=1.0, vary=0.04, soften=0.45)
+    mud = K.tile((170, 830, 590, 980), size=1.2, vary=0.04, soften=0.55)     # the plain mud below the window
     lime = K.tile((170, 1000, 600, 1080), size=1.0, vary=0.04, soften=0.4)
     tin = K.tile((300, 270, 700, 390), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((280, 420, 310, 790), vary=0.08)
@@ -2397,7 +2398,7 @@ def shop_provisions(K):
     zc = P.z(800)
     K.box(P.x(976), P.x(1179), -0.05, 0.3, zc, P.z(755), brass, bevel=0.01, name="scale_base")
     K.box(P.x(996), P.x(1037), 0.05, 0.2, P.z(755), P.z(738), brass, name="scale_neck")
-    K.prism([(P.x(x), P.z(y)) for x, y in ((965, 738), (1050, 738), (1060, 640), (1007, 605), (955, 640))], 0.03,
+    K.prism([(P.x(x), P.z(y)) for x, y in ((983, 738), (1032, 738), (1060, 628), (1006, 606), (955, 628))], 0.03,
             0.22, brass, name="scale_dial")
     K.box(P.x(1062), P.x(1087), 0.08, 0.17, P.z(755), P.z(697), brass, name="pan_post")
     K.lathe([(0.0, P.z(733)), (P.m(55), P.z(733)), (P.m(55), P.z(720)), (0.0, P.z(722))], brass, segments=24,
@@ -2411,9 +2412,11 @@ def shop_provisions(K):
         for y in (-0.45, -0.17):
             K.box(P.x(x0), P.x(x1), y - 0.03, y + 0.03, P.z(1105), P.z(1000), bench, name="bench_leg")
     # sides and back
-    back_decal(K, (612, 822, 900, 1072), D, name="back_door")
-    for side, x in ((-1, X0), (1, X1)):
-        side_decal(K, (612, 822, 900, 1072), x, side, D * 0.6, name="side_door") if side > 0 else None
+    # the back door: planks in a frame, set into the back wall
+    K.cut(body, -0.45, 0.45, D - 0.12, D + 0.05, 0.0, 2.0)
+    K.box(-0.45, 0.45, D - 0.1, D - 0.06, 0.0, 2.0, wood, name="back_door")
+    for a, b, c, d in ((-0.53, -0.45, 0.0, 2.08), (0.45, 0.53, 0.0, 2.08), (-0.53, 0.53, 2.0, 2.08)):
+        K.box(a, b, D - 0.02, D + 0.03, c, d, timber, bevel=0.005, name="back_door_frame")
     iron = K.colour((0.04, 0.03, 0.03), vary=0.05)
     side_window(K, body, -1, D * 0.5, P.z(700), P.z(520), 0.6, timber, iron, K.colour((0.03, 0.02, 0.02)))
     drop_ground_faces(K)

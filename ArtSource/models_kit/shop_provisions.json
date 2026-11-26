@@ -1,0 +1,10 @@
+{
+ "name": "shop_provisions",
+ "folder": "lane",
+ "kind": "building",
+ "width": 5.027,
+ "height": 3.81,
+ "depth": 5.25,
+ "faces": 7142,
+ "source": "blender"
+}

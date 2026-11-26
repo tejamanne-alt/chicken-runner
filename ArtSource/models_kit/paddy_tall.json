@@ -1,0 +1,10 @@
+{
+ "name": "paddy_tall",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 2.406,
+ "height": 1.0,
+ "depth": 1.28,
+ "faces": 454,
+ "source": "blender"
+}

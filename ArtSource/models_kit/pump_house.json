@@ -1,0 +1,10 @@
+{
+ "name": "pump_house",
+ "folder": "fields",
+ "kind": "building",
+ "width": 3.83,
+ "height": 2.9,
+ "depth": 2.68,
+ "faces": 341,
+ "source": "blender"
+}

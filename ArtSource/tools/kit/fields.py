@@ -338,9 +338,9 @@ def haystack(K):
                 name="rope", cap=False)
     # the ragged straw all round (cut from the stack's own painted edges): the sides, the skirt and the crown
     K.leaves_only((0, 60, 483, 366), no_halo)
-    straw_fringe(K, ax, 0.0, rpx, (110, 360), 110, size=(58, 46), inset=0.4, exact_rows=(104, 362),
-                 sources=(110, 360), sectors=[(-25, 0), (0, 180), (-180, -155)])
-    straw_fringe(K, ax, 0.0, rpx, (372, 418), 40, size=(64, 50), inset=0.3, sources=(320, 345),
+    straw_fringe(K, ax, 0.0, rpx, (110, 360), 110, size=(58, 46), inset=0.4, exact_rows=(104, 342),
+                 sources=(110, 340), sectors=[(-25, 0), (0, 180), (-180, -155)])
+    straw_fringe(K, ax, 0.0, rpx, (372, 418), 40, size=(64, 50), inset=0.3, sources=(320, 340),
                  z_floor=P.z(ground_py), sectors=[(-30, 0), (0, 180), (-180, -150)])
     straw_fringe(K, ax, 0.0, rpx, (96, 120), 22, size=(48, 30), inset=0.25, sources=(100, 130), up=0.8,
                  sectors=[(-180, 180)])
@@ -500,8 +500,8 @@ def scarecrow(K):
              (P.m(rsk(250)), P.z(248)), (P.m(50), P.z(240))], straw, segments=28, centre=(P.x(ax), 0, 0),
             scale_y=0.8, wobble=0.04, name="skirt")
     K.leaves_only((94, 250, 268, 334), no_halo)
-    straw_fringe(K, ax, 0.0, rsk, (256, 296), 34, size=(40, 40), inset=0.45, exact_rows=(258, 296),
-                 sources=(256, 296), sectors=[(-25, 0), (0, 180), (-180, -155)], up=0.1)
+    straw_fringe(K, ax, 0.0, rsk, (262, 296), 34, size=(40, 40), inset=0.45, exact_rows=(270, 296),
+                 sources=(270, 296), sectors=[(-25, 0), (0, 180), (-180, -155)], up=0.1)
     for i in range(16):
         th = K.rng.uniform(15, 165)
         t = math.radians(th)
@@ -713,8 +713,8 @@ def canal_bank(K):
     K.leaves_only((225, 0, 500, 246), no_white)
     K.card_from_painting((225, 0, 500, 246), P.pt(362, 123, -d + 0.05), name="reeds", normal=(0, -0.5, 1))
     for k in range(16):
-        cx = K.rng.uniform(260, 450)
         w = K.rng.uniform(90, 150)
+        cx = K.rng.uniform(226 + w / 2, 499 - w / 2)        # inside the reeds' rule box: no straight cut edges
         box = (cx - w / 2, 0, cx + w / 2, 246)
         y = K.rng.uniform(-d + 0.15, d - 0.1)
         K.card_from_painting(box, (P.x(cx), y, P.z(123)), yaw=K.rng.uniform(-50, 50), name="reeds",
@@ -1286,7 +1286,7 @@ def well(K):
         stone(K, cx + (R + 0.15) * math.cos(t), (R + 0.15) * math.sin(t), P.z(372) + 0.05, 0.3, 0.22, 0.14, rocks,
                   lumps=0.15, name="rock")
     K.leaves_only((0, 300, 515, 394), grass_pixels)
-    for box in ((30, 306, 116, 372), (336, 310, 420, 372), (430, 296, 515, 366), (140, 340, 220, 384)):
+    for box in ((30, 306, 116, 372), (336, 310, 420, 372), (430, 300, 515, 366), (140, 340, 220, 384)):
         bx = (box[0] + box[2]) / 2
         dxm = P.x(bx) - cx
         y = -math.sqrt(max(0.0, (R + 0.1) ** 2 - dxm ** 2)) - 0.05 if abs(dxm) < R + 0.1 else -0.1
@@ -1295,3 +1295,74 @@ def well(K):
             t = math.radians(a)
             K.card_from_painting(box, (cx + (R + 0.12) * math.cos(t), (R + 0.12) * math.sin(t), P.z((box[1] + box[3]) / 2)),
                                  yaw=a + 90, name="weeds", normal=(math.cos(t), math.sin(t), 1))
+
+
+# ====================================================================== the field buildings
+@fmodel("pump_house", "fields", kind="building", atlas=2048)
+def pump_house(K):
+    """A small brick pump house: walls of exposed red brick on a brick plinth, a flat roof slab with a two-course
+    brick coping, a plank door in a timber frame under a stone lintel with a step before it; the delivery pipe comes
+    out of its left wall and pours into a brick trough. Its right side runs back as painted; a barred vent in the
+    side and the back."""
+    P = K.paint
+    D, kx = 2.3, 0.2                                        # depth; the painting sees its right side
+    brick = K.tile((156, 104, 250, 300), soften=0.12, vary=0.03)
+    side = K.tile((415, 110, 468, 300), soften=0.12, vary=0.03)
+    plinth = K.tile((150, 322, 230, 356), soften=0.2, vary=0.04)
+    coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
+    body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")
+    K.box(P.x(146), P.x(414), -0.04, D + 0.04, 0.0, P.z(318), plinth, bevel=0.01, name="plinth")
+    K.box(P.x(222), P.x(358), -0.3, 0.0, 0.0, P.z(340), plinth, bevel=0.01, name="step")
+    K.box(P.x(136), P.x(416), -0.06, D + 0.08, P.z(52), P.z(12), coping, bevel=0.012, name="roof")
+    K.box(P.x(136), P.x(416), -0.06, D + 0.08, P.z(32) - 0.005, P.z(32) + 0.005,
+          K.colour((0.55, 0.45, 0.35), vary=0.05), name="coping_joint")
+    # the door: a plank leaf recessed in its timber frame, a stone lintel over it
+    K.cut(body, P.x(256), P.x(374), -0.05, 0.22, P.z(318), P.z(98))
+    frame = K.colour((262, 100, 272, 300), vary=0.06)
+    door = K.tile((280, 130, 350, 290), soften=0.1)
+    K.box(P.x(256), P.x(374), 0.16, 0.2, P.z(318), P.z(98), door, name="door")
+    for x0, x1 in ((256, 270), (360, 374)):
+        K.box(P.x(x0), P.x(x1), 0.02, 0.16, P.z(318), P.z(98), frame, name="jamb")
+    K.box(P.x(256), P.x(374), 0.02, 0.16, P.z(112), P.z(98), frame, name="frame_head")
+    lintel = K.colour((300, 85, 380, 95), vary=0.06)
+    K.box(P.x(240), P.x(391), -0.06, 0.14, P.z(97), P.z(83), lintel, bevel=0.008, name="lintel")
+    K.lathe([(P.m(6), 0.0), (P.m(6), -0.03), (0.0, -0.035)], K.colour((0.25, 0.2, 0.16)), segments=10,
+            centre=(P.x(284), 0.18, 0.0), name="knob")
+    rotate(K.parts[-1], -90, "X", (P.x(284), 0.18, 0.0))
+    for v in K.parts[-1].data.vertices:
+        v.co.z += P.z(209)
+    # barred vents in the right side and in the back
+    dark = K.colour((0.04, 0.03, 0.03), vary=0.0)
+    iron = K.colour((0.06, 0.05, 0.05), vary=0.05)
+    K.cut(body, P.x(400), P.x(420), D * 0.45, D * 0.45 + 0.45, P.z(130), P.z(95))
+    K.box(P.x(398), P.x(400), D * 0.45, D * 0.45 + 0.45, P.z(130), P.z(95), dark, name="vent_back")
+    for i in range(1, 4):
+        y = D * 0.45 + 0.45 * i / 4
+        K.tube([(P.x(410) - 0.02, y, P.z(130)), (P.x(410) - 0.02, y, P.z(95))], 0.008, iron, segments=6, name="bar")
+    K.cut(body, P.x(250), P.x(310), D - 0.1, D + 0.05, P.z(130), P.z(95))
+    K.box(P.x(250), P.x(310), D - 0.1, D - 0.08, P.z(130), P.z(95), dark, name="vent_back")
+    for i in range(1, 4):
+        x = P.x(250) + (P.x(310) - P.x(250)) * i / 4
+        K.tube([(x, D - 0.02, P.z(130)), (x, D - 0.02, P.z(95))], 0.008, iron, segments=6, name="bar")
+    # the delivery pipe out of the left wall, its elbow, the water pouring into the trough
+    pipe = K.projected(squeeze=1.0, keep=[(84, 186, 152, 232)], inset=2)
+    yp = 0.35
+    K.tube([(P.x(160), yp, P.z(201)), (P.x(112), yp, P.z(201)), (P.x(100), yp, P.z(204)), (P.x(97), yp, P.z(215)),
+            (P.x(97), yp, P.z(232))], P.m(11), pipe, segments=12, name="pipe")
+    K.tube([(P.x(118), yp, P.z(201)), (P.x(122), yp, P.z(201))], P.m(13), pipe, segments=12, name="pipe_collar")
+    trough = K.tile((20, 322, 60, 336), soften=0.2)
+    t0, t1 = 0.05, 0.95
+    K.box(P.x(4), P.x(146), t0, t1, 0.0, P.z(352), trough, bevel=0.01, name="trough")
+    wt = K.tile((30, 338, 130, 356), vary=0.03)
+    K.box(P.x(14), P.x(136), t0 + 0.08, t1 - 0.08, P.z(352) - 0.004, P.z(350), wt, name="trough_water")
+    K.leaves_only((50, 226, 125, 356), no_white)
+    K.leaves_only((60, 226, 130, 356), everything) if False else None
+    K.card_from_painting((52, 226, 124, 352), (P.x(88), yp, P.z(289)), name="stream", normal=(0, -1, 0.3))
+    K.card_from_painting((52, 226, 124, 352), (P.x(92), yp, P.z(289)), yaw=90, name="stream", normal=(0, -1, 0.3))
+    # grass at the foot
+    K.leaves_only((196, 338, 252, 362), grass_pixels)
+    K.leaves_only((440, 336, 494, 362), grass_pixels)
+    for box, x in (((196, 338, 252, 362), 224), ((440, 336, 494, 362), 467)):
+        for y, yaw in ((-0.06, 0), (0.6, 70), (1.4, -60)):
+            K.card_from_painting(box, (P.x(x), y, P.z(350)), yaw=yaw, name="grass", normal=(0, -0.3, 1))
+    shear(K, 0.0, 0.0, kx=kx)

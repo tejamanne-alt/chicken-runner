@@ -1,0 +1,10 @@
+{
+ "name": "parapet_gap",
+ "folder": "market",
+ "kind": "building",
+ "width": 2.093,
+ "height": 1.2,
+ "depth": 0.52,
+ "faces": 320,
+ "source": "blender"
+}

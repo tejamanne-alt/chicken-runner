@@ -1249,7 +1249,9 @@ def crop_strip_7(K):
     bed_py = 393
     field_bed(K, 28, 1198, bed_py, depth, top_box=(400, 393, 470, 402), ridges=0.05, rows=rows)
     z0 = P.z(bed_py)
-    src = filled_source(P, ndimage.binary_erosion(stems, iterations=2))
+    rgb = P.rgba[..., :3] * 255
+    pale = (rgb.min(-1) > 150) & (rgb.max(-1) - rgb.min(-1) < 50)
+    src = filled_source(P, ndimage.binary_erosion(stems, iterations=2) & alpha_mask(P) & ~pale)
     # the painted plants, where they are painted: their stems turned, their crowns the painting
     for ax, foot, top, wf, wt in BANANAS:
         mat = wrapped(K, P.x(ax), axis_y=rows[0], squeeze=0.9, src=src, dz=P.z(foot) - z0)
@@ -1282,11 +1284,10 @@ def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, 
     clean_front(K, no_halo(P, haze=False))
     card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < bed_py + 3))
     a = alpha_mask(P)
-    cols = np.nonzero(a[bed_py + 4])[0] if a[bed_py + 4].any() else np.nonzero(a.any(0))[0]
-    bx0, bx1 = (x0, x1) if x0 is not None else (int(cols.min()) + 4, int(cols.max()) - 4)
-    depth = rows[-1] - rows[0] + 0.4
-    field_bed(K, bx0, bx1, bed_py, depth, top_box=bed_box, ridges=0.03, rows=rows)
     allc = np.nonzero(a[:bed_py].any(0))[0]
+    bx0, bx1 = (x0, x1) if x0 is not None else (int(allc.min()) + 20, int(allc.max()) - 20)
+    depth = rows[-1] - rows[0] + 0.4
+    field_bed(K, bx0, bx1, bed_py, depth, top_rgb=bed_box, ridges=0.03, rows=rows)
     crop_rows(K, int(allc.min()), int(allc.max()), top_py, base_py, rows, P.z(bed_py), slices, width_px, step_px,
               scale=(0.8, 0.96), yaw=40, src=at, at=at)
 

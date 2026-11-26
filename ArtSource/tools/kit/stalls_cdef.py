@@ -1244,6 +1244,18 @@ def stall_d_3(K):
                shag=0.03, fringe=P.m(16))
     roof_z = Z(205)
     K.box(P.x(215), P.x(880), 0.55, 0.62, 0.0, roof_z + 0.15, dark, name="back_wall")
+    # its boards: battens down the back and sides, and baskets hung on pegs on the back for sale
+    batten = K.colour((214, 300, 238, 400), vary=0.08)
+    for x in np.linspace(P.x(225), P.x(870), 9):
+        K.box(x - 0.025, x + 0.025, 0.62, 0.645, 0.0, roof_z + 0.12, batten, bevel=0.004, name="batten")
+    K.box(P.x(215), P.x(880), 0.62, 0.65, roof_z - 0.12, roof_z - 0.06, batten, bevel=0.004, name="rail_back")
+    for k, (x_px, box) in enumerate(((330, (130, 258, 288, 362)), (560, (243, 372, 382, 552)), (780, (712, 392, 858, 557)))):
+        bmat = K.projected(axis_x=P.x((box[0] + box[2]) / 2), squeeze=0.94, keep=[box], dx=P.m((box[0] + box[2]) / 2 - x_px),
+                           inset=2)
+        bowl(K, (P.x(x_px), 0.66, Z(330) + k * 0.05), P.m(62), P.m(48), P.m(55), bmat, axis=(0.0, 0.9, -0.45),
+             name="back_basket")
+        K.tube([(P.x(x_px), 0.65, Z(330) + k * 0.05 + 0.08), (P.x(x_px), 0.7, Z(330) + k * 0.05 + 0.1)], 0.01, batten,
+               segments=5, name="peg")
     plank = K.projected(squeeze=1.0, keep=[(214, 230, 238, 545), (856, 230, 880, 680)], inset=1)
     for x0, x1 in ((215, 237), (857, 879)):
         K.box(P.x(x0), P.x(x1), -0.18, 0.62, 0.0, roof_z + 0.1, dark, name="side_wall")
@@ -1264,14 +1276,14 @@ def stall_d_3(K):
     hang += bowl(K, (P.x(208), yh, Z(357)), P.m(76), P.m(58), P.m(85), proj((130, 258, 288, 362)), name="hang1")
     hang += bowl(K, (P.x(300), yh + 0.15, Z(300)), P.m(70), P.m(48), P.m(55), proj((262, 222, 445, 345)),
                  axis=(0.5, -0.3, 0.8), name="hang2")
-    hang += bowl(K, (P.x(500), yh + 0.18, Z(272)), P.m(78), P.m(55), P.m(40), proj((418, 215, 582, 328)),
-                 axis=(0.0, -1.0, 0.35), name="hang3")
-    hang += bowl(K, (P.x(648), yh + 0.16, Z(285)), P.m(66), P.m(45), P.m(30), proj((594, 215, 702, 358)),
-                 axis=(0.0, -1.0, 0.15), flat=0.78, roll=90, name="hang4")
-    hang += bowl(K, (P.x(785), yh + 0.25, Z(270)), P.m(80), P.m(60), P.m(25), proj((700, 215, 872, 336)),
+    hang += bowl(K, (P.x(500), yh + 0.18, Z(272)), P.m(82), P.m(58), P.m(40), proj((418, 215, 582, 328)),
+                 axis=(0.0, -1.0, 0.35), flat=0.72, name="hang3")
+    hang += bowl(K, (P.x(648), yh + 0.16, Z(287)), P.m(72), P.m(50), P.m(30), proj((594, 215, 702, 358)),
+                 axis=(0.0, -1.0, 0.15), flat=0.75, roll=90, name="hang4")
+    hang += bowl(K, (P.x(785), yh + 0.25, Z(272)), P.m(86), P.m(64), P.m(25), proj((700, 215, 872, 336)),
                  axis=(0.0, -1.0, 0.1), flat=0.7, name="hang5")
-    hang += bowl(K, (P.x(870), yh - 0.05, Z(342)), P.m(82), P.m(62), P.m(22), proj((793, 248, 948, 434)),
-                 axis=(0.0, -1.0, 0.2), flat=0.95, roll=90, name="winnower")
+    hang += bowl(K, (P.x(870), yh - 0.05, Z(342)), P.m(92), P.m(70), P.m(22), proj((793, 248, 948, 434)),
+                 axis=(0.0, -1.0, 0.2), flat=0.82, roll=90, name="winnower")
     for x_px, z_px in ((208, 262), (300, 228), (500, 222), (648, 222), (785, 222), (870, 250)):
         K.tube([(P.x(x_px), yh, P.z(z_px)), (P.x(x_px), yh, roof_z - 0.02)], 0.005, rope, segments=4, name="string")
     # ---------------------------------------------------------------- stacks on the counter
@@ -1299,7 +1311,7 @@ def stall_d_3(K):
                  flat=0.9, lean=(0, 6))
     basket(K, P.x(166), -0.45, 0.0, [(P.m(55), 0.0), (P.m(66), Z(600)), (P.m(74), Z(558))], proj((98, 540, 245, 674)),
            sy=0.9)
-    bowl(K, (P.x(130), -0.65, Z(640)), P.m(98), P.m(72), P.m(110), proj((0, 560, 205, 674)), axis=(-0.75, -0.25, 0.6),
+    bowl(K, (P.x(160), -0.65, Z(650)), P.m(70), P.m(55), P.m(80), proj((0, 560, 205, 674)), axis=(-0.8, -0.3, 0.35),
          name="lying")
     bowl(K, (P.x(222), -0.95, Z(674) + 0.05), P.m(70), P.m(55), P.m(55), proj((148, 600, 302, 674)),
          axis=(0.0, -0.8, 0.6), name="tilted")

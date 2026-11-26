@@ -1,0 +1,10 @@
+{
+ "name": "paddy_ripe",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 2.622,
+ "height": 1.0,
+ "depth": 1.28,
+ "faces": 596,
+ "source": "blender"
+}

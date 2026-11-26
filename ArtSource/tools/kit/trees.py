@@ -252,7 +252,8 @@ class Wood:
                 continue
             pts = np.array([(x, y) for y, x in p], np.float32)
             r = np.array([dt[y, x] for y, x in p], np.float32)
-            # inside a fork the distance map is the parent's radius: hold the child's radius from where it leaves it
+            # inside a fork the distance map is the junction's radius: from where the limb leaves the junction, ease
+            # its radius up into the junction's (a crotch that flares, not a shoulder)
             for end in (0, -1):
                 node = p[end]
                 if deg[node] >= 3:
@@ -262,7 +263,8 @@ class Wood:
                     if len(out):
                         k = out[0] if end == 0 else out[-1]
                         inside = d <= rj * 0.9
-                        r[inside] = r[k]
+                        f = np.clip(1 - d[inside] / (rj * 0.9), 0, 1) ** 1.5
+                        r[inside] = r[k] + (max(r[k], rj * 0.8) - r[k]) * f
             # a free end reaches out to the painted tip
             for end, nxt in ((0, 1), (-1, -2)):
                 if deg[p[end]] <= 1 and len(pts) > 2:
@@ -457,7 +459,9 @@ class Wood:
         px, py = P.px(v[0]), P.py(v[2])
         if not (0 <= px < P.w and 0 <= py < P.h):
             return False
-        return P.rgba[int(py), int(px), 3] > 0.5
+        c = P.rgba[int(py), int(px)]
+        white = min(c[:3]) > 0.7 and max(c[:3]) - min(c[:3]) < 0.16      # the painted white halo / sky gaps
+        return c[3] > 0.5 and not white
 
     def debug(self, path):
         """Draws the traced paths over the painting (for checking the trace)."""
@@ -680,8 +684,10 @@ class Crown:
             elif layer == "back":
                 yy = self.y0 + ext * K.rng.uniform(0.8, 1.0)
             else:
-                yy = self.y0 + K.rng.uniform(-1, 1) * ext * squash
-            w, h = size_px[0] * K.rng.uniform(0.75, 1.25), size_px[1] * K.rng.uniform(0.75, 1.25)
+                u = K.rng.uniform(-1, 1)
+                yy = self.y0 + math.copysign(abs(u) ** 0.6, u) * ext * squash     # more of them near its surface
+            k = 0.6 + 0.4 * self.reach(px, py) if layer != "front" else 1.0      # smaller towards its rim
+            w, h = size_px[0] * K.rng.uniform(0.75, 1.25) * k, size_px[1] * K.rng.uniform(0.75, 1.25) * k
             out = Vector((P.x(px) - P.x(cx), (yy - self.y0) * 1.3, P.z(py) - P.z(cy) + P.m(self.rzu) * 0.25))
             K.card_from_painting((px - w / 2, py - h / 2, px + w / 2, py + h / 2), (P.x(px), yy, P.z(py)),
                                  yaw=K.rng.uniform(-yaw, yaw),
@@ -1000,6 +1006,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                 x, y = xt + dist * math.cos(a), dist * math.sin(a)
                 y = float(np.clip(y, -katte.hy * 0.95, katte.hy * 0.95))
                 x = float(np.clip(x, katte.X0 + 0.1, katte.X1 - 0.1))
+                if hasattr(katte, "clip"):
+                    x, y = katte.clip(x, y)
                 z = max(P.z(py), katte.top(x, y) + P.m(r) * 0.4) if i else P.z(py)
                 if i == len(pts) - 1:
                     z = katte.top(x, y) + P.m(r) * 0.4
@@ -2071,7 +2079,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
     tree is as full of pods as from the front."""
     P = K.paint
     rng = K.rng
-    pw = Wood(K, mask, root_px=(0, 0), spur=1.0, min_len=4, smooth=0.8)
+    pw = Wood(K, mask, root_px=(0, 0), spur=1.0, min_len=4, smooth=0.8, step=1.6)
     out = []
     for p in pw.paths:
         L = float(np.hypot(*np.diff(p["pts"], axis=0).T).sum())
@@ -2081,7 +2089,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
         r_max = float(np.max(p["r"]))
         for k in range(1 + copies):
             if k == 0:
-                y = crown.front_y(cx, cy, 0.85) - P.m(r_max)
+                y = crown.front_y(cx, cy, 1.0) - P.m(r_max) * 1.5
             else:
                 y = crown.y0 + rng.uniform(-0.5, 0.95) * crown.extent(cx, cy)
             p["y"] = np.full(len(p["pts"]), y)
@@ -2118,7 +2126,7 @@ def h2_1(K):
                                           sage_leaves, spread=0.5, root_z_px=980, limb_py_max=560, limb_py_min=250,
                                           n_limbs=7, n_roots=5, root_py=1030, n_cards=(230, 100, 55, 25))
     pm = pod_mask(K, (150, 220, 1000, 690))
-    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=2, flatten=0.6, lump=0.12,
+    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=1, flatten=0.6, lump=0.12, segments=8,
               stalk=K.colour((0.12, 0.08, 0.03)))
     # mossy rocks, grass at the foot
     stone = K.projected(squeeze=1.0, keep=[(262, 1000, 415, 1085), (540, 1040, 620, 1080)], inset=3)
@@ -2225,3 +2233,184 @@ def h2_4(K):
     for box, cx in (((180, 795, 220, 832), 200), ((250, 795, 290, 832), 270)):
         for yaw in (0, 60, -60):
             K.card_from_painting(box, (P.x(cx), K.rng.uniform(-0.03, 0.03), P.z(813)), yaw=yaw, name="grass")
+
+
+TRACE["h2_3"] = lambda K: _trace_grey(K, [(0, 150, 593, 735)], (300, 715), sat=40, hole=2000,
+                                      extra_rule=lambda rgb: ~((chan(rgb)[0] - chan(rgb)[2] > 55)))
+
+
+@model("h2_3", "plants", kind="prop", atlas=2048, leaves=1024)
+def h2_3(K):
+    """A young tamarind: a grey trunk with a knot-hole or two, forking into two limbs, a dome of feathery leaves, and
+    bunches of brown curved pods hanging below it."""
+    P = K.paint
+    mask, _ = TRACE["h2_3"](K)
+    wood, crown, bark, thin = traced_tree(K, mask, (300, 715), (0, 0, 593, 470), (300, 210), (210, 0, 470),
+                                          sage_leaves, spread=0.5, root_z_px=680, limb_py_max=420, limb_py_min=150,
+                                          n_limbs=6, n_roots=4, root_py=700, n_cards=(170, 80, 45, 15),
+                                          card_px=(80, 70))
+    pm = pod_mask(K, (100, 60, 500, 460))
+    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=2, flatten=0.6, lump=0.12,
+              stalk=K.colour((0.12, 0.08, 0.03)))
+    earth(K, 300, 150, P.m(130), (290, 712, 310, 722), h=P.m(6), z=P.z(720) - P.m(4))
+
+
+class DiamondKatte:
+    """A square stone platform turned so a corner faces the camera (as painted, seen from a little above): corners
+    F (front), L, R painted at x_F, x_L, x_R px; its front half's top slopes down to the front corner so that from the
+    front it fills the painted top face; flat behind."""
+
+    def __init__(self, K, xL, xF, xR, zL_py, zF_py, cx_px=None):
+        P = K.paint
+        self.K, self.P = K, P
+        a_c, a_s = P.m(xF - xL), P.m(xR - xF)
+        self.F = Vector((P.x(xF), -(a_c * a_s) / math.hypot(a_c, a_s) * 0 - 0.0, 0))
+        # plan: F + u (L - F) + v (R - F); centre (L + R) / 2 at y = 0
+        L2 = Vector((P.x(xL), 0, 0))
+        R2 = Vector((P.x(xR), 0, 0))
+        dyL, dyR = a_s, a_c                                      # L - F has y = a sin, R - F has y = a cos
+        yF = -(dyL + dyR) / 2
+        self.F = Vector((P.x(xF), yF, 0))
+        self.L = Vector((P.x(xL), yF + dyL, 0))
+        self.R = Vector((P.x(xR), yF + dyR, 0))
+        self.B = self.L + self.R - self.F
+        self.yF = yF
+        self.zF, self.zL = P.z(zF_py), P.z(zL_py)
+        self.hy = -yF
+        self.X0, self.X1 = P.x(xL), P.x(xR)
+
+    def top(self, x, y):
+        t = float(np.clip((y - self.yF) / (-self.yF), 0.0, 1.0))
+        return self.zF + (self.zL - self.zF) * t
+
+    def y_on_top(self, px, py, r_px=0.0, side=-1):
+        z = self.P.z(py) - self.P.m(r_px) * 0.6
+        t = float(np.clip((z - self.zF) / max(1e-6, self.zL - self.zF), 0.0, 1.0))
+        return self.yF * (1 - t) if side < 0 else -self.yF * (1 - t) * 0.9
+
+    def uv(self, x, y):
+        M = np.array([[self.L.x - self.F.x, self.R.x - self.F.x], [self.L.y - self.F.y, self.R.y - self.F.y]])
+        return np.linalg.solve(M, np.array([x - self.F.x, y - self.F.y]))
+
+    def clip(self, x, y, m=0.04):
+        u, v = np.clip(self.uv(x, y), m, 1 - m)
+        p = self.F + (self.L - self.F) * float(u) + (self.R - self.F) * float(v)
+        return p.x, p.y
+
+    def build(self, side_mat, top_mat, rim_mat=None, n=24, rim=0.0):
+        """The platform: its top (a sheet over the diamond) and its four sides down to the ground."""
+        K = self.K
+        F, L, R = self.F, self.L, self.R
+
+        def top_fn(u, v):
+            p = F + (L - F) * u + (R - F) * v
+            return (p.x, p.y, self.top(p.x, p.y))
+        K.sheet(top_fn, n, n, top_mat, name="platform_top", smooth=False)
+        corners = [self.F, self.L, self.B, self.R]
+        for a, b in zip(corners, corners[1:] + corners[:1]):
+            def side(u, v, a=a, b=b):
+                p = a + (b - a) * u
+                return (p.x, p.y, self.top(p.x, p.y) * v)
+            ob = K.sheet(side, n, 1, side_mat, name="platform_side", smooth=False)
+        if rim:
+            # a coping band round the top's edge
+            for a, b in zip(corners, corners[1:] + corners[:1]):
+                d = (b - a).normalized()
+                inward = Vector((-(self.F.y - a.y), 0, 0))
+                pts = []
+                for k in range(n + 1):
+                    p = a + (b - a) * (k / n)
+                    pts.append((p.x, p.y, self.top(p.x, p.y) + rim * 0.3))
+                K.tube(pts, rim, rim_mat or top_mat, segments=4, name="coping")
+
+
+NAGA_STONES = [
+    [(840, 1108), (858, 1112), (866, 1135), (862, 1160), (880, 1170), (885, 1195), (860, 1205), (815, 1205),
+     (800, 1190), (808, 1170), (828, 1160), (826, 1135)],
+    [(905, 1098), (925, 1100), (938, 1120), (935, 1150), (945, 1170), (945, 1190), (890, 1190), (888, 1170),
+     (895, 1150), (890, 1120)],
+    [(995, 1045), (1020, 1050), (1035, 1080), (1030, 1110), (1025, 1140), (1075, 1150), (1100, 1165), (1095, 1185),
+     (1000, 1190), (960, 1180), (960, 1160), (990, 1145), (985, 1110), (980, 1080)],
+    [(1135, 1080), (1155, 1085), (1160, 1110), (1158, 1130), (1175, 1150), (1180, 1172), (1110, 1175), (1100, 1160),
+     (1120, 1140), (1125, 1110), (1125, 1090)],
+]
+H31_TRUNK = [(880, 1160, 190), (880, 1050, 175), (880, 950, 152), (880, 850, 145), (885, 750, 135), (890, 650, 115),
+             (895, 560, 100), (900, 500, 85), (905, 430, 70)]
+H31_LIMBS = [
+    [(830, 620, 55), (740, 600, 42), (660, 580, 34), (580, 560, 26), (500, 520, 18)],
+    [(880, 560, 70), (860, 470, 55), (850, 380, 40), (860, 300, 30), (880, 220, 20)],
+    [(960, 600, 60), (1030, 560, 48), (1090, 520, 38), (1150, 470, 28), (1220, 420, 20)],
+    [(800, 700, 60), (700, 700, 46), (610, 690, 40), (520, 680, 32), (430, 690, 24)],
+    [(990, 760, 62), (1090, 745, 52), (1180, 730, 44), (1280, 700, 34), (1380, 690, 24)],
+    [(1200, 725, 30), (1260, 650, 24), (1330, 610, 18), (1400, 600, 12)],
+]
+H31_ROOTS = [
+    [(720, 1050, 60), (620, 1100, 40), (540, 1140, 22), (490, 1152, 8)],
+    [(760, 1080, 55), (700, 1140, 35), (650, 1175, 18), (620, 1190, 8)],
+    [(820, 1100, 50), (800, 1160, 30), (790, 1195, 12)],
+    [(1000, 1080, 55), (1080, 1120, 40), (1160, 1140, 25), (1220, 1150, 10)],
+    [(1050, 1050, 50), (1150, 1100, 35), (1210, 1130, 18)],
+]
+
+
+@model("h3_1", "plants", kind="prop", atlas=2048, leaves=2048)
+def h3_1(K):
+    """A peepal on its square stone katte, a corner to the front: the massive fluted trunk on roots gripping the
+    platform, red and yellow threads wound round it and round its right limb, four carved naga stones at its foot,
+    clay lamps burning and marigolds before them, and a broad crown of big heart-shaped leaves."""
+    P = K.paint
+    rng = K.rng
+    katte = DiamondKatte(K, 210, 800, 1582, 1150, 1268)
+    side = K.tile((330, 1265, 560, 1330), vary=0.06, soften=0.3)
+    top = K.tile((1290, 1185, 1500, 1225), vary=0.08, soften=0.35)
+    katte.build(side, top, rim=P.m(7), n=20)
+    # ---- the tree
+    crown, trunk_ob = _peepal_tree(
+        K, (0, 0, 1743, 830), H31_TRUNK, H31_LIMBS, H31_ROOTS, katte, (420, 480, 1420, 1200),
+        P.m(1700) * 0.34, (430, 0, 830),
+        exclude_wood=[H31_TRUNK[1:], H31_LIMBS[3][:4], H31_LIMBS[4][:4], H31_LIMBS[0][:2], H31_LIMBS[2][:2]],
+        n_cards=(300, 120, 70), card_px=(180, 160))
+    # ---- the threads round the trunk (they droop at the front) and round the right limb
+    red = K.colour((0.6, 0.08, 0.02), vary=0.12)
+    yellow = K.colour((0.85, 0.55, 0.06), vary=0.12)
+    tx = P.x(880)
+    for k, py in enumerate(np.linspace(905, 985, 9)):
+        rr = P.m(160 + (py - 900) * 0.25)
+        ring_tube(K, tx, 0.0, P.z(py), rr, rr, red if k % 3 else yellow, P.m(3),
+                  tilt=(rng.uniform(-0.01, 0.01), P.m(rng.uniform(5, 25))), wobble=0.02, name="thread")
+    a, b = H31_LIMBS[4][0], H31_LIMBS[4][2]
+    for mat, n in ((red, 6), (yellow, 5)):
+        wrap_limb(K, (P.x(1060), 0.0, P.z(752)), (P.x(1170), 0.0, P.z(733)), P.m(52), mat, n, P.m(3))
+    for px in (1105, 1120, 1135, 1150, 1165):
+        strand(K, (P.x(px), -P.m(30), P.z(800)), P.m(rng.uniform(40, 110)), rng.choice([red, yellow]), P.m(3))
+    # the knot and tassels at the front of the trunk band
+    for px in (930, 950, 965, 980):
+        K.tube([(P.x(px), -P.m(165), P.z(960)), (P.x(px), -P.m(170), P.z(1000 + rng.uniform(0, 30)))], P.m(4),
+               rng.choice([red, yellow]), segments=5, name="tassel")
+    # ---- the naga stones, the lamps and the flowers on the platform
+    stone = K.colour((1010, 1100, 1020, 1130), vary=0.08)
+    for poly in NAGA_STONES:
+        bot = max(p[1] for p in poly)
+        cx = (min(p[0] for p in poly) + max(p[0] for p in poly)) / 2
+        y = katte.y_on_top(cx, bot, 0) + P.m(18)
+        poly_solid(K, poly, y, stone, depth=0.5, name="naga")
+    clay = K.colour((1010, 1205, 1040, 1215), vary=0.08)
+    flame = K.colour((0.95, 0.6, 0.05), vary=0.05)
+    for x0, x1, top_py, bot_py, fx in ((908, 970, 1185, 1212, 960), (1000, 1065, 1195, 1225, 1058),
+                                       (1185, 1245, 1160, 1186, 1242)):
+        cx, rw = (x0 + x1) / 2, (x1 - x0) / 2
+        y = katte.y_on_top(cx, bot_py, 0)
+        zb = katte.top(P.x(cx), y)
+        hh = P.m(bot_py - top_py)
+        K.lathe([(P.m(rw) * 0.45, 0.0), (P.m(rw) * 0.85, hh * 0.45), (P.m(rw), hh), (P.m(rw) * 0.88, hh * 0.95),
+                 (P.m(rw) * 0.5, hh * 0.7), (0.0, hh * 0.65)], clay, segments=18, centre=(P.x(cx), y, zb),
+                name="lamp")
+        K.lathe([(0.0, 0.0), (P.m(4), P.m(5)), (P.m(3.5), P.m(12)), (0.0, P.m(24))], flame, segments=10,
+                centre=(P.x(fx), y, zb + hh * 0.8), name="flame")
+    petals = K.projected(squeeze=1.0, keep=[(1095, 1175, 1185, 1215), (1030, 1140, 1060, 1160)], inset=1)
+    for x0, y0, x1, y1 in ((1095, 1178, 1185, 1215), (1030, 1140, 1062, 1160)):
+        cx = (x0 + x1) / 2
+        poly = [(cx + (x1 - x0) / 2 * math.cos(t), (y0 + y1) / 2 + (y1 - y0) / 2 * math.sin(t))
+                for t in np.linspace(0, 2 * math.pi, 12, endpoint=False)]
+        poly_solid(K, poly, katte.y_on_top(cx, y1, 0) + P.m(y1 - y0) * 0.3, petals, depth=0.9, name="flowers",
+                   segments=10)

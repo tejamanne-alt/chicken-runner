@@ -1,0 +1,10 @@
+{
+ "name": "paddy_young",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 1.654,
+ "height": 0.55,
+ "depth": 1.0,
+ "faces": 330,
+ "source": "blender"
+}
