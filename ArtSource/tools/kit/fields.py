@@ -1309,13 +1309,14 @@ def well(K):
 def pump_house(K):
     """A small brick pump house: walls of exposed red brick on a brick plinth, a flat roof slab with a two-course
     brick coping, a plank door in a timber frame under a stone lintel with a step before it; the delivery pipe comes
-    out of its left wall and pours into a brick trough. Its right side runs back as painted; a barred vent in the
-    back."""
+    out of its left wall and pours into a low brick trough. A square block: the right side the painting shows in
+    perspective is the same brick, a barred vent in the back."""
     P = K.paint
-    K.front_min = 0.0                                       # its right side, turned a little to us, takes the painting
-    D, kx = 2.3, 0.2                                        # depth; the painting sees its right side
+    K.front_min = 0.2
+    D = 2.3
+    # the painted right side (and the roof's and plinth's side) recede in perspective: not projected onto the front
+    K.front_exclude = [(415, 0, 494, 374), (0, 314, 148, 374)]
     brick = K.tile((156, 104, 250, 300), soften=0.12, vary=0.03)
-    side = K.tile((415, 110, 468, 300), soften=0.12, vary=0.03)
     plinth = K.tile((150, 322, 230, 356), soften=0.2, vary=0.04)
     coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
     body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")
@@ -1324,6 +1325,8 @@ def pump_house(K):
     K.box(P.x(136), P.x(416), -0.06, D + 0.08, P.z(52), P.z(12), coping, bevel=0.012, name="roof")
     K.box(P.x(136), P.x(416), -0.06, D + 0.08, P.z(32) - 0.005, P.z(32) + 0.005,
           K.colour((0.55, 0.45, 0.35), vary=0.05), name="coping_joint")
+    K.box(P.x(138), P.x(414), -0.04, D + 0.06, P.z(12), P.z(12) + 0.012, K.tile((160, 110, 250, 200), soften=0.55),
+          name="roof_top")                                  # the roof's top: laid brick, not the coping's face
     # the door: a plank leaf recessed in its timber frame, a stone lintel over it
     K.cut(body, P.x(256), P.x(374), -0.05, 0.22, P.z(318), P.z(98))
     frame = K.colour((262, 100, 272, 300), vary=0.06)
@@ -1339,7 +1342,7 @@ def pump_house(K):
     rotate(K.parts[-1], -90, "X", (P.x(284), 0.18, 0.0))
     for v in K.parts[-1].data.vertices:
         v.co.z += P.z(209)
-    # a barred vent high in the back wall (the right side is painted plain)
+    # a barred vent high in the back wall, and one in the right side (the pump inside wants air)
     dark = K.colour((0.04, 0.03, 0.03), vary=0.0)
     iron = K.colour((0.06, 0.05, 0.05), vary=0.05)
     K.cut(body, P.x(250), P.x(310), D - 0.1, D + 0.05, P.z(130), P.z(95))
@@ -1347,27 +1350,37 @@ def pump_house(K):
     for i in range(1, 4):
         x = P.x(250) + (P.x(310) - P.x(250)) * i / 4
         K.tube([(x, D - 0.02, P.z(130)), (x, D - 0.02, P.z(95))], 0.008, iron, segments=6, name="bar")
+    xs = P.x(410)
+    K.cut(body, xs - 0.1, xs + 0.05, D * 0.5 - 0.25, D * 0.5 + 0.25, P.z(130), P.z(95))
+    K.box(xs - 0.1, xs - 0.08, D * 0.5 - 0.25, D * 0.5 + 0.25, P.z(130), P.z(95), dark, name="vent_side")
+    for i in range(1, 4):
+        y = D * 0.5 - 0.25 + 0.5 * i / 4
+        K.tube([(xs - 0.02, y, P.z(130)), (xs - 0.02, y, P.z(95))], 0.008, iron, segments=6, name="bar")
     # the delivery pipe out of the left wall, its elbow, the water pouring into the trough
     pipe = K.projected(squeeze=1.0, keep=[(84, 186, 152, 232)], inset=2)
     yp = 0.35
     K.tube([(P.x(160), yp, P.z(201)), (P.x(112), yp, P.z(201)), (P.x(100), yp, P.z(204)), (P.x(97), yp, P.z(215)),
             (P.x(97), yp, P.z(232))], P.m(11), pipe, segments=12, name="pipe")
     K.tube([(P.x(118), yp, P.z(201)), (P.x(122), yp, P.z(201))], P.m(13), pipe, segments=12, name="pipe_collar")
-    trough = K.tile((20, 322, 60, 336), soften=0.2)
-    t0, t1 = 0.05, 0.95
-    K.box(P.x(4), P.x(146), t0, t1, 0.0, P.z(352), trough, bevel=0.01, name="trough")
-    wt = K.tile((30, 338, 130, 356), vary=0.03)
-    K.box(P.x(14), P.x(136), t0 + 0.08, t1 - 0.08, P.z(352) - 0.004, P.z(350), wt, name="trough_water")
+    # the trough: a low brick channel along the wall, its rim round a floor of water
+    rimm = K.tile((96, 321, 140, 336), soften=0.25, vary=0.04)
+    wt = K.tile((20, 350, 70, 366), vary=0.03)
+    t0, t1, zt, rw = -0.05, 0.85, P.z(346), 0.07
+    xa, xb = P.x(4), P.x(146)
+    K.box(xa, xb, t0, t1, 0.0, 0.04, rimm, name="trough_floor")
+    for a0, a1, b0, b1 in ((xa, xb, t0, t0 + rw), (xa, xb, t1 - rw, t1), (xa, xa + rw, t0, t1), (xb - rw, xb, t0, t1)):
+        K.box(a0, a1, b0, b1, 0.0, zt, rimm, bevel=0.01, name="trough_rim")
+    K.box(xa + rw, xb - rw, t0 + rw, t1 - rw, 0.0, zt - 0.03, wt, name="trough_water")
     K.leaves_only((50, 226, 125, 356), everything)
     K.card_from_painting((52, 226, 124, 352), (P.x(88), yp, P.z(289)), name="stream", normal=(0, -1, 0.3))
     K.card_from_painting((52, 226, 124, 352), (P.x(92), yp, P.z(289)), yaw=90, name="stream", normal=(0, -1, 0.3))
     # grass at the foot
     K.leaves_only((196, 338, 252, 362), grass_pixels)
     K.leaves_only((440, 336, 494, 362), grass_pixels)
-    for box, x in (((196, 338, 252, 362), 224), ((440, 336, 494, 362), 467)):
-        for y, yaw in ((-0.06, 0), (0.6, 70), (1.4, -60)):
+    for box, x, ys in (((196, 338, 252, 362), 224, ((-0.06, 0), (0.6, 70))),
+                       ((440, 336, 494, 362), 428, ((0.1, 20), (0.8, 70), (1.6, -60)))):
+        for y, yaw in ys:
             K.card_from_painting(box, (P.x(x), y, P.z(350)), yaw=yaw, name="grass", normal=(0, -0.3, 1))
-    shear(K, 0.0, 0.0, kx=kx)
 
 
 def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, tile_r=0.035, name="roof", under=None):
@@ -1418,26 +1431,34 @@ def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, ti
 
 @fmodel("granary", "fields", kind="building", atlas=2048)
 def granary(K):
-    """A raised village granary: a lime-plastered store with a plank door, on a stone platform carried by four
+    """A raised village granary: a lime-plastered store with a plank door, on a stone platform carried by six
     staddle stones (each a rough pillar on a footing stone under a flat cap, so rats cannot climb in), under a
-    hipped roof of half-round country tiles with ridge and hip tiles and rafter ends showing under the eaves. Its
-    right side runs back as painted."""
+    hipped roof of half-round country tiles with ridge and hip tiles and rafter ends showing under the eaves. A
+    square block: the shaded right side, the roof's right hip and the far staddle the painting shows in perspective
+    are not projected onto the front; the real sides are the same plaster, stone and tiles."""
     P = K.paint
-    K.front_min = 0.0
-    D, kx = 2.3, 0.41
+    K.front_min = 0.2
+    D = 2.3
+    K.front_exclude = [(370, 196, 566, 345),                # the plastered right side
+                       (400, 340, 566, 400),                # the platform's right side
+                       (420, 400, 566, 568),                # the far staddle
+                       ("poly", [(318, 0), (566, 0), (566, 214), (404, 214), (400, 196)])]   # the right hip
     plaster = K.tile((92, 222, 186, 300), soften=0.45, vary=0.04)
     stone_m = K.tile((52, 350, 160, 372), soften=0.3, vary=0.05)
     pillar = K.tile((70, 420, 110, 520), soften=0.3, vary=0.05)
     tiles = K.tile((110, 90, 270, 175), soften=0.15, vary=0.04)
-    body = K.box(P.x(82), P.x(370), 0.0, D, P.z(345), P.z(200) - 0.05, plaster, name="walls")
-    # the platform, the staddle stones under its corners
-    K.box(P.x(50), P.x(398), -0.25, D + 0.25, P.z(388), P.z(345), stone_m, bevel=0.04, name="platform")
-    for x, y in ((88, 0.0), (366, 0.0), (88, D), (366, D)):
-        K.block(P.x(x), y, (P.z(378) + P.z(400)) / 2, P.m(86), 0.62, P.z(378) - P.z(400), stone_m, bevel=0.04,
-                jitter=0.01, name="cap")
-        K.lathe([(P.m(27), P.z(530)), (P.m(25), P.z(470)), (P.m(23), P.z(420)), (P.m(25), P.z(400))], pillar,
-                segments=8, centre=(P.x(x), y, 0), wobble=0.06, name="staddle", smooth=False)
-        K.block(P.x(x), y, P.z(542), P.m(88), 0.6, P.z(530) - P.z(555), stone_m, bevel=0.04, jitter=0.01, name="footing")
+    xl, xr = P.x(82), P.x(370)
+    body = K.box(xl, xr, 0.0, D, P.z(345), P.z(200) - 0.05, plaster, name="walls")
+    # the platform, the staddle stones under its corners and the middle of its long sides
+    K.box(P.x(50), P.x(402), -0.25, D + 0.25, P.z(388), P.z(345), stone_m, bevel=0.04, name="platform")
+    for x in (88, 206, 366):
+        for y in (0.0, D):
+            K.block(P.x(x), y, (P.z(378) + P.z(400)) / 2, P.m(86), 0.62, P.z(378) - P.z(400), stone_m, bevel=0.04,
+                    jitter=0.01, name="cap")
+            K.lathe([(P.m(27), P.z(530)), (P.m(25), P.z(470)), (P.m(23), P.z(420)), (P.m(25), P.z(400))], pillar,
+                    segments=8, centre=(P.x(x), y, 0), wobble=0.06, name="staddle", smooth=False)
+            K.block(P.x(x), y, P.z(542), P.m(88), 0.6, P.z(530) - P.z(555), stone_m, bevel=0.04, jitter=0.01,
+                    name="footing")
     # the door in its frame
     K.cut(body, P.x(190), P.x(272), -0.05, 0.2, P.z(345), P.z(206))
     frame = K.colour((192, 210, 200, 340), vary=0.06)
@@ -1445,20 +1466,24 @@ def granary(K):
     for x0, x1 in ((190, 199), (263, 272)):
         K.box(P.x(x0), P.x(x1), -0.02, 0.12, P.z(345), P.z(206), frame, name="jamb")
     K.box(P.x(190), P.x(272), -0.02, 0.12, P.z(220), P.z(206), frame, name="frame_head")
-    # a small vent high in the back wall
+    # small vents high in the back wall and the right side
     dark = K.colour((0.05, 0.04, 0.03), vary=0.0)
     K.cut(body, P.x(200), P.x(250), D - 0.1, D + 0.05, P.z(240), P.z(222))
     K.box(P.x(200), P.x(250), D - 0.1, D - 0.08, P.z(240), P.z(222), dark, name="vent")
-    # the roof: hipped, over a wall plate, with rafter ends under the eaves
+    K.cut(body, xr - 0.1, xr + 0.05, D / 2 - 0.2, D / 2 + 0.2, P.z(240), P.z(222))
+    K.box(xr - 0.1, xr - 0.08, D / 2 - 0.2, D / 2 + 0.2, P.z(240), P.z(222), dark, name="vent")
+    # the roof: hipped, over a wall plate, with rafter ends under the eaves all round
     plate = K.colour((0.22, 0.11, 0.05), vary=0.08)
-    K.box(P.x(76), P.x(376), -0.06, D + 0.06, P.z(206), P.z(198), plate, name="wall_plate")
-    hip_roof(K, P.x(10) + kx * 0.62, P.x(412), -0.62, D + 0.62, P.z(198), P.z(26), tiles, ridge=0.55)
+    K.box(xl - 0.06, xr + 0.06, -0.06, D + 0.06, P.z(206), P.z(198), plate, name="wall_plate")
+    ov = P.m(72)
+    hip_roof(K, xl - ov, xr + ov, -ov, D + ov, P.z(198), P.z(22), tiles, ridge=P.m(74))
     rafter = K.colour((0.3, 0.14, 0.06), vary=0.1)
-    for x in (130, 270, 350):
-        K.tube([(P.x(x), 0.2, P.z(203)), (P.x(x), -0.55, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
-    for y in (0.5, 1.15, 1.8):
-        K.tube([(P.x(360), y, P.z(203)), (P.x(405), y, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
-    shear(K, 0.0, 0.0, kx=kx)
+    for x in (130, 226, 322):
+        for y0, y1 in ((0.2, -ov + 0.08), (D - 0.2, D + ov - 0.08)):
+            K.tube([(P.x(x), y0, P.z(203)), (P.x(x), y1, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
+    for y in (0.4, D / 2, D - 0.4):
+        for x0, x1 in ((xl + 0.2, xl - ov + 0.08), (xr - 0.2, xr + ov - 0.08)):
+            K.tube([(x0, y, P.z(203)), (x1, y, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
 
 
 def place(parts, angle, pivot):

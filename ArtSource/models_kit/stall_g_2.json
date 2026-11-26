@@ -1,0 +1,10 @@
+{
+ "name": "stall_g_2",
+ "folder": "market",
+ "kind": "volume",
+ "width": 3.934,
+ "height": 3.0,
+ "depth": 1.763,
+ "faces": 14139,
+ "source": "blender"
+}

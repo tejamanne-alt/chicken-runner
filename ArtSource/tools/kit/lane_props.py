@@ -802,3 +802,121 @@ def tulsi_planter(K):
                          normal=(0, -0.6, 0.8))
     earth(K, 139, 397, 403, 125, 0.36, (160, 398, 200, 404), grass=[(4, 362, 86, 402), (228, 362, 268, 402)],
           pebble_box=(150, 397, 160, 403))
+
+
+def diya(K, cx, cy, rim_py, foot_py, r_px, flame_box, keep_box, name="diya"):
+    """A small oil lamp: a shallow turned bowl with its oil and wick, and its flame as a turned teardrop wearing the
+    painted flame."""
+    P = K.paint
+    h = foot_py - rim_py
+    bowl = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[keep_box], inset=1)
+    K.lathe(prof(P, [(0, foot_py), (r_px * 0.45, foot_py), (r_px * 0.5, foot_py - 0.12 * h),
+                     (r_px * 0.78, foot_py - 0.3 * h), (r_px * 0.95, foot_py - 0.6 * h), (r_px, rim_py + 0.1 * h),
+                     (r_px * 1.02, rim_py), (r_px * 0.95, rim_py - 0.02 * h), (r_px * 0.9, rim_py + 0.1 * h)]), bowl,
+            segments=28, centre=(P.x(cx), cy, 0), name=name, cap=False)
+    oil = K.colour((0.2, 0.08, 0.01), vary=0.1)
+    K.lathe([(P.m(r_px * 0.9), P.z(rim_py + 0.1 * h)), (0.0, P.z(rim_py + 0.2 * h))], oil, segments=28,
+            centre=(P.x(cx), cy, 0), name="oil", cap=False)
+    fx0, fy0, fx1, fy1 = flame_box
+    fcx = (fx0 + fx1) / 2
+    w = (fx1 - fx0) / 2
+    flame = K.projected(axis_x=P.x(fcx), squeeze=0.85, keep=[flame_box], inset=0)
+    K.lathe(prof(P, [(0, fy1), (w * 0.6, fy1 - 1), (w * 0.95, fy1 - (fy1 - fy0) * 0.25),
+                     (w * 0.8, fy1 - (fy1 - fy0) * 0.55), (w * 0.4, fy1 - (fy1 - fy0) * 0.82), (0, fy0)]), flame,
+            segments=12, centre=(P.x(fcx), cy, 0), name="flame")
+    wick = K.colour((0.08, 0.05, 0.03), vary=0.0)
+    K.tube([(P.x(fcx), cy, P.z(rim_py + 0.15 * h)), (P.x(fcx), cy, P.z(fy1) + 0.004)], P.m(1.2), wick, segments=5,
+           name="wick")
+
+
+def flower_chain(K, pts, r, mat, step, lumps=0.25, reds=(), red_mat=None, name="flower"):
+    """A garland: marigold heads (lumpy balls of radius r, metres) strung every `step` metres along pts [(x, y, z)];
+    the heads nearest the points in `reds` are red ones."""
+    from mathutils import Vector
+    P = [Vector(p) for p in pts]
+    L = [0.0]
+    for a, b in zip(P, P[1:]):
+        L.append(L[-1] + (b - a).length)
+    n = max(2, int(L[-1] / step))
+    heads = []
+    for k in range(n + 1):
+        s = L[-1] * k / n
+        i = max(0, min(len(P) - 2, next((j for j in range(len(L) - 1) if L[j + 1] >= s), len(P) - 2)))
+        t = (s - L[i]) / max(1e-9, L[i + 1] - L[i])
+        heads.append(P[i].lerp(P[i + 1], t))
+    red_idx = {min(range(len(heads)), key=lambda j: (heads[j] - Vector(q)).length) for q in reds}
+    for j, c in enumerate(heads):
+        rr = r * K.rng.uniform(0.9, 1.1)
+        boulder_ball(K, tuple(c), (rr, rr * 0.85, rr), red_mat if j in red_idx and red_mat else mat, lumps=lumps,
+                     name=name)
+    return heads
+
+
+def boulder_ball(K, c, r3, mat, lumps=0.2, name="ball"):
+    """A lumpy ball (a marigold head, a flower, a pebble) of radii r3 at centre c."""
+    import bmesh
+    from mathutils import Vector
+    from kitlib import _obj
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=2, radius=1.0)
+    ph = K.rng.uniform(0, 6.28, 4)
+    for v in bm.verts:
+        d = v.co.normalized()
+        k = 1 + lumps * (0.5 * math.sin(5 * d.x + ph[0]) * math.sin(5 * d.y + ph[1]) + 0.5 * math.sin(6 * d.z + ph[2]))
+        v.co = Vector((c[0] + d.x * r3[0] * k, c[1] + d.y * r3[1] * k, c[2] + d.z * r3[2] * k))
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+    return ob
+
+
+@model("shrine_stone", "lane", kind="prop")
+def shrine_stone(K):
+    """A wayside shrine: a dark standing stone, its top worn to a point, marked with three lines of ash and a red
+    kumkum dot, a marigold garland with red flowers hung over it, on a rough stone slab where a brass lamp burns
+    among scattered flower offerings, leaves growing at its sides."""
+    P = K.paint
+    X, Z = P.x, P.z
+    stone = K.tile((68, 155, 100, 195), vary=0.08, soften=0.3)
+    base_m = K.tile((100, 220, 180, 243), vary=0.06, soften=0.3)
+    yf, yb = -0.06, 0.14
+    outline = [(58, 201), (207, 201), (206, 160), (204, 120), (201, 90), (196, 65), (188, 48), (176, 34), (163, 24),
+               (150, 15), (138, 9), (130, 8), (121, 10), (110, 18), (100, 28), (90, 40), (80, 52), (72, 66), (66, 85),
+               (63, 110), (60, 140), (58, 170)]
+    stone_block(K, outline[::-1], yf, yb, stone, bevel=0.018, jitter=0.0, name="stone")
+    stone_block(K, [(33, 246), (243, 246), (243, 201), (33, 201)][::-1], -0.3, 0.26, base_m, bevel=0.012,
+                jitter=0.003, name="base")
+    # the garland: down the stone's face in a V from its shoulders, round its back over the top
+    marigold = K.colour((0.95, 0.5, 0.02), vary=0.12, scale=60)
+    red = K.colour((0.6, 0.02, 0.03), vary=0.1, scale=60)
+    r = P.m(10)
+    yfr = yf - r * 0.7
+    front = [(90, 37), (81, 50), (79, 66), (82, 84), (88, 101), (96, 117), (104, 131), (114, 144), (126, 153),
+             (137, 156), (148, 150), (158, 140), (167, 128), (175, 114), (182, 99), (187, 82), (188, 64), (184, 48),
+             (177, 36)]
+    pts = [(X(x), yfr, Z(y)) for x, y in front]
+    flower_chain(K, pts, r, marigold, P.m(15.5), reds=[(X(97), yfr, Z(119)), (X(173), yfr, Z(118))], red_mat=red)
+    back = [(X(177), yfr * 0.4, Z(31)), (X(174), 0.04, Z(27)), (X(172), yb + r * 0.6, Z(34)),
+            (X(155), yb + r * 0.7, Z(50)), (X(133), yb + r * 0.7, Z(56)), (X(111), yb + r * 0.7, Z(50)),
+            (X(95), yb + r * 0.6, Z(36)), (X(93), 0.04, Z(29)), (X(90), yfr * 0.4, Z(32))]
+    flower_chain(K, back, r, marigold, P.m(16), name="flower_back")
+    # the pendant of red flowers at the garland's foot
+    for x, y, rr in ((126, 171, 9), (140, 171, 9), (133, 179, 8), (133, 165, 7)):
+        boulder_ball(K, (X(x), yfr - 0.005, Z(y)), (P.m(rr), P.m(rr) * 0.8, P.m(rr)), red, lumps=0.3, name="pendant")
+    K.tube([(X(133), yfr, Z(156)), (X(133), yfr - 0.004, Z(166))], P.m(1.5), red, segments=5, name="pendant_string")
+    # the brass lamp and the scattered flowers on the slab
+    diya(K, 183, -0.17, 189, 209, 24, (175, 152, 192, 191), (158, 186, 209, 210))
+    for x, y, rr, m in ((77, 205, 4, marigold), (93, 205, 5, marigold), (117, 204, 5, marigold), (124, 205, 5, red),
+                        (136, 205, 6, red), (147, 205, 5, marigold), (208, 206, 5, marigold), (215, 207, 4, red),
+                        (110, 206, 4, marigold)):
+        boulder_ball(K, (X(x), K.rng.uniform(-0.26, -0.2), Z(201) + P.m(rr) * 0.5), (P.m(rr), P.m(rr), P.m(rr) * 0.6),
+                     m, lumps=0.3, name="offering")
+    # leaves growing at the slab's sides (cards), and the earth
+    for box in ((16, 160, 64, 212), (204, 162, 252, 210), (6, 218, 40, 246)):
+        K.leaves_only(box, green_only)
+        bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, (X(bx), -0.1, Z(by)), name="leaves")
+        for yaw in (70, -50):
+            K.card_from_painting(box, (X(bx), 0.05, Z(by)), yaw=yaw, scale=0.9, name="leaves")
+    K.leaves_only((238, 222, 266, 248), tulsi_pixels)
+    K.card_from_painting((238, 222, 266, 248), (X(252), -0.28, Z(235)), name="fallen_flowers")
+    earth(K, 138, 246, 250, 122, 0.36, (0.2, 0.1, 0.045), pebbles=[(35, 244, 12)], pebble_box=(30, 240, 45, 248))

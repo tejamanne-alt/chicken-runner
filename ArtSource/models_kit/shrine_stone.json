@@ -1,0 +1,10 @@
+{
+ "name": "shrine_stone",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 1.067,
+ "height": 1.0,
+ "depth": 0.709,
+ "faces": 4686,
+ "source": "blender"
+}

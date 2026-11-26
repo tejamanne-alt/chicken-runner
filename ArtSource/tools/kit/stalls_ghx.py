@@ -14,8 +14,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from kitlib import _obj, model
-from stalls_cdef import (_smooth, bamboo, basket_stack, hanging_cloth, hip_thatch, joint, ktile, lashing,
-                         unify_cards)
+from stalls_cdef import (_smooth, bamboo, basket_stack, beam, hanging_cloth, heap_px, hip_thatch, joint, ktile,
+                         lashing, turned, unify_cards)
 
 
 # ====================================================================== helpers
@@ -391,3 +391,173 @@ def stall_g_1(K):
     basket_stack(K, P.x(420), ybp + 0.45, 0.0, 0.3, 0.24, 0.55, 4, bweave, flat=1.0)
     basket_stack(K, P.x(700), ybp + 0.42, 0.0, 0.28, 0.22, 0.4, 3, bweave2, flat=1.0, lean=(6, 0))
     unify_cards(K)
+
+
+# ====================================================================== stall G2: the bangle stall
+def bangle_roll(K, x0_px, x1_px, cy_px, r_px, y, mat, pitch=0.02, r_in=0.35, segs=12, name="bangles"):
+    """Glass bangles threaded on a dowel, painted from x0 to x1 px round cy: a roll of rings, each a ridge, the
+    dowel's hole down its middle."""
+    P = K.paint
+    L = P.m(x1_px - x0_px)
+    r = P.m(r_px)
+    n = max(2, int(L / pitch))
+    prof = [(r * r_in, 0.0), (r * 0.9, 0.0)]
+    for i in range(n):
+        z0 = L * i / n
+        prof += [(r, z0 + L / n * 0.5), (r * 0.9, z0 + L / n)]
+    prof += [(r * r_in, L)]
+    ob = K.lathe(prof, mat, segments=segs, centre=(0, 0, 0), cap=False, name=name)
+    frame_to(ob, (P.x(x0_px), y, P.z(cy_px)), (1, 0, 0), (0, 1, 0))
+    return ob
+
+
+def cloth_over_bar(K, xf, xb, z_hem, z_fold, z_back, y_fold, y_back, mat, sag_hem=0.0, sag_back=0.0, belly=0.04,
+                   flap=0.22, nu=36, nv=18, name="awning"):
+    """An awning cloth thrown over the front ties and hanging down in front as a flap: from its hem (z_hem(u)) up
+    to the fold at the front (y_fold, z_fold), then back up to its back edge (y_back, z_back). xf, xb: its x
+    extents at the front and back (pairs, metres). u runs left to right, v from the hem to the back edge."""
+    def f(u, v):
+        s_ = math.sin(math.pi * u)
+        xfu = xf[0] + (xf[1] - xf[0]) * u
+        if v < flap:
+            t = v / flap
+            z = (z_hem - sag_hem * s_) * (1 - t) + z_fold * t - 0.02 * s_ * t * (1 - t)
+            return (xfu, y_fold - 0.035 * (1 - t) - 0.012, z)
+        t = (v - flap) / (1 - flap)
+        x = xfu + (xb[0] + (xb[1] - xb[0]) * u - xfu) * t
+        y = y_fold + (y_back - y_fold) * t
+        z = z_fold + (z_back - z_fold) * t - belly * s_ * math.sin(math.pi * t) - sag_back * s_ * t ** 2
+        return (x, y, z)
+    return K.sheet(f, nu, nv, mat, name=name, thickness=0.012), f
+
+
+@model("stall_g_2", "market", kind="prop", atlas=2048)
+def stall_g_2(K):
+    """A bangle seller's stall: a faded indigo cloth thrown over four bamboo posts with lashed cross-stubs, a
+    two-step table under a purple cloth, a wooden ladder rack of glass bangles on dowels, two more racks of bangles
+    standing in front, brass bowls heaped with kumkum, turmeric and sandal powder, two mirrors on stands, a brass
+    bottle and a pot of kumkum; behind the table the seller's stool and tin trunk."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
+    bam = K.colour((60, 300, 75, 400), vary=0.08)
+    yf, yb = -0.78, 0.72
+    # ---------------------------------------------------------------- posts and stubs
+    posts = [((63, 125), (85, 688), 12, yf, [(48, 125, 100, 600)]),
+             ((844, 125), (826, 688), 12, yf, [(816, 125, 858, 540)]),
+             ((140, 6), (156, 688), 9, yb, [(130, 0, 152, 30), (143, 250, 165, 380)]),
+             ((768, 6), (740, 688), 9, yb, [(758, 0, 780, 30), (730, 250, 756, 430)])]
+    for top, bot, rpx, y, keep in posts:
+        mat = K.projected(axis_x=P.x((top[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
+        bamboo(K, P.pt(bot[0], 688, y), P.pt(top[0], top[1], y), P.m(rpx), mat, nodes=0.5, bend=0.005, taper=0.95,
+               name="post")
+    stubs = [((5, 190), (80, 190), yf, (62, 190)), ((830, 190), (897, 190), yf, (846, 190)),
+             ((100, 40), (178, 40), yb, (141, 40)), ((760, 42), (828, 42), yb, (767, 42))]
+    for a, b, y, j in stubs:
+        bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(10), bam, node_at=[], taper=1.0, name="stub")
+        joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(11), rope)
+    # ---------------------------------------------------------------- the cloth
+    cloth = K.projected(squeeze=1.0, keep=[(58, 28, 862, 285)],
+                        exclude=[(0, 170, 90, 210), (820, 170, 902, 210), (95, 20, 180, 55), (750, 20, 830, 58)],
+                        inset=3)
+    under = ktile(K, (300, 80, 600, 200), vary=0.05, soften=0.3)
+    args = dict(xf=(P.x(62), P.x(850)), xb=(P.x(140), P.x(770)), z_hem=Z(246), z_fold=Z(196), z_back=Z(34),
+                y_fold=yf - 0.02, y_back=yb - 0.02, sag_hem=P.m(32), sag_back=P.m(14), belly=0.05, flap=0.22)
+    _, f = cloth_over_bar(K, mat=cloth, **args)
+    K.sheet(lambda u, v: (lambda p: (p[0], p[1] + 0.004, p[2] - 0.016))(f(u, v)), 36, 18, under, name="awning_under",
+            thickness=0.005)
+    # ---------------------------------------------------------------- the two-step table under its cloth
+    purple = ktile(K, (360, 628, 560, 684), vary=0.05, soften=0.3)
+    front = K.projected(squeeze=1.0, keep=[(95, 545, 812, 688)],
+                        exclude=[(70, 612, 355, 688), (565, 612, 850, 688), (120, 375, 352, 612)], inset=2)
+    y_l0, y_l1, y_u1 = -0.56, -0.18, 0.4
+    K.box(P.x(97), P.x(812), y_l0, y_l1 + 0.05, 0.0, Z(614), purple, bevel=0.02, name="table_low")
+    K.box(P.x(113), P.x(806), y_l1, y_u1, 0.0, Z(549), purple, bevel=0.02, name="table_high")
+    # the cloth's front falls in soft folds: a thin skin over the low step's front, carrying the painting
+    K.sheet(lambda u, v: (P.x(97) + (P.x(812) - P.x(97)) * u,
+                          y_l0 - 0.006 - 0.008 * math.sin(2 * math.pi * 7 * u) * (1 - v), Z(614) * v),
+            42, 3, front, name="table_cloth", thickness=0.004)
+    # the cloth's hem round the bottom, a little proud of the table
+    for (x0, x1, y0, y1) in ((97, 812, y_l0 - 0.012, y_l0), (113, 806, y_u1, y_u1 + 0.012)):
+        K.box(P.x(x0), P.x(x1), y0, y1, 0.0, 0.06, purple, name="hem")
+    for x0, x1 in ((90, 97), (812, 819)):
+        K.box(P.x(x0), P.x(x1), y_l0, y_u1, 0.0, 0.06, purple, name="hem")
+    # ---------------------------------------------------------------- the ladder rack of bangles
+    wood = K.colour((330, 390, 345, 600), vary=0.08)
+    zt = Z(614)
+    yr0, yr1 = -0.42, -0.3
+    for (tx, ty), (bx, by) in (((148, 383), (128, 605)), ((345, 378), (338, 608))):
+        beam(K, (P.x(bx), yr0, P.z(by)), (P.x(tx), yr1, P.z(ty)), P.m(13), P.m(13), wood, name="rack_upright")
+        # its back leg, down to the upper step
+        beam(K, (P.x(tx), yr1 + 0.03, P.z(ty) - 0.03), (P.x(tx) + 0.02, -0.02, Z(549)), P.m(11), P.m(11), wood,
+             name="rack_leg")
+    beam(K, (P.x(128), yr0 - 0.01, Z(603)), (P.x(340), yr0 - 0.01, Z(603)), P.m(12), P.m(10), wood, name="rack_foot")
+    rows = [(158, 326, 416, 19), (155, 326, 468, 19), (146, 326, 519, 20), (140, 319, 569, 20)]
+    for x0, x1, cy, r in rows:
+        t = (Z(cy) - Z(605)) / (Z(380) - Z(605))
+        y = yr0 + (yr1 - yr0) * t - 0.01
+        dowel_x0 = 148 + (128 - 148) * (1 - t) - 6
+        bamboo(K, (P.x(dowel_x0), y, Z(cy)), (P.x(346), y, Z(cy)), P.m(6), wood, node_at=[], taper=1.0, name="dowel")
+        bangle_roll(K, x0, x1, cy, r, y, K.projected(squeeze=1.0, keep=[(x0, cy - r - 2, x1, cy + r + 2)], inset=2))
+    # ---------------------------------------------------------------- the two bangle racks in front
+    yfr = -0.72
+    for (ua, ub), (x0, x1), cy in (((75, 98), (115, 321), 649), ((566, 588), (601, 806), 646)):
+        for u0, u1 in ((ua, ub), (x1 + 12, x1 + 34)):
+            K.box(P.x(u0), P.x(u1), yfr - 0.04, yfr + 0.04, 0.0, Z(618), wood, bevel=0.004, name="rack_post")
+            K.box(P.x(u0) - 0.01, P.x(u1) + 0.01, yfr - 0.12, yfr + 0.12, 0.0, 0.035, wood, bevel=0.004,
+                  name="rack_foot")
+        bamboo(K, (P.x(ua), yfr, Z(637)), (P.x(x1 + 34), yfr, Z(637)), P.m(6), wood, node_at=[], taper=1.0,
+               name="dowel")
+        bangle_roll(K, x0, x1, cy, 21, yfr, K.projected(squeeze=1.0, keep=[(x0, cy - 24, x1, cy + 24)], inset=2))
+    # ---------------------------------------------------------------- bowls of powder
+    brass_in = K.colour((0.32, 0.18, 0.05), vary=0.06)
+    bowls = [(397, 44, 522, 551, 495, -0.02), (487, 43, 522, 551, 497, -0.02), (575, 42, 520, 550, 496, -0.02),
+             (388, 42, 590, 617, 570, -0.38), (467, 40, 590, 616, 569, -0.38), (545, 40, 590, 616, 567, -0.38)]
+    for cx, hw, rim, bot, peak, y in bowls:
+        bm = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, rim - 3, cx + hw, bot)], inset=2)
+        turned(K, cx, [(hw * 0.45, bot), (hw * 0.75, bot - 4), (hw * 0.95, (rim + bot) / 2), (hw, rim + 2), (hw * 0.96, rim)],
+               y, bm, segs=28, name="bowl")
+        powder = K.projected(axis_x=P.x(cx), squeeze=0.95, keep=[(cx - hw + 8, peak, cx + hw - 8, rim + 2)], inset=2)
+        heap_px(K, cx, y, [(hw * 0.94, rim + 1), (hw * 0.75, rim - 8), (hw * 0.45, (rim + peak) / 2 - 2),
+                           (hw * 0.15, peak + 4), (0, peak + 1)], powder, sy=1.0, name="powder")
+    # ---------------------------------------------------------------- mirrors on stands, the bottle and the pot
+    frame = K.colour((0.55, 0.34, 0.1), vary=0.08)
+    glass = K.colour((0.34, 0.36, 0.4), vary=0.1, scale=6)
+    for (x0, y0, x1, y1), ym, lean in (((683, 430, 779, 542), 0.0, 12), ((609, 521, 683, 616), -0.36, 14)):
+        cxm = P.x((x0 + x1) / 2)
+        zb = P.z(y1)
+        t = P.m(10)
+        X0, X1, Z0, Z1 = P.x(x0), P.x(x1), P.z(y1), P.z(y0)
+        parts = [K.box(X0, X1, ym, ym + 0.025, Z0, Z0 + t, frame, bevel=0.004, name="frame"),
+                 K.box(X0, X1, ym, ym + 0.025, Z1 - t, Z1, frame, bevel=0.004, name="frame"),
+                 K.box(X0, X0 + t, ym, ym + 0.025, Z0, Z1, frame, bevel=0.004, name="frame"),
+                 K.box(X1 - t, X1, ym, ym + 0.025, Z0, Z1, frame, bevel=0.004, name="frame"),
+                 K.box(X0 + t * 0.5, X1 - t * 0.5, ym + 0.008, ym + 0.016, Z0 + t * 0.5, Z1 - t * 0.5, glass,
+                       name="glass"),
+                 K.box(X0 + t * 0.5, X1 - t * 0.5, ym + 0.016, ym + 0.026, Z0 + t * 0.5, Z1 - t * 0.5, frame,
+                       name="mirror_back")]
+        for p in parts:
+            p.data.transform(Matrix.Translation((0, ym, zb)) @ Matrix.Rotation(math.radians(-lean), 4, "X")
+                             @ Matrix.Translation((0, -ym, -zb)))
+        h = P.z(y0) - zb
+        beam(K, (cxm, ym + 0.03 + h * 0.15, zb + h * 0.75), (cxm, ym + 0.03 + h * 0.6, zb), 0.018, 0.01, frame,
+             name="mirror_strut")
+    bottle = K.projected(axis_x=P.x(709), squeeze=0.93, keep=[(692, 570, 727, 618)], inset=2)
+    turned(K, 709, [(15, 618), (13, 612), (8, 606), (13, 600), (15, 593), (10, 584), (8, 580), (15, 575), (14, 571)],
+           -0.38, bottle, segs=20, name="bottle")
+    pot = K.projected(axis_x=P.x(765), squeeze=0.93, keep=[(732, 565, 798, 614)], inset=2)
+    turned(K, 765, [(24, 613), (31, 602), (33, 590), (28, 579), (22, 573), (27, 569), (25, 566)], -0.36, pot, segs=24,
+           name="kumkum_pot")
+    K.lathe([(P.m(22), Z(568)), (P.m(14), Z(565)), (0.0, Z(563))], K.colour((0.45, 0.03, 0.02), vary=0.1),
+            segments=16, centre=(P.x(765), -0.36, 0.0), name="kumkum")
+    # ---------------------------------------------------------------- behind the table: her stool and a tin trunk
+    stool = K.colour((0.3, 0.17, 0.07), vary=0.1)
+    K.box(P.x(380), P.x(500), 0.55, 0.85, 0.32, 0.36, stool, bevel=0.006, name="stool_top")
+    for x in (P.x(390), P.x(490)):
+        for y in (0.58, 0.82):
+            K.box(x - 0.02, x + 0.02, y - 0.02, y + 0.02, 0.0, 0.32, stool, name="stool_leg")
+    tin = K.colour((0.22, 0.24, 0.3), vary=0.08)
+    K.box(P.x(560), P.x(740), 0.5, 0.9, 0.0, 0.34, tin, bevel=0.012, name="trunk")
+    K.box(P.x(556), P.x(744), 0.49, 0.91, 0.34, 0.37, tin, bevel=0.01, name="trunk_lid")
+    K.box(P.x(640), P.x(660), 0.485, 0.495, 0.25, 0.35, K.colour((0.55, 0.45, 0.2), vary=0.05), name="hasp")

@@ -1743,8 +1743,9 @@ def stall_e_2(K):
     py_ = -0.56
     K.lathe([(0.0, Z(527)), (P.m(55), Z(526)), (P.m(68), Z(520)), (P.m(70), Z(516))], plate, segments=24,
             centre=(P.x(555), py_, 0.0), scale_y=0.8, cap=False, name="plate")
-    hp = heap_px(K, 555, py_, [(64, 518), (55, 498), (35, 478), (12, 465), (0, 462)], nuts, sy=0.8, name="plate_nuts")
-    on_heap(K, hp, P.x(555), py_, P.m(60) * 0.8, (490, 455, 625, 515), nuts, dark=95, min_area=20, max_area=400,
+    nuts2 = K.projected(squeeze=1.0, keep=[(488, 455, 628, 520)], inset=1)
+    hp = heap_px(K, 555, py_, [(64, 518), (55, 498), (35, 478), (12, 465), (0, 462)], nuts2, sy=0.8, name="plate_nuts")
+    on_heap(K, hp, P.x(555), py_, P.m(60) * 0.8, (490, 455, 625, 515), nuts2, dark=95, min_area=20, max_area=400,
             rmax=9, kind="pod")
     paper = K.projected(squeeze=1.0, keep=[(598, 390, 690, 526)], inset=1)
     cone_stack(K, (P.x(640), -0.42, Z(505)), P.m(26), P.m(58), 5, paper, axis=(-0.4, 0.0, 1.0))
@@ -1924,7 +1925,7 @@ def stall_e_3(K):
     card = K.projected(squeeze=1.0, keep=[(172, 625, 645, 700)], inset=1)
     fan = [(212, 671, 64, 44, -20), (255, 678, 52, 38, -14), (292, 684, 46, 30, -8), (328, 686, 44, 26, -4),
            (366, 688, 40, 22, 0), (403, 688, 40, 22, 0), (440, 688, 40, 22, 3), (478, 685, 44, 26, 8),
-           (515, 680, 48, 32, 13), (552, 670, 52, 40, 18), (590, 655, 58, 46, 20), (618, 645, 58, 46, 16)]
+           (515, 680, 48, 32, 13), (552, 670, 52, 40, 18)]
     for px_, py_, w, h, rot in fan:
         z = Z(py_)
         yy = y0
