@@ -2132,7 +2132,7 @@ def pumpkin(K, px, py, rx, ry, y, mat, ribs=10, name="pumpkin"):
     """A pumpkin: a squat ribbed ball with a dimple at its top, at painted (px, py), rx by ry px."""
     P = K.paint
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=30, v_segments=12, radius=1.0)
+    bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=10, radius=1.0)
     ph = K.rng.uniform(0, 6.28)
     a_, b_ = P.m(rx), P.m(ry)
     for v in bm.verts:
@@ -2178,14 +2178,17 @@ def h5_6(K):
         return side * (yf + (yr - yf) * f)
     for side in (1, -1):
         for a, b_ in poles:
-            pole(K, a, b_, pr, bam, y=(yy(a[1], side), yy(b_[1], side)), nodes=(0.25, 0.5, 0.75))
+            pole(K, a, b_, pr, bam, y=(yy(a[1], side), yy(b_[1], side)),
+                 nodes=(0.25, 0.5, 0.75) if side > 0 else (0.4,))
         for a, b_ in bars:
             yb = yy(a[1], side) - side * P.m(pr * 1.8)
-            pole(K, a, b_, pr * 0.95, bam, y=yb, nodes=(0.3, 0.65))
+            pole(K, a, b_, pr * 0.95, bam, y=yb, nodes=(0.3, 0.65) if side > 0 else ())
             for px in (a[0] + 35, b_[0] - 35):
                 lashing(K, (P.x(px), yb + side * P.m(pr), P.z(a[1])), P.m(pr * 2) * 0.8, rope, P.m(1.8))
-    # ridge pole tying the two faces at the top
-    pole(K, (60, 40), (420, 40), pr * 0.8, bam, y=0.0)
+    # the two faces tied together at the top of each post (hidden behind the post tops from the front)
+    for (a, b_) in poles:
+        x0 = b_[0]
+        K.tube([P.pt(x0, 60, yy(60, 1)), P.pt(x0, 60, yy(60, -1))], P.m(pr * 0.7), bam, segments=8, name="tie")
     # ---- the pumpkins
     pm = masked_material(K, opaque & orange & not_ink(rgb, 60), inset=1)
     stalk = K.colour((0.2, 0.3, 0.08), vary=0.12)
