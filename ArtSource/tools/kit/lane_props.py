@@ -48,3 +48,15 @@ def pot_stack(K):
     ground_patch(K, cx, 386, 120, 0.16, (60, 372, 110, 392),
                  pebbles=[(75, 388, 26), (190, 389, 30), (240, 380, 14), (40, 382, 10)],
                  grass=[(18, 338, 82, 384), (222, 352, 268, 384)])
+
+
+# ====================================================================== kolams (rice-flour drawings on the ground)
+def kolam(K):
+    """A kolam lies on the ground: built standing up like the painting (the game lays it face up), a card of the
+    whole drawing, its white flour and coloured powders cut out by the painting's own alpha."""
+    P = K.paint
+    K.card_from_painting((0, 0, P.w, P.h), (0.0, 0.0, P.H / 2), name="kolam", normal=(0, -1, 0))
+
+
+for _i in range(1, 7):
+    model(f"kolam_{_i}", "lane", kind="flat")(kolam)
