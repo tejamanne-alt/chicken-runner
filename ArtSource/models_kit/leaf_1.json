@@ -1,0 +1,10 @@
+{
+ "name": "leaf_1",
+ "folder": "ground",
+ "kind": "slab",
+ "width": 0.12,
+ "height": 0.186,
+ "depth": 0.025,
+ "faces": 565,
+ "source": "blender"
+}
