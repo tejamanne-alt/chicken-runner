@@ -446,7 +446,7 @@ def house_indigo_veranda(K):
     py_ = -1.3                                  # the pillars' line
     K.front_min = 0.0                           # the lean-to faces the camera only at a slant: let it take the painting
     K.front_exclude = [(0, 0, 10, 100), (532, 0, 546, 100)]
-    wall = K.tile((400, 290, 480, 400), size=0.6, vary=0.05, soften=0.55)     # indigo plaster right of the door
+    wall = K.tile((427, 275, 490, 400), size=0.6, vary=0.05, soften=0.6)      # indigo plaster right of the door
     upper = K.tile((120, 66, 230, 86), vary=0.05, soften=0.3)                 # the parapet's indigo, streaked
     ledge = K.colour((120, 90, 400, 98), vary=0.06)
     red = K.tile((300, 470, 420, 500), vary=0.06, soften=0.35)                # red-oxide plinth below the kolam

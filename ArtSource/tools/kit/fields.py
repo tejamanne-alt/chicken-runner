@@ -303,3 +303,128 @@ def haystack_small(K):
     straw_fringe(K, ax, 0.0, rpx, (352, 366), 30, size=(40, 30), inset=0.5, sources=(330, 352),
                  sectors=[(-12, 0), (0, 180), (-180, -168)], up=0.1)
 
+
+
+# ====================================================================== the scarecrow
+@model("scarecrow", "fields", kind="prop", atlas=1024)
+def scarecrow(K):
+    """A scarecrow: a pole with a crossbar, dressed in a white kurta with a red cotton scarf over one shoulder, a
+    painted clay pot for a head, fists of straw out of its sleeves and a straw skirt below its hem, its pole stood
+    in a mound of stones and weeds."""
+    P = K.paint
+    hd = 0.13                                               # the kurta's half depth (the frame inside it)
+    # the pole and the crossbar inside the sleeves
+    wood = K.projected(squeeze=1.0, keep=[(166, 300, 192, 422)], inset=2)
+    K.tube([P.pt(178, 424), P.pt(178, 300), P.pt(178, 100)], P.m(10), wood, segments=12, name="pole")
+    K.tube([P.pt(30, 138), P.pt(330, 136)], P.m(6), wood, segments=8, name="crossbar")
+    # the pot for a head, tilted a little as it is painted, open at the top
+    pot = K.projected(axis_x=P.x(168), squeeze=0.9, keep=[(110, 2, 226, 104)], inset=3)
+    prof = [(28, 106), (38, 99), (46, 90), (50, 78), (51, 64), (49, 50), (44, 40), (36, 31), (28, 26), (29, 22),
+            (31, 16), (31, 11), (28, 8)]
+    head = K.lathe([(P.m(r), P.z(y)) for r, y in prof], pot, segments=36, centre=(P.x(178), 0, 0), wobble=0.01,
+                   name="pot", cap=True)
+    inside = K.colour((0.09, 0.035, 0.015), vary=0.1)
+    mouth = K.lathe([(P.m(25), P.z(9)), (P.m(22), P.z(16)), (P.m(18), P.z(30)), (0.0, P.z(34))], inside, segments=36,
+                    centre=(P.x(178), 0, 0), name="mouth", cap=False)
+    for ob in (head, mouth):
+        rotate(ob, -12, "Y", (P.x(178), 0, P.z(106)))
+    # the kurta: a body of cloth hung on the frame, its shoulders sloping in to the neck, open at the hem
+    cloth = turned(K, P.x(187), (200, 168, 242, 238), squeeze=0.93, keep=[(84, 100, 284, 252)], exclude=[], soften=0.3)
+    c, n = P.x(187), 3.0
+
+    def body(u, v):
+        t = 2 * math.pi * u
+        if v < 0.82:
+            py = 250 - (250 - 110) * v / 0.82
+            hw, s, z = P.m(59 + 2 * (py > 230) * (py - 230) / 20), 1.0, P.z(py)
+        else:
+            k = (v - 0.82) / 0.18
+            hw, s, z = P.m(59), 1 - 0.62 * k, P.z(110) + P.m(8) * math.sin(k * math.pi / 2)
+        cx, cy = math.cos(t), math.sin(t)
+        return (c + hw * s * math.copysign(abs(cx) ** (2 / n), cx), hd * s * math.copysign(abs(cy) ** (2 / n), cy), z)
+    K.sheet(body, 40, 16, cloth, name="kurta", thickness=0.012)
+    # the sleeves on the crossbar
+    sleeve = turned(K, P.x(187), (200, 168, 242, 238), squeeze=1.0, keep=[(84, 100, 284, 172)], side="z",
+                    side_from=0.55, side_to=0.9, axis_z=P.z(137), squeeze_z=0.9, soften=0.3)
+    K.tube([P.pt(150, 138), P.pt(118, 138), P.pt(84, 138)], [P.m(31), P.m(29), P.m(26)], sleeve, segments=16,
+           name="sleeve")
+    K.tube([P.pt(222, 135), P.pt(250, 135), P.pt(277, 135)], [P.m(31), P.m(29), P.m(26)], sleeve, segments=16,
+           name="sleeve")
+    band = K.colour((78, 118, 86, 152), vary=0.1)
+    K.tube([P.pt(77, 138), P.pt(88, 138)], P.m(27), band, segments=16, name="cuff_tie")
+    K.tube([P.pt(273, 134), P.pt(284, 134)], P.m(27), band, segments=16, name="cuff_tie")
+
+    def front_y(x, out=0.012):                              # the kurta's front surface at x, and a little before it
+        a = min(1.0, abs(x - c) / P.m(59))
+        ct = a ** 1.5
+        return -hd * (max(0.0, 1 - ct * ct) ** 0.5) ** (2 / n) - out
+    # the scarf: a band over the right shoulder, across the chest to the left hip, its end hanging with a fringe;
+    # and down the back the same way
+    red = K.projected(squeeze=1.0, keep=[(112, 98, 242, 278)], exclude=[(170, 120, 250, 200)], inset=2)
+    path = [(233, 104), (214, 120), (192, 140), (168, 160), (148, 178), (136, 194)]
+
+    def sash(u, v, back=False):
+        k = v * (len(path) - 1)
+        i = min(int(k), len(path) - 2)
+        f = k - i
+        (x0, y0), (x1, y1) = path[i], path[i + 1]
+        px, py = x0 + (x1 - x0) * f, y0 + (y1 - y0) * f
+        dx, dy = x1 - x0, y1 - y0
+        ln = math.hypot(dx, dy)
+        nx, ny = -dy / ln, dx / ln
+        px, py = px + (u - 0.5) * 34 * nx, py + (u - 0.5) * 34 * ny
+        y = front_y(P.x(px), 0.016)
+        return (P.x(px), -y if back else y, P.z(py))
+    K.sheet(sash, 2, 14, red, name="scarf", thickness=0.012)
+    K.sheet(lambda u, v: sash(u, v, True), 2, 14, red, name="scarf_back", thickness=0.012)
+    K.tube([(P.x(228), front_y(P.x(228), 0.0), P.z(108)), (P.x(228), 0.0, P.z(97)),
+            (P.x(228), -front_y(P.x(228), 0.0), P.z(108))], P.m(13), K.colour((200, 104, 232, 118), vary=0.08),
+           segments=10, name="scarf_shoulder")
+    for back in (False, True):
+        def end(u, v, back=back):
+            x = P.x(119 + 50 * u)
+            z = P.z(196 + 78 * v)
+            y = front_y(x, 0.02) - 0.02 * v - 0.012 * math.sin(math.pi * u)
+            return (x, -y if back else y, z)
+        K.sheet(end, 6, 8, red, name="scarf_end", thickness=0.01)
+    # the straw skirt round the pole below the hem
+    ax = 179
+    rsk = interp([(244, 62), (262, 64), (285, 58), (300, 48), (312, 20)])
+    straw = turned(K, P.x(ax), (150, 262, 240, 298), squeeze=0.9, keep=[(96, 246, 264, 330)], exclude=[(112, 246, 172, 278)])
+    K.lathe([(P.m(14), P.z(316)), (P.m(rsk(305)), P.z(305)), (P.m(rsk(290)), P.z(290)), (P.m(rsk(268)), P.z(268)),
+             (P.m(rsk(250)), P.z(248)), (P.m(50), P.z(240))], straw, segments=28, centre=(P.x(ax), 0, 0),
+            scale_y=0.8, wobble=0.04, name="skirt")
+    K.leaves_only((94, 250, 268, 334), no_halo)
+    straw_fringe(K, ax, 0.0, rsk, (256, 296), 34, size=(40, 40), inset=0.45, exact_rows=(258, 296),
+                 sources=(256, 296), sectors=[(-25, 0), (0, 180), (-180, -155)], up=0.1)
+    for i in range(18):
+        th = K.rng.uniform(-20, 200)
+        t = math.radians(th)
+        cx = K.rng.uniform(130, 230)
+        r = P.m(rsk(296)) * 0.9
+        K.card_from_painting((cx - 26, 282, cx + 26, 332), (P.x(ax) + r * math.cos(t), r * 0.8 * math.sin(t), P.z(307)),
+                             yaw=th + 90, name="skirt_tips", normal=(math.cos(t), math.sin(t), -0.1))
+    K.card_from_painting((96, 280, 266, 334), P.pt(181, 307, -P.m(52)), name="skirt_front", normal=(0, -1, 0.2))
+    # the fists of straw out of the sleeves: fans of straw, turned about the arm so they are full from every side
+    K.leaves_only((0, 80, 92, 196), no_halo)
+    K.leaves_only((270, 80, 366, 196), no_halo)
+    for box, cz in (((0, 84, 90, 192), 138), ((272, 84, 364, 192), 136)):
+        cx = (box[0] + box[2]) / 2
+        for pitch in (0, 50, -50, 90):
+            K.card_from_painting(box, P.pt(cx, cz, 0.0), pitch=pitch + K.rng.uniform(-8, 8), name="hand",
+                                 normal=(1 if cx > 180 else -1, -0.3, 0.6))
+    # the mound of stones it is stood in, its weeds, the earth
+    earth = K.colour((70, 425, 110, 436), vary=0.18, scale=10)
+    earth_disc(K, 178, 428, P.m(118), 0.42, earth)
+    stone = K.projected(squeeze=1.0, keep=[(110, 412, 250, 440)], exclude=[(98, 368, 168, 418), (188, 372, 268, 418)],
+                        inset=2)
+    for px, w, h, y in ((150, 44, 18, -0.10), (205, 52, 20, -0.09), (238, 30, 14, -0.06), (122, 26, 12, -0.04),
+                        (175, 40, 16, 0.12), (140, 30, 14, 0.10), (215, 34, 14, 0.13)):
+        K.boulder(P.x(px), y, P.z(430) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.7, P.m(h), stone, lumps=0.2, name="stone")
+    grass = [(98, 366, 170, 420), (186, 370, 270, 420)]
+    for box in grass:
+        K.leaves_only(box, grass_pixels)
+        cx = (box[0] + box[2]) / 2
+        K.card_from_painting(box, P.pt(cx, 394, -0.14), name="grass", normal=(0, -0.3, 1))
+    tufts(K, grass[0], [(P.x(140), 0.16, P.z(394)), (P.x(110), -0.02, P.z(394))], yaws=(60, -60, 90))
+    tufts(K, grass[1], [(P.x(225), 0.15, P.z(394)), (P.x(250), 0.0, P.z(394))], yaws=(60, -60, 90))

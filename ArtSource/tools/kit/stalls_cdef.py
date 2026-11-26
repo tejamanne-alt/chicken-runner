@@ -249,14 +249,6 @@ def stall_c_1(K):
            cloth, sag_front=P.m(84), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=40, nv=18,
            hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2))
     # ---------------------------------------------------------------- the ground, the platform for the back row
-    earth = K.tile((1010, 712, 1110, 785), vary=0.08, soften=0.3)
-    earth_patch(K, P.x(560), -0.1, 1.95, 1.35, earth)
-    plat = P.z(700)
-    # the back half stands on a raised bed of packed earth (its bank shows at the right, past the last sack)
-    mud_bed(K, P.x(150), P.x(1124), lambda x: -0.12 - 0.18 * _smooth(P.x(440), P.x(520), x), 1.2, plat, earth)
-    plank = K.colour((0.22, 0.12, 0.05), vary=0.12, scale=8)
-
-    # ---------------------------------------------------------------- the goods
     burlap = K.tile((50, 670, 200, 770), vary=0.06, soften=0.3)
     burlap2 = K.tile((830, 680, 990, 770), vary=0.06, soften=0.3)
     chilli = K.tile((110, 585, 215, 635), vary=0.05)
@@ -269,6 +261,17 @@ def stall_c_1(K):
     grain9 = K.tile((255, 655, 330, 685), vary=0.04)
     roots = K.tile((500, 595, 620, 645), vary=0.04)
     orange = K.tile((320, 560, 420, 600), vary=0.05)
+    earth = K.tile((1010, 712, 1110, 785), vary=0.08, soften=0.3)
+    earth_patch(K, P.x(560), -0.15, 1.85, 1.3, earth, h=0.02)
+    plat = P.z(700)
+    # the back half stands on a raised bed of packed earth (its bank shows at the right, past the last sack)
+    mud_bed(K, P.x(150), P.x(1124), lambda x: -0.12 - 0.18 * _smooth(P.x(440), P.x(520), x), 1.2, plat, earth)
+    plank = K.colour((0.22, 0.12, 0.05), vary=0.12, scale=8)
+    # behind the back row: a pile of empty sacks folded flat, and a sack lying on its side
+    for i in range(4):
+        K.block(P.x(560) + K.rng.uniform(-0.04, 0.04), 1.02, plat + 0.03 + i * 0.05, 0.62, 0.36, 0.05, burlap,
+                rot=(0, 0, K.rng.uniform(-8, 8)), bevel=0.02, name="folded_sack")
+    # ---------------------------------------------------------------- the goods
     Z = P.z
     sacks = [  # (cx px, half-width px, rim front py, rim back py, peak py, y, z0, cloth, goods)
         # the back row, on the earth bed
