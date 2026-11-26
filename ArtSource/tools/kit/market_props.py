@@ -1030,3 +1030,32 @@ def coconut_cart(K):
     for a, b in (((207, 42), (200, 10)), ((398, 75), (394, 40)), ((505, 110), (530, 68)), ((515, 118), (540, 92)),
                  ((105, 125), (75, 110)), ((110, 112), (80, 95))):
         K.tube([P.pt(*a, -0.3), P.pt(*b, -0.32)], P.m(2.2), stalk, segments=5, name="stalk", taper=0.5)
+
+
+@model("parapet_gap", "market", kind="building", atlas=2048)
+def parapet_gap(K):
+    """A lime-washed parapet wall stepping down to a gap: two tall piers, two steps and a low middle, each capped
+    with red-oxide coping, on a red plinth painted with a white kolam border, tufts of grass at its feet."""
+    P = K.paint
+    X, Z = P.x, P.z
+    wall = K.tile((140, 92, 215, 148), vary=0.05, soften=0.45)
+    wall2 = K.tile((25, 30, 80, 148), vary=0.05, soften=0.45)
+    coping = K.tile((138, 74, 218, 85), vary=0.06, soften=0.2)
+    red = K.tile((120, 186, 260, 194), vary=0.06, soften=0.3)
+    d = 0.26
+    # the plinth all along, the piers standing proud of the wall, the steps and the low middle
+    K.box(X(22), X(327), -0.04, d + 0.04, 0.0, Z(152), red, bevel=0.01, name="plinth")
+    K.box(X(22), X(327), -0.045, d + 0.045, Z(154), Z(151), K.colour((40, 151, 300, 154), vary=0.05), bevel=0.004,
+          name="plinth_lip")
+    for x0, x1, top, cx0, cx1, ctop, cbot, dy in ((22, 90, 22, 18, 94, 7, 24, -0.03), (265, 326, 22, 262, 330, 7, 24, -0.03),
+                                                 (84, 137, 45, 84, 141, 33, 46, 0.0), (218, 270, 45, 215, 270, 33, 46, 0.0),
+                                                 (133, 222, 85, 132, 224, 72, 86, 0.0)):
+        K.box(X(x0), X(x1), dy, d - dy, Z(152), Z(top), wall2 if dy < 0 else wall, bevel=0.008, name="wall")
+        K.box(X(cx0), X(cx1), dy - 0.035, d - dy + 0.035, Z(cbot), Z(ctop), coping, bevel=0.012, name="coping")
+    # tufts of grass at its feet, front and round the corners
+    K.leaves_only((0, 150, 354, 203), green_pixels)
+    for box, x in (((8, 165, 42, 197), 25), ((292, 150, 348, 197), 320)):
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, (P.x(cx), -0.07, P.z(cy)), name="grass")
+        for yy, yaw in ((0.02, 60), (0.12, -50), (d + 0.08, 20)):
+            K.card_from_painting(box, (P.x(cx) + K.rng.uniform(-0.05, 0.05), yy, P.z(cy)), yaw=yaw, name="grass")
