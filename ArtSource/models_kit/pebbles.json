@@ -1,10 +1,10 @@
 {
  "name": "pebbles",
  "folder": "ground",
- "kind": "slab",
+ "kind": "volume",
  "width": 0.6,
  "height": 0.269,
- "depth": 0.091,
- "faces": 558,
+ "depth": 0.297,
+ "faces": 1104,
  "source": "blender"
 }

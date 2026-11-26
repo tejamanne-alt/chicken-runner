@@ -517,10 +517,11 @@ def husk(K):
             bm.faces.new([grid[i][k], grid[i + 1][k], grid[i + 1][k + 1], grid[i][k + 1]])
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
     # the outside faces point away from the hollow: down and out
+    z_axis = float(zf.max())
     for f in bm.faces:
         f.normal_update()
         c = f.calc_center_median()
-        if f.normal.z > 0.3 and abs(c.y) < 0.01 or (f.normal.y * c.y < 0 and abs(c.y) > 0.004):
+        if f.normal.y * c.y + f.normal.z * (c.z - z_axis) < 0:
             f.normal_flip()
     outside = K.tile((60, 150, 180, 176), vary=0.06, soften=0.3)
     inside = K.tile((150, 60, 250, 110), vary=0.06, soften=0.2)

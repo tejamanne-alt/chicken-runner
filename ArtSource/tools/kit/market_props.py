@@ -530,7 +530,7 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
         d = (B - A).normalized()
         K.tube([tuple(A - d * pr * 1.3), tuple(A.lerp(B, 0.5)), tuple(B + d * pr * 1.3)], pr, bamboo, segments=10,
                name="pole")
-    cord = K.colour((0.32, 0.17, 0.05), vary=0.1)
+    cord = K.colour((0.5, 0.27, 0.07), vary=0.1)
     edges = ((fl, fr), (bl, br), (fl, bl), (fr, br))
     for k, t in lashings:
         a, b = edges[k]
@@ -600,6 +600,6 @@ def chilli_mat(K):
     chilli = K.projected(squeeze=1.0, keep=[(30, 15, 220, 118)], inset=1)
     for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
         r = P.m(min(5.0, max(3.6, w * 0.75)))
-        A = T.at(ax, ay, height(ax, ay) + r * 0.15)
-        B = T.at(bx, by, height(bx, by))
-        pod(K, tuple(A), tuple(B), r, r * 0.3, chilli, bend=tuple(T.n * r * 0.6), n=6, seg=6, name="chilli")
+        A = T.at(ax, ay, height(ax, ay) - r * 0.1)
+        B = T.at(bx, by, height(bx, by) - r * 0.4)
+        pod(K, tuple(A), tuple(B), r, r * 0.35, chilli, bend=tuple(T.n * r * 0.5), n=6, seg=6, name="chilli")
