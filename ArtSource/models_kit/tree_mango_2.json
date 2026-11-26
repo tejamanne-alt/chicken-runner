@@ -1,0 +1,10 @@
+{
+ "name": "tree_mango_2",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 6.124,
+ "height": 6.0,
+ "depth": 4.699,
+ "faces": 17819,
+ "source": "blender"
+}

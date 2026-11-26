@@ -2,6 +2,8 @@
 // colour in two tones split by a fixed light from the front-left-top (the painted art's light, not the scene's), a
 // soft cool shadow, an optional small hard highlight, and a dark ink outline from an inverted hull. Unlit otherwise, so
 // the characters sit with the painted cards. Works on skinned meshes.
+// Leaf cards (the scenery models' M_<name>_Leaves): _Cutoff > 0 cuts the texture out by its alpha, _Cull 0 draws both
+// sides (their normals point out of the crown, so both sides light alike), and _OutlineWidth 0 (cards have no hull).
 Shader "ChickenRunner/Toon"
 {
     Properties
@@ -17,6 +19,8 @@ Shader "ChickenRunner/Toon"
         _OutlineWidth ("Outline width (m)", Range(0, 0.02)) = 0.004
         _HazeColor ("Haze colour", Color) = (0.98, 0.765, 0.545, 1)
         _Haze ("Haze (distance)", Range(0, 1)) = 0
+        _Cutoff ("Alpha cut-out (0 = opaque)", Range(0, 1)) = 0
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
     SubShader
     {
@@ -48,7 +52,7 @@ Shader "ChickenRunner/Toon"
         Pass
         {
             Name "Toon"
-            Cull Back
+            Cull [_Cull]
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -63,6 +67,7 @@ Shader "ChickenRunner/Toon"
             float _Gloss;
             fixed4 _HazeColor;
             float _Haze;
+            float _Cutoff;
             struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD0; };
             struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; float3 normal : TEXCOORD1; float3 view : TEXCOORD2; };
             v2f vert (appdata v)
@@ -77,6 +82,7 @@ Shader "ChickenRunner/Toon"
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 base = tex2D(_MainTex, i.uv) * _Color;
+                if (_Cutoff > 0) clip(base.a - _Cutoff);
                 float3 n = normalize(i.normal);
                 float3 l = normalize(_LightDir.xyz);
                 float lit = smoothstep(_Threshold - _Softness, _Threshold + _Softness, dot(n, l));

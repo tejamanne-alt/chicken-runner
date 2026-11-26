@@ -1,0 +1,10 @@
+{
+ "name": "house_pink",
+ "folder": "lane",
+ "kind": "building",
+ "width": 2.83,
+ "height": 4.27,
+ "depth": 5.27,
+ "faces": 1078,
+ "source": "blender"
+}

@@ -247,6 +247,11 @@ namespace ChickenRunner.EditorTools
             material.SetFloat("_OutlineWidth", outline);
             material.SetColor("_HazeColor", ArtAssets.Haze);
             material.SetFloat("_Haze", haze);
+            // Leaf, frond, flower and grass cards: cut out by the texture's alpha, both sides, no hull outline.
+            bool cards = source.name.EndsWith("_Leaves");
+            material.SetFloat("_Cutoff", cards ? 0.5f : 0f);
+            material.SetFloat("_Cull", cards ? 0f : 2f);
+            if (cards) material.SetFloat("_OutlineWidth", 0f);
             material.enableInstancing = true;
             EditorUtility.SetDirty(material);
             s_materials[key] = material;
@@ -272,9 +277,19 @@ namespace ChickenRunner.EditorTools
         }
     }
 
-    /// <summary>Import settings for the scenery models: metres, no rig, no animation, cameras or lights.</summary>
+    /// <summary>Import settings for the scenery models: metres, no rig, no animation, cameras or lights; their leaf
+    /// textures clamped at the edges with their alpha kept.</summary>
     internal sealed class ArtModelImport : AssetPostprocessor
     {
+        void OnPreprocessTexture()
+        {
+            if (!assetPath.StartsWith(ArtModels.Folder + "/") || !assetPath.EndsWith("_leaves.png")) return;
+            var importer = (TextureImporter)assetImporter;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = true;
+        }
+
         void OnPreprocessModel()
         {
             if (!assetPath.StartsWith(ArtModels.Folder + "/") || !assetPath.EndsWith(".fbx")) return;

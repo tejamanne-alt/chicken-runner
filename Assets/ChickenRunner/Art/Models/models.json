@@ -958,9 +958,9 @@
    "kind": "building",
    "width": 2.83,
    "height": 4.27,
-   "depth": 4.5,
-   "faces": 6003,
-   "source": "extruded"
+   "depth": 5.27,
+   "faces": 1078,
+   "source": "blender"
   },
   {
    "name": "house_plank_sheet",
@@ -1138,9 +1138,9 @@
    "kind": "volume",
    "width": 0.449,
    "height": 0.65,
-   "depth": 0.359,
-   "faces": 6000,
-   "source": "extruded"
+   "depth": 0.34,
+   "faces": 1666,
+   "source": "blender"
   },
   {
    "name": "rope_cot",
@@ -1218,9 +1218,9 @@
    "kind": "volume",
    "width": 6.124,
    "height": 6.0,
-   "depth": 1.96,
-   "faces": 12000,
-   "source": "extruded"
+   "depth": 4.699,
+   "faces": 17819,
+   "source": "blender"
   },
   {
    "name": "tulsi_planter",
