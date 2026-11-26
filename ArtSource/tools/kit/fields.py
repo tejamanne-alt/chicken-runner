@@ -701,8 +701,8 @@ def canal_bank(K):
         w = K.rng.uniform(90, 150)
         box = (cx - w / 2, 0, cx + w / 2, 246)
         y = K.rng.uniform(-d + 0.15, d - 0.1)
-        K.card_from_painting(box, (P.x(cx + K.rng.uniform(-20, 20)), y, P.z(123)), yaw=K.rng.uniform(-70, 70),
-                             name="reeds", normal=(0, -0.3, 1))
+        K.card_from_painting(box, (P.x(cx), y, P.z(123)), yaw=K.rng.uniform(-50, 50), name="reeds",
+                             normal=(0, -0.3, 1))
     # lotus leaves standing out of the water, the flower, and more leaves floating on back along the channel
     K.leaves_only((424, 196, 830, 241), no_halo)
     for box in ((426, 198, 578, 240), (584, 200, 652, 240), (676, 200, 830, 240)):

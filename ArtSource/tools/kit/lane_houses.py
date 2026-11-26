@@ -1026,7 +1026,7 @@ def house_potter(K):
     K.front_min = 0.15
     mud = K.tile((480, 640, 660, 900), size=1.2, vary=0.05, soften=0.5)
     lime = K.tile((500, 930, 970, 980), size=1.0, vary=0.04, soften=0.4)
-    thatch_m = K.tile((1290, 150, 1420, 420), size=0.6, vary=0.06)
+    thatch_m = K.tile((420, 250, 500, 440), size=0.6, vary=0.06, soften=0.3)   # clean golden straw, left of the fronds
     earth = K.tile((300, 1110, 1300, 1128), size=1.0, vary=0.08)
     wood = K.tile((1010, 660, 1220, 900), size=0.6, vary=0.04)
     frame = K.colour((985, 700, 1000, 1000), vary=0.06)
@@ -1079,11 +1079,12 @@ def house_potter(K):
     side_decal(K, (681, 621, 813, 784), X0, -1, D * 0.5, name="side_window")
     side_decal(K, (681, 621, 813, 784), X1, 1, D * 0.6, name="side_window")
     # the lean-to: a thatch slab falling away from the hut's side, its thick cut end at the front as painted
-    top = [(1430, 222), (1497, 233), (1600, 262), (1700, 300), (1800, 340), (1900, 385), (2000, 440), (2100, 500),
-           (2165, 572)]
-    bottom = [(2100, 602), (2040, 578), (1990, 562), (1880, 556), (1800, 540), (1700, 542), (1600, 526),
-              (1500, 522), (1430, 502)]
-    lean = K.tile((1650, 365, 1790, 455), size=0.6, vary=0.06)       # inside the lean-to, clear of its white halo
+    # traced on the straw's own edge, inside the white halo the cut-out has round the shed
+    top = [(1430, 225), (1480, 238), (1550, 258), (1600, 273), (1650, 288), (1700, 318), (1750, 343), (1800, 368),
+           (1850, 386), (1900, 413), (1950, 433), (2000, 458), (2050, 483), (2100, 508), (2150, 560)]
+    bottom = [(2140, 578), (2100, 587), (2050, 582), (2000, 572), (1950, 558), (1880, 557), (1850, 552),
+              (1800, 527), (1750, 517), (1700, 507), (1650, 497), (1600, 478), (1550, 497), (1500, 487), (1430, 487)]
+    lean = thatch_m
     yb = 3.0
     K.prism([(P.x(x), P.z(y)) for x, y in top + bottom], -0.5, -0.22, lean, name="lean_to_end")
     th = 0.24
@@ -1094,7 +1095,7 @@ def house_potter(K):
         return P.z(top[-1][1])
     noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (13, 31)), 1.0)
     def lean_surf(u, v):
-        px = 1430 + (2140 - 1430) * u
+        px = 1430 + (2130 - 1430) * u
         return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - 0.06 + 0.02 * noise[int(v * 12), int(u * 30)])
     K.sheet(lean_surf, 30, 12, lean, name="lean_to", thickness=th)
     bamboo = K.projected(axis_x=P.x(2010), squeeze=0.9, keep=[(1985, 600, 2034, 1030)], inset=2)
@@ -1156,3 +1157,127 @@ def house_potter(K):
     K.lathe([(P.m(r), P.z(y)) for r, y in ((40, 1104), (58, 1095), (69, 1070), (71, 1045), (64, 1010), (48, 985),
                                            (40, 975), (46, 966), (44, 960))], deco, segments=28,
             centre=(P.x(2116), -0.55, 0.0), name="painted_pot")
+
+
+def hip_front_y(eave, ridge, ze, zr, x, z):
+    """How far back (y) the front of a hipped roof is at (x, z) as seen from the front: on the front slope, or, past
+    its end at that height, on the hip line."""
+    ex0, ex1, ey0, ey1 = eave
+    rx0, rx1 = ridge
+    ym = (ey0 + ey1) / 2
+    v = min(1.0, max(0.0, (z - ze) / (zr - ze)))
+    xa, xb = ex0 + (rx0 - ex0) * v, ex1 + (rx1 - ex1) * v
+    if xa <= x <= xb:
+        return ey0 + (ym - ey0) * v
+    ve = (x - ex1) / (rx1 - ex1) if x > xb else (x - ex0) / (rx0 - ex0)
+    ve = min(1.0, max(v, ve))
+    return ey0 + (ym - ey0) * ve
+
+
+def pumpkin(K, px, py, rx_px, ry_px, y, mat, stalk, ribs=8, name="pumpkin"):
+    """A ribbed pumpkin where it is painted: a squashed sphere with `ribs` grooves, a stalk on top."""
+    P = K.paint
+    rx, ry = P.m(rx_px), P.m(ry_px)
+    cx, cz = P.x(px), P.z(py)
+
+    def f(u, v):
+        a = 2 * math.pi * u
+        t = math.pi * (v - 0.5)
+        rib = 1 - 0.07 * abs(math.sin(ribs * a / 2)) ** 0.5
+        r = rx * math.cos(t) * rib
+        return (cx + r * math.cos(a), y + r * math.sin(a) * 0.95, cz + ry * math.sin(t) * (1 - 0.15 * (v > 0.85)))
+    ob = K.sheet(f, 32, 12, mat, name=name, smooth=True)
+    K.tube([(cx, y, cz + ry * 0.8), (cx + 0.02, y, cz + ry * 1.15)], 0.012, stalk, segments=6, name="pumpkin_stalk")
+    return ob
+
+
+@model("house_thatched_hut", "lane", kind="building", atlas=2048)
+def house_thatched_hut(K):
+    """A mud hut under a deep hipped thatch with a ridge pole, a pumpkin vine climbing over its right side with five
+    pumpkins, a plank door between painted kolam motifs, a shuttered window, a lime skirting, a painted pot."""
+    P = K.paint
+    D = 4.6
+    K.front_min = 0.15
+    mud = K.tile((200, 880, 560, 1020), size=1.2, vary=0.05, soften=0.45)
+    lime = K.tile((180, 1040, 590, 1120), size=1.0, vary=0.04, soften=0.4)
+    thatch_m = K.tile((180, 280, 420, 520), size=0.7, vary=0.06, soften=0.25)
+    earth = K.tile((200, 1140, 1000, 1175), size=1.0, vary=0.08)
+    wood = K.tile((660, 720, 860, 1060), size=0.6, vary=0.04)
+    frame = K.colour((622, 700, 645, 1100), vary=0.06)
+    X0, X1 = P.x(165), P.x(1353)
+    body = K.box(X0, X1, 0.0, D, 0.0, P.z(605), mud, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(1032), lime, name="skirting")
+    K.box(P.x(125), P.x(1396), -0.45, D + 0.25, 0.0, P.z(1132), earth, bevel=0.04, name="ground")
+    eave = (P.x(15), P.x(1508), -0.62, D + 0.62)
+    ridge = (P.x(305), P.x(1220))
+    ze, zr = P.z(598), P.z(82)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.26, shag=0.05, fringe=0.11)
+    K.tube([P.pt(305, 77, D / 2), P.pt(1220, 77, D / 2)], P.m(18), K.colour((500, 62, 1000, 90), vary=0.06),
+           segments=10, name="ridge_pole")
+    fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
+    # the door between its kolam motifs, the shuttered window
+    K.cut(body, P.x(650), P.x(874), -0.05, 0.25, P.z(1119), P.z(697))
+    K.box(P.x(650), P.x(874), 0.12, 0.17, P.z(1119), P.z(697), wood, name="door")
+    for x0, x1 in ((619, 650), (874, 908)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(1119), P.z(666), frame, bevel=0.008, name="jamb")
+    K.box(P.x(619), P.x(908), -0.03, 0.12, P.z(697), P.z(666), frame, bevel=0.008, name="frame_head")
+    K.cut(body, P.x(340), P.x(445), -0.05, 0.12, P.z(840), P.z(715))
+    K.box(P.x(340), P.x(445), 0.07, 0.1, P.z(840), P.z(715), wood, name="shutters")
+    for a, b, c, d in ((327, 340, 702, 852), (445, 458, 702, 852), (340, 445, 702, 715), (340, 445, 840, 852)):
+        K.box(P.x(a), P.x(b), -0.03, 0.07, P.z(d), P.z(c), frame, bevel=0.006, name="window_frame")
+    back_decal(K, (619, 666, 908, 1119), D)
+    side_decal(K, (327, 702, 458, 852), X0, -1, D * 0.5, name="side_window")
+    side_decal(K, (327, 702, 458, 852), X1, 1, D * 0.45, name="side_window")
+    # the pot
+    pot(K, 1130.5, [(40, 1150), (62, 1140), (78, 1115), (82, 1085), (76, 1055), (60, 1030), (44, 1018), (48, 1008),
+                    (53, 995), (50, 991)], keep=[(1046, 988, 1215, 1152)], y=-0.3)
+    # the pumpkins, lying on the thatch where they are painted (and one hanging over the wall)
+    pk = K.projected(squeeze=1.0, keep=[(787, 190, 895, 270), (1180, 235, 1290, 305), (1003, 325, 1130, 435),
+                                        (1300, 487, 1415, 572), (1130, 628, 1250, 710)], inset=3)
+    stalk = K.colour((0.12, 0.16, 0.05), vary=0.1)
+    for px, py, rx, ry in ((841, 230, 54, 40), (1235, 270, 55, 36), (1066, 380, 63, 52), (1357, 530, 57, 43)):
+        pumpkin(K, px, py, rx, ry, fy(px, py + ry * 0.6) - P.m(rx) * 0.8, pk, stalk)
+    pumpkin(K, 1190, 669, 60, 41, -0.2, pk, stalk)
+    for px, py, rx, ry in ((1150, 300, 55, 40), (930, 210, 50, 38)):     # more on the back slope, mirrored
+        pumpkin(K, px, py, rx, ry, D - fy(px, py + ry * 0.6) + P.m(rx) * 0.8, pk, stalk)
+    # the vine: leaves cut from the painting (not the pumpkins), each laid just off the roof where it is painted,
+    # down the wall below the eave, round the right corner, and over the ridge onto the back
+    def vine_keep(rgb):
+        from kitlib import plant_pixels
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        orange = (r > 170) & (g > 80) & (g < 175) & (b < 95) & (r - g > 60)
+        return plant_pixels(rgb) & ~orange
+    K.leaves_only((460, 10, 1455, 905), vine_keep)
+    alpha = P.rgba[..., 3]
+    placed = 0
+    for i in range(400):
+        if placed >= 46:
+            break
+        cx, cy = K.rng.uniform(470, 1450), K.rng.uniform(20, 895)
+        if alpha[int(cy), int(cx)] < 0.5:
+            continue
+        rgb = (P.rgba[int(cy), int(cx), :3] * 255).astype(int)
+        if not (rgb[1] > rgb[2] + 15 and rgb[1] >= rgb[0] - 20):
+            continue
+        if cy > 615:
+            y = -0.1 if cx < 1353 else -0.05
+        else:
+            y = fy(cx, cy) - 0.06
+        K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (P.x(cx), y, P.z(cy)), yaw=K.rng.uniform(-35, 35),
+                             pitch=K.rng.uniform(-25, 25) - (40 if cy < 600 else 0), name="vine")
+        placed += 1
+    side_cards(K, (1222, 640, 1450, 880), 8, (100, 100), X1, 1, (0.1, 1.4))
+    for i in range(10):
+        cx, cy = K.rng.uniform(800, 1250), K.rng.uniform(40, 330)
+        z = P.z(cy)
+        yb = D + 0.62 - (fy(cx, cy) + 0.62) + 0.06
+        K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (P.x(cx), yb, z), yaw=180 + K.rng.uniform(-30, 30),
+                             pitch=40 + K.rng.uniform(-20, 20), name="vine_back")
+    for i in range(8):
+        cx, cy = K.rng.uniform(1250, 1440), K.rng.uniform(280, 580)
+        v = (P.z(cy) - ze) / (zr - ze)
+        xh = eave[1] + (ridge[1] - eave[1]) * v
+        ya, yb2 = eave[2] + (D / 2 - eave[2]) * v, eave[3] + (D / 2 - eave[3]) * v
+        K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (xh + 0.06, K.rng.uniform(ya + 0.2, yb2 - 0.2),
+                             P.z(cy)), yaw=90 + K.rng.uniform(-30, 30), pitch=K.rng.uniform(-20, 20) + 35,
+                             name="vine_hip")

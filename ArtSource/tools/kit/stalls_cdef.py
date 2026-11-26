@@ -23,6 +23,39 @@ def _smooth(e0, e1, x):
     return t * t * (3 - 2 * t)
 
 
+def ktile(K, box, size=None, vary=0.0, soften=0.0):
+    """K.tile, but cut from the painting with its inner holes (pixels the cut-out made transparent: gaps in a weave,
+    light patches) filled from the nearest painted pixel, so a tile never shows the white behind the cut-out."""
+    P = K.paint
+    if not hasattr(K, "_filled"):
+        from scipy import ndimage
+        from PIL import Image
+        a = np.asarray(P.img).astype(np.float32)
+        solid = a[..., 3] > 127
+        _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
+        f = a[iy, ix]
+        f[..., 3] = 255
+        K._filled = Image.fromarray(f.clip(0, 255).astype(np.uint8), "RGBA")
+    img = P.img
+    P.img = K._filled
+    try:
+        return K.tile(box, size, vary=vary, soften=soften)
+    finally:
+        P.img = img
+
+
+def green_leaves(rgb):
+    """Card pixels for leaves: green and yellow-green and the dark ink round them (not the white halo of the cut-out,
+    not the basket or the wood painted behind)."""
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    green = (g >= r - 12) & (g > b + 18) & (g > 60)
+    keep = ndimage.binary_closing(green, iterations=2)
+    dark = np.maximum(np.maximum(r, g), b) < 95
+    keep |= dark & ndimage.binary_dilation(keep, iterations=3)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
 def orient(ob, origin, direction, roll=0.0):
     """Turns a part built along +Z about `origin` so that +Z points along `direction` (rolled `roll` degrees)."""
     d = Vector(direction).normalized()
@@ -244,24 +277,24 @@ def stall_c_1(K):
     cloth = K.projected(squeeze=1.0, keep=[(95, 40, 935, 275)], exclude=[(60, 100, 112, 205), (905, 100, 960, 205),
                                                                           (195, 0, 245, 62), (800, 0, 850, 60)],
                         inset=3)
-    under = K.tile((560, 95, 700, 170), vary=0.05, soften=0.35)
+    under = ktile(K, (560, 95, 700, 170), vary=0.05, soften=0.35)
     awning(K, P.pt(100, 180, yf + 0.02), P.pt(925, 176, yf + 0.02), P.pt(214, 50, yb - 0.02), P.pt(828, 50, yb - 0.02),
            cloth, sag_front=P.m(84), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=40, nv=18,
            hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2))
     # ---------------------------------------------------------------- the ground, the platform for the back row
-    burlap = K.tile((50, 670, 200, 770), vary=0.06, soften=0.3)
-    burlap2 = K.tile((830, 680, 990, 770), vary=0.06, soften=0.3)
-    chilli = K.tile((110, 585, 215, 635), vary=0.05)
-    lentil = K.tile((215, 535, 285, 568), vary=0.04)
-    turmeric = K.tile((430, 497, 530, 535), vary=0.05)
-    grain = K.tile((720, 462, 830, 492), vary=0.04)
-    brownl = K.tile((770, 552, 870, 578), vary=0.04)
-    white = K.tile((840, 605, 960, 640), vary=0.04)
-    yellow = K.tile((705, 700, 830, 730), vary=0.04)
-    grain9 = K.tile((255, 655, 330, 685), vary=0.04)
-    roots = K.tile((500, 595, 620, 645), vary=0.04)
-    orange = K.tile((320, 560, 420, 600), vary=0.05)
-    earth = K.tile((1010, 712, 1110, 785), vary=0.08, soften=0.3)
+    burlap = ktile(K, (50, 670, 200, 770), vary=0.06, soften=0.3)
+    burlap2 = ktile(K, (830, 680, 990, 770), vary=0.06, soften=0.3)
+    chilli = ktile(K, (110, 585, 215, 635), vary=0.05)
+    lentil = ktile(K, (215, 535, 285, 568), vary=0.04)
+    turmeric = ktile(K, (430, 497, 530, 535), vary=0.05)
+    grain = ktile(K, (720, 462, 830, 492), vary=0.04)
+    brownl = ktile(K, (770, 552, 870, 578), vary=0.04)
+    white = ktile(K, (840, 605, 960, 640), vary=0.04)
+    yellow = ktile(K, (705, 700, 830, 730), vary=0.04)
+    grain9 = ktile(K, (255, 655, 330, 685), vary=0.04)
+    roots = ktile(K, (500, 595, 620, 645), vary=0.04)
+    orange = ktile(K, (320, 560, 420, 600), vary=0.05)
+    earth = ktile(K, (1010, 712, 1110, 785), vary=0.08, soften=0.3)
     earth_patch(K, P.x(560), -0.15, 1.85, 1.3, earth, h=0.02)
     plat = P.z(700)
     # the back half stands on a raised bed of packed earth (its bank shows at the right, past the last sack)
@@ -385,6 +418,28 @@ def heap(K, cx, cy, rx, ry, z0, h, mat, segs=28, name="heap", shape=1.4):
     return height
 
 
+def heap_px(K, cx_px, y, prof_px, mat, sy=0.85, segs=28, name="heap", z0=None):
+    """A heap traced off the painting: prof_px [(half-width px, py), ...] from its foot up to its peak (half-width 0),
+    standing at depth y, sy as deep as it is wide; returns its height(x, y) for piling pieces on it."""
+    P = K.paint
+    prof = [(P.m(r), P.z(py)) for r, py in prof_px]
+    if z0 is not None:
+        prof[0] = (prof[0][0], z0)
+    K.lathe(prof, mat, segments=segs, centre=(P.x(cx_px), y, 0.0), scale_y=sy, wobble=0.03, name=name)
+    cx = P.x(cx_px)
+
+    def height(x, yy):
+        d = math.sqrt((x - cx) ** 2 + ((yy - y) / sy) ** 2)
+        best = prof[0][1]
+        for (r0, z0_), (r1, z1) in zip(prof, prof[1:]):
+            if min(r0, r1) <= d <= max(r0, r1) and abs(r1 - r0) > 1e-6:
+                best = max(best, z0_ + (z1 - z0_) * (d - r0) / (r1 - r0))
+            elif d <= min(r0, r1):
+                best = max(best, max(z0_, z1))
+        return best
+    return height
+
+
 def pile(K, height, cx, cy, rx, ry, n, r, mat, squash=0.8, elong=1.15, segs=8, name="nut", front_only=False):
     """n round pieces (nuts, potatoes, onions, fruit) of radius ~r sitting on a heap's surface height(x, y)."""
     for i in range(n):
@@ -479,8 +534,8 @@ def umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, teeth=44
     for i in range(10):
         ang = 2 * math.pi * (i + 0.5) / 10
         rr = R * 0.9
-        parts.append(K.tube([(cx, cy, collar_z), (cx + rr * math.cos(ang), cy + rr * math.sin(ang), cone_z(rr) - 0.05)],
-                            0.007, rib_mat, segments=5, name=f"{name}_rib"))
+        parts.append(K.tube([(cx, cy, collar_z), (cx + rr * math.cos(ang), cy + rr * math.sin(ang), cone_z(rr) - 0.042)],
+                            0.005, rib_mat, segments=5, name=f"{name}_rib"))
     # the finial: the pole's end coming through the top
     parts.append(K.lathe([(0.03, apex - 0.05), (0.032, apex + 0.03), (0.024, apex + 0.09), (0.006, apex + 0.16)],
                          rib_mat, segments=10, centre=(cx, cy, 0.0), name=f"{name}_finial"))
@@ -505,22 +560,26 @@ def stall_c_2(K):
     Z = P.z
     K.front_min = 0.1
     # ---------------------------------------------------------------- the ground: a gentle rise of red earth
-    earth = K.tile((770, 770, 870, 830), vary=0.08, soften=0.3)
+    earth = ktile(K, (770, 770, 870, 830), vary=0.08, soften=0.3)
     hb = Z(745)
 
     def ground(x, y):
-        return hb * _smooth(-0.72, 0.35, y) * _smooth(1.6, 1.25, y) * _smooth(-P.W / 2, -P.W / 2 + 0.05, x) \
+        back = math.sqrt((x / (P.W / 2)) ** 2 * _smooth(0.0, 1.0, y) + max(0.0, (y - 0.2) / 1.15) ** 2)
+        return hb * _smooth(-0.72, 0.35, y) * _smooth(1.0, 0.9, back) * _smooth(-P.W / 2, -P.W / 2 + 0.05, x) \
             * _smooth(P.W / 2, P.W / 2 - 0.05, x)
-    K.grid_plane(-P.W / 2, P.W / 2, -0.8, 1.65, 0.0, 30, 26, earth, height=lambda x, y: ground(x, y), name="ground")
+    K.grid_plane(-P.W / 2, P.W / 2, -0.8, 1.45, 0.0, 36, 26, earth, height=lambda x, y: ground(x, y), name="ground")
     # ---------------------------------------------------------------- the bench: a tapering top, tilted on the rise
-    wood = K.tile((690, 655, 775, 690), vary=0.08)
+    wood = ktile(K, (690, 655, 775, 690), vary=0.08)
     wood_dark = K.colour((300, 720, 400, 728), vary=0.1)
     yF, yB = -0.4, 0.58
     zF, zB = Z(698), Z(620)
 
     def top_z(y):
         return zF + (zB - zF) * (y - yF) / (yB - yF)
-    slab(K, [(P.x(35), yF, zF), (P.x(800), yF, zF), (P.x(692), yB, zB), (P.x(140), yB, zB)], P.m(20), wood,
+    top = K.projected(squeeze=1.0, keep=[(35, 612, 805, 722)],
+                      exclude=[(60, 590, 282, 700), (275, 560, 560, 700), (580, 560, 705, 668), (215, 645, 305, 705),
+                               (515, 635, 615, 705), (605, 665, 665, 700), (640, 650, 760, 722)], inset=2)
+    slab(K, [(P.x(35), yF, zF), (P.x(800), yF, zF), (P.x(692), yB, zB), (P.x(140), yB, zB)], P.m(20), top,
          name="bench_top")
     # its apron under the front and back edges, and the legs (front ones as painted, more behind the baskets)
     K.box(P.x(60), P.x(775), yF + 0.03, yF + 0.06, Z(730), zF - P.m(20), wood_dark, name="apron")
@@ -530,12 +589,12 @@ def stall_c_2(K):
             K.box(P.x(x0), P.x(x1), y - 0.035, y + 0.035, ground(P.x(x0), y) - 0.03, top_z(y) - P.m(18), wood,
                   name="leg")
     # the palm mat she sits on
-    mat_w = K.tile((150, 205, 280, 240), vary=0.06)
+    mat_w = ktile(K, (150, 205, 280, 240), vary=0.06)
     K.grid_plane(P.x(285), P.x(560), yF + 0.08, yB - 0.12, 0.0, 10, 8, mat_w,
                  height=lambda x, y: top_z(y) + 0.008, name="mat")
     # ---------------------------------------------------------------- the umbrella
-    weave = K.tile((380, 85, 520, 150), vary=0.06)
-    under = K.tile((150, 200, 280, 240), vary=0.05)
+    weave = ktile(K, (380, 85, 520, 150), vary=0.06)
+    under = ktile(K, (150, 200, 280, 240), vary=0.05)
     pole_mat = K.projected(axis_x=P.x(300), squeeze=0.9, keep=[(270, 270, 330, 620)], inset=2)
     yc = 0.92
     umbrella(K, P.x(340), yc, Z(220), P.m(322), P.m(170), 5.9, weave, under, pole_mat, teeth=46, tooth=0.075)
@@ -554,8 +613,8 @@ def stall_c_2(K):
     zb1 = top_z(yb1)
     basket(K, P.x(170), yb1, zb1, [(P.m(62), 0.0), (P.m(85), Z(672) - zb1 * 0 - Z(690) + 0.02),
                                     (P.m(98), Z(640) - zb1), (P.m(106), Z(603) - zb1)], bask, inside=inside, sy=0.85)
-    leafm = K.tile((180, 560, 260, 600), vary=0.05)
-    hl = heap(K, P.x(172), yb1, P.m(98), P.m(98) * 0.85, Z(610), Z(560) - Z(610), leafm, name="leaves")
+    leafm = ktile(K, (180, 560, 260, 600), vary=0.05)
+    heap(K, P.x(172), yb1, P.m(98), P.m(98) * 0.85, Z(610), Z(578) - Z(610), leafm, name="leaves")
     # the brass areca-nut cutter on its base plate
     brass = K.colour((640, 600, 660, 640), vary=0.08)
     brass_d = K.colour((605, 625, 640, 655), vary=0.08)
@@ -575,7 +634,7 @@ def stall_c_2(K):
     K.tube([P.pt(667, 495, yt), P.pt(672, 470, yt), P.pt(680, 448, yt)], [P.m(7), P.m(9), P.m(8)], lever, segments=10,
            name="lever_grip")
     # loose betel leaves on the bench (one hanging over its front edge), a folded paan on a leaf, the lime tin
-    leaf2 = K.tile((240, 660, 290, 690), vary=0.06)
+    leaf2 = ktile(K, (240, 660, 290, 690), vary=0.06)
 
     def bench_or_edge(x, y):
         return top_z(y) if y > yF else zF - (yF - y) * 2.5
@@ -591,18 +650,19 @@ def stall_c_2(K):
     y2 = -0.95
     basket(K, P.x(140), y2, 0.0, [(P.m(92), 0.0), (P.m(104), Z(810)), (P.m(110), Z(780)), (P.m(112), Z(752))], bask2,
            sy=0.85)
-    h2 = heap(K, P.x(140), y2, P.m(104), P.m(104) * 0.85, Z(760), Z(700) - Z(760), leafm, name="leaves2")
-    bask3 = K.projected(axis_x=P.x(315), squeeze=0.92, keep=[(215, 790, 415, 836)], inset=2)
+    heap(K, P.x(140), y2, P.m(104), P.m(104) * 0.85, Z(760), Z(722) - Z(760), leafm, name="leaves2")
+    bask3 = K.projected(axis_x=P.x(315), squeeze=0.92, keep=[(215, 785, 415, 836)], inset=2)
     y3 = -0.98
-    basket(K, P.x(315), y3, 0.0, [(P.m(84), 0.0), (P.m(96), Z(815)), (P.m(100), Z(797))], bask3, sy=0.85)
-    nutsm = K.tile((520, 760, 610, 810), vary=0.06)
+    basket(K, P.x(318), y3, 0.0, [(P.m(88), 0.0), (P.m(94), Z(815)), (P.m(100), Z(792))], bask3, sy=0.85)
+    nutsm = ktile(K, (520, 760, 610, 810), vary=0.06)
     nut = K.colour((560, 760, 580, 780), vary=0.12, scale=30)
-    h3 = heap(K, P.x(315), y3, P.m(96), P.m(96) * 0.85, Z(800), Z(745) - Z(800), nutsm, name="nuts3")
-    pile(K, h3, P.x(315), y3, P.m(90), P.m(80), 30, P.m(15), nut)
+    h3 = heap_px(K, 318, y3, [(95, 795), (88, 780), (72, 762), (50, 750), (20, 744), (0, 742)], nutsm, name="nuts3")
+    pile(K, h3, P.x(318), y3, P.m(85), P.m(72), 30, P.m(15), nut)
     banana = K.colour((420, 820, 435, 832), vary=0.1)
     K.grid_plane(P.x(400), P.x(700), -1.2, -0.6, 0.0, 10, 6, banana, height=lambda x, y: 0.006, name="banana_leaf")
-    h4 = heap(K, P.x(545), -0.92, P.m(135), 0.3, 0.0, Z(722), nutsm, name="nuts_heap", shape=1.1)
-    pile(K, h4, P.x(545), -0.92, P.m(128), 0.28, 46, P.m(16), nut)
+    h4 = heap_px(K, 540, -0.92, [(132, 836), (110, 825), (85, 805), (65, 790), (45, 772), (25, 758), (0, 750)], nutsm,
+                 sy=0.7, name="nuts_heap", z0=0.0)
+    pile(K, h4, P.x(540), -0.92, P.m(120), P.m(120) * 0.7, 40, P.m(16), nut)
     bask4 = K.projected(axis_x=P.x(693), squeeze=0.92, keep=[(645, 758, 742, 832)], inset=2)
     basket(K, P.x(693), -0.75, 0.0, [(P.m(42), 0.0), (P.m(45), Z(800)), (P.m(48), Z(764))], bask4, sy=1.0)
     K.lathe([(P.m(44), Z(764)), (P.m(30), Z(752)), (0.0, Z(748))], leafm, segments=16, centre=(P.x(693), -0.75, 0.0),
@@ -610,14 +670,14 @@ def stall_c_2(K):
     # ---------------------------------------------------------------- leaves as cards, the vendor as a cut-out
     for box, cxp, cyp, y0, depth, n in (((120, 538, 548, 612), 330, 575, yb1, 0.5, 14),
                                         ((35, 685, 505, 772), 265, 730, y2, 0.55, 14)):
-        K.leaves_only(box)
+        K.leaves_only(box, green_leaves)
         K.card_from_painting(box, (P.x(cxp), y0 - depth * 0.42, P.z(cyp)), name="leaf_front")
         for i in range(n):
             px_, py_ = K.rng.uniform(box[0] + 40, box[2] - 40), K.rng.uniform(box[1] + 10, box[3] - 15)
             K.card_from_painting((px_ - 55, py_ - 35, px_ + 55, py_ + 35),
                                  (P.x(px_), y0 + K.rng.uniform(-depth, depth) * 0.4, P.z(py_)),
                                  yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-25, 25), name="leaf")
-    K.leaves_only((640, 650, 760, 765))
+    K.leaves_only((640, 650, 760, 765), green_leaves)
     K.card_from_painting((640, 650, 760, 765), (P.x(700), -0.78, P.z(707)), name="sprouts")
     for yaw in (60, -60, 90):
         K.card_from_painting((640, 650, 760, 765), (P.x(700), -0.74, P.z(707)), yaw=yaw, name="sprouts")
@@ -625,5 +685,5 @@ def stall_c_2(K):
               (502, 560), (503, 593), (535, 598), (556, 612), (556, 640), (530, 656), (505, 664), (498, 690),
               (470, 696), (420, 694), (360, 690), (330, 680), (302, 668), (282, 648), (276, 625), (284, 603),
               (315, 590), (318, 560), (320, 510), (330, 478), (352, 456), (368, 445), (366, 410), (372, 378)],
-             y=0.1, name="vendor")
+             y=-0.33, name="vendor")
     unify_cards(K)

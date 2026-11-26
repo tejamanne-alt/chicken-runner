@@ -517,7 +517,8 @@ class Tray:
 
 def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=5.0, height=None, goods=None):
     """The tray T: four bamboo poles along poles = (front-left, front-right, back-right, back-left) corner centres
-    in px (crossing a little at the corners, lashed with cord), the woven mat stretched between them (its top wears
+    in px (crossing a little at the corners, lashed with cord at lashings [(pole 0 front, 1 back, 2 left, 3 right,
+    t along it)]), the woven mat stretched between them (its top wears
     the painting, as it lies; height(px, py) -> metres raises it into a heap of goods), its plain woven underside,
     and two stacks of bricks propping the back up and flat stones under the front."""
     P = K.paint
@@ -530,18 +531,14 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
         K.tube([tuple(A - d * pr * 1.3), tuple(A.lerp(B, 0.5)), tuple(B + d * pr * 1.3)], pr, bamboo, segments=10,
                name="pole")
     cord = K.colour((0.32, 0.17, 0.05), vary=0.1)
-    for (px, py), axis in lashings:
-        c = T.at(px, py)
-        if axis == "x":
-            ring(K, c.x, c.y, c.z, pr * 1.08, pr * 0.22, cord, axis="x", n=12, name="lashing")
-        else:
-            ob = ring(K, 0, 0, 0, pr * 1.08, pr * 0.22, cord, axis="x", n=12, name="lashing")
-            ang = math.degrees(math.atan2(*(Vector(T.at(*fl)) - Vector(T.at(*bl))).xy[::-1])) if axis == "l" else \
-                math.degrees(math.atan2(*(Vector(T.at(*fr)) - Vector(T.at(*br))).xy[::-1]))
-            orient(ob, (0, 0, 0))
-            d = (T.at(*bl) - T.at(*fl)) if axis == "l" else (T.at(*br) - T.at(*fr))
-            R = d.normalized().to_track_quat("X", "Z").to_matrix().to_4x4()
-            ob.data.transform(Matrix.Translation(c) @ R)
+    edges = ((fl, fr), (bl, br), (fl, bl), (fr, br))
+    for k, t in lashings:
+        a, b = edges[k]
+        A, B = T.at(*a), T.at(*b)
+        d = (B - A).normalized()
+        c = A.lerp(B, t)
+        ob = ring(K, 0, 0, 0, pr * 1.06, pr * 0.2, cord, axis="x", n=12, name="lashing")
+        ob.data.transform(Matrix.Translation(c) @ d.to_track_quat("X", "Z").to_matrix().to_4x4())
     # the mat, its top the painting as it lies
     top = K.projected(squeeze=1.0, inset=0)
     drop = P.m(mat_drop_px)
@@ -594,20 +591,15 @@ def chilli_mat(K):
 
     def height(px, py):
         return P.m(9) * float(pile[int(min(P.h - 1, max(0, py))), int(min(P.w - 1, max(0, px)))])
-    lash = [((20, 122), "x"), ((228, 122), "x"), ((42, 16), "x"), ((200, 16), "x"), ((24, 100), "l"), ((30, 60), "l"),
-            ((222, 100), "r"), ((215, 60), "r"), ((70, 124), "x"), ((120, 124), "x"), ((175, 124), "x"),
-            ((90, 15), "x"), ((150, 15), "x")]
+    lash = [(0, 0.03), (0, 0.97), (0, 0.27), (0, 0.5), (0, 0.73), (1, 0.03), (1, 0.97), (1, 0.33), (1, 0.66),
+            (2, 0.06), (2, 0.94), (2, 0.5), (3, 0.06), (3, 0.94), (3, 0.5)]
     drying_tray(K, T, poles, (24, 40, 36, 100), lashings=lash, height=height)
     # the chillies on top of the heap: one along each painted chilli that stands out (its bright core), wearing its
     # painted colours
     core = (a[..., 0] > 175) & (a[..., 0] > 2.2 * a[..., 1]) & (a[..., 0] > 2.2 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
     chilli = K.projected(squeeze=1.0, keep=[(30, 15, 220, 118)], inset=1)
-    stalk = K.colour((0.1, 0.16, 0.02), vary=0.1)
     for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
         r = P.m(min(5.0, max(3.6, w * 0.75)))
         A = T.at(ax, ay, height(ax, ay) + r * 0.15)
         B = T.at(bx, by, height(bx, by))
         pod(K, tuple(A), tuple(B), r, r * 0.3, chilli, bend=tuple(T.n * r * 0.6), n=6, seg=6, name="chilli")
-        if K.rng.uniform() < 0.35 and min(ay, by) > 26:
-            d = (A - B).normalized()
-            K.tube([tuple(A), tuple(A + d * P.m(5) + T.n * P.m(2))], P.m(1.0), stalk, segments=4, name="stalk")

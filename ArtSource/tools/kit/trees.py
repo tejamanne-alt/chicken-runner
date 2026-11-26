@@ -610,7 +610,8 @@ class Crown:
     and above a rounded mass of leaves, not a slab. region_px bounds the crown; `mask` (bool HxW) is its outline
     (default: the painting's opaque pixels in region_px); R (px) how far in from the outline it reaches full depth."""
 
-    def __init__(self, K, region_px, half_depth, centre_px, mask=None, R=None, core=0.15, y0=0.0, dome=None):
+    def __init__(self, K, region_px, half_depth, centre_px, mask=None, R=None, core=0.15, y0=0.0, dome=None,
+                 dome_pow=0.5):
         self.K, self.P = K, K.paint
         P = self.P
         self.region, self.hd, self.c, self.core, self.y0 = region_px, half_depth, centre_px, core, y0
@@ -624,7 +625,7 @@ class Crown:
         self.rzu = self.R
         # dome = (py of the crown's widest level, its top py, its bottom py): seen from the side the crown is an
         # ellipse through those, not as deep at its top and bottom as at its middle
-        self.dome = dome
+        self.dome, self.dome_pow = dome, dome_pow
 
     def reach(self, px, py):
         d = self.dist[int(np.clip(py, 0, self.P.h - 1)), int(np.clip(px, 0, self.P.w - 1))]
@@ -633,7 +634,7 @@ class Crown:
         if self.dome:
             mid, top, bot = self.dome
             e = (mid - py) / max(1.0, mid - top) if py < mid else (py - mid) / max(1.0, bot - mid)
-            r = min(r, math.sqrt(max(0.0, 1 - min(1.0, e) ** 2)))
+            r = min(r, max(0.0, 1 - min(1.0, e) ** 2) ** self.dome_pow)
         return r
 
     def extent(self, px, py):
@@ -660,8 +661,12 @@ class Crown:
             if mask is not None and not mask(px, py):
                 continue
             ext = self.extent(px, py)
+            pitch_k = None
             if layer == "front":
                 yy = self.y0 - ext * K.rng.uniform(0.8, 1.0)
+            elif layer == "top":
+                yy = self.y0 + K.rng.uniform(-1, 1) * ext * 0.9
+                pitch_k = K.rng.choice([-1, 1]) * K.rng.uniform(60, 90)
             elif layer == "back":
                 yy = self.y0 + ext * K.rng.uniform(0.8, 1.0)
             else:
@@ -669,7 +674,8 @@ class Crown:
             w, h = size_px[0] * K.rng.uniform(0.75, 1.25), size_px[1] * K.rng.uniform(0.75, 1.25)
             out = Vector((P.x(px) - P.x(cx), (yy - self.y0) * 1.3, P.z(py) - P.z(cy) + P.m(self.rzu) * 0.25))
             K.card_from_painting((px - w / 2, py - h / 2, px + w / 2, py + h / 2), (P.x(px), yy, P.z(py)),
-                                 yaw=K.rng.uniform(-yaw, yaw), pitch=K.rng.uniform(-pitch, pitch), name=name,
+                                 yaw=K.rng.uniform(-yaw, yaw),
+                                 pitch=K.rng.uniform(-pitch, pitch) if pitch_k is None else pitch_k, name=name,
                                  normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1))
             placed += 1
         return placed
@@ -931,47 +937,48 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     mask = raster((P.h, P.w), [trunk] + limbs + roots)
     bark = bark_material(K, mask & (P.rgba[..., 3] > 0.5) & box_mask(mask.shape, [bark_box]), axis_x=P.x(918),
                          squeeze=0.9)
-    crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.18, dome=dome)
+    crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
+                  dome_pow=0.9)
     wood = [limb(K, trunk, bark, y=0.0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
         n = len(pts)
         side = rng.choice([-1, 1])
         ys = [0.0] + [side * rng.uniform(0.1, 0.25) * crown.hd * i / (n - 1) for i in range(1, n)]
         wood.append(limb(K, pts, bark, y=ys, segments=14, name="limb"))
-    # the limbs again, turned round the trunk, holding up the crown at the sides and back
-    tx = P.x(trunk[-1][0])
+    # the limbs again, leading off round the trunk (to the sides and back, never across its painted front), holding
+    # up the crown all round
     for k, pts in enumerate(limbs):
-        for deg in ((70, 115, 180, -110) if k >= 4 else (rng.choice([-1, 1]) * rng.uniform(80, 140),)):
-            a = math.radians(deg + rng.uniform(-15, 15))
+        x0 = P.x(pts[0][0])
+        dirs = (35, 75, 110, 150, -160, -25) if k >= 4 else (rng.uniform(40, 140),)
+        for phi in dirs:
+            a = math.radians(phi + rng.uniform(-12, 12))
             q = []
             for i, (px, py, r) in enumerate(pts):
-                dx = P.x(px) - P.x(pts[0][0])
-                x = P.x(pts[0][0]) + dx * math.cos(a)
-                y = dx * math.sin(a) * 0.9
-                lim = crown.hd * 0.85
+                dist = abs(P.x(px) - x0)
+                x, y = x0 + dist * math.cos(a), dist * math.sin(a)
+                lim = crown.extent(P.px(x), py) * 0.8
                 y = float(np.clip(y, -lim, lim))
-                q.append((x, y, P.z(py) + (rng.uniform(-0.15, 0.15) if i else 0.0)))
+                q.append((x, y, P.z(py) + (rng.uniform(-0.12, 0.12) if i else 0.0)))
             wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts], bark, segments=12, name="limb_turned"))
-    # roots lying on the platform: the painted ones on the slope facing the camera, the same again round the back
-    # and sides
+    # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
     for pts in roots:
         q, rr = [], []
         for i, (px, py, r) in enumerate(pts):
             y = katte.y_on_top(px, py, r) if i else 0.0
             q.append((P.x(px), y, P.z(py)))
             rr.append(P.m(r))
-        # the root's first point is in the trunk: ease it from the trunk's middle out to where it lies
         q[0] = (q[0][0], q[1][1] * 0.3, q[0][2])
         wood.append(K.tube(q, rr, bark, segments=12, name="root"))
     xt = P.x(trunk[0][0])
     for k, pts in enumerate(roots):
-        for deg in (180 + rng.uniform(-25, 25), rng.choice([-1, 1]) * rng.uniform(70, 110)):
-            a = math.radians(deg)
+        for phi in (rng.uniform(20, 160), rng.uniform(20, 160) if k % 2 else rng.choice([-1, 1]) * rng.uniform(0, 15)):
+            a = math.radians(phi)
             q, rr = [], []
             for i, (px, py, r) in enumerate(pts):
                 dx = P.x(px) - xt
                 dy = katte.y_on_top(px, py, r) if i else 0.0
-                x, y = xt + dx * math.cos(a) - dy * math.sin(a), dx * math.sin(a) + dy * math.cos(a)
+                dist = math.hypot(dx, dy) if i else 0.0
+                x, y = xt + dist * math.cos(a), dist * math.sin(a)
                 y = float(np.clip(y, -katte.hy * 0.95, katte.hy * 0.95))
                 x = float(np.clip(x, katte.X0 + 0.1, katte.X1 - 0.1))
                 z = max(P.z(py), katte.top(x, y) + P.m(r) * 0.4) if i else P.z(py)
@@ -993,7 +1000,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     box = tuple(int(v) for v in crown_box)
     K.leaves_only(box, mask_rule(leaves, box))
     nv, nf, nb = n_cards
-    crown.cards(nv, card_px, "volume", yaw=85, pitch=35)
+    crown.cards(nv, card_px, "volume", yaw=85, pitch=45)
+    crown.cards(nb // 2, card_px, "top", yaw=90, region=(crown_box[0], crown_box[1], crown_box[2], dome[0]))
     crown.cards(nf, (card_px[0] * 1.1, card_px[1] * 1.1), "front", yaw=30, pitch=20)
     crown.cards(nb, card_px, "back", yaw=30, pitch=20)
     return crown, trunk_ob
@@ -1088,9 +1096,17 @@ def peepal_platform(K):
                 name="lamp")
         K.lathe([(0.0, 0.0), (P.m(4), P.m(4)), (P.m(3.5), P.m(10)), (0.0, P.m(19))], flame, segments=10,
                 centre=(P.x(fx), y, zb + hh * 0.85), name="flame")
-    # ---- the flowers heaped in front of the idols: marigolds, jasmine, roses (cards of the painted ones, lying)
+    # ---- the flowers heaped in front of the idols: marigolds, jasmine, roses: low heaps, loose flowers on them
+    heaps = [(782, 1157, 838, 1192), (848, 1146, 935, 1196), (930, 1150, 1010, 1210), (1010, 1162, 1068, 1194)]
+    petals = K.projected(squeeze=1.0, keep=heaps, inset=1)
+    for x0, y0, x1, y1 in heaps:
+        cx = (x0 + x1) / 2
+        poly = [(cx + (x1 - x0) / 2 * math.cos(t), (y0 + y1) / 2 + (y1 - y0) / 2 * math.sin(t))
+                for t in np.linspace(0, 2 * math.pi, 14, endpoint=False)]
+        poly_solid(K, poly, katte.y_on_top(cx, y1, 0) + P.m(y1 - y0) * 0.3, petals, depth=0.9, name="flowers",
+                   segments=12)
     K.leaves_only((770, 1140, 1180, 1212), plant_pixels)
-    for i in range(26):
+    for i in range(18):
         cx, cy = K.rng.uniform(780, 1170), K.rng.uniform(1150, 1205)
         y = katte.y_on_top(cx, cy, 0) - 0.04
         K.card_from_painting((cx - 22, cy - 16, cx + 22, cy + 16), (P.x(cx), y, P.z(cy)),

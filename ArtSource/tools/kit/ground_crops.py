@@ -77,9 +77,10 @@ def stone_masks(P, dark=95, ink=85, min_px=25, grow=3):
     return out
 
 
-def proj_material(K, src, axis_x=0.0, squeeze=1.0, name="proj"):
+def proj_material(K, src, axis_x=0.0, squeeze=1.0, name="proj", dz=0.0):
     """Like K.projected, but from a prepared source image (PIL, the painting's size): the painting straight through
-    the model along y, sampled from `src` (e.g. the painting with its ink lines filled from their neighbours)."""
+    the model along y, sampled from `src` (e.g. the painting with its ink lines filled from their neighbours), dz
+    metres higher than the point (a part moved down from where it is painted keeps its own painted face)."""
     P = K.paint
     m = Mat(f"{K.name}_{name}{len(K._mats)}")
     nt = m.nt
@@ -98,7 +99,7 @@ def proj_material(K, src, axis_x=0.0, squeeze=1.0, name="proj"):
         return n.outputs[0]
     x = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["X"], axis_x), squeeze), axis_x)
     u = op("ADD", op("DIVIDE", x, P.W), 0.5)
-    v = op("DIVIDE", sep.outputs["Z"], P.H)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], dz), P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
@@ -204,41 +205,84 @@ def dome(K, poly_px, height, y_back, mat, rings=((1.0, 0.0), (0.94, 0.42), (0.74
 
 
 # ====================================================================== stones
-def stones(K, depth_scale=0.55, dark=95, ink=85, min_px=25):
-    """Every stone of the painting as a faceted dome on its outline, all resting on one back plane."""
+def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="stone"):
+    """A faceted stone whose front outline is a painted one (px), set down by `lift` metres onto the ground, `depth`
+    metres front to back about y = y_c: its outline is its widest girth, and it narrows in facets towards a flat
+    front face and a flat back face; its foot stays broad and flat on the ground."""
     P = K.paint
+    pts = np.array([(P.x(px), P.z(py) - lift) for px, py in poly_px])
+    pts[:, 1] = np.maximum(pts[:, 1], 0.0)
+    if top_px is not None:
+        c = np.array((P.x(top_px[0]), P.z(top_px[1]) - lift))
+    else:
+        c = pts.mean(0)
+    rings = [(0.93, 0.42), (0.74, 0.8), (0.44, 1.0)]
+    bm = bmesh.new()
+
+    def ring(s, f, side):
+        out = []
+        for X, Z in pts:
+            j = 1 + K.rng.uniform(-jitter, jitter)
+            x = c[0] + (X - c[0]) * s * j
+            k = s if Z > c[1] else 1 - (1 - s) * 0.25        # the foot stays broad on the ground
+            z = max(0.0, c[1] + (Z - c[1]) * k * j)
+            out.append(bm.verts.new((x, y_c + side * depth / 2 * f * (1 + K.rng.uniform(-jitter, jitter)), z)))
+        return out
+    mid = [bm.verts.new((X, y_c, Z)) for X, Z in pts]
+    n = len(pts)
+    for side in (-1, 1):
+        prev = mid
+        for s_, f in rings:
+            cur = ring(s_, f, side)
+            for i in range(n):
+                j = (i + 1) % n
+                bm.faces.new([prev[i], prev[j], cur[j], cur[i]])
+            prev = cur
+        bm.faces.new(prev)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=False)
+    K.parts.append(ob)
+    return ob
+
+
+def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
+    """Every painted stone as a faceted stone standing on the ground: each where it is painted across, set down
+    onto the ground, and as far back as it is painted up (a stone painted higher stands further back: the painting
+    looks down on them), `depth` of its width deep. Each carries its own painted face all round (the front
+    projection is off: the stones are moved down from where they are painted)."""
+    P = K.paint
+    K.front_projection = False
     ms = stone_masks(P, dark=dark, ink=ink, min_px=min_px)
-    a = alpha_mask(P)
-    ok = a & (lum(P) > ink + 10)
-    ok = ndimage.binary_erosion(ok, iterations=1)
-    mat = proj_material(K, filled_source(P, ok), name="stone")
-    sizes = [math.sqrt(m.sum()) for m, _ in ms]
-    big = max(sizes)
-    hmax = P.m(big) * depth_scale
-    y_back = hmax / 2
-    order = np.argsort(sizes)
-    for i in order:
-        m, hull = ms[i]
-        s = sizes[i]
-        h = P.m(s) * depth_scale * K.rng.uniform(0.85, 1.0)
+    foot = [np.nonzero(m)[0].max() for m, _ in ms]
+    lowest = max(foot)
+    placed = []
+    for (m, hull), bot in zip(ms, foot):
         ys, xs = np.nonzero(m)
-        # the top face sits towards the painted top face (the upper part of the stone)
-        top = (xs.mean(), ys.mean() - 0.12 * (ys.max() - ys.min()))
-        dome(K, hull, h, y_back, mat, top=top, name="stone")
-    return y_back
+        w = P.m(xs.max() - xs.min())
+        y_c = P.m(lowest - bot) * back
+        placed.append((m, hull, bot, w, y_c, (xs.mean(), ys.mean() - 0.12 * (ys.max() - ys.min()))))
+    lo = min(p[4] - p[3] * depth / 2 for p in placed)
+    hi = max(p[4] + p[3] * depth / 2 for p in placed)
+    shift = (lo + hi) / 2
+    for m, hull, bot, w, y_c, top in sorted(placed, key=lambda p: p[4]):
+        lift = P.z(bot + 0.5)
+        ok = ndimage.binary_erosion(m, iterations=4)
+        mat = proj_material(K, filled_source(P, ok if ok.sum() > 20 else m), name="stone", dz=lift)
+        rock(K, hull, y_c - shift, w * depth * K.rng.uniform(0.85, 1.05), mat, lift, top_px=top)
 
 
-@model("pebbles", "ground", kind="flat")
+@model("pebbles", "ground", kind="prop")
 def pebbles(K):
-    """Five loose stones of different sizes and colours, each faceted like the painted ones, lying on the ground."""
-    stones(K, depth_scale=0.55)
+    """Five loose stones of different sizes and colours, each faceted like the painted ones, standing on the
+    ground, the ones painted higher up further back."""
+    stones(K, depth=0.8, back=1.4)
 
 
-@model("pebble_cluster", "ground", kind="flat")
+@model("pebble_cluster", "ground", kind="prop")
 def pebble_cluster(K):
-    """A small cluster of brown pebbles round one bigger stone, each lying on the ground, the hidden ones going on
-    under the stones in front of them."""
-    stones(K, depth_scale=0.7, dark=120, ink=85, min_px=12)
+    """A small cluster of brown pebbles round one bigger stone, on the ground, the ones painted higher up behind it,
+    the hidden ones going on under the stones in front of them."""
+    stones(K, depth=0.85, back=1.6, dark=120, ink=85, min_px=12)
 
 
 # ====================================================================== helpers: cards
@@ -428,8 +472,9 @@ def inflate(mask, height, falloff=0.55, noise=0.0, rng=None):
 
 @model("husk", "ground", kind="prop")
 def husk(K):
-    """A broken half of a coconut husk: a thick shell of fibre puffed up from its painted outline, its outside to the
-    front and its pale fibrous hollow behind, its torn, fibrous edges and loose strands standing off its rim."""
+    """A broken half of a coconut husk lying on the ground, hollow side up: a thick boat of fibre (the outside of its
+    near wall is the painted hull, the inside of its far wall the painted fibrous lining rising behind it to the torn
+    rim), its ends pointed, torn fibres and loose strands standing off its rims."""
     P = K.paint
     a = alpha_mask(P)
     clean_front(K, no_halo(P, width=2) | ~a)
@@ -439,30 +484,69 @@ def husk(K):
     sizes = ndimage.sum(body, lab, range(1, n + 1))
     body = lab == (1 + int(np.argmax(sizes)))
     body = ndimage.binary_closing(body, iterations=3) & a
-    depth = 0.11
-    back = depth / 2
-    h = inflate(body, depth * 0.92, falloff=0.6, noise=0.08, rng=K.rng)
-    outside = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=6)
-    inside = K.colour((150, 60, 250, 100), vary=0.15, scale=30, pct=75)
-    ob = tri_sheet(K, body, 10, lambda px, py: back - 0.016 - h(px, py), outside, eps=1.5, thickness=0.016,
-                   name="shell")
-    mod = ob.modifiers["solid"]
+    cols = np.nonzero(body.any(0))[0]
+    x0, x1 = cols.min(), cols.max()
+    xs = np.linspace(x0 + 1, x1 - 1, 28)
+    top = np.array([np.nonzero(body[:, int(x)])[0].min() for x in xs], float)
+    bot = np.array([np.nonzero(body[:, int(x)])[0].max() for x in xs], float)
+    top, bot = ndimage.uniform_filter1d(top, 3), ndimage.uniform_filter1d(bot, 3)
+    t = (xs - xs[0]) / (xs[-1] - xs[0])
+    # the near rim: where the painted hull's band meets the lining above it (lower on the right, where the far rim
+    # rises), and the hull's lowest stretch let down onto the ground
+    near = bot - (bot - top) * np.interp(t, [0, 0.35, 0.7, 1], [0.45, 0.45, 0.22, 0.12])
+    zb = np.array([P.z(b) for b in bot])
+    drop = zb.min() * np.clip(1 - ((t - t[np.argmin(zb)]) / 0.45) ** 2, 0, 1)
+    zb = zb - drop
+    zn, zf = np.array([P.z(v) for v in near]), np.array([P.z(v) for v in top])
+    B = 0.065
+    half = B * np.sin(np.pi * np.clip(t, 0.0, 1.0)) ** 0.55
+    nth = 14
+    bm = bmesh.new()
+    grid = []
+    for i, x in enumerate(xs):
+        row = []
+        for k in range(nth + 1):
+            th = math.pi * k / nth
+            zr = zn[i] if th <= math.pi / 2 else zf[i]
+            y = -half[i] * math.cos(th)
+            z = zb[i] + (zr - zb[i]) * (1 - math.sin(th)) ** 0.9
+            row.append(bm.verts.new((P.x(x), y, z)))
+        grid.append(row)
+    for i in range(len(xs) - 1):
+        for k in range(nth):
+            bm.faces.new([grid[i][k], grid[i + 1][k], grid[i + 1][k + 1], grid[i][k + 1]])
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+    # the outside faces point away from the hollow: down and out
+    for f in bm.faces:
+        f.normal_update()
+        c = f.calc_center_median()
+        if f.normal.z > 0.3 and abs(c.y) < 0.01 or (f.normal.y * c.y < 0 and abs(c.y) > 0.004):
+            f.normal_flip()
+    outside = K.tile((60, 150, 180, 176), vary=0.06, soften=0.3)
+    inside = K.tile((150, 60, 250, 110), vary=0.06, soften=0.2)
+    ob = _obj("shell", bm, outside, smooth=True)
+    mod = ob.modifiers.new("solid", "SOLIDIFY")
+    mod.thickness = 0.014
+    mod.offset = -1.0
     mod.material_offset = 1
     mod.material_offset_rim = 1
     ob.data.materials.append(inside.mat)
-    # the torn, fibrous edges and loose strands: the painting outside the shell's body, as cards off its rim
+    K.parts.append(ob)
+    # the torn, fibrous edges and loose strands: the painting outside the shell's body, as cards off its rims
     card_mask(K, a & ~ndimage.binary_erosion(body, iterations=5))
     lab, n = ndimage.label(ndimage.binary_dilation(a & ~body, iterations=2))
     for i in range(1, n + 1):
         sl = ndimage.find_objects((lab == i).astype(int))[0]
-        y0, y1, x0, x1 = sl[0].start, sl[0].stop, sl[1].start, sl[1].stop
-        if (y1 - y0) * (x1 - x0) < 40:
+        y0, y1, bx0, bx1 = sl[0].start, sl[0].stop, sl[1].start, sl[1].stop
+        if (y1 - y0) * (bx1 - bx0) < 40:
             continue
-        box = (x0 - 2, y0 - 2, x1 + 2, y1 + 2)
-        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-        # where it is painted, just off the shell's rim, and a turned copy standing off the rim behind it
-        K.card_from_painting(box, P.pt(cx, cy, back - 0.012), name="strand", normal=(0, -0.4, 0.9))
-        K.card_from_painting(box, P.pt(cx + K.rng.uniform(-4, 4), cy, back - 0.006),
+        box = (bx0 - 2, y0 - 2, bx1 + 2, y1 + 2)
+        cx, cy = (bx0 + bx1) / 2, (y0 + y1) / 2
+        k = int(np.clip(np.searchsorted(xs, cx), 0, len(xs) - 1))
+        far = cy < near[k]
+        y = half[k] * 0.85 if far else -half[k] - 0.004
+        K.card_from_painting(box, P.pt(cx, cy, y), name="strand", normal=(0, 0.3 if far else -0.4, 0.9))
+        K.card_from_painting(box, P.pt(cx + K.rng.uniform(-4, 4), cy, y * 0.6),
                              yaw=K.rng.uniform(35, 70) * K.rng.choice([-1, 1]), name="strand", normal=(0, 0.2, 1))
 
 
