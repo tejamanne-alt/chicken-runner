@@ -1630,7 +1630,7 @@ def field_shrine(K):
     parts.append(K.box(lx(124), lx(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back"))
     parts.append(K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image"))
     # blind niches in the other three walls
-    for ang in (90, 180, 270):
+    for ang in (180, 270):                                  # (the right side is painted plain)
         a = math.radians(ang)
         nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction
         tx, ty = math.cos(a), math.sin(a)
@@ -1653,3 +1653,174 @@ def field_shrine(K):
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by, P.z(64)), name="flag", normal=(0, -0.5, 0.5))
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by + 0.12, P.z(64)), yaw=-20, name="flag",
                          normal=(0, -0.5, 0.5))
+
+
+def ladder(K, top_l, top_r, bot_l, bot_r, rungs, mat, r_rail=0.035, r_rung=0.025, name="ladder"):
+    """A bamboo ladder: two rails from their tops to their feet (points x, y, z) and rungs at the fractions
+    `rungs` (0 at the top, 1 at the foot), each rung's ends bound with a ring of cord."""
+    parts = [K.tube([top_l, bot_l], r_rail, mat, segments=8, name=name), K.tube([top_r, bot_r], r_rail, mat, segments=8,
+                                                                                name=name)]
+    for f in rungs:
+        a = [top_l[i] + (bot_l[i] - top_l[i]) * f for i in range(3)]
+        b = [top_r[i] + (bot_r[i] - top_r[i]) * f for i in range(3)]
+        d = [b[i] - a[i] for i in range(3)]
+        n = math.sqrt(sum(c * c for c in d))
+        e = [c / n * (r_rail * 1.6) for c in d]
+        parts.append(K.tube([[a[i] - e[i] for i in range(3)], [b[i] + e[i] for i in range(3)]], r_rung, mat,
+                            segments=8, name="rung"))
+    return parts
+
+
+@fmodel("field_bldg_2", "fields", kind="building", atlas=2048)
+def field_bldg_2(K):
+    """A crop-watcher's machan: a little hut of woven bamboo matting on a deck of bamboo logs, raised on four tall
+    bamboo stilts, under a steep thatched gable roof with bamboo battens over its front; a doorway in front with a coil
+    of rope hung beside it, a bamboo rail along its side, and a bamboo ladder leaning up to the deck. Its right side
+    runs back as painted."""
+    P = K.paint
+    K.front_min = 0.05
+    D, kx = 2.0, 0.47
+    bamboo = K.tile((80, 520, 98, 660), soften=0.2, vary=0.05)
+    mat_wall = K.tile((92, 250, 152, 355), soften=0.25, vary=0.04)
+    thatch = K.tile((300, 90, 470, 190), soften=0.2, vary=0.04)
+    x0, x1 = P.x(76), P.x(330)                             # the hut's walls, front face
+    zdeck, zfloor, ze, zr = P.z(398), P.z(368), P.z(232), P.z(64)
+    # the stilts and the deck of logs
+    for x, y in ((87, 0.08), (330, 0.08), (87, D - 0.08), (330, D - 0.08)):
+        K.tube([(P.x(x), y, 0.0), (P.x(x), y, zfloor)], P.m(14), bamboo, segments=10, name="stilt")
+        for z in np.arange(0.35, zfloor, 0.55):            # its nodes
+            K.tube([(P.x(x), y, z - 0.012), (P.x(x), y, z + 0.012)], P.m(15.5), bamboo, segments=10, name="node")
+    for y in (-0.05, D + 0.05):
+        K.tube([(P.x(48), y, zdeck + P.m(8)), (P.x(368), y, zdeck + P.m(8))], P.m(9), bamboo, segments=10, name="log")
+        K.tube([(P.x(52), y - 0.06, zdeck + P.m(24)), (P.x(362), y - 0.06, zdeck + P.m(24))], P.m(9), bamboo,
+               segments=10, name="log")
+    for x in (60, 355):
+        K.tube([(P.x(x), -0.12, zdeck + P.m(16)), (P.x(x), D + 0.12, zdeck + P.m(16))], P.m(10), bamboo, segments=10,
+               name="log")
+    slat = K.colour((0.45, 0.33, 0.1), vary=0.12)
+    K.box(P.x(55), P.x(362), -0.05, D + 0.05, zdeck + P.m(28), zfloor, slat, name="floor")
+    # the hut: matting walls with bamboo corner posts, a doorway, a rail along the side
+    walls = K.box(x0, x1, 0.0, D, zfloor, ze, mat_wall, name="walls")
+    K.cut(walls, P.x(166), P.x(260), -0.05, 0.25, zfloor + 0.01, P.z(218))
+    K.box(P.x(166), P.x(260), 0.2, 0.24, zfloor, P.z(218), K.colour((0.05, 0.035, 0.03), vary=0.0), name="dark")
+    for x, y in ((x0, 0.0), (x1, 0.0), (x0, D), (x1, D), (P.x(156), 0.0), (P.x(318), 0.0)):
+        K.tube([(x, y - 0.02, zfloor), (x, y - 0.02, ze + 0.05)], P.m(8), bamboo, segments=8, name="post")
+    for z in (P.z(288), P.z(256)):
+        K.tube([(x1 + 0.03, 0.0, z), (x1 + 0.03, D, z)], P.m(6), bamboo, segments=8, name="rail")
+        K.tube([(x0 - 0.03, 0.0, z), (x0 - 0.03, D, z)], P.m(6), bamboo, segments=8, name="rail")
+    K.tube([(x0, -0.03, P.z(288)), (P.x(166), -0.03, P.z(288))], P.m(6), bamboo, segments=8, name="rail")
+    # the coil of rope hung on the front wall beside the door
+    rope = K.colour((0.3, 0.2, 0.1), vary=0.1)
+    for i, (w, bot) in enumerate(((56, 362), (48, 352), (40, 340), (32, 326))):
+        pts = [P.pt(300 + (w / 2) * math.sin(a) - 3 * i, 250 + (bot - 250) * (0.5 - 0.5 * math.cos(a)), -0.04 - 0.012 * i)
+               for a in np.linspace(0, 2 * math.pi, 22)]
+        K.tube(pts, P.m(3.2), rope, segments=6, name="coil", cap=False)
+    K.tube([P.pt(298, 244, -0.02), P.pt(298, 244, -0.09)], P.m(5), bamboo, segments=6, name="peg")
+    # the roof: a steep thatch over a ridge along the depth; the front gable filled with thatch on bamboo battens
+    W = x1 - x0
+    roof = gable_thatch(K, W, D, ze, zr, thatch, over=0.42, thickness=0.22, shag=0.07)
+    for ob in roof:
+        for v in ob.data.vertices:
+            v.co.x += x1
+    for y0, y1 in ((0.0, 0.12), (D - 0.12, D)):
+        K.prism([(x1, ze), (x0, ze), ((x0 + x1) / 2, zr - 0.1)], y0, y1, thatch, name="gable")
+    for (ax, az), (bx, bz) in ((((x0 + x1) / 2, zr), (x0 - 0.3, ze - 0.12)), (((x0 + x1) / 2, zr), (x1 + 0.3, ze - 0.12)),
+                                ((P.x(120), P.z(140)), (P.x(250), P.z(140))), ((P.x(95), P.z(196)), (P.x(285), P.z(196))),
+                                ((P.x(150), P.z(85)), (P.x(225), P.z(85)))):
+        K.tube([(ax, -0.47, az), (bx, -0.47, bz)], P.m(5), bamboo, segments=6, name="batten")
+    shear(K, 0.0, 0.0, kx=kx)
+    # the ladder leaning up to the deck (in front, where the painting has it)
+    ladder(K, (P.x(176), -0.1, P.z(360)), (P.x(256), -0.1, P.z(360)), (P.x(100), -1.25, 0.0), (P.x(206), -1.25, 0.0),
+           (0.18, 0.34, 0.51, 0.67, 0.84), bamboo, r_rail=P.m(8), r_rung=P.m(7))
+
+
+@fmodel("field_bldg_3", "fields", kind="building", atlas=2048)
+def field_bldg_3(K):
+    """The threshing floor's shed: an open-fronted field shed of bamboo under a thatched gable roof, its front gable
+    framed and slatted in bamboo, a tool board inside with sickles and a mallet hung on it, a wooden plough leaning
+    there; slatted bamboo side walls with three rails. Before it the threshing floor's things: two heaps of threshed
+    straw, a stone threshing roller with its axle pins, and a woven winnowing fan leaning on the big heap. The shed
+    runs back to the right as painted."""
+    P = K.paint
+    K.front_min = 0.08
+    D, kx = 3.4, 0.5
+    bamboo = K.tile((628, 260, 640, 440), soften=0.2, vary=0.05)
+    slats = K.tile((900, 280, 1080, 395), soften=0.15, vary=0.04)
+    thatch = K.tile((880, 60, 1080, 180), soften=0.2, vary=0.04)
+    board = K.tile((680, 345, 760, 420), soften=0.2, vary=0.04)
+    x0, x1 = P.x(630), P.x(870)
+    zg, ze, zr = P.z(462), P.z(188), P.z(50)
+    shed = []
+    # posts at the corners and the middle of the sides, the front beam, the side and back walls of slats
+    for x in (x0, x1):
+        for y in (0.0, D / 2, D):
+            shed.append(K.tube([(x, y, zg - 0.05), (x, y, ze + 0.05)], P.m(8), bamboo, segments=8, name="post"))
+    shed.append(K.tube([(P.x(605), -0.02, P.z(185)), (P.x(872), -0.02, P.z(185))], P.m(9), bamboo, segments=8,
+                       name="beam"))
+    shed.append(K.box(x1 - 0.02, x1 + 0.03, 0.0, D, zg, ze, slats, name="side_wall"))
+    shed.append(K.box(x0 - 0.03, x0 + 0.02, 0.0, D, zg, ze, slats, name="side_wall"))
+    shed.append(K.box(x0, x1, D - 0.03, D + 0.02, zg, ze, slats, name="back_wall"))
+    for row in (265, 332, 405):
+        for x in (x0 - 0.05, x1 + 0.05):
+            shed.append(K.tube([(x, -0.02, P.z(row)), (x, D + 0.02, P.z(row))], P.m(6), bamboo, segments=8, name="rail"))
+    # the tool board inside the open front, the dark of the shed behind it, the plough leaning on it
+    shed.append(K.box(P.x(642), P.x(862), 0.5, 0.56, zg, P.z(192), board, name="tool_board"))
+    shed.append(K.box(x0, x1, 0.56, D - 0.05, zg - 0.02, zg + 0.01, K.colour((0.12, 0.08, 0.05), vary=0.1),
+                      name="floor"))
+    wood = K.colour((700, 395, 760, 420), vary=0.1)
+    shed.append(K.tube([(P.x(655), 0.25, P.z(442)), (P.x(760), 0.36, P.z(372)), (P.x(852), 0.46, P.z(308))],
+                       P.m(7), wood, segments=8, name="plough_beam"))
+    shed.append(K.tube([(P.x(800), 0.42, P.z(440)), (P.x(836), 0.46, P.z(322))], P.m(7), wood, segments=8,
+                       name="plough_stilt"))
+    iron = K.colour((790, 360, 820, 400), vary=0.06)
+    shed.append(K.prism([(P.x(782), P.z(440)), (P.x(830), P.z(440)), (P.x(806), P.z(348))], 0.38, 0.42, iron,
+                        name="ploughshare"))
+    # the roof and the front gable of bamboo slats in its frame
+    roof = gable_thatch(K, x1 - x0, D, ze, zr, thatch, over=0.38, thickness=0.22, shag=0.07)
+    for ob in roof:
+        for v in ob.data.vertices:
+            v.co.x += x1
+    shed += roof
+    gab = K.tile((700, 70, 760, 175), soften=0.2)
+    for y0 in (0.0, D - 0.06):
+        shed.append(K.prism([(x1, ze), (x0, ze), ((x0 + x1) / 2, zr - 0.1)], y0, y0 + 0.06, gab, name="gable"))
+    for (ax, az), (bx, bz) in ((((x0 + x1) / 2, zr), (x0 - 0.25, ze - 0.1)), (((x0 + x1) / 2, zr), (x1 + 0.25, ze - 0.1)),
+                                (((x0 + x1) / 2, zr), ((x0 + x1) / 2, ze)), ((P.x(650), P.z(115)), (P.x(840), P.z(115)))):
+        shed.append(K.tube([(ax, -0.06, az), (bx, -0.06, bz)], P.m(6), bamboo, segments=6, name="frame"))
+    shear(K, 0.0, 0.0, kx=kx, parts=shed)
+    # the straw heaps
+    big = interp([(184, 6), (190, 30), (200, 58), (240, 92), (280, 116), (320, 125), (400, 135), (462, 140)])
+    small = interp([(296, 10), (300, 60), (320, 104), (340, 125), (360, 145), (380, 168), (400, 185), (420, 206),
+                    (440, 224), (462, 232)])
+    straw = turned(K, P.x(456), (380, 230, 520, 320), squeeze=0.9, keep=[(330, 170, 600, 466)],
+                   exclude=[(190, 340, 430, 466), (490, 320, 660, 466)])
+    K.lathe([(P.m(big(py)), P.z(py)) for py in (462, 400, 320, 280, 240, 200, 190, 184)], straw, segments=32,
+            centre=(P.x(456), 0.3, 0), wobble=0.04, scale_y=0.9, name="heap")
+    straw2 = turned(K, P.x(230), (60, 380, 200, 440), squeeze=0.9, keep=[(0, 280, 380, 466)],
+                    exclude=[(190, 340, 430, 466)])
+    K.lathe([(P.m(small(py)), P.z(py)) for py in (462, 440, 420, 400, 380, 360, 340, 320, 300, 296)], straw2,
+            segments=32, centre=(P.x(230), 0.25, 0), wobble=0.04, scale_y=0.45, name="heap")
+    K.leaves_only((0, 160, 600, 330), no_halo)
+    straw_fringe(K, 456, 0.3, big, (200, 300), 40, size=(40, 36), inset=0.4, exact_rows=(200, 300), sources=(200, 300),
+                 sectors=[(-25, 0), (0, 180), (-180, -155)], up=0.4)
+    # the stone roller lying on its side, its axle pins
+    roller = K.projected(axis_x=P.x(297), squeeze=1.0, keep=[(224, 344, 372, 462)], inset=2)
+    rl = K.lathe([(0.0, P.x(228)), (P.m(58), P.x(228)), (P.m(60), P.x(300)), (P.m(58), P.x(368)), (0.0, P.x(368))],
+                 roller, segments=24, name="roller")
+    rotate(rl, 90, "Y", (0, 0, 0))
+    for v in rl.data.vertices:
+        v.co.y -= 0.45
+        v.co.z += P.z(404)
+    pin = K.colour((200, 400, 230, 420), vary=0.08)
+    K.tube([(P.x(196), -0.45, P.z(406)), (P.x(426), -0.45, P.z(406))], P.m(11), pin, segments=10, name="axle")
+    # the winnowing fan: a shallow woven scoop leaning on the big heap
+    weave = K.tile((540, 380, 600, 430), soften=0.2)
+
+    def scoop(u, v):
+        x = P.x(500) + (P.x(648) - P.x(500)) * u
+        zb = P.z(462) + (P.z(330) - P.z(462)) * v
+        dip = 0.12 * math.sin(math.pi * u) * (1 - v) ** 0.5
+        return (x - 0.15 * v, -0.55 + 0.45 * v + dip, zb + 0.06 * math.sin(math.pi * u))
+    K.sheet(scoop, 12, 8, weave, name="winnow", thickness=0.02)
+    rim = K.colour((560, 340, 620, 350), vary=0.08)
+    K.tube([scoop(u, 1.0) for u in np.linspace(0, 1, 10)], P.m(5), rim, segments=6, name="winnow_rim")

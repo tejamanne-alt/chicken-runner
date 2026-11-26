@@ -1303,7 +1303,7 @@ def mandapam(K):
                 continue
             carved_pillar(K, x, yy, 11, dark, dark, [(80, 115), (128, 168), (175, 206)], [(115, 128), (168, 175)],
                           (206, 225), (62, 80, 16), decal=False, name="pillar_in")
-    K.box(X(118), X(905), 2.95, 3.1, Z(225), Z(62), inner, name="shrine_wall")
+    K.box(X(62), X(962), 2.95, 3.1, Z(225), Z(62), inner, name="shrine_wall")
     # the beams on the capitals, round the hall and across it
     for y0, y1 in ((0.25, 0.65), (D - 0.65, D - 0.25)):
         K.box(X(30), X(995), y0, y1, Z(62), Z(52), dark, bevel=0.01, name="beam")
@@ -1573,11 +1573,12 @@ def roof_house_a_1(K):
     K.box(X(455), X(1440), D - 0.25, D, Z(214), Z(128), tower, name="back_parapet")
     K.box(X(1420), X(1440), 0.0, D, Z(214), Z(150), tower, name="side_parapet")
     # on the roof: the haystack on its pole, the pots, a pail, the firewood
-    straw = K.projected(axis_x=X(535), squeeze=0.92, keep=[(430, 20, 640, 215)], inset=2)
+    straw = K.projected(axis_x=X(520), squeeze=0.92, keep=[(425, 40, 615, 212)], inset=5)
     hy = D - 1.6
-    K.lathe(prof(P, [(0, 214), (100, 214), (104, 200), (100, 160), (88, 110), (70, 75), (45, 45), (22, 28), (0, 22)]),
-            straw, segments=28, centre=(X(535), hy, 0), wobble=0.05, name="haystack")
-    K.tube([(X(520), hy, Z(30)), (X(520), hy, Z(12))], P.m(3), wood, segments=6, name="hay_pole")
+    K.lathe(prof(P, [(0, 213), (90, 213), (91, 195), (88, 178), (84, 160), (81, 130), (75, 114), (65, 98), (58, 82),
+                     (44, 66), (24, 50), (9, 44), (0, 42)]),
+            straw, segments=28, centre=(X(520), hy, 0), wobble=0.03, name="haystack")
+    K.tube([(X(519), hy, Z(46)), (X(519), hy, Z(9))], P.m(2.5), wood, segments=6, name="hay_pole")
     for cx, r, h, y in ((900, 41, 82, D - 0.75), (985, 46, 100, D - 0.6), (1045, 31, 66, D - 0.8)):
         clay_pot(K, cx, y, 212, r, h, K.projected(axis_x=X(cx), squeeze=0.93, keep=[(cx - r, 212 - h, cx + r, 212)],
                                                   inset=2))
@@ -1645,6 +1646,25 @@ def leaning_mat(K, corners, y_bottom, y_top, top_mat, under_mat, name="drying_ma
     return T
 
 
+def lean_thatch(K, x_left, x_right_eave, x_right_top, y_eave, y_top, z_eave, z_top, mat, thickness=0.2, shag=0.05,
+                name="thatch"):
+    """A thatched lean-to against a wall: a lumpy straw slope from its eave (y_eave, z_eave) up to the wall
+    (y_top, z_top), x_left..x_right_eave at the eave; its right end hipped in to x_right_top at the wall; a ragged,
+    drooping fringe along the eave."""
+    nu, nv = 36, 12
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (nv + 1, nu + 1)), 1.2)
+    fringe = ndimage.gaussian_filter(K.rng.normal(0, 1, nu + 1), 0.8)
+
+    def fn(u, v):
+        i, j = int(round(u * nu)), int(round(v * nv))
+        x1 = x_right_eave + (x_right_top - x_right_eave) * v
+        z = z_eave + (z_top - z_eave) * v + shag * noise[j, i]
+        if v < 0.08:
+            z -= shag * 1.6 * abs(fringe[i])
+        return (x_left + (x1 - x_left) * u, y_eave + (y_top - y_eave) * v, z)
+    return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=thickness)
+
+
 @model("roof_house_a_2", "market", kind="building", atlas=2048)
 def roof_house_a_2(K):
     """A mud-plastered house the colour of the earth: a heavy cornice, a door and two barred windows under thick
@@ -1654,9 +1674,9 @@ def roof_house_a_2(K):
     P = K.paint
     X, Z = P.x, P.z
     D = 5.0
-    mud = K.tile((380, 280, 560, 360), vary=0.05, soften=0.45)
-    mud2 = strip_tile(K, (560, 175, 760, 240), vary=0.05, soften=0.45)
-    ledge = strip_tile(K, (500, 247, 900, 260), vary=0.05, soften=0.4)
+    mud = K.tile((740, 275, 940, 355), vary=0.05, soften=0.45)
+    mud2 = strip_tile(K, (1000, 180, 1250, 240), vary=0.05, soften=0.45)
+    ledge = strip_tile(K, (560, 247, 940, 260), vary=0.05, soften=0.4)
     straw = K.tile((1100, 300, 1250, 380), vary=0.1, soften=0.15)
     wood = K.tile((1066, 485, 1076, 590), P.m(10), vary=0.06)
     door = K.tile((485, 400, 625, 605), P.m(140), vary=0.04)
@@ -1711,7 +1731,7 @@ def roof_house_a_2(K):
         blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(70) - 0.04, K.rng.uniform(0.1, 1.6), Z(py)),
                   yaw=90 + K.rng.uniform(-20, 20), name="vine_side")
     # the thatched lean-to on its posts, the calf in its shade, the water pot
-    K.thatch(X(965), X(1475), -2.2, 0.0, Z(478), Z(255), straw, thickness=0.2, overhang=0.08, shag=0.06)
+    lean_thatch(K, X(958), X(1478), X(1300), -2.2, 0.0, Z(470), Z(252), straw)
     for cx, top in ((1068, 485), (1278, 485), (1422, 472)):
         K.box(X(cx - 6), X(cx + 6), -2.0, -1.88, 0.0, Z(top), wood, bevel=0.005, name="post")
     K.tube([(X(990), -1.94, Z(482)), (X(1460), -1.94, Z(474))], P.m(6), wood, segments=8, name="purlin")
@@ -1762,6 +1782,17 @@ def roof_house_b_2(K):
         bars = [x0 + (x1 - x0) * k / 6 for k in range(1, 6)]
         barred_window(K, body, x0, x1, 592, 732, bars, frame, dark, iron)
     K.panel((308, 458, 338, 502), -0.03, depth=0.03, name="niche_plaque")
+    # a barred window in each side wall and one at the back
+    for side in (-1, 1):
+        side_window(K, body, side, D * 0.5, Z(735), Z(600), 0.75, frame, iron, dark)
+    K.cut(body, X(992), X(1102), D - 0.15, D + 0.05, Z(732), Z(592))
+    K.box(X(992), X(1102), D - 0.17, D - 0.15, Z(732), Z(592), dark, name="window_back")
+    for k in range(1, 6):
+        bx = X(992) + (X(1102) - X(992)) * k / 6
+        K.tube([(bx, D - 0.03, Z(732)), (bx, D - 0.03, Z(592))], P.m(2.2), iron, segments=6, name="bar")
+    for a_, b_, c_, d_ in ((X(984), X(992), Z(740), Z(584)), (X(1102), X(1110), Z(740), Z(584)),
+                           (X(984), X(1110), Z(740), Z(732)), (X(984), X(1110), Z(592), Z(584))):
+        K.box(a_, b_, D - 0.04, D + 0.03, c_, d_, frame, bevel=0.005, name="window_frame")
     # the roof: the deck, the front and right parapets, the side and back parapets
     K.box(X(80), X(1285), 0.0, D, Z(402), Z(400), upper, name="deck")
     K.box(X(80), X(872), 0.0, 0.25, Z(400), Z(288), upper, bevel=0.008, name="parapet_front")
@@ -1777,10 +1808,11 @@ def roof_house_b_2(K):
     barred_window(K, room, 1002, 1088, 202, 272, (1019, 1036, 1053, 1070), wood, dark, iron, depth=0.08, y=ry0)
     K.box(X(842), X(862), ry0 - 0.05, ry0 + 0.15, Z(400), Z(175), wood, name="corner_post")
     ym = (ry0 + ry1) / 2
-    K.thatch(X(790), X(1255), ry0 - 0.35, ym, Z(205), Z(55), straw, thickness=0.22, overhang=0.15, shag=0.06,
-             name="thatch_front")
-    K.thatch(X(790), X(1255), ry1 + 0.35, ym, Z(205), Z(55), straw, thickness=0.22, overhang=0.15, shag=0.06,
-             name="thatch_back")
+    # a hipped thatch: its ends lean in to a short ridge, as painted (the left end over the gable, the right hip)
+    K.thatch(X(772), X(1268), ry0 - 0.35, ym, Z(205), Z(52), straw, thickness=0.22, overhang=0.15, shag=0.06,
+             name="thatch_front", hip=0.3)
+    K.thatch(X(772), X(1268), ry1 + 0.35, ym, Z(205), Z(52), straw, thickness=0.22, overhang=0.15, shag=0.06,
+             name="thatch_back", hip=0.3)
     for x in (rx0, rx1):
         gable = [(ry0, Z(200)), (ry1, Z(200)), (ym, Z(62))]
         bm = bmesh.new()
@@ -1879,7 +1911,7 @@ def chariot_shed(K):
     X, Z = P.x, P.z
     D = 6.0
     mat = K.tile((70, 328, 215, 372), vary=0.06, soften=0.3)
-    timber = K.tile((50, 300, 62, 470), P.m(12), vary=0.08)
+    timber = K.tile((224, 300, 233, 460), P.m(9), vary=0.08)
     straw = rake_tile(K, (14, 236), (390, 12), -10, 8, vary=0.12, soften=0.1)
     dark = K.colour((0.07, 0.055, 0.045), vary=0.1)
     earth = K.colour((0.12, 0.08, 0.05), vary=0.12)

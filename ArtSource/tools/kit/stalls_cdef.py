@@ -1677,18 +1677,18 @@ def stall_e_2(K):
             Z(470)) for i in range(41)]
     K.tube(pts, P.m(4), iron, segments=5, name="wok_rim")
     handle = K.colour((0.06, 0.05, 0.05), vary=0.05)
-    for pts_ in (((172, 478), (140, 450), (128, 428), (150, 418), (170, 440), (180, 470)),
-                 ((455, 470), (462, 440), (452, 422), (440, 432), (445, 465))):
+    for pts_ in (((186, 482), (166, 472), (157, 452), (162, 438), (177, 440), (186, 460)),
+                 ((450, 478), (464, 464), (470, 446), (461, 440), (449, 452))):
         K.tube([P.pt(px_, py_, wy) for px_, py_ in pts_], P.m(4), handle, segments=6, name="wok_handle")
     nuts = K.projected(squeeze=1.0, keep=[(215, 470, 420, 530)], inset=1)
     hn = heap_px(K, 316, wy, [(140, 520), (130, 500), (100, 488), (50, 481), (0, 479)], nuts, sy=0.8, name="peanuts")
     on_heap(K, hn, P.x(316), wy, P.m(130) * 0.8, (220, 472, 418, 532), nuts, dark=95, min_area=20, max_area=400,
             rmax=9, kind="pod")
     steel = K.colour((0.5, 0.5, 0.52), vary=0.05)
-    K.tube([P.pt(262, 410, wy - 0.05), P.pt(300, 450, wy - 0.05), P.pt(400, 485, wy - 0.02)], P.m(5), steel, segments=6,
+    K.tube([P.pt(268, 425, wy - 0.12), P.pt(286, 455, wy - 0.1), P.pt(306, 478, wy - 0.08)], P.m(4), steel, segments=6,
            name="ladle")
-    K.lathe([(0.0, -P.m(14)), (P.m(28), -P.m(8)), (P.m(33), 0.0)], steel, segments=14, centre=(P.x(430), wy - 0.02, Z(492)),
-            scale_y=0.6, cap=False, name="ladle_bowl")
+    K.lathe([(0.0, -P.m(12)), (P.m(13), -P.m(8)), (P.m(16), 0.0)], steel, segments=12, centre=(P.x(314), wy - 0.08, Z(492)),
+            scale_y=0.7, cap=False, name="ladle_bowl")
     # ---------------------------------------------------------------- the table, its plate and the paper cones
     wood = ktile(K, (500, 548, 580, 600), vary=0.08)
     top = K.projected(squeeze=1.0, keep=[(470, 455, 712, 548)], exclude=[(480, 450, 630, 525), (600, 390, 690, 525)],
@@ -1719,4 +1719,156 @@ def stall_e_2(K):
               (472, 440), (470, 500), (472, 540), (480, 600), (476, 654), (440, 658), (428, 620), (438, 560),
               (330, 560), (250, 440), (240, 400), (262, 375), (290, 320), (310, 298), (345, 282), (345, 245)],
              y=0.12, name="roaster")
+    unify_cards(K)
+
+
+def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs=10, phase=0.0, tears=0.18,
+                 name="brolly"):
+    """A big cloth market umbrella: a dome of cloth stretched over `ribs` ribs (scalloped between them, ragged and
+    torn at its edge), the ribs and stretchers under it, the runner on the shaft; centred over (cx, cy), its rim at
+    z_rim, R wide, H tall, tilted back `tilt` degrees. Returns the shaft's top (x, y, z) after the tilt and its
+    axis."""
+    parts = []
+    nu, nv = ribs * 8, 10
+    rag = K.rng.uniform(0, 1, nu + 1)
+
+    def dome(r):
+        return z_rim + H * (1 - (r / R) ** 1.7)
+
+    def f(u, v, drop=0.0):
+        a = 2 * math.pi * u + phase
+        between = abs(math.sin(math.pi * ribs * u))           # 0 at a rib, 1 between two
+        r = R * v * (1 - 0.05 * between * v ** 3)
+        if v > 0.97:
+            iu = int(round(u * nu))
+            if rag[iu] < tears:
+                r *= 1 - 0.08 * (tears - rag[iu]) / tears
+        z = dome(R * v) + 0.06 * between * v ** 4 - drop
+        return (cx + r * math.cos(a), cy + r * math.sin(a), z)
+    parts.append(K.sheet(lambda u, v: f(u, v), nu, nv, top_mat, name=name + "_cloth", thickness=0.008))
+    parts.append(K.sheet(lambda u, v: f(u, v, 0.014) if v > 0.06 else f(u, 0.06, 0.014), nu, nv, under_mat,
+                         name=name + "_under", thickness=0.004))
+    runner_z = z_rim - 0.05
+    for i in range(ribs):
+        a = 2 * math.pi * i / ribs + phase
+        pts = [(cx + R * t * math.cos(a), cy + R * t * math.sin(a), dome(R * t) - 0.022) for t in np.linspace(0.04, 1.0, 7)]
+        parts.append(K.tube(pts, 0.007, rib_mat, segments=5, name=name + "_rib"))
+        t = 0.45
+        parts.append(K.tube([(cx, cy, runner_z), (cx + R * t * math.cos(a), cy + R * t * math.sin(a), dome(R * t) - 0.025)],
+                            0.005, rib_mat, segments=4, name=name + "_stretcher"))
+        parts.append(K.lathe([(0.0, -0.012), (0.012, -0.008), (0.014, 0.0), (0.0, 0.012)], rib_mat, segments=6,
+                             centre=(cx + R * math.cos(a), cy + R * math.sin(a), dome(R) - 0.02), name=name + "_tip"))
+    parts.append(K.lathe([(0.03, runner_z - 0.06), (0.035, runner_z - 0.03), (0.035, runner_z + 0.03), (0.02, runner_z + 0.05)],
+                         rib_mat, segments=10, centre=(cx, cy, 0.0), name=name + "_runner"))
+    parts.append(K.lathe([(0.02, dome(0) - 0.02), (0.022, dome(0) + 0.06), (0.012, dome(0) + 0.1), (0.0, dome(0) + 0.11)],
+                         rib_mat, segments=8, centre=(cx, cy, 0.0), name=name + "_ferrule"))
+    M = (Matrix.Translation((cx, cy, z_rim)) @ Matrix.Rotation(math.radians(-tilt), 4, "X")
+         @ Matrix.Translation((-cx, -cy, -z_rim)))
+    for p in parts:
+        p.data.transform(M)
+    top = M @ Vector((cx, cy, dome(0)))
+    axis = (M.to_3x3() @ Vector((0, 0, 1))).normalized()
+    return tuple(top), tuple(axis)
+
+
+def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="cage"):
+    """A round brass birdcage: a solid base band, a floor, upright wires bent over into a dome, hoops, a ring on
+    top."""
+    K.lathe([(R * 1.02, z0), (R * 1.04, z0 + 0.01), (R * 1.03, z0 + 0.06), (R, z0 + 0.07)], mat, segments=32,
+            centre=(cx, cy, 0.0), scale_y=sy, cap=False, name=name + "_base")
+    K.lathe([(0.0, z0 + 0.02), (R, z0 + 0.02)], mat, segments=32, centre=(cx, cy, 0.0), scale_y=sy, cap=False,
+            name=name + "_floor")
+    for i in range(bars):
+        a = 2 * math.pi * i / bars
+        path = [(R, z0 + 0.07), (R, z_shoulder), (R * 0.86, z_shoulder + (z_top - z_shoulder) * 0.45),
+                (R * 0.55, z_shoulder + (z_top - z_shoulder) * 0.82), (R * 0.12, z_top)]
+        K.tube([(cx + r * math.cos(a), cy + r * sy * math.sin(a), z) for r, z in path], 0.0045, mat, segments=4,
+               cap=False, name=name + "_bar")
+    for z, r in ((z0 + 0.07, R), ((z0 + z_shoulder) / 2, R), (z_shoulder, R),
+                 (z_shoulder + (z_top - z_shoulder) * 0.45, R * 0.86)):
+        K.tube([(cx + r * math.cos(2 * math.pi * k / 36), cy + r * sy * math.sin(2 * math.pi * k / 36), z) for k in range(37)],
+               0.007, mat, segments=5, name=name + "_hoop")
+    K.lathe([(R * 0.14, z_top - 0.01), (R * 0.12, z_top + 0.02)], mat, segments=12, centre=(cx, cy, 0.0),
+            name=name + "_cap")
+    rr = (z_top - z_shoulder) * 0.35
+    K.tube([(cx + rr * 0.9 * math.sin(2 * math.pi * k / 20), cy, z_top + 0.02 + rr + rr * math.cos(2 * math.pi * k / 20))
+            for k in range(21)], 0.008, mat, segments=6, name=name + "_ring")
+
+
+# ====================================================================== stall E3: the parrot astrologer
+@model("stall_e_3", "market", kind="prop", atlas=2048)
+def stall_e_3(K):
+    """A parrot astrologer's pitch: a big, torn black cloth umbrella tilted back on its shaft, a straw mat spread over
+    a bank of earth, a brass birdcage with its feeding cup, fortune cards fanned out in front; the old astrologer
+    and his parrot are painted cut-outs."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    # ---------------------------------------------------------------- the bank of earth and the mat over it
+    y0, y_lip, y_back = -0.84, -0.7, 0.72
+    z_lip, z_back = Z(632), Z(546)
+
+    def bank(x, y):
+        px_ = P.px(x)
+        cage = _smooth(150, 175, px_) * _smooth(445, 420, px_)
+        lip = z_lip + (Z(668) - z_lip) * cage
+        if y < y_lip:
+            z = Z(698) + (lip - Z(698)) * _smooth(y0, y_lip, y)
+        elif y < -0.12:
+            z = lip + (z_back - lip) * (y - y_lip) / (y_back - y_lip) * (1 - cage) \
+                + cage * (lip + (z_back - lip) * _smooth(-0.3, -0.12, y) * (y + 0.12) / (y_back + 0.12) * 0)
+        else:
+            z = lip + (z_back - lip) * (y - y_lip) / (y_back - y_lip)
+            if cage > 0:
+                zc = lip + (z_back - lip) * (y - y_lip) / (y_back - y_lip) * _smooth(-0.12, 0.25, y)
+                z = z * (1 - cage) + zc * cage
+        z = z if y < y_back else z_back * _smooth(1.2, y_back + 0.1, y)
+        # the mat's painted outline: narrower towards the back
+        py_ = P.py(max(z, Z(698)))
+        xl = P.x(15 + max(0.0, min(1.0, (690 - py_) / 142)) * 205)
+        xr = P.x(700 - max(0.0, min(1.0, (680 - py_) / 135)) * 135)
+        return z * _smooth(xl - 0.01, xl + 0.03, x) * _smooth(xr + 0.01, xr - 0.03, x)
+    mat = K.projected(squeeze=1.0, keep=[(15, 545, 705, 700)], exclude=[(160, 415, 440, 675), (228, 300, 540, 645)],
+                      inset=2)
+    K.grid_plane(P.x(0), P.x(712), y0 - 0.02, 1.25, 0.0, 48, 40, mat, height=bank, name="mat")
+    # ---------------------------------------------------------------- the umbrella on its shaft
+    top_cloth = ktile(K, (300, 70, 420, 110), vary=0.06)
+    under = ktile(K, (390, 200, 470, 260), vary=0.05)
+    wood = K.colour((368, 200, 382, 290), vary=0.08)
+    yc = 0.95
+    top, axis = rib_umbrella(K, P.x(378), yc, Z(205), P.m(368), P.m(196), 14.5, top_cloth, under, wood, ribs=10,
+                             phase=0.0)
+    ax = Vector(axis)
+    t = (top[2] - bank(top[0], top[1] - 0.6)) / ax.z
+    base = Vector(top) - ax * t
+    K.tube([tuple(base - ax * 0.15), tuple(Vector(top))], P.m(7), wood, segments=8, name="shaft")
+    # ---------------------------------------------------------------- the birdcage, its cup and the parrot
+    brass = K.colour((300, 640, 400, 665), vary=0.08)
+    ccy = -0.38
+    birdcage(K, P.x(298), ccy, Z(670), P.m(128), Z(548), Z(475), brass, bars=24, sy=0.62)
+    K.lathe([(P.m(16), Z(652)), (P.m(25), Z(640)), (P.m(28), Z(628))], K.colour((0.12, 0.1, 0.08), vary=0.05),
+            segments=14, centre=(P.x(300), ccy, 0.0), name="cup")
+    K.figure([(205, 640), (230, 598), (262, 565), (300, 545), (330, 535), (360, 538), (378, 552), (372, 575),
+              (335, 600), (325, 628), (300, 640), (265, 628), (240, 640), (215, 650)], y=ccy, name="parrot")
+    # ---------------------------------------------------------------- the fortune cards fanned out in front
+    card = K.projected(squeeze=1.0, keep=[(172, 625, 645, 700)], inset=1)
+    fan = [(212, 671, 64, 44, -20), (255, 678, 52, 38, -14), (292, 684, 46, 30, -8), (328, 686, 44, 26, -4),
+           (366, 688, 40, 22, 0), (403, 688, 40, 22, 0), (440, 688, 40, 22, 3), (478, 685, 44, 26, 8),
+           (515, 680, 48, 32, 13), (552, 670, 52, 40, 18), (590, 655, 58, 46, 20), (618, 645, 58, 46, 16)]
+    for px_, py_, w, h, rot in fan:
+        z = Z(py_)
+        yy = y0
+        for k in range(40):
+            yy = y0 + 0.5 * k / 39
+            if bank(P.x(px_), yy) >= z:
+                break
+        dz = bank(P.x(px_), yy + 0.02) - bank(P.x(px_), yy - 0.02)
+        ang = math.degrees(math.atan2(dz, 0.04))
+        d = min(0.24, P.m(h) / max(0.3, math.sin(math.radians(ang))))
+        K.block(P.x(px_), yy + 0.004, z + 0.004, P.m(w), d, 0.004, card, rot=(ang, 0, -rot * 0.5), name="fortune_card")
+    # ---------------------------------------------------------------- the astrologer
+    K.figure([(358, 318), (398, 305), (425, 320), (432, 360), (428, 400), (455, 405), (478, 430), (488, 480),
+              (490, 540), (520, 555), (535, 580), (530, 610), (512, 630), (480, 640), (430, 640), (380, 648),
+              (330, 652), (290, 640), (245, 612), (232, 580), (250, 560), (272, 545), (282, 480), (298, 420),
+              (330, 400), (345, 380), (342, 340)], y=y0 + 0.05, name="astrologer")
     unify_cards(K)

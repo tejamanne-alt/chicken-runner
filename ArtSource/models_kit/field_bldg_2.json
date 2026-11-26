@@ -1,0 +1,10 @@
+{
+ "name": "field_bldg_2",
+ "folder": "fields",
+ "kind": "building",
+ "width": 3.908,
+ "height": 5.0,
+ "depth": 3.82,
+ "faces": 3544,
+ "source": "blender"
+}

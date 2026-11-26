@@ -2204,7 +2204,8 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     mask, _ = TRACE[K.name](K)
     # the trunk itself is modelled whole, straight up from its foot (the traced paths go on from its top)
     tpts = DRUM_TRUNK[K.name]
-    trunk_mat = bark_material(K, mask, axis_x=P.x(tpts[0][0]), squeeze=0.9)
+    trunk_mat = bark_material(K, mask & pale_wood((P.rgba[..., :3] * 255).astype(np.int32)), axis_x=P.x(tpts[0][0]),
+                              squeeze=0.85, inset=3)
     K.tube([P.pt(x, y, 0.0) for x, y, _ in tpts], [P.m(r) for _, _, r in tpts], trunk_mat, segments=14,
            name="trunk")
     full = mask
@@ -2219,7 +2220,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6, min_r_px=3.2)
+                                          dome_pow=0.6, min_r_px=4.5)
     # the pods: long, thin, ribbed green tubes hanging from the branches, and more round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=2, flatten=0.85, lump=0.05, min_len=40,
               segments=7)

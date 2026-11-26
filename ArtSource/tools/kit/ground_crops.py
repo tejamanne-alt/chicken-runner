@@ -1148,7 +1148,7 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
         e0, e1, hw, area = ft[2]
         a, bb = fr(*e0, out=-0.01), fr(*e1, out=-0.01)
         capsule(K, a, bb, P.m(hw) * s * 1.1, shell if s == 1.0 else pod_mat, segments=6)
-    crop_rows(K, 10, P.w - 8, top_py, base_py, rows, P.z(bed_py), slices, bush_w, step, pods, make,
+    crop_rows(K, 10, P.w - 8, top_py, base_py, rows, P.z(base_py), slices, bush_w, step, pods, make,
               scale=(0.78, 0.95), yaw=40, src=at, at=at)
     return pods
 
@@ -1160,8 +1160,8 @@ def crop_strip_4(K):
     P = K.paint
     depth = 1.5
     rows = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
-    field_bed(K, 8, 1174, 180, depth, top_box=(500, 182, 560, 192), ridges=0.04, rows=rows)
-    groundnut(K, 0, 180, 182, rows, 120, 105, 11, (130, 200),
+    field_bed(K, 8, 1174, 180, depth, top_box=(500, 182, 560, 192), ridges=0.015, rows=rows)
+    groundnut(K, 0, 180, 190, rows, 120, 105, 11, (130, 200),
               at=[93, 193, 331, 420, 529, 668, 766, 878, 976, 1087])
 
 
@@ -1172,8 +1172,8 @@ def crop_strip_5(K):
     P = K.paint
     depth = 1.5
     rows = [-depth / 2 + 0.13 + k * 0.22 for k in range(7)]
-    field_bed(K, 13, 1178, 100, depth, top_box=(600, 102, 660, 112), ridges=0.03, rows=rows)
-    groundnut(K, 0, 100, 101, rows, 80, 70, 15, (70, 110),
+    field_bed(K, 13, 1178, 100, depth, top_box=(600, 102, 660, 112), ridges=0.012, rows=rows)
+    groundnut(K, 0, 100, 110, rows, 80, 70, 15, (70, 112),
               at=[76, 139, 188, 252, 310, 369, 425, 470, 516, 590, 660, 726, 774, 839, 895, 951, 1019, 1097])
 
 
@@ -1324,7 +1324,7 @@ def sugarcane(K):
     """A stand of sugarcane 1.5 m deep: tall jointed canes, yellow ringed with brown at every node, leaning a little
     every way, their long arching leaves in a tangle over the top."""
     P = K.paint
-    clean_front(K, plant_mask(P) | (np.arange(P.h)[:, None] > 462) & alpha_mask(P))
+    clean_front(K, plant_mask(P) | (np.arange(P.h)[:, None] > 466) & alpha_mask(P))
     depth = 1.5
     rows = [-depth / 2 + 0.15 + k * 0.3 for k in range(5)]
     bed_py = 464

@@ -1934,9 +1934,10 @@ def house_being_built(K):
         K.tube([P.pt(ax, ay, ay_), P.pt(bx, by, by_)], r * 0.9, bamboo, segments=8, name="frame_pole")
     # the heap of mud and straw
     mudm = K.tile((430, 800, 620, 930), size=0.6, vary=0.05)                # the heap's own mud and straw
-    for cx, r, peak, foot, y in ((480, 270, 715, 1000, -0.95), (300, 150, 830, 1005, -0.75), (680, 150, 880, 1000, -0.7)):
+    for cx, rad, peak, foot, y in ((480, 270, 715, 1000, -0.95), (300, 150, 830, 1005, -0.75),
+                                   (680, 150, 880, 1000, -0.7)):
         h = P.z(peak) - P.z(foot)
-        K.lathe([(P.m(r) * a, P.z(foot) + h * b) for a, b in ((1.0, 0.0), (0.92, 0.18), (0.75, 0.45), (0.5, 0.75),
+        K.lathe([(P.m(rad) * a, P.z(foot) + h * b) for a, b in ((1.0, 0.0), (0.92, 0.18), (0.75, 0.45), (0.5, 0.75),
                                                                 (0.22, 0.95), (0.0, 1.0))], mudm, segments=24,
                 centre=(P.x(cx), y, 0.0), wobble=0.12, scale_y=0.75, name="mud_heap")
     K.leaves_only((150, 690, 1560, 1050), straw_clean)
