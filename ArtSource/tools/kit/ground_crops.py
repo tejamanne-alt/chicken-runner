@@ -796,13 +796,15 @@ def cart_rut(K):
 
 
 # ====================================================================== crop strips: the field and its rows
-def field_bed(K, x0, x1, top_py, depth, top_box=None, top_rgb=None, ridges=0.0, rows=(), wet=False, name="bed"):
+def field_bed(K, x0, x1, top_py, depth, top_box=None, top_rgb=None, ridges=0.0, rows=(), wet=False, side_rgb=None,
+              name="bed"):
     """A strip of field `depth` metres deep under its crop: a slab of the painted soil (or water) from the ground up
     to the painted bed's top edge (top_py), its front the painting, its cut ends and back the same layers of soil
     carried through, its top a sheet of the painted soil (or water) cut from the painting, raised in low ridges along
     the rows (`rows`: their y; `ridges`: how high)."""
     P = K.paint
-    side = K.projected(squeeze=1.0, keep=[(x0 + 4, top_py, x1 - 4, P.h)], inset=3)
+    side = (K.colour(side_rgb, vary=0.1, scale=6.0, pct=35) if side_rgb is not None else
+            K.projected(squeeze=1.0, keep=[(x0 + 4, top_py, x1 - 4, P.h)], inset=3))
     top_z = P.z(top_py)
     X0, X1 = P.x(x0), P.x(x1)
     # its four sides (no top under the sheet, no bottom on the ground: they would only take atlas space)
@@ -1277,7 +1279,7 @@ def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, 
     allc = np.nonzero(a[:bed_py].any(0))[0]
     bx0, bx1 = (x0, x1) if x0 is not None else (int(allc.min()) + 20, int(allc.max()) - 20)
     depth = rows[-1] - rows[0] + 0.4
-    field_bed(K, bx0, bx1, bed_py, depth, top_rgb=bed_box, ridges=0.03, rows=rows)
+    field_bed(K, bx0, bx1, bed_py, depth, top_rgb=bed_box, ridges=0.03, rows=rows, side_rgb=bed_box)
     crop_rows(K, int(allc.min()), int(allc.max()), top_py, base_py, rows, P.z(bed_py), slices, width_px, step_px,
               scale=(0.8, 0.96), yaw=40, src=at, at=at)
 
