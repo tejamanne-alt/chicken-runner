@@ -2166,6 +2166,7 @@ def pale_wood(rgb):
 
 DRUM_TRUNK = {"h2_2": [(300, 1052, 24), (298, 900, 21), (297, 750, 18), (298, 650, 16), (296, 590, 14)],
               "h2_4": [(232, 828, 16), (231, 760, 13), (230, 700, 12), (232, 600, 10.5), (232, 470, 9)]}
+DRUM_FOOT = {"h2_2": 1045, "h2_4": 795}
 
 
 def _trace_drum(K, box, root, exclude=()):
@@ -2175,7 +2176,7 @@ def _trace_drum(K, box, root, exclude=()):
 
 
 TRACE["h2_2"] = lambda K: _trace_drum(K, (0, 60, 641, 1060), (300, 1045), exclude=[(150, 1000, 400, 1089)])
-TRACE["h2_4"] = lambda K: _trace_drum(K, (0, 0, 473, 822), (232, 818))
+TRACE["h2_4"] = lambda K: _trace_drum(K, (0, 0, 473, 800), (232, 795))
 
 
 def drum_pods(K, box):
@@ -2196,14 +2197,21 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     P = K.paint
     rng = K.rng
     mask, _ = TRACE[K.name](K)
+    # the trunk itself is modelled whole, straight up from its foot (the traced paths go on from its top)
+    tpts = DRUM_TRUNK[K.name]
+    trunk_mat = bark_material(K, mask, axis_x=P.x(tpts[0][0]), squeeze=0.9)
+    K.tube([P.pt(x, y, 0.0) for x, y, _ in tpts], [P.m(r) for _, _, r in tpts], trunk_mat, segments=14,
+           name="trunk")
+    full = mask
+    mask = mask & ~box_mask(mask.shape, [(0, tpts[-1][1] + 10, P.w, P.h)])
     pods = drum_pods(K, crown_box)
     rgb = (P.rgba[..., :3] * 255).astype(np.int32)
     r, g, b, mx, mn = chan(rgb)
     halo = (mn > 185) & (mx - mn < 40)
-    thick = ndimage.binary_opening(mask, iterations=4)
+    thick = ndimage.binary_opening(full, iterations=4)
     leaves = (P.rgba[..., 3] > 0.5) & ~halo & ~ndimage.binary_dilation(pods, iterations=2) & ~thick
     box = tuple(int(v) for v in crown_box)
-    wood, crown, bark, thin = traced_tree(K, mask, root, crown_box, centre, dome, mask_rule(leaves, box),
+    wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
                                           dome_pow=0.6, min_r_px=3.2)
@@ -2314,31 +2322,35 @@ class DiamondKatte:
         p = self.F + (self.L - self.F) * float(u) + (self.R - self.F) * float(v)
         return p.x, p.y
 
-    def build(self, side_mat, top_mat, rim_mat=None, n=24, rim=0.0):
-        """The platform: its top (a sheet over the diamond) and its four sides down to the ground."""
-        K = self.K
-        F, L, R = self.F, self.L, self.R
+    def solid(self, mat, scale, zbot, ztop, n=20, name="platform"):
+        """A closed solid over the diamond (scaled about its centre): its top at ztop(x, y), its bottom at
+        zbot(x, y) (functions, metres)."""
+        c = (self.L + self.R) / 2
+        F, L, R = [c + (v - c) * scale for v in (self.F, self.L, self.R)]
+        bm = bmesh.new()
 
-        def top_fn(u, v):
+        def at(u, v):
             p = F + (L - F) * u + (R - F) * v
-            return (p.x, p.y, self.top(p.x, p.y))
-        K.sheet(top_fn, n, n, top_mat, name="platform_top", smooth=False)
-        corners = [self.F, self.L, self.B, self.R]
-        for a, b in zip(corners, corners[1:] + corners[:1]):
-            def side(u, v, a=a, b=b):
-                p = a + (b - a) * u
-                return (p.x, p.y, self.top(p.x, p.y) * v)
-            ob = K.sheet(side, n, 1, side_mat, name="platform_side", smooth=False)
-        if rim:
-            # a coping band round the top's edge
-            for a, b in zip(corners, corners[1:] + corners[:1]):
-                d = (b - a).normalized()
-                inward = Vector((-(self.F.y - a.y), 0, 0))
-                pts = []
-                for k in range(n + 1):
-                    p = a + (b - a) * (k / n)
-                    pts.append((p.x, p.y, self.top(p.x, p.y) + rim * 0.3))
-                K.tube(pts, rim, rim_mat or top_mat, segments=4, name="coping")
+            return p.x, p.y
+        top = [[bm.verts.new((*at(i / n, j / n), ztop(*at(i / n, j / n)))) for i in range(n + 1)] for j in range(n + 1)]
+        bot = [[bm.verts.new((*at(i / n, j / n), zbot(*at(i / n, j / n)))) for i in range(n + 1)] for j in range(n + 1)]
+        for j in range(n):
+            for i in range(n):
+                bm.faces.new([top[j][i], top[j][i + 1], top[j + 1][i + 1], top[j + 1][i]])
+                bm.faces.new([bot[j][i], bot[j + 1][i], bot[j + 1][i + 1], bot[j][i + 1]])
+        ring = [(0, i) for i in range(n)] + [(i, n) for i in range(n)] + [(n, n - i) for i in range(n)] + \
+            [(n - i, 0) for i in range(n)]
+        for (a, b), (c2, d) in zip(ring, ring[1:] + ring[:1]):
+            bm.faces.new([top[a][b], bot[a][b], bot[c2][d], top[c2][d]])
+        return _add(K=self.K, bm=bm, mat=mat, name=name, smooth=False)
+
+    def build(self, side_mat, top_mat, coping_mat=None, coping=0.03, lip=0.015, n=20):
+        """The platform: its body, from the ground up to under the coping, and the coping slab on it, a little
+        proud of the walls, its top sloping as painted."""
+        half = (self.R - self.L).length / 2
+        self.solid(side_mat, 1.0, lambda x, y: 0.0, lambda x, y: self.top(x, y) - coping, n=n, name="platform_body")
+        self.solid(coping_mat or top_mat, 1.0 + lip / half, lambda x, y: self.top(x, y) - coping,
+                   lambda x, y: self.top(x, y), n=n, name="platform_coping")
 
 
 NAGA_STONES = [
@@ -2377,10 +2389,11 @@ def h3_1(K):
     clay lamps burning and marigolds before them, and a broad crown of big heart-shaped leaves."""
     P = K.paint
     rng = K.rng
-    katte = DiamondKatte(K, 210, 800, 1582, 1150, 1268)
-    side = K.tile((330, 1265, 560, 1330), vary=0.06, soften=0.3)
+    katte = DiamondKatte(K, 208, 800, 1582, 1150, 1290)
+    side = K.tile((1000, 1345, 1280, 1400), vary=0.06, soften=0.3)
     top = K.tile((1290, 1185, 1500, 1225), vary=0.08, soften=0.35)
-    katte.build(side, top, rim=P.m(7), n=20)
+    coping = K.tile((560, 1262, 760, 1300), vary=0.06, soften=0.3)
+    katte.build(side, top, coping, coping=P.m(45), lip=P.m(8))
     # ---- the tree
     crown, trunk_ob = _peepal_tree(
         K, (0, 0, 1743, 830), H31_TRUNK, H31_LIMBS, H31_ROOTS, katte, (420, 480, 1420, 1200),

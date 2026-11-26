@@ -1574,3 +1574,149 @@ def stall_e_1(K):
             K.card_from_painting((px_ - 45, py_ - 35, px_ + 45, py_ + 35), (P.x(px_), yy, Z(py_)),
                                  yaw=K.rng.uniform(-80, 80), name="greens")
     unify_cards(K)
+
+
+def on_heap(K, height, x_c, y_c, ry, box, mat, dark=70, min_area=25, max_area=1e9, rmax=99.0, kind="ball", flat=0.8):
+    """Pieces (nuts, peanuts, sweets, fruit) on the front of a heap, one for every painted piece in box, each where
+    it is painted: at its painted x and height, on the heap's front surface height(x, y)."""
+    P = K.paint
+    for cx, cy, L, W, ang in blobs(K, box, dark, min_area, max_area):
+        r = P.m(min(rmax, W / 2))
+        x, z = P.x(cx), P.z(cy)
+        y = y_c - ry
+        for k in range(24):                 # walk back from the front until the heap's surface reaches z
+            yy = y_c - ry + ry * k / 23
+            if height(x, yy) >= z - r * 0.5:
+                y = yy
+                break
+        else:
+            continue
+        if kind == "ball" or L < W * 1.5:
+            ball(K, (x, y, z), r, mat, squash=flat, segs=7, rings=4)
+        else:
+            pod(K, (x, y, z), r, P.m(L) * 0.9, mat, yaw=-ang, segs=6)
+
+
+def cone_stack(K, tip, r, h, n, mat, axis=(0, 0, 1), name="cones"):
+    """n paper cones nested in a stack: tip (x, y, z) at the bottom, r round at the mouth, h tall, each one a little
+    higher than the one inside it."""
+    parts = []
+    for k in range(n):
+        dz = k * h * 0.12
+        prof = [(0.0, dz), (r * 0.98, dz + h), (r, dz + h + 0.003)]
+        parts.append(K.lathe(prof, mat, segments=16, centre=tip, cap=False, name=name))
+    for p in parts:
+        orient(p, tip, axis)
+    return parts
+
+
+# ====================================================================== stall E2: the peanut roaster
+@model("stall_e_2", "market", kind="prop", atlas=2048)
+def stall_e_2(K):
+    """A roasted-peanut stall: a woven palm-leaf mat slung as a lean-to on a bamboo frame, a clay stove with its
+    fire mouth, a big iron wok full of peanuts with a ladle, a mud counter beside it, a small wooden table with a
+    plate heaped with peanuts and stacks of paper cones; the roaster himself, sitting behind the wok, a painted
+    cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    bam = K.colour((300, 32, 400, 42), vary=0.08)
+    rope = K.colour((0.14, 0.1, 0.04), vary=0.1)
+    yf, yb = -0.55, 0.55
+    # ---------------------------------------------------------------- the frame and the mat
+    for x_px, rpx, y, ztop, keep in ((90, 10, yf, Z(150), [(78, 165, 104, 645)]), (659, 9, yf, Z(150), [(648, 165, 672, 615)]),
+                                     (169, 9, yb, Z(28), [(158, 172, 182, 435)]), (597, 8, yb, Z(28), [(587, 172, 608, 470)])):
+        mat = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=keep, inset=2)
+        bamboo(K, (P.x(x_px + 3), y, 0.0), (P.x(x_px), y, ztop), P.m(rpx), mat, nodes=0.55, bend=0.005, name="post")
+    bamboo(K, P.pt(10, 152, yf - 0.03), P.pt(745, 152, yf - 0.03), P.m(9), bam, node_at=[0.3, 0.55, 0.8], taper=1.0,
+           name="bar_front")
+    bamboo(K, P.pt(65, 28, yb + 0.02), P.pt(682, 28, yb + 0.02), P.m(9), bam, node_at=[0.25, 0.6], taper=1.0,
+           name="bar_back")
+    for xa, xb in ((40, 72), (710, 676)):
+        K.tube([P.pt(xa, 172, yf - 0.06), P.pt(xb, 36, yb)], P.m(10), bam, segments=10, name="rafter")
+    for x_px in (100, 640):
+        lashing(K, P.pt(x_px, 28, yb + 0.02), (1, 0, 0), P.m(9), rope, turns=3)
+    lashing(K, P.pt(90, 152, yf - 0.03), (1, 0, 0), P.m(9), rope, turns=3)
+    lashing(K, P.pt(659, 152, yf - 0.03), (1, 0, 0), P.m(9), rope, turns=3)
+    mat_top = K.projected(squeeze=1.0, keep=[(30, 30, 718, 188)], exclude=[(0, 140, 760, 165)], inset=3)
+    mat_under = ktile(K, (300, 60, 480, 130), vary=0.05)
+
+    def mat_surf(u, v, drop=0.0):
+        xf0, xf1, xb0, xb1 = P.x(30), P.x(716), P.x(76), P.x(680)
+        x = (xf0 + (xf1 - xf0) * u) * (1 - v) + (xb0 + (xb1 - xb0) * u) * v
+        if v < 0.08:          # the front edge curls over the front bar
+            t = v / 0.08
+            y = yf - 0.06 + 0.05 * t
+            z = Z(185) + (Z(150) + 0.03 - Z(185)) * math.sin(t * math.pi / 2)
+        else:
+            t = (v - 0.08) / 0.92
+            y = yf - 0.01 + (yb - yf + 0.01) * t
+            z = Z(150) + 0.03 + (Z(28) + 0.03 - Z(150) - 0.03) * t - 0.04 * math.sin(math.pi * t) * math.sin(math.pi * u)
+        return (x, y, z - drop)
+    K.sheet(lambda u, v: mat_surf(u, v), 30, 16, mat_top, name="mat", thickness=0.012)
+    K.sheet(lambda u, v: mat_surf(u, v, 0.016), 30, 16, mat_under, name="mat_under", thickness=0.004)
+    # ---------------------------------------------------------------- the ground: a patch of trodden sand
+    sand = ktile(K, (75, 640, 190, 685), vary=0.06, soften=0.3)
+    earth_patch(K, P.x(380), 0.0, 1.55, 0.95, sand, h=0.02)
+    # ---------------------------------------------------------------- the mud counter and the stove
+    mud = ktile(K, (125, 520, 190, 600), vary=0.08, soften=0.2)
+    K.block(P.x(200), 0.25, Z(505) / 2, P.m(170), 0.6, Z(505), mud, bevel=0.05, jitter=0.008, name="mud_counter")
+    clay = K.projected(axis_x=P.x(328), squeeze=0.95, keep=[(195, 545, 462, 689)], exclude=[(270, 620, 350, 689)], inset=2)
+    stove = K.lathe([(P.m(130), 0.0), (P.m(130), Z(660)), (P.m(124), Z(610)), (P.m(119), Z(565)), (P.m(108), Z(548)),
+                     (P.m(88), Z(546))], clay, segments=28, centre=(P.x(328), -0.12, 0.0), scale_y=0.62, wobble=0.03,
+                    name="stove")
+    K.cut(stove, P.x(272), P.x(346), -0.6, -0.05, -0.05, Z(624))
+    fire = K.projected(squeeze=1.0, keep=[(272, 625, 346, 689), (300, 560, 385, 595)], inset=1)
+    K.box(P.x(272), P.x(346), -0.2, -0.04, 0.0, Z(624), fire, name="fire")
+    # ---------------------------------------------------------------- the wok, its peanuts and the ladle
+    iron = K.projected(axis_x=P.x(316), squeeze=0.94, keep=[(160, 455, 472, 565)], inset=2)
+    wy = -0.12
+    K.lathe([(P.m(40), Z(560)), (P.m(92), Z(546)), (P.m(128), Z(522)), (P.m(148), Z(492)), (P.m(154), Z(470))], iron,
+            segments=32, centre=(P.x(316), wy, 0.0), scale_y=0.8, cap=False, name="wok")
+    pts = [(P.x(316) + P.m(154) * math.cos(2 * math.pi * i / 40), wy + P.m(154) * 0.8 * math.sin(2 * math.pi * i / 40),
+            Z(470)) for i in range(41)]
+    K.tube(pts, P.m(4), iron, segments=5, name="wok_rim")
+    handle = K.colour((0.06, 0.05, 0.05), vary=0.05)
+    for pts_ in (((172, 478), (140, 450), (128, 428), (150, 418), (170, 440), (180, 470)),
+                 ((455, 470), (462, 440), (452, 422), (440, 432), (445, 465))):
+        K.tube([P.pt(px_, py_, wy) for px_, py_ in pts_], P.m(6), handle, segments=6, name="wok_handle")
+    nuts = K.projected(squeeze=1.0, keep=[(215, 470, 420, 530)], inset=1)
+    hn = heap_px(K, 316, wy, [(140, 520), (130, 500), (100, 488), (50, 481), (0, 479)], nuts, sy=0.8, name="peanuts")
+    on_heap(K, hn, P.x(316), wy, P.m(130) * 0.8, (220, 472, 418, 532), nuts, dark=95, min_area=20, max_area=400,
+            rmax=9, kind="pod")
+    steel = K.colour((0.5, 0.5, 0.52), vary=0.05)
+    K.tube([P.pt(262, 410, wy - 0.05), P.pt(300, 450, wy - 0.05), P.pt(400, 485, wy - 0.02)], P.m(5), steel, segments=6,
+           name="ladle")
+    K.lathe([(0.0, -P.m(14)), (P.m(28), -P.m(8)), (P.m(33), 0.0)], steel, segments=14, centre=(P.x(430), wy - 0.02, Z(492)),
+            scale_y=0.6, cap=False, name="ladle_bowl")
+    # ---------------------------------------------------------------- the table, its plate and the paper cones
+    wood = ktile(K, (500, 548, 580, 600), vary=0.08)
+    top = K.projected(squeeze=1.0, keep=[(470, 455, 712, 548)], exclude=[(480, 450, 630, 525), (600, 390, 690, 525)],
+                      inset=2)
+    ty0, ty1 = -0.3, 0.2
+    K.box(P.x(470), P.x(712), ty0, ty1, Z(545), Z(527), top, bevel=0.006, name="table_top")
+    for x0, x1 in ((478, 493), (676, 695)):
+        for y in (ty0 + 0.03, ty1 - 0.03):
+            K.box(P.x(x0), P.x(x1), y - 0.025, y + 0.025, 0.0, Z(545), wood, name="table_leg")
+    K.box(P.x(480), P.x(694), ty0 + 0.01, ty0 + 0.04, Z(560), Z(545), wood, name="apron")
+    K.box(P.x(485), P.x(690), ty1 - 0.06, ty1 - 0.02, Z(640), Z(620), wood, name="stretcher")
+    K.box(P.x(478), P.x(495), ty0 + 0.05, ty1 - 0.05, Z(640), Z(620), wood, name="stretcher")
+    K.box(P.x(676), P.x(695), ty0 + 0.05, ty1 - 0.05, Z(640), Z(620), wood, name="stretcher")
+    plate = K.colour((0.55, 0.55, 0.55), vary=0.05)
+    py_ = -0.08
+    K.lathe([(0.0, Z(527)), (P.m(55), Z(526)), (P.m(68), Z(520)), (P.m(70), Z(516))], plate, segments=24,
+            centre=(P.x(555), py_, 0.0), scale_y=0.8, cap=False, name="plate")
+    hp = heap_px(K, 555, py_, [(64, 518), (55, 498), (35, 478), (12, 465), (0, 462)], nuts, sy=0.8, name="plate_nuts")
+    on_heap(K, hp, P.x(555), py_, P.m(60) * 0.8, (490, 455, 625, 515), nuts, dark=95, min_area=20, max_area=400,
+            rmax=9, kind="pod")
+    paper = K.projected(squeeze=1.0, keep=[(598, 390, 690, 526)], inset=1)
+    cone_stack(K, (P.x(632), -0.02, Z(500)), P.m(28), P.m(95), 5, paper, axis=(-0.25, 0.0, 1.0))
+    cone_stack(K, (P.x(652), 0.02, Z(525)), P.m(30), P.m(85), 5, paper, axis=(0.05, 0.0, 1.0))
+    cone_stack(K, (P.x(668), -0.06, Z(527)), P.m(26), P.m(75), 4, paper, axis=(0.2, 0.0, 1.0))
+    # ---------------------------------------------------------------- his stool behind the wok, and the roaster himself
+    K.box(P.x(345), P.x(445), 0.12, 0.42, 0.0, 0.42, wood, bevel=0.01, name="stool")
+    K.figure([(352, 205), (380, 197), (410, 204), (420, 240), (414, 285), (448, 300), (462, 330), (470, 380),
+              (472, 440), (470, 500), (472, 540), (480, 600), (476, 654), (440, 658), (428, 620), (438, 560),
+              (330, 560), (250, 440), (240, 400), (262, 375), (290, 320), (310, 298), (345, 282), (345, 245)],
+             y=0.12, name="roaster")
+    unify_cards(K)

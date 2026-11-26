@@ -1905,18 +1905,19 @@ def house_being_built(K):
         for hx in (hx0 + 25, hx1 - 25):
             lashing(K, P.pt(hx, py, ys - r * 1.8), (1, 0, 0), r * 1.5, rope)
     # inside: posts and braces of the roof frame going back to the back wall
-    for (ax, ay, ay_), (bx, by, by_) in (((620, 1000, 1.4), (620, 210, 1.4)), ((1210, 1000, 1.5), (1210, 230, 1.5)),
+    for (ax, ay, ay_), (bx, by, by_) in (((620, 1000, 1.4), (620, 210, 1.4)), ((1272, 1000, 1.5), (1272, 230, 1.5)),
                                          ((1700, 1000, 1.3), (1700, 190, 1.3)), ((560, 120, 2.0), (1000, 520, 1.0)),
                                          ((1600, 120, 2.2), (1900, 480, 1.1)), ((900, 60, D - 0.3), (900, 260, 0.6)),
                                          ((1450, 60, D - 0.3), (1450, 260, 0.6)), ((700, 60, D - 0.3), (700, 260, 0.6)),
                                          ((1800, 60, D - 0.3), (1800, 260, 0.6))):
         K.tube([P.pt(ax, ay, ay_), P.pt(bx, by, by_)], r * 0.9, bamboo, segments=8, name="frame_pole")
     # the heap of mud and straw
-    mudm = K.projected(squeeze=1.0, keep=[(205, 700, 800, 1010)], inset=2)
-    for px, py, w, h in ((330, 930, 230, 150), (470, 880, 280, 260), (610, 920, 250, 170), (720, 975, 170, 90),
-                         (310, 990, 160, 70), (420, 990, 300, 90)):
-        K.boulder(P.x(px), -0.9 + K.rng.uniform(-0.3, 0.3), P.z(py), P.m(w), P.m(w) * 0.9, P.m(h) * 1.1, mudm,
-                  name="mud")
+    mudm = K.tile((430, 800, 620, 930), size=0.6, vary=0.05)                # the heap's own mud and straw
+    for cx, r, peak, foot, y in ((480, 270, 715, 1000, -0.95), (300, 150, 830, 1005, -0.75), (680, 150, 880, 1000, -0.7)):
+        h = P.z(peak) - P.z(foot)
+        K.lathe([(P.m(r) * a, P.z(foot) + h * b) for a, b in ((1.0, 0.0), (0.92, 0.18), (0.75, 0.45), (0.5, 0.75),
+                                                                (0.22, 0.95), (0.0, 1.0))], mudm, segments=24,
+                centre=(P.x(cx), y, 0.0), wobble=0.12, scale_y=0.75, name="mud_heap")
     K.leaves_only((150, 690, 1560, 1050), straw_clean)
     for i in range(16):
         cx, cy = K.rng.uniform(250, 780), K.rng.uniform(710, 900)

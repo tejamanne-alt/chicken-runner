@@ -1131,11 +1131,10 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
     yy = np.arange(P.h)[:, None]
     # the pods: pale tan (the red earth round them is darker)
-    podm = (alpha_mask(P) & (r > 185) & (g > 135) & (r - b > 50) & (r > g + 15) & (yy > pod_band[0])
+    podm = (alpha_mask(P) & (r > 170) & (g > 120) & (r - b > 45) & (r > g + 12) & (yy > pod_band[0])
             & (yy < pod_band[1]))
-    podm = ndimage.binary_opening(podm, iterations=1)
-    pods = [p for p in blobs(P, podm, 25) if p[2][3] < 400]
-    podm = ndimage.binary_dilation(podm, iterations=2)
+    podm = ndimage.binary_dilation(ndimage.binary_opening(podm, iterations=1), iterations=2)
+    pods = [p for p in blobs(P, podm, 40) if p[2][3] < 600]
     leaves = plant_mask(P) & ~ndimage.binary_dilation(podm, iterations=3)
     card_mask(K, leaves)
     pod_mat = K.tile((0, 0, 1, 1)) if False else K.colour((0.55, 0.3, 0.12), vary=0.12, scale=60)
@@ -1146,7 +1145,7 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
             return
         e0, e1, hw, area = ft[2]
         a, bb = fr(*e0, out=-0.01), fr(*e1, out=-0.01)
-        capsule(K, a, bb, P.m(hw) * s * 1.35, shell if s == 1.0 else pod_mat, segments=6)
+        capsule(K, a, bb, P.m(hw) * s * 1.1, shell if s == 1.0 else pod_mat, segments=6)
     crop_rows(K, 10, P.w - 8, top_py, base_py, rows, P.z(bed_py), slices, bush_w, step, pods, make,
               scale=(0.78, 0.95), yaw=40, src=at, at=at)
     return pods
@@ -1176,18 +1175,12 @@ def crop_strip_5(K):
               at=[76, 139, 188, 252, 310, 369, 425, 470, 516, 590, 660, 726, 774, 839, 895, 951, 1019, 1097])
 
 
-def ball(K, c, r, mat, squash=0.92, name="boll"):
-    """A small, slightly lumpy ball (a cotton boll): six sides, four rings."""
-    x, y, z = c
-    prof = [(0.0, -r * squash), (r * 0.72, -r * 0.62 * squash), (r, 0.0), (r * 0.78, r * 0.6 * squash),
-            (0.0, r * squash)]
-    return K.lathe([(rr, z + zz) for rr, zz in prof], mat, segments=6, centre=(x, y, 0.0), wobble=0.1, name=name)
-
-
 @model("crop_strip_6", "fields", kind="prop", atlas=2048)
 def crop_strip_6(K):
     """A strip of cotton: woody bushes with a few lobed leaves, their bolls burst open in white tufts on brown
-    stars, in rows 1.5 m deep on a bed of earth."""
+    stars, planted on a grid 1.5 m deep on a bed of earth. The bushes are cards of the painted ones (the bolls keep
+    their painted fluff and brown stars), every painted boll crossed by a turned copy of itself, so a bush is round
+    with bolls from every side."""
     P = K.paint
     depth = 1.5
     clean_front(K, no_halo(P, haze=False))
@@ -1196,15 +1189,17 @@ def crop_strip_6(K):
     white = alpha_mask(P) & (mn > 175) & (mx - mn < 60) & ~ndimage.binary_dilation(~alpha_mask(P), iterations=4)
     white = ndimage.binary_opening(white, iterations=2)
     bolls = blobs(P, white, 60)
-    card_mask(K, plant_mask(P, white=True) & ~ndimage.binary_erosion(white, iterations=2))
+    card_mask(K, plant_mask(P, white=True))
     rows = [-depth / 2 + 0.16 + k * 0.36 for k in range(4)]
     field_bed(K, 8, 1173, 212, depth, top_box=(470, 214, 540, 224), ridges=0.035, rows=rows)
-    cream = K.colour(tuple(float(v) for v in np.median(P.rgba[white][:, :3], 0) ** 2.2), vary=0.08, scale=30)
 
     def make(K, fr, ft, yaw, s):
+        # a painted boll (its bracts and the stalk under it), turned square to its card
         e0, e1, hw, area = ft[2]
-        r = math.sqrt(area / math.pi) * 1.05
-        ball(K, fr(ft[0], ft[1], out=P.m(r) * s * 0.35), P.m(r) * s, cream)
+        r = math.sqrt(area / math.pi) * 1.5
+        box = (ft[0] - r, ft[1] - r, ft[0] + r, ft[1] + r * 1.15)
+        K.card_from_painting(box, fr(ft[0], ft[1] + r * 0.075), yaw=yaw + 90 + K.rng.uniform(-25, 25), scale=s,
+                             name="boll", normal=(0, -0.2, 1))
     at = [105, 228, 335, 470, 640, 790, 925, 1065]                  # the painted bushes' stems
     crop_rows(K, 8, 1173, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.8, 0.95), yaw=40,
               cross=True, src=at, at=at)

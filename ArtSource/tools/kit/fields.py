@@ -1471,10 +1471,10 @@ def place(parts, angle, pivot):
 def gable_thatch(K, W, L, z_eave, z_ridge, mat, over=0.3, thickness=0.2, shag=0.06):
     """A thatched gable roof in a local frame (walls x -W..0, y 0..L): two lumpy straw slopes from the eaves over
     the long walls up to a ridge along y at x = -W/2, overhanging the ends by `over`; returns the parts."""
-    a = K.thatch(-over, L + over, -W / 2, 0.0, z_eave, z_ridge, mat, thickness=thickness, overhang=over, shag=shag,
+    a = K.thatch(0.0, L, -W / 2, 0.0, z_eave, z_ridge, mat, thickness=thickness, overhang=over, shag=shag,
                  name="thatch")
     rotate(a, 90, "Z", (0, 0, 0))
-    b = K.thatch(-(L + over), over, -W / 2, 0.0, z_eave, z_ridge, mat, thickness=thickness, overhang=over, shag=shag,
+    b = K.thatch(-L, 0.0, -W / 2, 0.0, z_eave, z_ridge, mat, thickness=thickness, overhang=over, shag=shag,
                  name="thatch")
     rotate(b, -90, "Z", (0, 0, 0))
     for ob in (a, b):

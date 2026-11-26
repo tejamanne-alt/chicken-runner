@@ -1,0 +1,10 @@
+{
+ "name": "hut_with_pen",
+ "folder": "fields",
+ "kind": "building",
+ "width": 6.543,
+ "height": 3.8,
+ "depth": 6.264,
+ "faces": 6512,
+ "source": "blender"
+}
