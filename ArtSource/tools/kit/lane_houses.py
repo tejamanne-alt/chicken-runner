@@ -227,7 +227,7 @@ def house_limewash(K):
     platform, a hibiscus climbing over the left corner and a bush at the right."""
     P = K.paint
     depth = 4.0
-    wall = K.tile((214, 240, 252, 395), vary=0.05, soften=0.5)       # cream plaster, right of the door
+    wall = K.tile((214, 215, 252, 400), size=0.5, vary=0.05, soften=0.6)   # cream plaster, right of the door
     upper = K.tile((132, 84, 198, 106), vary=0.05, soften=0.35)      # the parapet's plaster with its rust streaks
     ledge = K.colour((130, 112, 200, 122), vary=0.06)
     red = K.tile((30, 472, 90, 510), vary=0.06, soften=0.3)          # red-oxide platform, below its kolam border

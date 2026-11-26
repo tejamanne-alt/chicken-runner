@@ -47,13 +47,19 @@ def contour(mask, eps=1.5, offset=(0, 0)):
     return [(x + offset[0] + 0.5, y + offset[1] + 0.5) for x, y in c]
 
 
-def stone_masks(P, dark=95, min_px=25, grow=3):
-    """The stones of a painting: the light interiors between the dark ink outlines, each grown back over its outline
-    and filled out to its convex hull (a stone half hidden under another goes on under it)."""
+def stone_masks(P, dark=95, ink=85, min_px=25, grow=3):
+    """The stones of a painting: the light interiors between the dark ink outlines (seeded where lighter than
+    `dark`, then spread over their shaded faces down to `ink`), each grown back over its outline and filled out to
+    its convex hull (a stone half hidden under another goes on under it)."""
     a = alpha_mask(P)
-    inner = a & (lum(P) > dark)
+    L = lum(P)
+    inner = a & (L > dark)
     inner = ndimage.binary_opening(inner, iterations=1)
     lab, n = ndimage.label(inner)
+    allowed = a & (L > ink)
+    dist, (iy, ix) = ndimage.distance_transform_edt(lab == 0, return_indices=True)
+    spread = lab[iy, ix] * (allowed & (dist < 14))
+    lab = np.where(lab > 0, lab, spread)
     out = []
     solid = ndimage.binary_erosion(a, iterations=2)
     for i in range(1, n + 1):
@@ -146,12 +152,12 @@ def dome(K, poly_px, height, y_back, mat, rings=((1.0, 0.0), (0.94, 0.42), (0.74
 
 
 # ====================================================================== stones
-def stones(K, depth_scale=0.55, dark=95, min_px=25):
+def stones(K, depth_scale=0.55, dark=95, ink=85, min_px=25):
     """Every stone of the painting as a faceted dome on its outline, all resting on one back plane."""
     P = K.paint
-    ms = stone_masks(P, dark=dark, min_px=min_px)
+    ms = stone_masks(P, dark=dark, ink=ink, min_px=min_px)
     a = alpha_mask(P)
-    ok = a & (lum(P) > dark)
+    ok = a & (lum(P) > ink + 10)
     ok = ndimage.binary_erosion(ok, iterations=1)
     mat = proj_material(K, filled_source(P, ok), name="stone")
     sizes = [math.sqrt(m.sum()) for m, _ in ms]
@@ -180,4 +186,4 @@ def pebbles(K):
 def pebble_cluster(K):
     """A small cluster of brown pebbles round one bigger stone, each lying on the ground, the hidden ones going on
     under the stones in front of them."""
-    stones(K, depth_scale=0.5, min_px=12)
+    stones(K, depth_scale=0.5, dark=120, ink=85, min_px=12)

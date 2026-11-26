@@ -242,3 +242,48 @@ def haystack(K):
                              normal=(0, -0.3, 1))
         K.card_from_painting(box, P.pt(cx, (box[1] + box[3]) / 2, before(cx, 4)), yaw=50, name="grass_front",
                              normal=(0, -0.3, 1))
+
+
+def jag(ob, n_ring, z_lo, z_hi, every=2):
+    """Makes the first ring of a lathe (its bottom) ragged: every other vertex pulled down to z_lo, the rest up to
+    z_hi (the pointed ends of straw hanging round a stack's foot)."""
+    vs = ob.data.vertices
+    for i in range(n_ring):
+        vs[i].co.z = z_lo if i % every == 0 else z_hi
+    return ob
+
+
+@model("haystack_small", "fields", kind="prop", atlas=1024)
+def haystack_small(K):
+    """A small turned stack of straw round a pole, the pole's top standing out of a wooden cap, the straw layered in
+    tiers and hanging in points round its foot."""
+    P = K.paint
+    ax = 181
+    rpx = interp([(64, 12), (70, 21), (80, 42), (90, 54), (100, 65), (120, 83), (140, 96), (160, 110), (180, 118),
+                  (200, 129), (220, 141), (240, 143), (260, 145), (280, 152), (300, 155), (320, 157), (340, 165),
+                  (350, 168), (360, 170), (380, 172)])
+    straw = turned(K, P.x(ax), (90, 150, 270, 330), squeeze=0.92, keep=[(0, 62, 366, 392)])
+    prof = [(P.m(rpx(py)) * 0.97, P.z(py)) for py in (384, 362, 345, 320, 300, 280, 260, 240, 220, 200, 180, 160, 140,
+                                                     120, 100, 90, 80, 72)]
+    prof.append((P.m(10), P.z(66)))
+    seg = 56
+    stack = K.lathe(prof, straw, segments=seg, wobble=0.025, name="stack")
+    jag(stack, seg, P.z(388), P.z(368))
+    # the pole through the stack, and the wooden cap round it where it comes out
+    wood = K.projected(squeeze=1.0, keep=[(166, 4, 194, 60)], inset=2)
+    K.tube([P.pt(179, 14), P.pt(179, 60), P.pt(181, 200)], P.m(8), wood, segments=12, name="pole")
+    K.box(P.x(170), P.x(188), -P.m(6), P.m(6), P.z(16), P.z(11), wood, name="pole_top")
+    cap = K.projected(squeeze=1.0, keep=[(160, 58, 200, 74)], inset=2)
+    K.lathe([(P.m(14), P.z(73)), (P.m(15), P.z(68)), (P.m(14), P.z(62)), (P.m(8), P.z(60))], cap, segments=24,
+            centre=(P.x(179), 0, 0), name="cap")
+    # the ragged straw round its sides, cut from its own painted outline, and the pointed skirt round the back
+    K.leaves_only((0, 62, 366, 392), everything)
+    straw_fringe(K, ax, 0.0, rpx, (82, 352), 70, size=(44, 36), inset=0.45, exact_rows=(80, 356), sources=(82, 350),
+                 sectors=[(-25, 0), (0, 180), (-180, -155)])
+    for i in range(16):
+        th = K.rng.uniform(-10, 190)
+        t = math.radians(th)
+        cx = K.rng.uniform(110, 250)
+        r = P.m(rpx(372)) * 1.0
+        K.card_from_painting((cx - 36, 348, cx + 36, 392), (P.x(ax) + r * math.cos(t), r * math.sin(t), P.z(370)),
+                             yaw=th + 90, name="skirt", normal=(math.cos(t), math.sin(t), 0.2))

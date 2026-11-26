@@ -104,3 +104,73 @@ def brass_vessels(K):
     # the grey stone ledge they stand on
     ledge = K.colour((8, 155, 24, 161), vary=0.1, scale=10)
     K.box(P.x(6), P.x(146), -0.26, 0.5, P.z(161), P.z(157.2), ledge, bevel=0.006, name="ledge")
+
+
+def ring(K, cx, cy, cz, r, tube_r, mat, axis="y", n=16, name="ring"):
+    """A wire ring (a hanger loop, a pivot eye): a closed tube round a circle of radius r about `axis`."""
+    pts = []
+    for i in range(n + 1):
+        a = 2 * math.pi * i / n
+        c, s = math.cos(a) * r, math.sin(a) * r
+        pts.append((cx + c, cy, cz + s) if axis == "y" else (cx, cy + c, cz + s) if axis == "x" else (cx + c, cy + s, cz))
+    return K.tube(pts, tube_r, mat, segments=6, name=name, cap=False)
+
+
+@model("lantern", "market", kind="prop")
+def lantern(K):
+    """A hurricane lantern: a brass fuel tank with its wick knob, a glowing glass globe in a wire guard, the two air
+    tubes up its sides, the ventilated chimney and cap with a hanging ring, and the wire bail."""
+    P = K.paint
+    cx = 38.5
+    X = P.x(cx)
+    tank = K.projected(axis_x=X, squeeze=0.92, keep=[(9, 131, 69, 164)], inset=1)
+    top = K.projected(axis_x=X, squeeze=0.92, keep=[(23, 50, 54, 90)], inset=1)
+    glass = K.projected(axis_x=X, squeeze=0.9, keep=[(21, 90, 56, 131)], inset=1)
+    K.lathe(prof(P, [(13, 131), (13, 137), (15, 137.5), (15, 140), (18, 141), (22, 142), (24.5, 145), (26, 149),
+                     (26, 157), (28.5, 158), (28.5, 161), (27, 162), (0, 162)]), tank, segments=32,
+            centre=(X, 0, 0), name="tank")
+    glass_r = [(13.5, 131), (17, 128), (18.5, 124), (20, 115), (19.5, 103), (18, 95), (16.5, 91), (14, 89)]
+    K.lathe(prof(P, glass_r), glass, segments=32, centre=(X, 0, 0), name="globe")
+    K.lathe(prof(P, [(13.5, 89.5), (13.5, 86), (12, 86), (12, 78), (14.5, 77.5), (14.5, 73), (12, 72.5), (12, 57),
+                     (14.5, 56.5), (14.5, 54), (10, 51.5), (4, 50.5), (0, 50.5)]), top, segments=32,
+            centre=(X, 0, 0), name="chimney")
+    brass = K.colour((10, 100, 15, 125), vary=0.1)
+    dark = K.colour((0.03, 0.025, 0.02), vary=0.05)
+    wire = K.colour((0.25, 0.07, 0.015), vary=0.1)
+    # the wick knob on the tank's front
+    K.tube([(X + P.m(0.5), -P.m(17), P.z(144)), (X + P.m(0.5), -P.m(25), P.z(144))], P.m(3.5), brass, segments=12,
+           name="knob")
+    # the two air tubes, from the tank up the sides to the chimney
+    left = [(24, 74), (19, 72), (14, 76), (11, 90), (10, 105), (10, 120), (11, 132), (14, 140), (18, 144)]
+    for side in (1, -1):
+        pts = [(X + side * (P.x(x) - X), 0.0, P.z(y)) for x, y in left]
+        K.tube(pts, P.m(2.6), brass, segments=8, name="air_tube")
+    # the wire guard round the globe: rings top and bottom, side wires, and a cross on the front and the back
+    def R(py):
+        for (r0, y0), (r1, y1) in zip(glass_r, glass_r[1:]):
+            if y1 <= py <= y0:
+                t = (py - y0) / (y1 - y0)
+                return r0 + (r1 - r0) * t + 1.2
+        return glass_r[-1][0] + 1.2
+    for py in (91, 129.5):
+        ring(K, X, 0, P.z(py), P.m(R(py)), P.m(0.8), wire, axis="z", n=24, name="guard_ring")
+    for side in (1, -1):
+        K.tube([(X + side * P.m(R(py)), 0, P.z(py)) for py in range(91, 131, 4)], P.m(0.8), wire, segments=5,
+               name="guard_side")
+    for (ax, ay), (bx, by) in (((20, 103), (53, 128)), ((56, 104), (24, 130))):
+        for fb in (-1, 1):
+            pts = []
+            for i in range(13):
+                t = i / 12
+                px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+                rr = R(py)
+                dxp = max(-rr, min(rr, (px - cx) * (1 if fb < 0 else -1)))
+                pts.append((X + P.m(dxp), fb * P.m(math.sqrt(max(0.0, rr * rr - dxp * dxp))), P.z(py)))
+            K.tube(pts, P.m(0.8), wire, segments=5, name="guard_cross")
+    # the hanging ring on the cap and the wire bail with its pivot eyes
+    ring(K, X, 0, P.z(46), P.m(3.5), P.m(0.9), brass, name="hanger")
+    bail = [(16.5, 72), (16.5, 40), (16.6, 28), (18, 20), (22, 15), (28, 11), (37, 8), (45, 10), (51, 14), (56, 20),
+            (59, 28), (60.2, 40), (60.5, 72)]
+    K.tube([P.pt(x, y) for x, y in bail], P.m(1.0), wire, segments=6, name="bail")
+    for x in (16.5, 60.5):
+        ring(K, P.x(x), 0, P.z(72), P.m(2.2), P.m(0.8), dark, axis="x", name="pivot")
