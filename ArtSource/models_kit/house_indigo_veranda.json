@@ -1,0 +1,10 @@
+{
+ "name": "house_indigo_veranda",
+ "folder": "lane",
+ "kind": "building",
+ "width": 4.532,
+ "height": 4.2,
+ "depth": 6.92,
+ "faces": 10494,
+ "source": "blender"
+}

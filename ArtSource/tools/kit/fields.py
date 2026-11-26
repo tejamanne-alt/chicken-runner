@@ -8,6 +8,7 @@ stone, brick, thatch and straw cut from it). The people and the animals in the p
 import math
 
 import numpy as np
+from mathutils import Matrix, Vector
 from scipy import ndimage
 
 from kitlib import Mat, _image, model, plant_pixels, seamless
@@ -15,15 +16,15 @@ from kitlib import Mat, _image, model, plant_pixels, seamless
 
 # ====================================================================== helpers
 def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, side_from=0.5, side_to=0.85,
-           tile_size=None, soften=0.2, axis="x", name=None):
+           tile_size=None, soften=0.2, side="x", axis_z=None, squeeze_z=1.0, name=None):
     """A material for a round thing (a stack, a pot, a post) that is the painting projected straight through it
     (projected()) where it faces the front or the back, and a tile of its own painted surface (tile_box) round its
     sides, where a straight projection would only stretch the painted outline into streaks; the two blend on how far
-    the surface turns sideways (|normal.x| from side_from to side_to). axis "y" for a thing lying along x (a log):
-    no blend, the tile on its ends."""
+    the surface turns sideways (|normal.x| from side_from to side_to). side "z" for a thing lying along x (a
+    sleeve, a log): the tile on its top and underside, the projection squeezed towards axis_z by squeeze_z."""
     P = K.paint
     key = ("turned", round(axis_x, 4), tuple(tile_box), squeeze, tuple(tuple(b) for b in keep) if keep else None,
-           tuple(tuple(b) for b in exclude), inset, side_from, side_to, tile_size, soften)
+           tuple(tuple(b) for b in exclude), inset, side_from, side_to, tile_size, soften, side, axis_z, squeeze_z)
     if key in K._mats:
         return K._mats[key]
     m = Mat(name or f"{K.name}_turned{len(K._mats)}")
@@ -47,7 +48,10 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     x = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["X"], axis_x), squeeze), axis_x)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(op("ADD", op("DIVIDE", x, P.W), 0.5), vec.inputs[0])
-    nt.links.new(op("DIVIDE", sep.outputs["Z"], P.H), vec.inputs[1])
+    z = sep.outputs["Z"]
+    if axis_z is not None:
+        z = op("ADD", op("MULTIPLY", op("SUBTRACT", z, axis_z), squeeze_z), axis_z)
+    nt.links.new(op("DIVIDE", z, P.H), vec.inputs[1])
     ptex = nt.nodes.new("ShaderNodeTexImage")
     ptex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_proj")
     ptex.extension = "EXTEND"
@@ -77,7 +81,7 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     rng = nt.nodes.new("ShaderNodeMapRange")
     rng.inputs["From Min"].default_value = side_from
     rng.inputs["From Max"].default_value = side_to
-    nt.links.new(op("ABSOLUTE", sn.outputs["X" if axis == "x" else "Y"]), rng.inputs["Value"])
+    nt.links.new(op("ABSOLUTE", sn.outputs[side.upper()]), rng.inputs["Value"])
     mix = nt.nodes.new("ShaderNodeMix")
     mix.data_type = "RGBA"
     nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
@@ -86,6 +90,13 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     m.set_colour(mix.outputs["Result"])
     K._mats[key] = m
     return m
+
+
+def rotate(ob, deg, axis, pivot):
+    """Turns a part's mesh (not its object) by deg degrees about axis ("X", "Y", "Z") through pivot (x, y, z)."""
+    M = Matrix.Translation(pivot) @ Matrix.Rotation(math.radians(deg), 4, axis) @ Matrix.Translation(-Vector(pivot))
+    ob.data.transform(M)
+    return ob
 
 
 def interp(prof):
@@ -231,7 +242,7 @@ def haystack(K):
     # the earth it stands on, its stones and weeds
     earth = K.colour((150, 420, 330, 432), vary=0.18, scale=10)
     earth_disc(K, ax, ground_py, P.m(250), P.m(250) * 0.95, earth)
-    stone = K.projected(squeeze=1.0, keep=[rock_box], inset=2)
+    stone = K.projected(squeeze=1.0, keep=[rock_box], exclude=[(74, 396, 98, 428)], inset=2)
     K.boulder(P.x(108), before(108, 20), P.z(ground_py) + P.m(14), P.m(66), P.m(46), P.m(32), stone, name="rock")
     K.boulder(P.x(330), P.m(170), P.z(ground_py) + P.m(10), P.m(50), P.m(40), P.m(24), stone, name="rock")
     small = K.colour((80, 400, 130, 420), vary=0.12)
@@ -290,5 +301,5 @@ def haystack_small(K):
     straw_fringe(K, ax, 0.0, rpx, (82, 350), 70, size=(44, 36), inset=0.45, exact_rows=(80, 352), sources=(82, 350),
                  sectors=[(-25, 0), (0, 180), (-180, -155)])
     straw_fringe(K, ax, 0.0, rpx, (352, 366), 30, size=(40, 30), inset=0.5, sources=(330, 352),
-                 sectors=[(-30, 0), (0, 180), (-180, -150)], up=0.1)
+                 sectors=[(-12, 0), (0, 180), (-180, -168)], up=0.1)
 

@@ -391,7 +391,7 @@ class Wood:
         return [(P.x(a), b, P.z(c)) for a, b, c in zip(xs, yv, zs)], [P.m(max(0.7, v)) for v in rs]
 
     def tubes(self, mat, fuse_r_px=3.0, thick=None, thin=None, rscale=1.0, seg_thick=14, seg_thin=6, only=None,
-              transform=None, name="limb"):
+              transform=None, name="limb", inside=None):
         """Tubes for the paths (or `only` those): returns (thick parts to fuse, thin parts left as they are)."""
         thick, thin = (thick if thick is not None else []), (thin if thin is not None else [])
         for i in (only if only is not None else range(len(self.paths))):
@@ -401,6 +401,8 @@ class Wood:
                 continue
             if transform is not None:
                 pts = [transform(v) for v in pts]
+                if inside is not None and not all(inside(v) for v in pts):
+                    continue
             rs = [v * rscale for v in rs]
             big = float(np.max(p["r"])) * rscale >= fuse_r_px
             segs = seg_thick if float(np.max(p["r"])) > 3 * fuse_r_px else (10 if big else seg_thin)
@@ -435,8 +437,17 @@ class Wood:
                 dx, dyy = (v[0] - x0) * k, (v[1] - y0) * k
                 return (x0 + dx * ca - dyy * sa, y0 + dx * sa + dyy * ca + dy, v[2])
             thick, thin = self.tubes(mat, fuse_r_px, thick, thin, rscale=rscale, only=only, transform=tf,
-                                     name="limb_turned")
+                                     name="limb_turned", inside=self.hidden)
         return thick, thin
+
+    def hidden(self, v):
+        """True where a point (metres) lies inside the painting's opaque outline (so from the front it is hidden
+        behind what is painted there)."""
+        P = self.P
+        px, py = P.px(v[0]), P.py(v[2])
+        if not (0 <= px < P.w and 0 <= py < P.h):
+            return False
+        return P.rgba[int(py), int(px), 3] > 0.5
 
     def debug(self, path):
         """Draws the traced paths over the painting (for checking the trace)."""
@@ -593,21 +604,29 @@ def undergrowth(K, region, n, size, ys, yaw=80, name="undergrowth", centre_fn=No
 
 
 class Crown:
-    """A crown of leaf cards cut from the painting, shaped as a dome in depth: a card at painted spot (px, py) may lie
-    as far forward or back as the crown is deep there (half_depth at its heart, falling off like an ellipsoid to its
-    painted outline), so from the front it is exactly the painting and from the side and above a rounded mass of
-    leaves, not a slab. centre_px is the crown's heart; rx, rz_up, rz_down its reach in px (left/right, up, down)."""
+    """A crown of leaf cards cut from the painting, shaped in depth like the painted outline blown up into a cushion:
+    a card at painted spot (px, py) may lie as far forward or back as the crown is deep there (half_depth at its
+    heart, falling off round to its painted outline), so from the front it is exactly the painting and from the side
+    and above a rounded mass of leaves, not a slab. region_px bounds the crown; `mask` (bool HxW) is its outline
+    (default: the painting's opaque pixels in region_px); R (px) how far in from the outline it reaches full depth."""
 
-    def __init__(self, K, region_px, half_depth, centre_px, rx, rz_up, rz_down, core=0.15, y0=0.0, rx_right=None):
+    def __init__(self, K, region_px, half_depth, centre_px, mask=None, R=None, core=0.15, y0=0.0):
         self.K, self.P = K, K.paint
-        self.region, self.hd, self.c = region_px, half_depth, centre_px
-        self.rx, self.rxr, self.rzu, self.rzd, self.core, self.y0 = rx, rx_right or rx, rz_up, rz_down, core, y0
+        P = self.P
+        self.region, self.hd, self.c, self.core, self.y0 = region_px, half_depth, centre_px, core, y0
+        if mask is None:
+            mask = (P.rgba[..., 3] > 0.5) & box_mask(P.rgba.shape[:2], [region_px])
+            mask = ndimage.binary_closing(mask, iterations=6)
+            mask = ndimage.binary_fill_holes(mask)
+        self.mask = mask
+        self.dist = ndimage.distance_transform_edt(ndimage.gaussian_filter(mask.astype(np.float32), 6) > 0.5)
+        self.R = R or float(self.dist.max()) * 0.85
+        self.rzu = self.R
 
     def reach(self, px, py):
-        cx, cy = self.c
-        ex = (px - cx) / (self.rx if px < cx else self.rxr)
-        ez = (py - cy) / (self.rzu if py < cy else self.rzd)
-        return math.sqrt(max(0.0, 1 - min(1.0, ex * ex + ez * ez)))
+        d = self.dist[int(np.clip(py, 0, self.P.h - 1)), int(np.clip(px, 0, self.P.w - 1))]
+        t = min(1.0, d / self.R)
+        return math.sqrt(max(0.0, 1 - (1 - t) ** 2))
 
     def extent(self, px, py):
         """How far forward / back of y0 the crown reaches at painted spot (px, py), metres."""
@@ -677,7 +696,7 @@ def tree_mango_1(K):
     leaves, five mangoes, two rocks and low plants at its foot."""
     P = K.paint
     mask, wood = TRACE["tree_mango_1"](K)
-    crown = Crown(K, (8, 8, 782, 440), P.m(770) * 0.36, (400, 300), 400, 300, 150, core=0.2)
+    crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2)
     wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.8))
     bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
     thick, thin = wood.tubes(bark, fuse_r_px=3.0)
@@ -691,7 +710,7 @@ def tree_mango_1(K):
     K.fuse(thick, voxel=0.03, faces=10000)
     # the crown: the painting's leaves on cards through its depth, and the shell facing the camera
     K.leaves_only((0, 0, 789, 470), foliage_pixels)
-    crown.cards(200, (120, 100), "volume")
+    crown.cards(200, (120, 100), "volume", yaw=85, pitch=30)
     crown.cards(80, (130, 110), "front", yaw=20, pitch=10)
     crown.cards(40, (130, 110), "back", yaw=20, pitch=10)
     # mangoes, where they hang and more round the back

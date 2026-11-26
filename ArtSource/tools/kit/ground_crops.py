@@ -431,3 +431,273 @@ def husk(K):
         K.card_from_painting(box, P.pt(cx, cy, rim_y - depth * 0.2), name="strand", normal=(0, -0.4, 0.9))
         K.card_from_painting(box, P.pt(cx + K.rng.uniform(-6, 6), cy, rim_y - depth * 0.05),
                              yaw=K.rng.uniform(40, 80) * K.rng.choice([-1, 1]), name="strand", normal=(0, 0.2, 1))
+
+
+# ====================================================================== twigs and leaves
+TWIGS = [
+    # (px, py, radius px) along each twig and branch, from its thick end
+    [(226, 15, 8.5), (190, 30, 7.5), (150, 40, 7), (125, 46, 6.8), (110, 51, 6.5), (78, 53, 6), (50, 49, 5.2),
+     (26, 46, 4.5)],
+    [(80, 54, 5.2), (68, 66, 5.8), (56, 80, 7.0)],
+    [(117, 50, 4.2), (121, 61, 3.2)],
+    [(14, 142, 8.5), (40, 132, 7.5), (65, 124, 6.5), (85, 112, 5.5), (102, 98, 5.0), (118, 86, 4.0), (126, 79, 3.0)],
+    [(117, 87, 3.6), (128, 89, 3.2), (139, 88, 2.8)],
+    [(80, 121, 5.5), (105, 131, 5.0), (128, 142, 4.6), (155, 133, 4.4), (183, 121, 3.8)],
+    [(283, 122, 9.0), (260, 113, 8.0), (240, 104, 7.0), (222, 95, 6.0), (200, 82, 5.0), (184, 76, 4.0)],
+    [(226, 96, 5.5), (215, 78, 4.5), (208, 62, 3.6)],
+    [(246, 108, 5.0), (232, 113, 4.5), (216, 115, 3.6)],
+    [(241, 175, 8.0), (215, 166, 7.0), (185, 159, 6.5), (157, 158, 6.3), (135, 165, 6.0), (110, 175, 5.8),
+     (86, 182, 5.0)],
+    [(157, 158, 4.2), (155, 150, 3.4)],
+]
+
+
+@model("twigs", "ground", kind="flat")
+def twigs(K):
+    """A few dry twigs lying together: each a tapering, slightly crooked stick with its side shoots and stubs, the
+    cut ends showing pale wood, all resting on the ground."""
+    P = K.paint
+    bark = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=4)
+    R = P.m(9.0)
+    ground = R                                               # the plane the twigs lie on (their backs touch it)
+    for pts in TWIGS:
+        # densify, with a little crook in depth so a twig is not a straight rod
+        dense = []
+        for (x0, y0, r0), (x1, y1, r1) in zip(pts, pts[1:]):
+            for t in np.linspace(0, 1, 4, endpoint=False):
+                dense.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, r0 + (r1 - r0) * t))
+        dense.append(pts[-1])
+        co = [(P.x(x), ground - P.m(r) * (1.0 + 0.08 * math.sin(i * 1.3)), P.z(y)) for i, (x, y, r) in enumerate(dense)]
+        K.tube(co, [P.m(r) for _, _, r in dense], bark, segments=10, name="twig")
+    # the pale cut faces at the thick ends: a disc of bare wood capping each
+    wood = K.colour((218, 8, 232, 22), vary=0.08)
+    for pts in (TWIGS[0], TWIGS[1][::-1], TWIGS[3], TWIGS[6], TWIGS[9]):
+        (x0, y0, r0), (x1, y1, _) = pts[0], pts[1]
+        d = Vector((P.x(x0) - P.x(x1), 0, P.z(y0) - P.z(y1))).normalized()
+        c = Vector((P.x(x0), ground - P.m(r0), P.z(y0))) + d * 0.0015
+        K.tube([tuple(c - d * 0.001), tuple(c + d * 0.0012)], P.m(r0) * 0.86, wood, segments=10, name="cut")
+
+
+def leaf_axis(mask):
+    """The leaf's long axis (PCA of its pixels): centre, unit direction, unit normal, and its half-width along it."""
+    ys, xs = np.nonzero(mask)
+    pts = np.stack([xs, ys], 1).astype(float)
+    c = pts.mean(0)
+    u, s, vt = np.linalg.svd(pts - c, full_matrices=False)
+    d = vt[0]
+    nrm = np.array((-d[1], d[0]))
+    t = (pts - c) @ d
+    w = (pts - c) @ nrm
+    bins = np.linspace(t.min(), t.max(), 24)
+    half = np.array([np.abs(w[(t >= a) & (t < b)]).max() if ((t >= a) & (t < b)).any() else 1.0
+                     for a, b in zip(bins, bins[1:])])
+    mid = (bins[1:] + bins[:-1]) / 2
+    return c, d, nrm, (t.min(), t.max()), (mid, ndimage.uniform_filter1d(np.maximum(half, 2), 3))
+
+
+def dry_leaf(K, edge_lift=0.012, end_lift=0.012, twist=0.004, thick=0.0015):
+    """A dry leaf: a thin sheet on its painted outline, curled up at its edges and its two ends (as a fallen leaf
+    lies), the painting on top, the same leaf underneath."""
+    P = K.paint
+    mask = no_halo(P, width=2)
+    mask = ndimage.binary_opening(mask, iterations=1)
+    c, d, nrm, (t0, t1), (mid, half) = leaf_axis(mask)
+    total = edge_lift + end_lift * 0.6 + thick
+    back = total / 2
+
+    def yfn(px, py):
+        q = np.array((px, py)) - c
+        t, w = q @ d, q @ nrm
+        hw = float(np.interp(t, mid, half))
+        e = min(1.0, abs(w) / hw)
+        s = (t - (t0 + t1) / 2) / ((t1 - t0) / 2)
+        lift = edge_lift * e ** 2 + end_lift * max(0.0, abs(s) - 0.35) ** 2 / 0.65 ** 2 * 0.6 + twist * s * (w / hw)
+        return back - thick - max(0.0, lift)
+    under = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=4)
+    tri_sheet(K, mask, 9, yfn, under, eps=1.0, thickness=thick, name="leaf")
+
+
+@model("leaf_1", "ground", kind="flat")
+def leaf_1(K):
+    """A dry mango leaf with a torn notch in its side, lying curled on the ground."""
+    dry_leaf(K)
+
+
+@model("leaf_2", "ground", kind="flat")
+def leaf_2(K):
+    """A long dry leaf, lying curled on the ground."""
+    dry_leaf(K, edge_lift=0.010, end_lift=0.016)
+
+
+@model("leaf_3", "ground", kind="flat")
+def leaf_3(K):
+    """A narrow dry leaf, bent like a crescent, lying curled on the ground."""
+    dry_leaf(K, edge_lift=0.009, end_lift=0.016, twist=0.006)
+
+
+# ====================================================================== tufts and weeds
+def tuft(K, n=5):
+    """A tuft of grass: the painted tuft where it is painted, and turned, slightly smaller copies of it stood round
+    its foot, so it is a tuft from every side."""
+    P = K.paint
+    mask = plant_mask(P)
+    card_mask(K, mask)
+    ys, xs = np.nonzero(mask)
+    box = (xs.min() - 1, ys.min() - 1, xs.max() + 2, ys.max() + 2)
+    foot = ((xs.min() + xs.max()) / 2, ys.max())
+    K.card_from_painting(box, P.pt((box[0] + box[2]) / 2, (box[1] + box[3]) / 2, 0.0), name="tuft",
+                         normal=(0, -0.4, 0.8))
+    yaws = [180 / n * (k + 0.5) + K.rng.uniform(-8, 8) for k in range(n)]
+    ring_cards(K, box, foot, yaws, y=P.m(4), scale=(0.78, 0.94), spread=P.m(box[2] - box[0]) * 0.08, name="tuft")
+
+
+@model("tuft_1", "ground", kind="prop")
+def tuft_1(K):
+    """A tuft of long grass blades."""
+    tuft(K, 6)
+
+
+@model("tuft_2", "ground", kind="prop")
+def tuft_2(K):
+    """A small tuft of grass."""
+    tuft(K, 5)
+
+
+@model("tuft_3", "ground", kind="prop")
+def tuft_3(K):
+    """A small tuft of grass."""
+    tuft(K, 5)
+
+
+@model("tuft_4", "ground", kind="prop")
+def tuft_4(K):
+    """A little tuft of grass."""
+    tuft(K, 4)
+
+
+def weed(K, stems, flowers, rosette_box, foot, upper=()):
+    """A weed: its flower stalks as thin tubes along the painted ones, each flower a card facing out (and a second,
+    turned, so it is a flower from the side), its rosette of leaves round its foot as turned cards, the painted weed
+    where it is painted."""
+    P = K.paint
+    mask = plant_mask(P)
+    card_mask(K, mask)
+    K.card_from_painting((0, 0, P.w, P.h), P.pt(P.w / 2, P.h / 2, 0.0), name="weed", normal=(0, -0.4, 0.8))
+    stalk = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=1)
+    for pts in stems:
+        K.tube([P.pt(x, y, P.m(1.5)) for x, y, _ in pts], [P.m(r) for _, _, r in pts], stalk, segments=6,
+               name="stalk")
+    for box in flowers:
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        for yaw in (65, -65):
+            K.card_from_painting(box, P.pt(cx, cy, P.m(2)), yaw=yaw + K.rng.uniform(-10, 10), name="flower",
+                                 normal=(0, -0.3, 1))
+    ring_cards(K, rosette_box, foot, [45, 90, 135], y=P.m(3), scale=(0.8, 0.95), name="rosette")
+    for box, yaw in upper:
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, P.m(4)), yaw=yaw, name="leaf", normal=(0, -0.3, 1))
+
+
+@model("weed_1", "ground", kind="prop")
+def weed_1(K):
+    """A small weed with two yellow flowers on long stalks over a rosette of broad leaves."""
+    weed(K,
+         stems=[[(112, 30, 2.2), (106, 60, 2.2), (99, 100, 2.4), (92, 130, 2.6), (88, 152, 2.8)],
+                [(47, 62, 2.0), (58, 90, 2.2), (70, 120, 2.4), (80, 146, 2.6)]],
+         flowers=[(96, 6, 133, 36), (26, 46, 55, 68)],
+         rosette_box=(4, 102, 162, 166), foot=(88, 158),
+         upper=[((70, 50, 128, 100), 70), ((60, 75, 76, 100), -60)])
+
+
+@model("weed_2", "ground", kind="prop")
+def weed_2(K):
+    """A weed with three orange-yellow flowers on slender stalks and a few long leaves at its foot."""
+    weed(K,
+         stems=[[(68, 40, 2.2), (65, 80, 2.4), (62, 120, 2.6), (60, 165, 2.8)],
+                [(30, 80, 2.0), (42, 110, 2.2), (52, 140, 2.4), (58, 165, 2.6)],
+                [(92, 85, 2.0), (80, 105, 2.2), (68, 125, 2.4), (62, 160, 2.6)]],
+         flowers=[(55, 8, 95, 48), (6, 58, 36, 88), (84, 62, 116, 92)],
+         rosette_box=(6, 118, 114, 174), foot=(60, 168),
+         upper=[((42, 34, 64, 66), 70)])
+
+
+# ====================================================================== decals: prints, cracked mud, a cart rut
+def decal_card(K):
+    P = K.paint
+    K.card_from_painting((0, 0, P.w, P.h), (0.0, 0.0, P.H / 2), name="decal", normal=(0, -1, 0))
+
+
+@model("footprints", "ground", kind="flat")
+def footprints(K):
+    """A trail of small bare footprints pressed into the earth (a decal)."""
+    decal_card(K)
+
+
+@model("hen_prints", "ground", kind="flat")
+def hen_prints(K):
+    """A trail of hen footprints (a decal)."""
+    decal_card(K)
+
+
+@model("hoof_prints", "ground", kind="flat")
+def hoof_prints(K):
+    """A trail of cloven cattle hoof prints (a decal)."""
+    decal_card(K)
+
+
+@model("cracked_mud", "ground", kind="flat")
+def cracked_mud(K):
+    """A patch of dry, cracked mud: a thin crust on its painted outline, broken into plates by the painted cracks,
+    each plate a little curled up at its edges, the cracks cut down into it, the crust's edge standing off the
+    ground."""
+    from skimage.morphology import skeletonize
+    P = K.paint
+    a = ndimage.binary_opening(no_halo(P, width=2), iterations=2)
+    L = ndimage.gaussian_filter(lum(P), 0.8)
+    crack = a & (L < 112)
+    crack = ndimage.binary_opening(crack, iterations=1) | (a & (L < 95))
+    dist = ndimage.distance_transform_edt(~crack)
+    plate = 0.016
+    total = plate + 0.006
+    back = total / 2
+
+    def yfn(px, py):
+        dd = float(dist[min(P.h - 1, int(py)), min(P.w - 1, int(px))])
+        h = plate * (0.25 + 0.75 * min(1.0, dd / 3.5)) + 0.006 * math.exp(-max(0.0, dd - 3.5) / 7)
+        return back - h
+    skel = skeletonize(crack)
+    extra = []
+    for mask_, cell in ((skel, 6), ((dist > 2.5) & (dist < 4.0) & a, 8)):
+        ys, xs = np.nonzero(mask_)
+        seen = set()
+        for x, y in zip(xs, ys):
+            k = (x // cell, y // cell)
+            if k not in seen:
+                seen.add(k)
+                extra.append((x + 0.5, y + 0.5))
+    earth = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=6)
+    tri_sheet(K, a, 22, yfn, earth, eps=2.0, back_y=back, extra=extra, name="crust", smooth=False)
+
+
+@model("cart_rut", "ground", kind="flat")
+def cart_rut(K):
+    """The tracks of a cart's wheels in red earth: a patch of earth with two ruts pressed into it, the earth pushed
+    up in ridges beside them (a thin relief, its top the painting)."""
+    P = K.paint
+    a = alpha_mask(P)
+    a = ndimage.binary_opening(a, iterations=2)
+    L = ndimage.gaussian_filter(lum(P), 2.0)
+    Lm = float(np.median(L[a]))
+    relief = 0.014
+    total = relief * 2
+    back = total / 2
+
+    def yfn(px, py):
+        v = float(L[min(P.h - 1, int(py)), min(P.w - 1, int(px))])
+        h = relief + np.clip((v - Lm) / 60.0, -1, 1) * relief * 0.8
+        return back - h
+    # denser rows along the two ruts
+    extra = [(x + K.rng.uniform(-2, 2), y) for y in list(range(44, 80, 4)) + list(range(108, 146, 4))
+             for x in range(4, P.w, 9)]
+    earth = K.colour((300, 160, 500, 180), vary=0.12, scale=20)
+    tri_sheet(K, a, 14, yfn, earth, eps=2.0, back_y=back, extra=extra, name="earth")

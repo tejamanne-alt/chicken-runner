@@ -394,3 +394,165 @@ def house_turmeric_ladder(K):
     K.leaves_only((298, 355, 384, 477))
     scatter_cards(K, (298, 355, 384, 477), 14, (45, 45), (-0.42, -0.05), yaw=70, name="bush_r")
     K.card_from_painting((298, 355, 384, 477), (P.x(341), -0.44, P.z(416)), name="bush_r_front")
+
+
+def country_roof(K, x0_px, x1_px, y_eave, y_top, z_eave, z_top, mat, courses, col_px, tile_r=0.035, lip=0.025,
+                 hip_px=(0, 0), thickness=0.03, name="roof", x0_top_px=None, x1_top_px=None):
+    """A country-tile roof slope from the eave (y_eave, z_eave) up to (y_top, z_top): `courses` rows of half-round
+    tiles (so each painted row lands on a modelled row when the painting is projected from the front), columns
+    col_px wide as painted, each course's lower end standing proud by `lip`; hip_px pulls the two ends in by that
+    many px at the top (a hipped end)."""
+    P = K.paint
+    X0, X1 = P.x(x0_px), P.x(x1_px)
+    T0 = P.x(x0_top_px if x0_top_px is not None else x0_px + hip_px[0])
+    T1 = P.x(x1_top_px if x1_top_px is not None else x1_px - hip_px[1])
+    ncol = max(2, int(round(P.m(x1_px - x0_px) / P.m(col_px))))
+    jitter = K.rng.normal(0, 1, (courses + 2, ncol + 2))
+
+    def surf(u, v):
+        xa, xb = X0 + (T0 - X0) * v, X1 + (T1 - X1) * v
+        x = xa + (xb - xa) * u
+        col = u * ncol
+        ripple = tile_r * abs(math.sin(math.pi * col))
+        c = min(courses - 1, int(v * courses))
+        frac = v * courses - c
+        z = z_eave + (z_top - z_eave) * v + ripple + lip * (1 - frac) ** 2 + 0.006 * jitter[c, int(col)]
+        y = y_eave + (y_top - y_eave) * v
+        return (x, y, z)
+    return K.sheet(surf, ncol * 8, courses * 8, mat, name=name, smooth=False, thickness=thickness)
+
+
+def turned_post(K, cx_px, prof_px, y, keep, name="post", segments=20, squeeze=0.9):
+    """A turned wooden pillar from its painted outline [(radius px, y px), ...] bottom up, at depth y, its own
+    painted bands all round."""
+    P = K.paint
+    mat = K.projected(axis_x=P.x(cx_px), squeeze=squeeze, keep=keep)
+    return K.lathe([(P.m(r), P.z(py)) for r, py in prof_px], mat, segments=segments, centre=(P.x(cx_px), y, 0.0),
+                   name=name)
+
+
+PILLAR_IV = [(10.5, 405), (12, 400), (14, 390), (14.5, 380), (13.5, 368), (11, 362), (13, 357), (13, 350),
+             (13.3, 340), (12, 300), (10, 240), (11, 235), (13, 232), (13, 228), (11, 224), (13.5, 218), (13.5, 208),
+             (12.5, 204), (12.5, 199)]
+
+
+@model("house_indigo_veranda", "lane", kind="building", atlas=2048)
+def house_indigo_veranda(K):
+    """An indigo-washed house with a stepped parapet and six vents, a veranda under a lean-to of country tiles on
+    three turned wooden pillars, a barred window with open shutters, a teal-framed carved door with a garland, a
+    brass lantern, a hanging fern, a cot with a striped bolster, a pot, a red kolam plinth and steps."""
+    P = K.paint
+    depth, ver = 4.5, 1.5                       # the house behind its front wall; the veranda in front of it
+    py_ = -1.3                                  # the pillars' line
+    K.front_min = 0.0                           # the lean-to faces the camera only at a slant: let it take the painting
+    K.front_exclude = [(0, 0, 10, 100), (532, 0, 546, 100)]
+    wall = K.tile((400, 290, 480, 400), size=0.6, vary=0.05, soften=0.55)     # indigo plaster right of the door
+    upper = K.tile((120, 66, 230, 86), vary=0.05, soften=0.3)                 # the parapet's indigo, streaked
+    ledge = K.colour((120, 90, 400, 98), vary=0.06)
+    red = K.tile((300, 470, 420, 500), vary=0.06, soften=0.35)                # red-oxide plinth below the kolam
+    floor = K.colour((60, 434, 230, 440), vary=0.08)
+    teal = K.colour((295, 260, 303, 400), vary=0.05)
+    wood = K.tile((320, 300, 360, 400), P.m(30))
+    timber = K.tile((5, 162, 200, 178), vary=0.05)                            # the veranda beam
+    tiles = K.tile((60, 104, 220, 160), vary=0.04)
+    stone = K.colour((25, 412, 58, 436), vary=0.08)
+    iron = K.colour((0.05, 0.04, 0.035), vary=0.05)
+    dark = K.colour((0.025, 0.02, 0.03), vary=0.0)
+    frame = K.colour((152, 233, 215, 240), vary=0.08)
+    zf = P.z(438)                                                              # the veranda floor
+    # the walls: the lower storey wide (to the veranda's ends), the parapet above the roof a little narrower
+    body = K.box(P.x(8), P.x(538), 0.0, depth, 0.0, P.z(100), wall, name="walls")
+    top = K.box(P.x(22), P.x(520), 0.0, depth, P.z(100), P.z(20), upper, name="parapet_walls")
+    K.box(P.x(18), P.x(527), -0.08, depth + 0.08, P.z(102), P.z(88), ledge, bevel=0.015, name="cornice")
+    for y0, y1, xa, xb in ((-0.03, 0.12, 22, 520), (depth - 0.12, depth + 0.03, 22, 520)):
+        K.box(P.x(xa) - 0.03, P.x(xb) + 0.03, y0, y1, P.z(28), P.z(20) + 0.05, upper, bevel=0.01, name="coping")
+    raised_parapet(K, 22, 112, 5, 28, depth, upper, rim=0.32, left=True)
+    raised_parapet(K, 436, 520, 5, 28, depth, upper, rim=0.32, right=True)
+    K.box(P.x(30), P.x(512), 0.12, depth - 0.12, P.z(20), P.z(20) + 0.01, K.colour((120, 40, 180, 50), vary=0.08,
+          pct=70), name="roof_deck")
+    for x0, x1 in ((188, 202), (222, 236), (258, 272), (300, 314), (336, 350), (372, 386)):
+        K.cut(top, P.x(x0), P.x(x1), -0.05, 0.14, P.z(63), P.z(38))
+        K.box(P.x(x0), P.x(x1), 0.1, 0.12, P.z(63), P.z(38), dark, name="vent_back")
+    # the plinth under the house and the veranda, its floor
+    K.box(P.x(18), P.x(520), -ver, depth + 0.04, 0.0, zf, red, bevel=0.012, name="plinth")
+    K.box(P.x(20), P.x(518), -ver + 0.02, -0.0, zf, zf + 0.008, floor, name="veranda_floor")
+    # the door, recessed in its teal frame, a threshold step before it
+    K.cut(body, P.x(305), P.x(412), -0.05, 0.25, P.z(428), P.z(208))
+    K.box(P.x(305), P.x(412), 0.12, 0.17, P.z(428), P.z(208), wood, name="door")
+    for x0, x1 in ((293, 305), (412, 423)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(428), P.z(196), teal, bevel=0.008, name="jamb")
+    K.box(P.x(293), P.x(423), -0.03, 0.12, P.z(208), P.z(196), teal, bevel=0.008, name="frame_head")
+    K.box(P.x(292), P.x(427), -0.32, 0.0, zf, P.z(425), red, bevel=0.01, name="threshold")
+    # the steps down from the veranda's edge
+    stairs(K, [(283, 433, 440), (262, 448, 456), (245, 463, 479)], red, tread=0.28, y0=-ver)
+    # the window: frame, bars, both shutters open
+    barred_window(K, body, (150, 232, 218, 322), (157, 240, 211, 316), (168, 180, 192, 203), (253, 268, 283, 298),
+                  frame, iron, dark)
+    shutter(K, 157, 0.27, 237, 318, 60, frame, side=-1)
+    shutter(K, 211, 0.27, 237, 318, 60, frame, side=1)
+    # garland
+    flowers = K.colour((330, 225, 345, 235), vary=0.25, scale=40)
+    strings = K.colour((296, 220, 304, 260), vary=0.25, scale=40)
+    pts = [P.pt(x, y, -0.06) for x, y in ((298, 205), (325, 226), (358, 236), (392, 226), (418, 205))]
+    K.tube(pts, P.m(10), flowers, segments=8, name="garland")
+    for x in (297, 420):
+        K.tube([P.pt(x, 200, -0.05), P.pt(x, 265, -0.05)], P.m(7), strings, segments=8, name="garland_string")
+    # the pillars on their stone blocks, capitals and brackets, the beam over them with its rafter ends
+    for cx in (42, 257, 512):
+        turned_post(K, cx, PILLAR_IV, py_, keep=[(cx - 16, 198, cx + 16, 408)], name="pillar")
+        K.box(P.x(cx - 17.5), P.x(cx + 17.5), py_ - 0.15, py_ + 0.15, zf, P.z(405), stone, bevel=0.01, name="base")
+        K.box(P.x(cx - 14), P.x(cx + 14), py_ - 0.12, py_ + 0.12, P.z(200), P.z(176), timber, bevel=0.006, name="capital")
+        K.box(P.x(cx - 22), P.x(cx + 22), py_ - 0.14, py_ + 0.14, P.z(178), P.z(168), timber, bevel=0.006, name="bracket")
+    K.box(P.x(0), P.x(546), py_ - 0.11, py_ + 0.11, P.z(178), P.z(162), timber, bevel=0.008, name="beam")
+    slope = math.degrees(math.atan2(P.z(100) - P.z(168), -py_ + 0.1))
+    for x in range(5, 546, 38):
+        L = math.hypot(-py_ + 0.12, P.z(100) - P.z(168))
+        K.block(P.x(x + 4), py_ / 2 - 0.02, (P.z(103) + P.z(170)) / 2, P.m(8), L, P.m(9), timber, rot=(slope, 0, 0),
+                name="rafter")
+    # the lean-to of country tiles, hipped at its ends
+    country_roof(K, 0, 546, -1.62, 0.0, P.z(163), P.z(100), tiles, courses=3, col_px=33, tile_r=0.04, lip=0.03,
+                 hip_px=(25, 25))
+    # the lantern on its bracket
+    brass = K.projected(axis_x=P.x(470), squeeze=0.9, keep=[(455, 195, 486, 260)], inset=2)
+    K.lathe([(P.m(r), P.z(y)) for r, y in ((1, 259), (5, 255), (11, 248), (12.5, 240), (12.5, 220), (13, 214),
+                                           (9, 208), (4, 204), (2, 198))], brass, segments=16,
+            centre=(P.x(470), -0.22, 0.0), name="lantern")
+    K.tube([P.pt(470, 182, 0.0), P.pt(470, 182, -0.22), P.pt(470, 198, -0.22)], 0.008, iron, segments=6, name="hook")
+    # the hanging fern: its pot on ropes from the beam, leaves as cards
+    pot(K, 104, [(5, 266), (11, 262), (14, 252), (14.5, 242), (15, 234), (14, 232)], keep=[(88, 230, 120, 268)],
+        y=-1.0, mouth=False)
+    rope = K.colour((0.35, 0.2, 0.08), vary=0.1)
+    for dx, dy in ((-11, 0.0), (11, 0.0), (0, -0.07), (0, 0.07)):
+        K.tube([P.pt(104, 196, -1.0), P.pt(104 + dx, 233, -1.0 + dy)], 0.005, rope, segments=5, name="rope")
+    K.tube([P.pt(104, 170, -1.0), P.pt(104, 196, -1.0)], 0.006, rope, segments=5, name="rope")
+    K.leaves_only((62, 205, 142, 312))
+    scatter_cards(K, (62, 205, 142, 312), 14, (35, 35), (-1.15, -0.85), yaw=80, pitch=30, name="fern")
+    K.card_from_painting((62, 205, 142, 312), (P.x(102), -1.17, P.z(258.5)), name="fern_front")
+    # the cot by the wall with its striped bolster
+    cotw = K.tile((160, 385, 235, 397), vary=0.05)
+    legm = K.projected(axis_x=P.x(144), squeeze=0.9, keep=[(136, 360, 153, 436)], inset=2)
+    cy0, cy1 = -0.85, -0.15
+    for lx in (144, 287):
+        for ly in (cy0 + 0.04, cy1 - 0.04):
+            K.lathe([(P.m(r), P.z(y)) for r, y in ((5, 437), (6, 425), (7.5, 410), (6, 398), (7, 385), (5, 372),
+                                                   (6, 365), (4, 360))], legm, segments=10,
+                    centre=(P.x(lx), ly, 0.0), name="cot_leg")
+    K.box(P.x(148), P.x(284), cy0, cy1, P.z(396), P.z(380), cotw, bevel=0.01, name="cot_frame")
+    weave = K.colour((175, 378, 230, 383), vary=0.15, scale=60)
+    K.box(P.x(150), P.x(282), cy0 + 0.03, cy1 - 0.03, P.z(381), P.z(378), weave, name="cot_weave")
+    bolster = K.projected(axis_x=P.x(208), squeeze=1.0, keep=[(168, 355, 248, 380)], inset=2)
+    K.tube([P.pt(x, 368, -0.6) for x in (170, 190, 208, 226, 246)], [P.m(7), P.m(11), P.m(12), P.m(11), P.m(7)],
+           bolster, segments=14, name="bolster")
+    # the pot on the floor, behind the left pillar
+    pot(K, 88, [(17, 433), (24, 428), (29, 418), (31.5, 400), (30, 388), (25, 376), (15, 368), (13, 364), (16, 360),
+                (15, 358)], keep=[(56, 356, 122, 436)], exclude=[(20, 405, 62, 440)], y=-0.75)
+    # side windows and the back
+    for side in (-1, 1):
+        side_window(K, body, side, depth * 0.5, P.z(322), P.z(232), 0.7, frame, iron, dark)
+    back_decal(K, (293, 196, 423, 428), depth)
+    back_decal(K, (130, 232, 238, 322), depth, x_shift=P.m(-40), name="back_window")
+    # bushes at the plinth's ends
+    K.leaves_only((0, 395, 20, 506))
+    scatter_cards(K, (0, 395, 20, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_l")
+    K.leaves_only((526, 410, 546, 506))
+    scatter_cards(K, (526, 410, 546, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_r")

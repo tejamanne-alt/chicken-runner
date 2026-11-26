@@ -1,8 +1,12 @@
 """The market's props and buildings, modelled from their paintings (ArtSource/cutouts/market). See kitlib.py for the kit."""
 import math
 
-from kitlib import model
+import bmesh
+import numpy as np
+from mathutils import Matrix, Vector
+from scipy import ndimage
 
+from kitlib import _obj, model
 from lane_props import ground_patch
 
 
@@ -177,12 +181,6 @@ def lantern(K):
 
 
 # ---------------------------------------------------------------------- shared helpers
-import bmesh  # noqa: E402
-import numpy as np  # noqa: E402
-from mathutils import Matrix, Vector  # noqa: E402
-from scipy import ndimage  # noqa: E402
-
-from kitlib import _obj  # noqa: E402
 
 
 def orient(ob, rot=(0, 0, 0), pivot=(0, 0, 0)):
@@ -265,10 +263,50 @@ def basket(K, cx, cy, outer, rim, inner_drop, mat, rim_mat=None, segments=40, na
                    wobble=0.01)
 
 
+def blob_card(K, box_px, centre, yaw=0.0, pitch=0.0, n=14, rough=0.3, name="card", normal=None):
+    """A cut-out card like card_from_painting, but a ragged round polygon inside box_px instead of a rectangle, so a
+    card cut from the middle of a dense bunch of leaves has a leafy edge, not a straight one."""
+    P = K.paint
+    x0, y0, x1, y1 = box_px
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    rx, ry = (x1 - x0) / 2, (y1 - y0) / 2
+    R = Matrix.Rotation(math.radians(yaw), 3, "Z") @ Matrix.Rotation(math.radians(pitch), 3, "X")
+    ph = K.rng.uniform(0, 6.28)
+    bm = bmesh.new()
+    vs, uvs = [], []
+    for i in range(n):
+        a = ph + 2 * math.pi * i / n
+        f = (1.0 - rough * K.rng.uniform(0.0, 1.0)) if i % 2 == 0 else (1.0 - rough * K.rng.uniform(0.5, 1.4))
+        px = min(P.w - 0.5, max(0.5, cx + rx * f * math.cos(a)))
+        py = min(P.h - 0.5, max(0.5, cy + ry * f * math.sin(a)))
+        off = R @ Vector((P.m(px - cx), 0.0, -P.m(py - cy)))
+        vs.append(bm.verts.new(Vector(centre) + off))
+        uvs.append((px / P.w, 1 - py / P.h))
+    f = bm.faces.new(vs)
+    layer = bm.loops.layers.uv.new("UVMap")
+    for lp, uv in zip(f.loops, uvs):
+        lp[layer].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = list(normal) if normal is not None else [0.0, -0.35, 1.0]
+    K.cards_parts.append(ob)
+    return ob
+
+
+def painted_as(K, at_px, src_px, src_box, squeeze=0.95):
+    """A projected material for a copy of a painted thing (a tomato, a brinjal, a coconut) standing at at_px
+    (px, py) instead of where it is painted (src_px): it wears the painted one's colours, front and back."""
+    P = K.paint
+    ax, ay = at_px
+    sx, sy = src_px
+    return K.projected(axis_x=P.x(ax), squeeze=squeeze, dx=P.x(sx) - P.x(ax), dz=P.z(sy) - P.z(ay), keep=[src_box],
+                       inset=1)
+
+
+
 @model("veg_basket", "market", kind="prop")
 def veg_basket(K):
-    """A round wicker basket heaped with vegetables: okra fanned up on the left, three brinjals, three tomatoes, a
-    pale gourd and a bunch of spinach on the right."""
+    """A round wicker basket heaped with vegetables: okra fanned up on the left, brinjals, tomatoes, pale gourds and
+    bunches of spinach, piled all round its top, not only at the front."""
     P = K.paint
     cx = 82
     wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(16, 62, 150, 129)], inset=2)
@@ -277,6 +315,11 @@ def veg_basket(K):
     ground_disc(K, cx, 129, 70, 0.16, (8, 124, 30, 128), h=0.004)
     R = P.m(64)                                   # the basket's radius at the rim, metres
     zr = P.z(64)
+
+    def heap_z(x, y):
+        """the top of the heap of leaves inside the basket at (x, y) metres"""
+        rho = min(1.0, math.hypot(x - P.x(cx), y) / R)
+        return zr + P.m(10) * (1 - rho * rho) - P.m(3) * rho
     # the heap inside: a low dome of dark leaves the vegetables lie on
     heap = K.colour((0.05, 0.09, 0.015), vary=0.2, scale=25)
     K.lathe([(0.0, zr + P.m(10)), (R * 0.6, zr + P.m(7)), (R * 0.9, zr + P.m(1)), (R * 0.98, zr - P.m(3))], heap,
@@ -287,46 +330,60 @@ def veg_basket(K):
            ((72, 42), (80, 15)), ((40, 60), (10, 45)), ((48, 58), (20, 38)), ((44, 60), (8, 56)), ((52, 56), (36, 26)),
            ((62, 50), (62, 18)), ((58, 52), (48, 22))]
     for k, ((ax, ay), (bx, by)) in enumerate(fan):
-        for y in (-R * 0.3, -R * 0.05, R * 0.2, R * 0.45, R * 0.7):
+        for y in (-R * 0.3, -R * 0.05, R * 0.2, R * 0.45):
             jx, jy = K.rng.uniform(-5, 5), K.rng.uniform(-3, 4)
             yb = y + K.rng.uniform(-0.03, 0.03)
             pod(K, P.pt(ax + jx * 0.5, ay, y), P.pt(bx + jx, by + jy, yb), P.m(6.5), P.m(2.6), okra,
                 bend=(0, 0, P.m(2)), seg=5, name="okra")
-    # the pale gourd lying at the front left
-    gourd = K.colour((30, 52, 42, 62), vary=0.1)
-    ellipsoid(K, P.pt(36, 57, -R * 0.55), (P.m(10), P.m(8), P.m(7)), gourd, rot=(0, -25, 0), name="gourd")
-    # three brinjals and their green caps
-    brinjal = K.colour((52, 52, 72, 64), vary=0.12)
+    # the vegetables: the painted ones where they are, and more of the same piled round the back of the heap
+    T1, T2, T3 = ((106, 46), (96, 38, 116, 54), 12), ((95, 60), (83, 50, 108, 70), 14), ((122, 58), (112, 49, 134, 67), 13)
     cap = K.colour((0.06, 0.12, 0.02), vary=0.1)
-    for (x0, y0, x1, y1, r, y) in ((47, 52, 78, 66, 9, -R * 0.55), (64, 40, 85, 56, 8.5, -R * 0.35),
-                                   (80, 34, 90, 48, 7.5, -R * 0.15)):
+    tomatoes = [  # at (px, py), depth y (fraction of R), painted source
+        ((106, 46), -0.2, T1), ((95, 60), -0.6, T2), ((122, 58), -0.5, T3),
+        ((100, 50), 0.35, T2), ((120, 52), 0.55, T3), ((84, 52), 0.72, T1), ((112, 50), 0.05, T1), ((70, 52), 0.5, T3)]
+    for (px, py), fy, ((sx, sy), box, r) in tomatoes:
+        y = R * fy
+        cz = max(P.z(py), heap_z(P.x(px), y) + P.m(r) * 0.6) if fy > 0 else P.z(py)
+        at = (px, P.py(cz))
+        ellipsoid(K, (P.x(px), y, cz), (P.m(r), P.m(r), P.m(r) * 0.86), painted_as(K, at, (sx, sy), box),
+                  flat_top=0.15, lumps=0.03, name="tomato")
+        K.lathe([(P.m(4), 0.0), (P.m(1), P.m(1.5)), (0.0, P.m(1.5))], cap, segments=6,
+                centre=(P.x(px), y, cz + P.m(r) * 0.84), name="tomato_cap")
+    B1 = ((63, 59), (52, 53, 74, 64))
+    brinjals = [  # (x0, y0, x1, y1) px of its length, radius px, depth (fraction of R), yaw
+        ((47, 52, 78, 66), 9, -0.55, 0), ((64, 40, 85, 56), 8.5, -0.35, 0), ((80, 34, 90, 48), 7.5, -0.15, 0),
+        ((48, 44, 76, 54), 8.5, 0.35, 35), ((70, 40, 96, 50), 8, 0.7, -30), ((96, 42, 124, 52), 8, 0.85, 15)]
+    for (x0, y0, x1, y1), r, fy, yaw in brinjals:
+        y = R * fy
         c = P.pt((x0 + x1) / 2, (y0 + y1) / 2, y)
+        if fy > 0:
+            c = (c[0], c[1], max(c[2], heap_z(c[0], y) + P.m(r) * 0.7))
         L = P.m(math.hypot(x1 - x0, y1 - y0)) / 2
         ang = math.degrees(math.atan2(-(y1 - y0), x1 - x0))
-        ellipsoid(K, c, (L, P.m(r), P.m(r)), brinjal, rot=(0, -ang, 0), name="brinjal")
-        tip = Vector(c) + Vector((-math.cos(math.radians(ang)), 0, -math.sin(math.radians(ang)))) * L * 0.95
-        ellipsoid(K, tuple(tip), (P.m(4), P.m(5), P.m(5)), cap, rot=(0, -ang, 0), name="calyx")
+        mat = painted_as(K, (P.px(c[0]), P.py(c[2])), B1[0], B1[1], squeeze=0.7)
+        ellipsoid(K, c, (L, P.m(r), P.m(r)), mat, rot=(0, -ang, yaw), name="brinjal")
+        d = Matrix.Rotation(math.radians(yaw), 3, "Z") @ Vector((-math.cos(math.radians(ang)), 0, -math.sin(math.radians(ang))))
+        ellipsoid(K, tuple(Vector(c) + d * L * 0.95), (P.m(4), P.m(5), P.m(5)), cap, rot=(0, -ang, yaw), name="calyx")
     K.tube([P.pt(87, 36, -R * 0.15), P.pt(89, 28, -R * 0.15), P.pt(90, 22, -R * 0.12)], P.m(1.8), cap, segments=6,
            name="stalk")
-    # three tomatoes
-    tomato = K.colour((100, 58, 112, 66), vary=0.12)
-    for px, py, r, y in ((106, 46, 12, -R * 0.2), (95, 60, 14, -R * 0.6), (122, 58, 13, -R * 0.5)):
-        ellipsoid(K, P.pt(px, py, y), (P.m(r), P.m(r), P.m(r) * 0.86), tomato, flat_top=0.15, lumps=0.03,
-                  name="tomato")
-        K.lathe([(P.m(4), 0.0), (P.m(1), P.m(1.5)), (0.0, P.m(1.5))], cap, segments=6,
-                centre=(P.x(px), y, P.z(py) + P.m(r) * 0.84), name="tomato_cap")
-    # the spinach: the painted bunch on the right, repeated through the basket's depth and round its back
+    # pale round gourds: the painted one at the front left, two more at the back
+    gourd = painted_as(K, (36, 57), (36, 57), (29, 52, 44, 63), squeeze=0.8)
+    for px, fy, rot in ((36, -0.55, -25), (44, 0.75, 20), (128, 0.7, -10)):
+        y = R * fy
+        cz = P.z(57) if fy < 0 else heap_z(P.x(px), y) + P.m(6)
+        ellipsoid(K, (P.x(px), y, cz), (P.m(10), P.m(8), P.m(7)), gourd if fy < 0 else
+                  painted_as(K, (px, P.py(cz)), (36, 57), (29, 52, 44, 63), squeeze=0.8), rot=(0, rot, 0), name="gourd")
+    # the spinach: ragged cards of the painted bunch, through the basket's depth on the right and round the back
     K.leaves_only((0, 0, 164, 70), green_pixels)
-    for i in range(30):
-        px, py = K.rng.uniform(100, 152), K.rng.uniform(16, 50)
-        y = K.rng.uniform(-R * 0.2, R * 0.85)
-        K.card_from_painting((px - 18, py - 16, px + 18, py + 16), (P.x(px), y, P.z(py)), yaw=K.rng.uniform(-60, 60),
-                             pitch=K.rng.uniform(-25, 25), name="spinach")
-    for i in range(14):
-        # bunches round the back left, cut from the painted bunch's top edge so their outline is the leaves'
-        sx, sy = K.rng.uniform(105, 150), K.rng.uniform(22, 34)
-        px = K.rng.uniform(25, 100)
-        y = K.rng.uniform(R * 0.45, R * 0.9)
-        K.card_from_painting((sx - 18, sy - 16, sx + 18, sy + 22), (P.x(px), y, P.z(sy + 8)), yaw=K.rng.uniform(-70, 70),
-                             pitch=K.rng.uniform(-20, 20), name="spinach_back")
+    for i in range(34):
+        px, py = K.rng.uniform(102, 152), K.rng.uniform(18, 52)
+        y = K.rng.uniform(-R * 0.25, R * 0.85)
+        blob_card(K, (px - 16, py - 15, px + 16, py + 15), (P.x(px), y, P.z(py)), yaw=K.rng.uniform(-70, 70),
+                  pitch=K.rng.uniform(-25, 25), name="spinach")
+    for i in range(18):
+        sx, sy = K.rng.uniform(105, 150), K.rng.uniform(20, 46)
+        px = K.rng.uniform(30, 104)
+        y = K.rng.uniform(R * 0.55, R * 0.95)
+        blob_card(K, (sx - 15, sy - 14, sx + 15, sy + 14), (P.x(px), y, P.z(sy) + P.m(4)), yaw=K.rng.uniform(-80, 80),
+                  pitch=K.rng.uniform(-25, 25), name="spinach_back")
     K.card_from_painting((95, 10, 160, 66), (P.x(127.5), -R * 0.25, P.z(38)), name="spinach_front")

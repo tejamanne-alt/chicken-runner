@@ -1,0 +1,10 @@
+{
+ "name": "coconut",
+ "folder": "ground",
+ "kind": "volume",
+ "width": 0.22,
+ "height": 0.234,
+ "depth": 0.213,
+ "faces": 600,
+ "source": "blender"
+}
