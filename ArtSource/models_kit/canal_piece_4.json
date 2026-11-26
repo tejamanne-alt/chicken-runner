@@ -1,0 +1,10 @@
+{
+ "name": "canal_piece_4",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 2.904,
+ "height": 2.369,
+ "depth": 1.0,
+ "faces": 1236,
+ "source": "blender"
+}

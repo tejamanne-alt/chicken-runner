@@ -1395,7 +1395,7 @@ TRACE["field_tree_2"] = _trace_field_tree_2
 def sage_leaves(rgb):
     """The pale sage-green leaves of the fields' trees (and their dark outlines), not their white cut-out halo."""
     r, g, b, mx, mn = chan(rgb)
-    green = (g >= r - 4) & (g > b + 8) & (mx < 235)
+    green = (g >= r - 4) & (g > b + 8) & (mx < 235) & ~((mn > 165) & (mx - mn < 45))
     keep = ndimage.binary_opening(ndimage.binary_closing(green, iterations=1), iterations=1)
     keep |= (mx < 80) & ndimage.binary_dilation(keep, iterations=2)
     return keep
@@ -1476,7 +1476,8 @@ def field_tree_3(K):
     rng = K.rng
     green = K.colour((250, 600, 258, 700), vary=0.12, scale=20)
     node = K.colour((0.03, 0.045, 0.02), vary=0.1)
-    base_py, cx = 752, 245
+    base_py, cx = 768, 245
+    alpha = P.rgba[..., 3]
     crown = Crown(K, (0, 0, 511, 620), P.m(480) * 0.34, (250, 300), core=0.2, dome=(300, 0, 640), dome_pow=0.6)
     # the culms painted in front, fanning out from the clump, then more all through the clump behind them
     n = 13
@@ -1489,6 +1490,8 @@ def field_tree_3(K):
             spread = (f - 0.5) * 2
             top_py = rng.uniform(140, 330) - 80 * (1 - abs(spread))
             xt = x5 + spread * rng.uniform(40, 120)
+            while top_py < 500 and alpha[int(top_py) - 25:int(top_py) + 1, int(np.clip(xt, 0, P.w - 1))].min() < 0.5:
+                top_py += 8                                 # its tip stays among the painted leaves
             yt = y_base * 2.5 + rng.uniform(-0.5, 0.5)
             yt = float(np.clip(yt, -crown.extent(xt, top_py + 60) * 0.9, crown.extent(xt, top_py + 60) * 0.9))
             pts_px = [(xb, base_py), (xb + (x5 - xb) * 0.5, 640), (x5, 520), (x5 + (xt - x5) * 0.45, 420),
@@ -1500,18 +1503,18 @@ def field_tree_3(K):
             culm(K, pts, [r0, r0 * 0.95, r0 * 0.88, r0 * 0.75, r0 * 0.55, r0 * 0.3], green, node, node_every=0.6)
     # the knot of roots at the foot: a low mound of earth and root, and the fibrous roots on cards round it
     soil = K.colour((225, 780, 240, 800), vary=0.15)
-    K.lathe([(P.m(70), 0.0), (P.m(66), P.m(15)), (P.m(52), P.m(35)), (P.m(30), P.m(48)), (0.0, P.m(52))], soil,
-            segments=20, centre=(P.x(cx), 0.0, 0.0), scale_y=0.8, wobble=0.12, name="root_mound")
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((75, 837), (68, 805), (58, 778), (45, 760), (25, 750), (0.0, 747))],
+            soil, segments=20, centre=(P.x(cx), 0.0, 0.0), scale_y=0.8, wobble=0.12, name="root_mound")
 
     def roots_rule(rgb):
         r, g, b, mx, mn = chan(rgb)
         return (mx < 175) & (mx > 20) & (r >= g - 4)
     K.leaves_only((100, 745, 420, 837), roots_rule)
-    for k in range(10):
+    for k in range(8):
         a = rng.uniform(0, 360)
-        px = rng.uniform(140, 360)
-        K.card_from_painting((px - 50, 760, px + 50, 837), (P.x(px), rng.uniform(-0.4, 0.4), P.z(798)), yaw=a,
-                             name="roots")
+        px = rng.uniform(190, 300)
+        K.card_from_painting((px - 35, 770, px + 35, 837), (P.x(px), rng.uniform(-0.3, 0.3), P.z(803)),
+                             yaw=rng.uniform(-60, 60) + rng.choice([0, 180]), name="roots")
     K.card_from_painting((100, 755, 400, 837), (P.x(250), -0.3, P.z(796)), name="roots_front")
     # the leaves
     K.leaves_only((0, 0, 511, 640), sage_leaves)
@@ -1564,19 +1567,64 @@ def _bezier(a, c, b, n):
              (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]) for t in np.linspace(0, 1, n)]
 
 
-def blades_cover(K, mask, bases, n, w_px, len_px=(60, 400), arch=0.3, droop=0.0, profile="strap", tries=6000,
-                 inside=0.9, min_gain=40, target=0.95, seed_pts=None):
-    """Blades that together cover a painted mass of blades (mask, bool HxW) as seen from the front: each runs from one
-    of `bases` (px boxes it may spring from) out through ground not yet covered to the mask's edge, curving (arch:
-    how much it bows, droop: how much it falls at its end), w_px (min, max) wide at its widest. Greedy: every blade
-    must lie inside the mask and cover new ground. Returns [(points px [(x, y)], widths px)]."""
+def stroke_field(K, sigma=1.5, rho=5.0):
+    """The direction of the painted strokes at every pixel (unit (dx, dy), sign-free): along the blades, veins and
+    outlines, from the painting's structure tensor."""
+    lum = ndimage.gaussian_filter((K.paint.rgba[..., :3] @ np.array([0.3, 0.59, 0.11])).astype(np.float64), sigma)
+    gr, gc = ndimage.sobel(lum, 0), ndimage.sobel(lum, 1)
+    Arr, Arc, Acc = [ndimage.gaussian_filter(v, rho) for v in (gr * gr, gr * gc, gc * gc)]
+    th = 0.5 * np.arctan2(2 * Arc, Acc - Arr)              # the gradient's direction, from the x axis
+    return np.stack([-np.sin(th), np.cos(th)], -1)          # along the strokes
+
+
+def _stream(field, mask, Q, d0, step=3.0, max_len=500.0, inertia=0.5):
+    H, W = mask.shape
+    pts = [np.array(Q, float)]
+    d = np.array(d0, float)
+    d /= max(1e-9, np.hypot(*d))
+    for _ in range(int(max_len / step)):
+        p = pts[-1]
+        o = field[int(np.clip(p[1], 0, H - 1)), int(np.clip(p[0], 0, W - 1))].copy()
+        if o @ d < 0:
+            o = -o
+        d = (1 - inertia) * o + inertia * d
+        d /= max(1e-9, np.hypot(*d))
+        q = p + d * step
+        if not (0 <= q[0] < W and 0 <= q[1] < H) or not mask[int(q[1]), int(q[0])]:
+            break
+        pts.append(q)
+    return pts
+
+
+def blade_tips(mask, smooth=1.0, min_branch=12):
+    """The painted blades' tips: the ends of the blade mass's skeleton (px (x, y))."""
+    m = ndimage.gaussian_filter(mask.astype(np.float32), smooth) > 0.5
+    sk = skeletonize(m)
+    paths, deg = _skel_graph(sk)
+    tips = []
+    for p in paths:
+        for end in (p[0], p[-1]):
+            if deg[end] == 1 and len(p) >= min_branch:
+                tips.append((float(end[1]), float(end[0])))
+    return tips
+
+
+def blades_cover(K, mask, bases, n, w_px, len_px=(60, 400), profile="strap", tries=3000, inside=0.92, min_gain=30,
+                 target=0.96, field=None, arch=0.45, tips=None, **_):
+    """Blades that together cover a painted mass of blades (mask, bool HxW) as seen from the front: first one to
+    every painted tip (an end of the mass's skeleton), then more through ground not yet covered; each springs from
+    one of the `bases` boxes (px), and of the arcs it could take it takes the one that runs along the painting's
+    strokes and stays inside the mask. Greedy: every blade lies (inside x) within the mask and covers new ground.
+    Returns [(points px [(x, y)], widths px)], coverage."""
+    from PIL import ImageDraw
     rng = K.rng
     H, W = mask.shape
+    field = stroke_field(K) if field is None else field
     cover = np.zeros_like(mask)
     total = mask.sum()
     out = []
-    ys, xs = np.nonzero(mask)
-    from PIL import ImageDraw
+    tips = blade_tips(mask) if tips is None else tips
+    order = list(rng.permutation(len(tips)))
 
     def width_at(t, w0):
         if profile == "strap":
@@ -1584,62 +1632,79 @@ def blades_cover(K, mask, bases, n, w_px, len_px=(60, 400), arch=0.3, droop=0.0,
         if profile == "leaf":
             return w0 * math.sin(math.pi * min(1.0, 0.08 + t * 0.92)) ** 0.8 * (1 - t ** 3)
         return w0 * (1 - t)
-    for _ in range(tries):
+
+    def best_arc(B, T):
+        L = float(np.hypot(*(T - B)))
+        d = (T - B) / max(1e-6, L)
+        perp = np.array([d[1], -d[0]])
+        m = max(6, int(L / 12))
+        best = None
+        for a in np.linspace(-arch, arch, 11):
+            C = (B + T) / 2 + perp * a * L
+            pts = np.array(_bezier(tuple(B), tuple(C), tuple(T), m))
+            tang = np.gradient(pts, axis=0)
+            tang /= np.maximum(1e-6, np.hypot(*tang.T))[:, None]
+            ix = np.clip(pts[:, 0].astype(int), 0, W - 1)
+            iy = np.clip(pts[:, 1].astype(int), 0, H - 1)
+            align = np.abs((tang * field[iy, ix]).sum(1))[m // 4:].mean()
+            ins = mask[iy, ix][m // 5:].mean()
+            score = align + 2.0 * ins
+            if best is None or score > best[0]:
+                best = (score, pts)
+        return best[1]
+    k = 0
+    for attempt in range(tries):
         if len(out) >= n or cover.sum() > target * total:
             break
         bx0, by0, bx1, by1 = bases[rng.integers(len(bases))]
-        B = (rng.uniform(bx0, bx1), rng.uniform(by0, by1))
-        # a spot not yet covered, which the blade will pass through
-        un = np.nonzero(mask & ~cover)
-        if len(un[0]) == 0:
-            break
-        j = rng.integers(len(un[0]))
-        Q = (float(un[1][j]), float(un[0][j]))
-        d = np.array(Q) - np.array(B)
-        L = float(np.hypot(*d))
-        if L < 8:
-            continue
-        d /= L
-        # run on from Q to the mask's edge
-        T = np.array(Q)
-        while True:
-            nxt = T + d * 3
-            if not (0 <= nxt[0] < W and 0 <= nxt[1] < H) or not mask[int(nxt[1]), int(nxt[0])]:
+        B = np.array((rng.uniform(bx0, bx1), rng.uniform(by0, by1)))
+        if k < len(order):
+            T = np.array(tips[order[k]])
+            k += 1
+            from_tip = True
+        else:
+            un = np.nonzero(mask & ~cover)
+            if len(un[0]) == 0:
                 break
-            T = nxt
-        L = float(np.hypot(*(T - np.array(B))))
+            j = rng.integers(len(un[0]))
+            Q = np.array((float(un[1][j]), float(un[0][j])))
+            d = Q - B
+            Ld = float(np.hypot(*d))
+            if Ld < 8:
+                continue
+            d /= Ld
+            T = Q.copy()
+            while True:
+                nxt = T + d * 3
+                if not (0 <= nxt[0] < W and 0 <= nxt[1] < H) or not mask[int(nxt[1]), int(nxt[0])]:
+                    break
+                T = nxt
+            from_tip = False
+        L = float(np.hypot(*(T - B)))
         if not (len_px[0] <= L <= len_px[1]):
             continue
-        perp = np.array([d[1], -d[0]])
-        if perp[1] > 0:
-            perp = -perp
-        C = (np.array(B) + T) / 2 + perp * L * rng.uniform(-arch * 0.3, arch) + np.array([0, 1]) * droop * L * rng.uniform(0, 1)
-        m = max(6, int(L / 13))
-        pts = _bezier(B, C, tuple(T), m)
+        pts = best_arc(B, T)
+        m = len(pts)
         w0 = rng.uniform(*w_px)
         wd = [width_at(i / (m - 1), w0) for i in range(m)]
-        # its outline
         left, right = [], []
         for i in range(m):
-            a = np.array(pts[min(i + 1, m - 1)]) - np.array(pts[max(i - 1, 0)])
+            a = pts[min(i + 1, m - 1)] - pts[max(i - 1, 0)]
             a /= max(1e-6, np.hypot(*a))
             nrm = np.array([-a[1], a[0]])
-            left.append(tuple(np.array(pts[i]) + nrm * wd[i] / 2))
-            right.append(tuple(np.array(pts[i]) - nrm * wd[i] / 2))
-        poly = left + right[::-1]
+            left.append(tuple(pts[i] + nrm * wd[i] / 2))
+            right.append(tuple(pts[i] - nrm * wd[i] / 2))
         im = Image.new("L", (W, H), 0)
-        ImageDraw.Draw(im).polygon(poly, fill=255)
+        ImageDraw.Draw(im).polygon(left + right[::-1], fill=255)
         bmask = np.asarray(im) > 127
         area = bmask.sum()
-        if area < 10:
-            continue
-        if (bmask & mask).sum() < inside * area:
+        if area < 10 or (bmask & mask).sum() < (inside - (0.06 if from_tip else 0.0)) * area:
             continue
         gain = (bmask & mask & ~cover).sum()
-        if gain < min_gain:
+        if gain < (min_gain * 0.3 if from_tip else min_gain):
             continue
         cover |= bmask
-        out.append((pts, wd))
+        out.append(([tuple(p) for p in pts], wd))
     return out, cover
 
 
@@ -1673,16 +1738,15 @@ def field_tree_4(K):
             wobble=0.08, name="stump")
     # the blades: solid, saw-edged straps covering the painted mass, springing from the stump's top and sides
     found, cover = blades_cover(K, blades_mask, [(225, 270, 315, 305), (215, 290, 330, 360), (235, 330, 310, 395)],
-                                170, (11, 19), len_px=(50, 330), arch=0.35, droop=0.15, profile="strap", inside=0.88,
-                                min_gain=35)
+                                175, (10, 17), len_px=(50, 360), profile="strap", inside=0.93, min_gain=35, arch=0.6)
     green = masked_material(K, blades_mask, inset=1)
 
     def y_of(t, x, y, k, tips={}):
         if k not in tips:
-            tips[k] = (rng.uniform(-0.25, 0.25), rng.choice([-1, 1]) * rng.uniform(0.3, 1.0))
+            tips[k] = (rng.uniform(-0.2, 0.2), rng.choice([-1, 1]) * rng.uniform(0.25, 0.8))
         yb, f = tips[k]
-        return yb + f * shape.extent(x, y) * (t ** 1.1)
-    place_blades(K, found, green, y_of, rolls=30, thick=0.16, fold=0.25)
+        return yb + f * shape.extent(x, y) * (t ** 1.3)
+    place_blades(K, found, green, y_of, rolls=15, thick=0.14, fold=0.15)
     # red earth and its stones
     zg = P.z(425)
     earth(K, 265, 150, 1.4, (290, 418, 330, 428), h=0.04, z=zg - 0.03)
@@ -1842,3 +1906,69 @@ def field_tree_6(K):
     for px, w, h, y in ((38, 22, 10, -0.2), (90, 26, 12, -0.25), (128, 26, 14, -0.3), (262, 14, 8, -0.3),
                         (290, 18, 10, -0.25), (60, 20, 10, 0.3), (170, 22, 12, 0.35), (280, 20, 10, 0.4)):
         rock(K, px, 233, w, h, y, stone)
+
+
+# ====================================================================== the generic traced tree (the plants' trees)
+def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spread=0.5, root_z_px=None,
+                card_px=None, n_cards=(220, 90, 50, 25), limb_py_max=None, limb_py_min=None, n_limbs=6, n_roots=4,
+                root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=0.7, fuse_faces=9000,
+                rscale=1.0, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260):
+    """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
+    on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
+    roots turned round the trunk as well; returns (wood, crown, bark material, thin parts)."""
+    P = K.paint
+    rng = K.rng
+    wood = Wood(K, mask, root_px, spur=spur, min_len=5)
+    cw = crown_box[2] - crown_box[0]
+    crown = Crown(K, crown_box, P.m(cw) * depth_ratio, crown_centre, core=core, dome=dome, dome_pow=dome_pow,
+                  mask=crown_mask)
+    floor = P.m(cw) * 0.06
+    wood.grow(spread, root_z_px=root_z_px, root_spread=0.9,
+              ymax=lambda px, py: max(floor, crown.extent(px, py) * 0.8), seed_dy=seed_dy)
+    bark = bark_material(K, mask, axis_x=P.x(bark_axis_px or root_px[0]), squeeze=0.9)
+    voxel = P.H / voxel_div
+    fuse_r = voxel * 1.3 * P.ppm
+    thick, thin = wood.tubes(bark, fuse_r_px=fuse_r, rscale=rscale)
+    limbs = pick_limbs(wood, py_max=limb_py_max, py_min=limb_py_min, r_min=fuse_r * 1.2, min_len=cw * 0.08,
+                       n=n_limbs)
+    picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 125), 0.0) for k, i in enumerate(limbs)]
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=fuse_r)
+    if n_roots:
+        roots = pick_limbs(wood, r_min=fuse_r, min_len=cw * 0.05, n=n_roots, roots=True, root_py=root_py)
+        wood.turned_copies(bark, [(i, rng.choice([-1, 1]) * rng.uniform(*root_turn), 0.0) for i in roots],
+                           thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=fuse_r)
+    if thick:
+        K.fuse(thick, voxel=voxel, faces=fuse_faces)
+    K.leaves_only(tuple(int(v) for v in crown_box), leaf_rule)
+    cp = card_px or (cw * 0.14, cw * 0.12)
+    nv, nf, nb, nt = n_cards
+    crown.cards(nv, cp, "volume", yaw=85, pitch=45)
+    crown.cards(nf, (cp[0] * 1.1, cp[1] * 1.1), "front", yaw=30, pitch=20)
+    crown.cards(nb, cp, "back", yaw=30, pitch=20)
+    if nt:
+        crown.cards(nt, cp, "top", yaw=90, region=(crown_box[0], crown_box[1], crown_box[2],
+                                                      (crown_box[1] + crown_box[3]) / 2))
+    return wood, crown, bark, thin
+
+
+def _trace_grey(K, boxes, root_px, exclude=(), sat=40, lo=40, hi=225, close=2, hole=600, min_area=30, spur=1.3,
+                extra_rule=None):
+    def rule(rgb):
+        r, g, b, mx, mn = chan(rgb)
+        m = grey_bark(rgb, sat=sat, lo=lo, hi=hi)
+        return m & extra_rule(rgb) if extra_rule is not None else m
+    mask = wood_mask(K, rule, boxes=boxes, exclude=exclude, close=close, hole=hole, min_area=min_area)
+    return mask, Wood(K, mask, root_px=root_px, spur=spur, min_len=5)
+
+
+TRACE["h1_1"] = lambda K: _trace_grey(K, [(0, 380, 1239, 1187)], (600, 1150))
+
+
+@model("h1_1", "plants", kind="prop", atlas=2048, leaves=1024)
+def h1_1(K):
+    """A spreading shade tree: a thick grey trunk of twisted, braided strands on a great splay of roots, crooked
+    limbs reaching out under a broad dome of feathery compound leaves."""
+    mask, _ = TRACE["h1_1"](K)
+    traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_leaves, spread=0.55,
+                root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
+                n_cards=(240, 100, 55, 25))

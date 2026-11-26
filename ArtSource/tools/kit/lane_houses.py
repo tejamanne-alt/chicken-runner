@@ -946,7 +946,7 @@ def straw_pixels(rgb):
     """Straw and dry palm leaf (tan, ochre, olive), not the shadowed mud wall behind a thatch's fringe."""
     from kitlib import plant_pixels
     r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
-    straw = (r > 120) & (g > 0.6 * r) & (g > 90)
+    straw = (r > 120) & (g > 0.6 * r) & (g > 90) & (np.minimum(np.minimum(r, g), b) < 190)   # not the white halo
     dark = np.maximum(np.maximum(r, g), b) < 70
     keep = straw | plant_pixels(rgb)
     return keep | (dark & ndimage.binary_dilation(keep, iterations=2))
@@ -1881,7 +1881,8 @@ def house_being_built(K):
     def pole_pt(top, bot, py, lean):
         (tx, ty), (bx, by) = top, bot
         f = (py - ty) / (by - ty)
-        return (P.x(tx + (bx - tx) * f), ys + lean * (1 - f), P.z(py))
+        g = (py - ty) / (1000 - ty)                    # 0 at its top, 1 at its foot on the floor inside
+        return (P.x(tx + (bx - tx) * f), ys + lean * (1 - g), P.z(py))
     for top, bot in verts:
         lean = 0.6 if top[1] < 30 else 0.0
         a = pole_pt(top, bot, top[1], lean)
@@ -1906,7 +1907,7 @@ def house_being_built(K):
     # the heap of mud and straw
     mudm = K.projected(squeeze=1.0, keep=[(205, 700, 800, 1010)], inset=2)
     for px, py, w, h in ((330, 930, 230, 150), (470, 880, 280, 260), (610, 920, 250, 170), (720, 975, 170, 90),
-                         (250, 990, 200, 80), (420, 990, 300, 90)):
+                         (310, 990, 160, 70), (420, 990, 300, 90)):
         K.boulder(P.x(px), -0.9 + K.rng.uniform(-0.3, 0.3), P.z(py), P.m(w), P.m(w) * 0.9, P.m(h) * 1.1, mudm,
                   name="mud")
     K.leaves_only((150, 690, 1560, 1050), straw_pixels)

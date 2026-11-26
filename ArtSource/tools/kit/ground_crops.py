@@ -693,13 +693,14 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
     clean_front(K, mask)
     card_mask(K, mask)
     K.card_from_painting((0, 0, P.w, P.h), P.pt(P.w / 2, P.h / 2, 0.0), name="weed", normal=(0, -0.4, 0.8))
-    rgb = P.rgba[..., :3] * 255
-    green = mask & (rgb[..., 1] > rgb[..., 0] + 5) & (rgb[..., 1] > rgb[..., 2] + 30) & (rgb.max(-1) < 170)
-    ys, xs = np.nonzero(green)
-    stalk = K.colour(tuple(float(v) for v in np.median(P.rgba[ys, xs, :3], 0) ** 2.2), vary=0.08)
+    # each flower stalk, turned square to the painting too, so from the side it is a stalk (a card: a solid stalk
+    # this thin would be all ink outline)
     for pts in stems:
-        K.tube([P.pt(x, y, P.m(1.2)) for x, y, _ in pts], [P.m(r) * 0.7 for _, _, r in pts], stalk, segments=6,
-               name="stalk")
+        xs_, ys_ = [x for x, _, _ in pts], [y for _, y, _ in pts]
+        box = (min(xs_) - 6, min(ys_) - 2, max(xs_) + 6, max(ys_) + 2)
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, P.m(1)), yaw=90 + K.rng.uniform(-15, 15), name="stalk",
+                             normal=(0, -0.3, 1))
     for box in flowers:
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         for yaw in (80, -80):
@@ -883,14 +884,6 @@ def plant_rows_cards(K, src_x, width_px, top_py, base_py, rows, x_range, step_px
             x += step_px * K.rng.uniform(0.8, 1.2)
 
 
-def head_tube(K, pts_px, radii_px, y, mat, segments=8, name="head"):
-    """A grain head (a sorghum head, a paddy panicle) or any fat, curved, tapering shape: a tube along painted points
-    with a radius at each, closed at both ends."""
-    P = K.paint
-    return K.tube([P.pt(px, py, y) for px, py in pts_px], [P.m(r) for r in radii_px], mat, segments=segments,
-                  name=name)
-
-
 def components(mask, min_area=0):
     """Bounding boxes, pixel counts and masks of the connected pieces of a boolean mask (largest first)."""
     lab, n = ndimage.label(mask)
@@ -923,8 +916,9 @@ def pca_axis(m, offset):
 # ====================================================================== the strips
 @model("crop_strip_3", "fields", kind="prop", atlas=2048)
 def crop_strip_3(K):
-    """A strip of tall sorghum (cholam) heavy with grain: rows of plants 1.5 m deep on a bed of red earth, each a
-    stalk with its long arching leaves and a compact grain head at the top, nodding."""
+    """A strip of tall sorghum (cholam) heavy with grain: rows of plants 1.5 m deep on a bed of red earth, each its
+    stalk and long arching leaves with a compact, fluffy grain head nodding at the top (the heads crossed cards of
+    the painted ones, so they keep their painted grain from every side)."""
     P = K.paint
     depth = 1.5
     clean_front(K, plant_mask(P) | (np.arange(P.h)[:, None] > 380) & alpha_mask(P))
@@ -933,44 +927,24 @@ def crop_strip_3(K):
     a = alpha_mask(P)
     gold = a & (r > 140) & (r - b > 85) & (r > g) & (np.arange(P.h)[:, None] < 230)
     gold = ndimage.binary_opening(ndimage.binary_closing(gold, iterations=2), iterations=2)
-    # heads that touch in the painting are split where they meet (an erosion), each grown back on its own
     lab, n = ndimage.label(ndimage.binary_erosion(gold, iterations=4))
     grown = ndimage.grey_dilation(lab, size=9) * gold
-    heads = [c for k in range(1, n + 1) for c in components(grown == k, 200)[:1]]
-    top_py, base_py = 398, 399
+    heads = [c[0] for k in range(1, n + 1) for c in components(grown == k, 200)[:1]]
+    base_py = 399
     rows_y = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
-    field_bed(K, 28, 1197, top_py, depth, top_box=(300, 386, 420, 396), ridges=0.03, rows=rows_y)
-    # the grain heads, the stalks under them, the leaves
-    grain = K.tile((515, 15, 545, 95), vary=0.08, soften=0.15)
-    stalk = K.colour((172, 300, 182, 390), vary=0.06)
-    card_mask(K, plant_mask(P) & ~ndimage.binary_dilation(gold, iterations=2))
-    painted = []
-    for box, area, m, sl in heads:
-        top_end, bot_end, d, hw = pca_axis(m, (box[0], box[1]))
-        painted.append((top_end, bot_end, min(hw, 15.0)))
-    for k, y in enumerate(rows_y):
-        for (te, be, hw) in painted:
-            dx = 0.0 if k == 0 else K.rng.uniform(-45, 45)
-            dz = 0.0 if k == 0 else K.rng.uniform(0, 30)
-            if k > 0 and K.rng.uniform() < 0.35:
-                continue
-            t0, t1 = te + (dx, dz), be + (dx, dz)
-            hs = 1.0 if k == 0 else K.rng.uniform(0.75, 0.9)
-            t1 = t0 + (t1 - t0) * hs
-            mid = (t0 + t1) / 2 + np.array((K.rng.uniform(-3, 3), 0))
-            pts = [t0, t0 + (t1 - t0) * 0.15, mid, t0 + (t1 - t0) * 0.85, t1]
-            rad = [hw * hs * f for f in (0.3, 0.8, 0.95, 0.8, 0.45)]
-            yy = y + (0 if k == 0 else K.rng.uniform(-0.06, 0.06))
-            head_tube(K, pts, rad, yy, grain, segments=8)
-            # the stalk: from under the head down to the soil, leaning a little
-            foot = (t1[0] + K.rng.uniform(-12, 12), base_py + 2)
-            sp = [t1 + (0, 2), (t1 + np.array(foot)) / 2 + (K.rng.uniform(-4, 4), 0), foot]
-            K.tube([P.pt(px, py, yy) for px, py in sp], [P.m(3.2), P.m(3.8), P.m(4.5)], stalk, segments=6,
-                   name="stalk")
-    # leaves: the front row is the painting, the rows behind it its plants mixed and turned
+    field_bed(K, 28, 1197, 398, depth, top_box=(300, 386, 420, 396), ridges=0.03, rows=rows_y)
+    card_mask(K, plant_mask(P))
+    # the front row: the painting, and each painted head crossed by a turned copy of itself
     plant_band_cards(K, 28, 1197, 0, base_py, rows_y[0], 22, yaw=10)
+    for x0, y0, x1, y1 in heads:
+        box = (x0 - 3, y0 - 3, x1 + 3, y1 + 3)
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, P.pt(cx, cy, rows_y[0] + 0.01), yaw=90 + K.rng.uniform(-20, 20), name="head",
+                             normal=(0, -0.2, 1))
+    # the rows behind: whole plants (stalk, leaves and head) cut from the painting round its stalks, turned, each
+    # crossed by a second
     src = [97, 180, 300, 380, 455, 540, 610, 690, 770, 850, 985, 1060, 1130]      # the painted stalks
-    plant_rows_cards(K, src, 75, 120, base_py, rows_y[1:], (40, 1185), 95, scale=(0.75, 0.92), yaw=35)
+    plant_rows_cards(K, src, 95, 0, base_py, rows_y[1:], (40, 1185), 95, scale=(0.78, 0.94), yaw=35)
 
 
 @model("crop_strip_1", "fields", kind="prop", atlas=2048)
@@ -1127,7 +1101,7 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
                 box = (sx - width_px / 2, top_py, sx + width_px / 2, base_py)
                 plant_card(K, box, (P.x(x) + K.rng.uniform(-0.03, 0.03), y + K.rng.uniform(-0.05, 0.05), z_foot),
                            base_yaw + (90 + K.rng.uniform(-20, 20) if k else 0), s * (0.92 if k else 1.0),
-                           features, make, name=name)
+                           () if k else features, make, name=name)
             if spots is None:
                 x += step_px * K.rng.uniform(0.8, 1.2)
             elif not spots:
@@ -1149,12 +1123,12 @@ def blobs(P, mask, min_area, max_py=None):
 def capsule(K, a, b, r, mat, segments=8, name="pod"):
     """A fat, rounded capsule from a to b (metres), radius r: a pod, a boll, a grain head."""
     A, B = Vector(a), Vector(b)
-    pts = [A + (B - A) * t for t in (0.0, 0.08, 0.3, 0.5, 0.7, 0.92, 1.0)]
-    rad = [r * 0.25, r * 0.75, r * 0.98, r, r * 0.98, r * 0.75, r * 0.25]
+    pts = [A + (B - A) * t for t in (0.0, 0.12, 0.5, 0.88, 1.0)]
+    rad = [r * 0.3, r * 0.85, r, r * 0.85, r * 0.3]
     return K.tube([tuple(p) for p in pts], rad, mat, segments=segments, name=name)
 
 
-def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band):
+def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, at=None):
     """A groundnut (peanut) crop: bushy plants of small round leaflets in rows, the pods lying at their feet."""
     P = K.paint
     clean_front(K, no_halo(P, haze=False))
@@ -1172,9 +1146,9 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band):
     def make(K, fr, ft, yaw, s):
         e0, e1, hw, area = ft[2]
         a, bb = fr(*e0, out=-0.01), fr(*e1, out=-0.01)
-        capsule(K, a, bb, P.m(hw) * s * 1.05, shell if s == 1.0 else pod_mat, segments=7)
+        capsule(K, a, bb, P.m(hw) * s * 1.05, shell if s == 1.0 else pod_mat, segments=6)
     crop_rows(K, 10, P.w - 8, top_py, base_py, rows, P.z(bed_py), slices, bush_w, step, pods, make,
-              scale=(0.78, 0.95), yaw=40)
+              scale=(0.78, 0.95), yaw=40, src=at, at=at)
     return pods
 
 
@@ -1186,7 +1160,8 @@ def crop_strip_4(K):
     depth = 1.5
     rows = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
     field_bed(K, 8, 1174, 180, depth, top_box=(500, 182, 560, 192), ridges=0.04, rows=rows)
-    groundnut(K, 0, 180, 182, rows, 120, 105, 11, (130, 200))
+    groundnut(K, 0, 180, 182, rows, 120, 105, 11, (130, 200),
+              at=[93, 193, 331, 420, 529, 668, 766, 878, 976, 1087])
 
 
 @model("crop_strip_5", "fields", kind="prop", atlas=2048)
@@ -1197,7 +1172,8 @@ def crop_strip_5(K):
     depth = 1.5
     rows = [-depth / 2 + 0.13 + k * 0.22 for k in range(7)]
     field_bed(K, 13, 1178, 100, depth, top_box=(600, 102, 660, 112), ridges=0.03, rows=rows)
-    groundnut(K, 0, 100, 101, rows, 80, 70, 15, (70, 110))
+    groundnut(K, 0, 100, 101, rows, 80, 70, 15, (70, 110),
+              at=[76, 139, 188, 252, 310, 369, 425, 470, 516, 590, 660, 726, 774, 839, 895, 951, 1019, 1097])
 
 
 def ball(K, c, r, mat, squash=0.92, name="boll"):
@@ -1229,8 +1205,9 @@ def crop_strip_6(K):
         e0, e1, hw, area = ft[2]
         r = math.sqrt(area / math.pi) * 1.05
         ball(K, fr(ft[0], ft[1], out=P.m(r) * s * 0.35), P.m(r) * s, cream)
-    crop_rows(K, 8, 1173, 0, 214, rows, P.z(212), 12, 130, 120, bolls, make, scale=(0.8, 0.95), yaw=40,
-              cross=False)
+    at = [105, 228, 335, 470, 640, 790, 925, 1065]                  # the painted bushes' stems
+    crop_rows(K, 8, 1173, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.8, 0.95), yaw=40,
+              cross=True, src=at, at=[a + K.rng.uniform(-40, 40) for a in at])
 
 
 # banana pseudostems of crop_strip_7: (axis px, foot py, top py, half-width at the foot, at the top px)
@@ -1294,7 +1271,7 @@ def crop_strip_7(K):
             x += K.rng.uniform(190, 240)
 
 
-def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None):
+def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None, at=None):
     """A strip of paddy: clumps of long blades (and their panicles) in rows on a low bed of field mud."""
     P = K.paint
     clean_front(K, no_halo(P, haze=False))
@@ -1306,21 +1283,21 @@ def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, 
     field_bed(K, bx0, bx1, bed_py, depth, top_box=bed_box, ridges=0.03, rows=rows)
     allc = np.nonzero(a[:bed_py].any(0))[0]
     crop_rows(K, int(allc.min()), int(allc.max()), top_py, base_py, rows, P.z(bed_py), slices, width_px, step_px,
-              scale=(0.8, 0.96), yaw=40)
+              scale=(0.8, 0.96), yaw=40, src=at, at=at)
 
 
 @model("paddy_ripe", "fields", kind="prop")
 def paddy_ripe(K):
     """A row of ripe paddy, 1.2 m deep: golden clumps of blades, the heavy grain heads drooping over them."""
     rows = [-0.6 + 0.15 + k * 0.22 for k in range(5)]
-    paddy(K, 0, 284, 284, rows, 9, 110, 85, (330, 283, 380, 290))
+    paddy(K, 0, 284, 284, rows, 9, 110, 85, (330, 283, 380, 290), at=[117, 211, 303, 400, 479, 574, 661])
 
 
 @model("paddy_tall", "fields", kind="prop")
 def paddy_tall(K):
     """A row of tall green paddy, 1.2 m deep: dense clumps of blades with green heads arching out of them."""
     rows = [-0.6 + 0.15 + k * 0.22 for k in range(5)]
-    paddy(K, 0, 294, 294, rows, 9, 110, 85, (300, 292, 360, 298))
+    paddy(K, 0, 294, 294, rows, 9, 110, 85, (300, 292, 360, 298), at=[99, 189, 260, 330, 420, 507, 590, 660])
 
 
 def seedbed(K, x0, x1, top_py, base_py, depth, rows, water_box, src, width_px, step_px, slices):

@@ -1007,16 +1007,16 @@ def canal_piece_3(K):
     true and level, then raised (and drawn off to the left) towards the back as the painting looks at it."""
     P = K.paint
     K.front_min = 0.1
-    k, kx, T = 0.31, -0.6, 0.5
+    k, kx, T = 0.3, -0.38, 0.45
     Oy = -0.7
     y0 = Oy - P.z(300) / k
-    O = (P.x(130) - kx * (Oy - y0), Oy)                    # the lowest tier's near left corner, on the ground
+    O = (P.x(150) - kx * (Oy - y0), Oy)                    # the lowest tier's near left corner, on the ground
     ua, up = (1.0, 0.0), (0.0, 1.0)
     stone = K.tile((30, 150, 92, 236), soften=0.3, vary=0.05)
     top = K.tile((230, 110, 330, 140), soften=0.3, vary=0.05)
     blocks = []
-    tiers = [((0.0, 0.55, 1.2, 1.8), (0.0, 0.4)), ((0.0, 0.95, 1.48, 1.86), (0.0, 0.4, 0.82)),
-             ((0.0, 0.92, 1.9), (0.0, 0.42, 1.12))]
+    tiers = [((0.0, 0.55, 1.15, 1.72), (0.0, 0.4)), ((0.0, 0.9, 1.4, 1.78), (0.0, 0.4, 0.8)),
+             ((0.0, 0.9, 1.8), (0.0, 0.42, 1.04))]
     for i, (cuts, levels) in enumerate(tiers):
         for a0, a1 in zip(cuts, cuts[1:]):
             for c, (z0, z1) in enumerate(zip(levels, levels[1:])):      # its courses, from the ground up
@@ -1025,7 +1025,7 @@ def canal_piece_3(K):
                                        jitter=0.01, name="step"))
     # the washing tray on the ground before the lowest step: a rim round a sunk floor
     tray = K.tile((300, 262, 440, 296), soften=0.35, vary=0.04)
-    ta0, ta1, tp0, tp1, th, rim = 0.55, 1.95, -0.75, -0.04, 0.13, 0.09
+    ta0, ta1, tp0, tp1, th, rim = 0.5, 1.68, -0.72, -0.04, 0.13, 0.09
     blocks.append(plan_box(K, O, ua, up, ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor"))
     for a0, a1, p0, p1 in ((ta0, ta1, tp0, tp0 + rim), (ta0, ta1, tp1 - rim, tp1), (ta0, ta0 + rim, tp0, tp1),
                            (ta1 - rim, ta1, tp0, tp1)):
@@ -1033,13 +1033,58 @@ def canal_piece_3(K):
     shear(K, k, y0, parts=blocks, kx=kx)
     # the brass pot standing on the ground at the right (upright, not raised with the look-down)
     pot = K.projected(axis_x=P.x(497), squeeze=0.9, keep=[(440, 146, 558, 266)], inset=3)
-    yp = Oy + 0.35
     zb = P.z(262)
+    yp = y0 + zb / k                                        # where the raised ground is at its foot
     prof = [(32, 262), (44, 255), (53, 238), (56, 215), (52, 198), (40, 186), (27, 178), (25, 170), (33, 163),
             (37, 156), (35, 151)]
     K.lathe([(P.m(r), P.z(y) - P.z(262) + zb) for r, y in prof], pot, segments=32, centre=(P.x(497), yp, 0),
             name="pot", cap=False)
     K.lathe([(P.m(33), P.z(151) - P.z(262) + zb), (P.m(26), P.z(160) - P.z(262) + zb), (0.0, P.z(178) - P.z(262) + zb)],
             K.colour((0.12, 0.07, 0.01), vary=0.1), segments=32, centre=(P.x(497), yp, 0), name="pot_mouth", cap=False)
-    K.lathe([(0.0, zb - 0.6), (P.m(40), zb - 0.6), (P.m(40), zb - 0.005), (0.0, zb - 0.005)], stone, segments=20,
-            centre=(P.x(497), yp, 0), name="pot_footing")
+
+
+@fmodel("canal_piece_4", "fields", kind="prop", atlas=1024)
+def canal_piece_4(K):
+    """A sluice shutter in the canal: two brick wing walls with stone copings, a heavy timber frame standing between
+    them in a slot, a plank gate sliding in it, raised and lowered by a wooden screw through the frame's head with a
+    T-handle on top; a stone sill across the channel's floor."""
+    P = K.paint
+    d0, d1 = -0.35, 0.55                                    # the walls' depth along the channel
+    brick = K.tile((64, 204, 152, 432), soften=0.15, vary=0.04)
+    cap = K.tile((40, 168, 150, 190), soften=0.3, vary=0.05)
+    wood = K.tile((236, 200, 312, 330), soften=0.15, vary=0.05)
+    frame = K.tile((168, 130, 192, 330), soften=0.15, vary=0.05)
+    for x0, x1, c0, c1 in ((22, 162, 8, 162), (388, 532, 388, 545)):
+        K.box(P.x(x0), P.x(x1), d0, d1, 0.0, P.z(195), brick, name="wall")
+        K.box(P.x(c0), P.x(c1), d0 - 0.05, d1 + 0.05, P.z(195), P.z(165), cap, bevel=0.015, name="coping")
+    # the frame: two posts in the walls' ends and a head beam across them
+    for x0, x1 in ((160, 196), (354, 390)):
+        K.box(P.x(x0), P.x(x1), -0.13, 0.13, 0.0, P.z(120), frame, bevel=0.01, name="post")
+    K.box(P.x(158), P.x(392), -0.14, 0.14, P.z(120), P.z(90), frame, bevel=0.012, name="head")
+    # the gate: three planks in the frame's slot, a rail across them
+    for x0, x1 in ((196, 233), (233, 318), (318, 354)):
+        K.box(P.x(x0) + 0.003, P.x(x1) - 0.003, -0.05, 0.03, 0.0, P.z(190), wood, bevel=0.006, name="plank")
+    K.box(P.x(196), P.x(354), -0.09, -0.05, P.z(390), P.z(345), wood, bevel=0.008, name="rail")
+    K.box(P.x(196), P.x(354), 0.03, 0.07, P.z(390), P.z(345), wood, bevel=0.008, name="rail_back")
+    # the screw: a threaded rod from the gate's top up through the head, a nut on the head, the T-handle on top
+    screw = K.projected(squeeze=0.95, keep=[(262, 50, 290, 190)], inset=1)
+    cx = 276
+    K.tube([P.pt(cx, 192), P.pt(cx, 30)], P.m(10), screw, segments=12, name="screw")
+    pts = []
+    for i in range(160):
+        a = i * 0.5
+        z = P.z(188) + (P.z(52) - P.z(188)) * i / 159
+        pts.append((P.x(cx) + P.m(10.5) * math.cos(a), P.m(10.5) * math.sin(a), z))
+    K.tube(pts, P.m(2.6), screw, segments=5, name="thread")
+    nut = K.projected(squeeze=1.0, keep=[(255, 22, 292, 58)], inset=2)
+    K.box(P.x(256), P.x(291), -0.1, 0.1, P.z(55), P.z(24), nut, bevel=0.015, name="nut")
+    K.lathe([(P.m(10), P.z(24)), (P.m(10), P.z(8)), (P.m(13), P.z(6)), (P.m(13), P.z(3)), (0.0, P.z(2))], nut,
+            segments=12, centre=(P.x(cx), 0, 0), name="screw_top")
+    handle = K.projected(squeeze=1.0, keep=[(194, 28, 358, 46)], inset=1)
+    K.tube([P.pt(196, 38), P.pt(354, 38)], P.m(8), handle, segments=10, name="handle")
+    for x in (196, 354):
+        K.lathe([(0.0, P.z(48)), (P.m(9.5), P.z(46)), (P.m(9.5), P.z(30)), (0.0, P.z(28))], handle, segments=10,
+                centre=(P.x(x), 0, 0), name="handle_end")
+    # the sill across the channel's floor
+    sill = K.colour((40, 170, 150, 190), vary=0.1, pct=40)
+    K.box(P.x(162), P.x(388), d0, d1, -0.02, 0.04, sill, name="sill")

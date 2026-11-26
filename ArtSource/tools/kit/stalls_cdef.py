@@ -925,9 +925,10 @@ def ball(K, c, r, mat, squash=1.0, segs=8, rings=5, name="ball"):
 
 
 def cluster(K, cx, cy, cz, rx, ry, rz, n, r, mat, core=None, name="bunch"):
-    """A hanging bunch of round fruit: a core ellipsoid (rx, ry, rz about its middle) studded with n fruits of
-    radius ~r over its surface, more of them low down, so it is a lumpy cluster from every side."""
+    """A hanging bunch of round fruit filling the ellipsoid rx, ry, rz about its middle: a core studded with n fruits
+    of radius ~r over its surface, so it is a lumpy cluster from every side, no bigger than painted."""
     core = core or mat
+    rx, ry, rz = [max(r * 0.6, (v - 0.55 * r) / 0.85) for v in (rx, ry, rz)]
     prof = [(rx * 0.86 * math.sin(math.pi * i / 8), -rz * 0.86 * math.cos(math.pi * i / 8)) for i in range(9)]
     prof[0] = (0.0, prof[0][1])
     prof[-1] = (0.0, prof[-1][1])
@@ -939,8 +940,8 @@ def cluster(K, cx, cy, cz, rx, ry, rz, n, r, mat, core=None, name="bunch"):
         rad = math.sqrt(max(0.0, 1 - zz * zz))
         th = golden * i + K.rng.uniform(-0.3, 0.3)
         rr = r * K.rng.uniform(0.85, 1.15)
-        p = (cx + rx * 0.82 * rad * math.cos(th), cy + ry * 0.82 * rad * math.sin(th), cz + rz * 0.82 * zz)
-        ball(K, p, rr, mat, squash=1.05, name=name + "_fruit")
+        p = (cx + rx * 0.85 * rad * math.cos(th), cy + ry * 0.85 * rad * math.sin(th), cz + rz * 0.85 * zz)
+        ball(K, p, rr, mat, squash=1.05, segs=7, rings=4, name=name + "_fruit")
 
 
 # ====================================================================== stall D1: the palmyra-fruit stall
@@ -982,10 +983,10 @@ def stall_d_1(K):
         K.leaves_only(box, green_leaves)
     K.card_from_painting((0, 0, 1034, 312), (0.0, yf + 0.06, Z(156)), name="fronds_front")
     for i in range(26):          # lying over the top, from the front edge to the back
-        px_, py_ = K.rng.uniform(80, 950), K.rng.uniform(70, 200)
-        y = K.rng.uniform(yf, yb + 0.15)
-        K.card_from_painting((px_ - 90, py_ - 60, px_ + 90, py_ + 60), (P.x(px_), y, zt + 0.1 + K.rng.uniform(0, 0.08)),
-                             yaw=K.rng.uniform(-30, 30), pitch=K.rng.uniform(-80, -60), name="frond_top",
+        px_, py_ = K.rng.uniform(220, 820), K.rng.uniform(80, 200)
+        y = K.rng.uniform(yf + 0.15, yb + 0.1)
+        K.card_from_painting((px_ - 80, py_ - 50, px_ + 80, py_ + 50), (P.x(px_), y, zt + 0.035 + K.rng.uniform(0, 0.03)),
+                             yaw=K.rng.uniform(-25, 25), pitch=K.rng.uniform(-88, -80), name="frond_top",
                              normal=(0, 0, 1))
     for side, x_px in ((-1, 120), (1, 925)):  # hanging down over the ends
         for i in range(5):
@@ -1009,8 +1010,8 @@ def stall_d_1(K):
     for (x0, y0, x1, y1), y, sx, ztop in bunches:
         mat = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=0.95, keep=[(x0, y0 + 10, x1, y1)], inset=2)
         rx, rz = P.m(x1 - x0) / 2, P.m(y1 - y0) / 2
-        cluster(K, P.x((x0 + x1) / 2), y, P.z((y0 + y1) / 2) - 0.02, rx * 0.92, rx * 0.8, rz * 0.92,
-                int(26 * (rx * rz) / 0.17 + 10), P.m(24), mat)
+        cluster(K, P.x((x0 + x1) / 2), y, P.z((y0 + y1) / 2) - 0.02, rx, rx * 0.8, rz,
+                int(40 * (rx * rz) / 0.17 + 12), P.m(26), mat)
         K.tube([(P.x(sx), y, P.z(y0) - 0.15), (P.x(sx), y, P.z(y0) + 0.05), (P.x(sx), y + 0.02, ztop)],
                [P.m(13), P.m(11), P.m(5)], stalk, segments=8, name="stalk")
     # ---------------------------------------------------------------- the counter at the back, its baskets

@@ -285,18 +285,39 @@ def figures(K, figs):
         return np.asarray(im) > 127
     K.leaf_rules.append((box, keep))
     out = []
+    cell = 5
     for poly, (_, y, name) in zip(polys, figs):
         K.front_exclude.append(("poly", poly))
+        # the card: a grid of small quads over the figure's own outline (no long sliver triangles), its edge cells
+        # cut finely by the mask
+        x0, y0 = int(min(x for x, _ in poly)) - cell, int(min(v for _, v in poly)) - cell
+        x1, y1 = int(max(x for x, _ in poly)) + cell, int(max(v for _, v in poly)) + cell
+        m = Image.new("L", (x1 - x0, y1 - y0), 0)
+        ImageDraw.Draw(m).polygon([(x - x0, v - y0) for x, v in poly], fill=255)
+        m = np.asarray(m) > 127
+        nx, ny = (x1 - x0) // cell + 1, (y1 - y0) // cell + 1
         bm = bmesh.new()
-        vs = [bm.verts.new((P.x(px), y, P.z(py))) for px, py in poly]
-        f = bm.faces.new(vs)
         layer = bm.loops.layers.uv.new("UVMap")
-        for lp in f.loops:
-            co = lp.vert.co
-            lp[layer].uv = (P.px(co.x) / P.w, 1 - P.py(co.z) / P.h)
-        if f.normal.y > 0:
-            bmesh.ops.reverse_faces(bm, faces=[f])
-        bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method="BEAUTY", ngon_method="EAR_CLIP")
+        verts = {}
+
+        def vert(i, j):
+            if (i, j) not in verts:
+                px = min(P.w, max(0.0, x0 + i * cell))
+                py = min(P.h, max(0.0, y0 + j * cell))
+                verts[(i, j)] = (bm.verts.new((P.x(px), y, P.z(py))), (px / P.w, 1 - py / P.h))
+            return verts[(i, j)]
+        for j in range(ny - 1):
+            for i in range(nx - 1):
+                if not m[j * cell:(j + 1) * cell, i * cell:(i + 1) * cell].any():
+                    continue
+                corners = [vert(i, j + 1), vert(i + 1, j + 1), vert(i + 1, j), vert(i, j)]
+                f = bm.faces.new([c[0] for c in corners])
+                for lp, c in zip(f.loops, corners):
+                    lp[layer].uv = c[1]
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        for f in bm.faces:
+            if f.normal.y > 0:
+                f.normal_flip()
         ob = _obj(name, bm, None)
         ob["kit_normal"] = [0.0, -1.0, 0.25]
         K.cards_parts.append(ob)
@@ -1154,3 +1175,182 @@ def tank_wall(K):
         diya(K, px, y, py - 6, py, 7, (px - 3, py - 17, px + 3, py - 6), (px - 8, py - 7, px + 8, py), name="lamp")
     for px in (443, 600):
         diya(K, px, 1.62, 105, 113, 8, (px - 3, 92, px + 3, 105), (px - 9, 104, px + 9, 113), name="lamp")
+
+
+def carved_pillar(K, cx, y, half_px, mat_front, stone, cubes, necks, base, capital, decal=True, name="pillar"):
+    """A square stone temple pillar standing at painted x cx (px), its front face at depth y: carved cubes
+    [(top py, bottom py)] joined by octagonal necks [(top py, bottom py)], a base block and a bracket capital
+    (top py, bottom py, half-width px); the painted carving of each cube repeated on its sides and back."""
+    P = K.paint
+    X, Z = P.x, P.z
+    h = P.m(half_px)
+    c = Vector((X(cx), y + h, 0))
+    for top, bot in cubes:
+        K.box(c.x - h, c.x + h, y, y + 2 * h, Z(bot), Z(top), mat_front, bevel=0.006, name=name)
+        if decal:
+            decal_faces(K, (cx - half_px, top + 1, cx + half_px, bot - 1), c.x - h, c.x + h, y, y + 2 * h, Z(bot - 1),
+                        Z(top + 1))
+    for top, bot in necks:
+        K.lathe([(h * 0.82, Z(bot)), (h * 0.72, (Z(bot) + Z(top)) / 2), (h * 0.82, Z(top))], stone, segments=8,
+                centre=(c.x, c.y, 0), name="neck", smooth=False)
+    bt, bb = base
+    K.box(c.x - h * 1.15, c.x + h * 1.15, y - h * 0.15, y + 2.15 * h, Z(bb), Z(bt), stone, bevel=0.008, name="base")
+    ct, cb, cw = capital
+    K.box(c.x - P.m(cw), c.x + P.m(cw), y - h * 0.1, y + 2.1 * h, Z(cb), Z(ct), stone, bevel=0.01, name="capital")
+    # the curled brackets either side of the capital
+    for s in (-1, 1):
+        K.block(c.x + s * (P.m(cw) + P.m(4)), c.y, Z(cb + 4), P.m(9), 2 * h * 0.8, P.m(10), stone, bevel=0.01,
+                name="bracket")
+
+
+@model("mandapam", "market", kind="building", atlas=2048)
+def mandapam(K):
+    """A stone pillared hall: a moulded plinth with steps up its middle, a front row of carved pillars with lamps
+    burning on them and rows of pillars behind, bracket capitals carrying a beam and a heavy roof slab with a curved
+    eave, and the dark inner wall at the back."""
+    P = K.paint
+    X, Z = P.x, P.z
+    stone = K.tile((100, 14, 300, 46), vary=0.06, soften=0.4)
+    plinth = K.tile((100, 244, 440, 257), vary=0.06, soften=0.4)
+    dark = K.colour((500, 110, 540, 200), vary=0.1)
+    inner = K.colour((0.09, 0.07, 0.06), vary=0.12)
+    D = 4.0
+    # the plinth, its mouldings, the steps up the middle
+    for t, b, x0, x1, out in ((225, 232, 25, 1000, 0.05), (232, 243, 30, 995, 0.0), (243, 258, 25, 1000, 0.05),
+                              (258, 270, 28, 998, 0.02), (270, 281, 22, 1002, 0.08)):
+        K.box(X(x0), X(x1), -out, D + out, Z(b), Z(t), plinth, bevel=0.01, name="plinth")
+    for k, (x0, x1, t) in enumerate(((472, 560, 238), (467, 566, 250), (464, 570, 262))):
+        K.box(X(x0), X(x1), -0.33 * (k + 1), 0.0, 0.0, Z(t), plinth, bevel=0.01, name="step")
+    K.box(X(25), X(1000), 0.0, D, Z(225), Z(224), stone, name="floor")
+    # the front row of pillars, each wearing its own painted carving, a lamp on its front
+    fronts = [49, 153, 255, 354, 458, 574, 672, 768, 871, 972]
+    yf = 0.3
+    for cx in fronts:
+        mat = K.projected(axis_x=X(cx), squeeze=1.0, keep=[(cx - 13, 60, cx + 13, 226)], inset=1)
+        carved_pillar(K, cx, yf, 12.5, mat, stone, [(80, 115), (128, 168), (175, 206)], [(115, 128), (168, 175)],
+                      (206, 225), (62, 80, 18))
+        diya(K, cx, yf - 0.07, 152, 162, 9, (cx - 3, 136, cx + 3, 152), (cx - 10, 151, cx + 10, 162), name="lamp")
+        K.box(X(cx - 6), X(cx + 6), yf - 0.12, yf, Z(165), Z(162), stone, name="lamp_bracket")
+    # the rows behind, plainer, in the hall's shade, and the dark wall closing its back
+    for row, (yy, off) in enumerate(((1.45, 30), (2.6, 58))):
+        for cx in fronts:
+            x = cx + (off if cx < 512 else -off)
+            if row == 1 and not 90 < x < 935:
+                continue
+            carved_pillar(K, x, yy, 11, dark, dark, [(80, 115), (128, 168), (175, 206)], [(115, 128), (168, 175)],
+                          (206, 225), (62, 80, 16), decal=False, name="pillar_in")
+    K.box(X(118), X(905), 3.55, 3.8, Z(225), Z(60), inner, name="inner_wall")
+    # the beam on the capitals, the roof slab with its curved eave all round
+    K.box(X(30), X(995), 0.25, D - 0.25, Z(62), Z(52), dark, bevel=0.01, name="beam")
+    K.box(X(8), X(1015), -0.22, D + 0.22, Z(30), Z(8), stone, bevel=0.02, name="roof")
+    K.box(X(12), X(1011), -0.18, D + 0.18, Z(52), Z(30), stone, bevel=0.03, name="eave")
+    K.box(X(14), X(1009), -0.1, D + 0.1, Z(56), Z(52), dark, bevel=0.01, name="eave_soffit")
+
+
+def sq_frustum(K, cx, cy, tiers, mat, name="tier"):
+    """A square-planned stepped or tapering block (a chariot's tiers, a plinth, a pyramid roof): tiers
+    [(half-width px, py), ...] from the bottom up, turned about a vertical axis at painted x cx, depth cy."""
+    P = K.paint
+    ob = K.lathe([(P.m(a) * math.sqrt(2), P.z(py)) for a, py in tiers], mat, segments=4, centre=(P.x(cx), cy, 0),
+                 name=name, smooth=False)
+    return orient(ob, (0, 0, 45), pivot=(P.x(cx), cy, 0))
+
+
+def thatch_slope(K, eave, ridge, y0, y1, mat, thick_px=22, shag_px=4, name="thatch"):
+    """One slope of a thatched gable roof running front (y0) to back (y1): from its eave (px, py) up to the ridge
+    (px, py), lumpy, with a ragged drooping fringe at the eave and at the gable ends."""
+    P = K.paint
+    nu, nv = 30, 12
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (nv + 1, nu + 1)), 1.0)
+    fringe = ndimage.gaussian_filter(K.rng.normal(0, 1, nu + 1), 0.7)
+    shag = P.m(shag_px)
+    ex, ez, rx, rz = P.x(eave[0]), P.z(eave[1]), P.x(ridge[0]), P.z(ridge[1])
+
+    def fn(u, v):
+        i, j = int(round(u * nu)), int(round(v * nv))
+        x = ex + (rx - ex) * v
+        z = ez + (rz - ez) * v + shag * noise[j, i]
+        if v < 0.1:
+            z -= shag * 1.5 * abs(fringe[i])
+        return (x, y0 + (y1 - y0) * u, z)
+    return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=P.m(thick_px))
+
+
+@model("chariot_shed", "market", kind="building", atlas=2048)
+def chariot_shed(K):
+    """The shed that houses the temple chariot: a thatched gable roof on a timber frame, walls of woven bamboo
+    matting, a wide open front bay, and inside, lit by lamps on its posts, the carved wooden chariot on its four
+    solid wheels with its tiered roof."""
+    P = K.paint
+    X, Z = P.x, P.z
+    D = 6.0
+    mat = K.tile((70, 328, 215, 372), vary=0.06, soften=0.3)
+    timber = K.tile((50, 300, 62, 470), P.m(12), vary=0.08)
+    straw = K.tile((195, 126, 232, 138), P.m(37), vary=0.12, soften=0.2)
+    dark = K.colour((0.07, 0.055, 0.045), vary=0.1)
+    earth = K.colour((0.12, 0.08, 0.05), vary=0.12)
+    # the roof: two thatched slopes from the ridge, past the gable ends
+    thatch_slope(K, (18, 236), (390, 24), -0.45, D + 0.45, straw, name="thatch_l")
+    thatch_slope(K, (770, 242), (390, 24), D + 0.45, -0.45, straw, name="thatch_r")
+    K.tube([(X(390), -0.47, Z(22)), (X(390), D + 0.47, Z(22))], P.m(9), straw, segments=10, name="ridge")
+    # the gable walls of woven matting (the front open in its middle bay), the side walls
+    front = [(50, 485), (50, 232), (390, 40), (730, 232), (730, 485), (558, 485), (558, 205), (225, 205), (225, 485)]
+    K.prism([(X(x), Z(y)) for x, y in front], 0.0, 0.06, mat, name="gable_front")
+    K.prism([(X(x), Z(y)) for x, y in front[:5]], D - 0.06, D, mat, name="gable_back")
+    for x0, x1 in ((50, 58), (722, 730)):
+        K.box(X(x0), X(x1), 0.0, D, 0.0, Z(232), mat, name="side_wall")
+    # the frame: posts, wall plate, tie beam, lintel, king post, barge boards, battens; and down the sides
+    for x0, x1, top in ((48, 62, 228), (718, 732, 228), (222, 235, 128), (548, 561, 128)):
+        for y in (0.0, D - 0.12):
+            K.box(X(x0), X(x1), y - 0.04, y + 0.16, 0.0, Z(top), timber, bevel=0.01, name="post")
+    for t, b in ((228, 237), (128, 136), (200, 209)):
+        x0, x1 = (44, 736) if t == 228 else (220, 563)
+        for y in (0.0, D - 0.12):
+            K.box(X(x0), X(x1), y - 0.05, y + 0.12, Z(b), Z(t), timber, bevel=0.01, name="beam")
+    K.box(X(385), X(395), -0.04, 0.12, Z(200), Z(32), timber, name="king_post")
+    for y in (-0.42, D + 0.36):
+        for (ax, ay), (bx, by) in (((20, 236), (390, 30)), ((770, 242), (390, 30))):
+            K.tube([(X(ax), y, Z(ay) - P.m(12)), (X(bx), y, Z(by) - P.m(4))], P.m(5), timber, segments=6,
+                   name="barge")
+    for py in (270, 320, 375, 430):
+        for x0, x1 in ((62, 222), (561, 718)):
+            K.box(X(x0), X(x1), -0.035, 0.0, Z(py + 3), Z(py - 3), timber, name="batten")
+    for k in range(1, 5):
+        y = D * k / 5
+        for x0, x1 in ((46, 60), (720, 734)):
+            K.box(X(x0), X(x1), y - 0.08, y + 0.08, 0.0, Z(228), timber, bevel=0.01, name="side_post")
+        for x0, x1 in ((44, 62), (718, 736)):
+            K.box(X(x0), X(x1), 0.0, D, Z(237), Z(228), timber, name="side_plate")
+        K.tube([(X(60), y, Z(232)), (X(390), y, Z(34)), (X(720), y, Z(232))], P.m(4), timber, segments=6,
+               name="rafter")
+    # inside: the earth floor, the posts carrying lamps
+    K.box(X(58), X(722), 0.06, D - 0.06, 0.0, 0.02, earth, name="floor")
+    stone = K.colour((0.22, 0.21, 0.2), vary=0.1)
+    for x, y in ((250, 0.9), (502, 0.9), (279, 3.4), (474, 3.4)):
+        K.box(X(x - 5), X(x + 5), y - 0.05, y + 0.05, 0.0, Z(205), dark, name="inner_post")
+        K.box(X(x - 11), X(x + 11), y - 0.12, y + 0.12, 0.0, Z(465), stone, bevel=0.01, name="post_stone")
+    for (px, py, post) in ((265, 252, (250, 0.9)), (285, 300, (279, 3.4)), (515, 252, (502, 0.9)),
+                           (495, 300, (474, 3.4))):
+        y = post[1] - 0.12
+        K.box(X(min(px, post[0]) - 2), X(max(px, post[0]) + 2), y - 0.02, y + 0.12, Z(py + 3), Z(py), dark,
+              name="lamp_arm")
+        diya(K, px, y, py - 6, py + 1, 11, (px - 4, py - 22, px + 4, py - 6), (px - 12, py - 6, px + 12, py + 1),
+             name="lamp")
+    # the chariot
+    cx, cy = 390, 2.4
+    wood = K.tile((352, 402, 428, 425), vary=0.08, soften=0.15)
+    for y in (cy - 0.6, cy + 0.6):
+        for x0, x1 in ((315, 337), (443, 465)):
+            K.tube([(X(x0), y, Z(457)), (X(x1), y, Z(457))], P.m(28), wood, segments=18, name="chariot_wheel")
+        K.tube([(X(303), y, Z(454)), (X(477), y, Z(454))], P.m(6), dark, segments=8, name="chariot_axle")
+    sq_frustum(K, cx, cy, [(55, 462), (55, 440), (46, 440), (46, 428), (47, 428), (72, 400), (72.5, 392),
+                           (73, 392), (73, 385)], wood, name="chariot_base")
+    K.box(X(338), X(442), cy - P.m(52), cy + P.m(52), Z(385), Z(320), dark, name="sanctum")
+    for x0, x1 in ((334, 351), (353, 373), (407, 428), (430, 446)):
+        for y in (cy - P.m(56), cy + P.m(46)):
+            K.box(X(x0), X(x1), y, y + P.m(10), Z(385), Z(320), wood, bevel=0.006, name="chariot_pillar")
+    for x0, x1 in ((298, 325), (455, 483)):
+        for y in (cy - P.m(70), cy + P.m(55)):
+            K.box(X(x0), X(x1), y, y + P.m(15), Z(380), Z(320), wood, bevel=0.008, name="chariot_hanging")
+    sq_frustum(K, cx, cy, [(91, 320), (78, 300), (73, 300), (65, 255), (57, 255), (50, 230), (35, 230), (30, 210),
+                           (25, 210), (18, 204), (0, 203)], wood, name="chariot_roof")
