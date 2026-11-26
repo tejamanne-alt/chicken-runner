@@ -610,7 +610,7 @@ class Crown:
     and above a rounded mass of leaves, not a slab. region_px bounds the crown; `mask` (bool HxW) is its outline
     (default: the painting's opaque pixels in region_px); R (px) how far in from the outline it reaches full depth."""
 
-    def __init__(self, K, region_px, half_depth, centre_px, mask=None, R=None, core=0.15, y0=0.0):
+    def __init__(self, K, region_px, half_depth, centre_px, mask=None, R=None, core=0.15, y0=0.0, dome=None):
         self.K, self.P = K, K.paint
         P = self.P
         self.region, self.hd, self.c, self.core, self.y0 = region_px, half_depth, centre_px, core, y0
@@ -622,11 +622,19 @@ class Crown:
         self.dist = ndimage.distance_transform_edt(ndimage.gaussian_filter(mask.astype(np.float32), 6) > 0.5)
         self.R = R or float(self.dist.max()) * 0.85
         self.rzu = self.R
+        # dome = (py of the crown's widest level, its top py, its bottom py): seen from the side the crown is an
+        # ellipse through those, not as deep at its top and bottom as at its middle
+        self.dome = dome
 
     def reach(self, px, py):
         d = self.dist[int(np.clip(py, 0, self.P.h - 1)), int(np.clip(px, 0, self.P.w - 1))]
         t = min(1.0, d / self.R)
-        return math.sqrt(max(0.0, 1 - (1 - t) ** 2))
+        r = math.sqrt(max(0.0, 1 - (1 - t) ** 2))
+        if self.dome:
+            mid, top, bot = self.dome
+            e = (mid - py) / max(1.0, mid - top) if py < mid else (py - mid) / max(1.0, bot - mid)
+            r = min(r, math.sqrt(max(0.0, 1 - min(1.0, e) ** 2)))
+        return r
 
     def extent(self, px, py):
         """How far forward / back of y0 the crown reaches at painted spot (px, py), metres."""
@@ -696,7 +704,7 @@ def tree_mango_1(K):
     leaves, five mangoes, two rocks and low plants at its foot."""
     P = K.paint
     mask, wood = TRACE["tree_mango_1"](K)
-    crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2)
+    crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2, dome=(260, 0, 470))
     wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.8))
     bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
     thick, thin = wood.tubes(bark, fuse_r_px=3.0)
@@ -706,13 +714,13 @@ def tree_mango_1(K):
     wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8)
     roots = pick_limbs(wood, r_min=5, min_len=40, n=4, roots=True, root_py=640)
     wood.turned_copies(bark, [(i, K.rng.choice([-1, 1]) * K.rng.uniform(100, 160), 0.0) for i in roots],
-                       thick=thick, thin=thin, whole=False, rscale=0.9)
+                       thick=thick, thin=thin, whole=False, rscale=0.8)
     K.fuse(thick, voxel=0.03, faces=10000)
     # the crown: the painting's leaves on cards through its depth, and the shell facing the camera
     K.leaves_only((0, 0, 789, 470), foliage_pixels)
-    crown.cards(200, (120, 100), "volume", yaw=85, pitch=30)
-    crown.cards(80, (130, 110), "front", yaw=20, pitch=10)
-    crown.cards(40, (130, 110), "back", yaw=20, pitch=10)
+    crown.cards(230, (110, 95), "volume", yaw=85, pitch=35)
+    crown.cards(70, (130, 110), "front", yaw=30, pitch=20)
+    crown.cards(40, (120, 100), "back", yaw=30, pitch=20)
     # mangoes, where they hang and more round the back
     fruits = [(211.5, 220, 16.5, 24), (236.5, 269.5, 16.5, 24.5), (222, 291.5, 12.5, 18.5), (648, 305, 11.5, 19),
               (667, 312.5, 17, 24.5)]
@@ -721,12 +729,14 @@ def tree_mango_1(K):
     fruit_in_crown(K, crown, fruits, lambda i, dx, dz: K.projected(squeeze=1.0, keep=keep, inset=2, dx=dx, dz=dz),
                    stalk, back=2)
     # rocks, and the low plants at the foot
-    stone = K.projected(squeeze=1.0, keep=[(142, 640, 270, 703), (397, 654, 485, 703)], inset=3)
+    stone = K.tile((160, 655, 250, 695), vary=0.08, soften=0.2)
     rock(K, 206, 704, 130, 66, -0.55, stone)
     rock(K, 441, 704, 92, 50, -0.45, stone)
-    rock(K, 300, 704, 80, 44, 1.2, K.projected(squeeze=1.0, keep=[(142, 640, 270, 703)], inset=3, dx=P.m(-90)))
+    rock(K, 300, 704, 80, 44, 1.2, stone)
+    rock(K, 120, 704, 50, 30, 0.9, stone)
     K.leaves_only((0, 440, 560, 712), foliage_pixels)
     undergrowth(K, (20, 470, 520, 700), 34, (80, 70), (-1.5, 1.5))
     K.card_from_painting((10, 520, 150, 705), (P.x(80), -0.35, P.z(612)), name="bush_front")
     K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
     earth(K, 280, 270, 2.2, (60, 700, 500, 712))
+    undergrowth(K, (20, 560, 520, 700), 16, (70, 60), (0.6, 1.8), name="undergrowth_back")
