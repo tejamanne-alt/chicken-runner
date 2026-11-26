@@ -1532,7 +1532,9 @@ def roof_house_a_1(K):
     # the house: its front wall up to the parapet, a cornice, sunk panels in the upper wall, door and windows
     body = K.box(X(455), X(1440), 0.0, D, 0.0, Z(212), wall, name="walls")
     K.box(X(450), X(1445), -0.06, D + 0.04, Z(340), Z(328), upper, bevel=0.008, name="band")
-    K.box(X(440), X(1445), -0.06, D + 0.04, Z(218), Z(210), upper, bevel=0.008, name="coping")
+    for y0, y1 in ((-0.06, 0.25), (D - 0.25, D + 0.04)):
+        K.box(X(440), X(1445), y0, y1, Z(218), Z(210), upper, bevel=0.008, name="coping")
+    K.box(X(1420), X(1445), 0.25, D - 0.25, Z(218), Z(210), upper, bevel=0.008, name="coping")
     for x0, x1 in ((530, 760), (825, 1075), (1145, 1375)):
         K.cut(body, X(x0), X(x1), -0.05, 0.05, Z(326), Z(248))
     K.cut(body, X(878), X(1038), -0.05, 0.22, -0.01, Z(512))
@@ -1588,7 +1590,7 @@ def roof_house_a_1(K):
     for yaw, yy in ((0, -0.3), (60, -0.25), (-60, -0.35), (90, -0.3)):
         K.card_from_painting((265, 525, 370, 712), (X(317.5), yy, Z(618.5)), yaw=yaw, name="tulsi")
     # the roof: a flat deck behind the coping, the back and side parapets
-    K.box(X(455), X(1440), 0.0, D, Z(214), Z(213), deck_m, name="deck")
+    K.box(X(455), X(1440), 0.0, D, Z(212.5), Z(211.3), deck_m, name="deck")
     K.box(X(455), X(1440), D - 0.25, D, Z(214), Z(128), tower, name="back_parapet")
     K.box(X(1420), X(1440), 0.0, D, Z(214), Z(150), tower, name="side_parapet")
     # on the roof: the haystack on its pole, the pots, a pail, the firewood
@@ -1707,7 +1709,7 @@ def roof_house_a_2(K):
     dark = K.colour((0.06, 0.035, 0.02), vary=0.06)
     iron = K.colour((0.04, 0.03, 0.02), vary=0.05)
     # the house, its cornice, parapet, door and windows under their lintel slabs, the meter
-    body = K.box(X(70), X(1300), 0.0, D, 0.0, Z(255), mud, name="walls")
+    body = K.box(X(70), X(1300), 0.0, D, 0.0, Z(166), mud, name="walls")
     K.box(X(50), X(1310), -0.12, D + 0.08, Z(262), Z(245), ledge, bevel=0.01, name="cornice")
     K.box(X(60), X(1300), 0.0, 0.28, Z(245), Z(165), mud2, bevel=0.008, name="parapet_front")
     K.box(X(56), X(1304), -0.03, 0.31, Z(172), Z(160), ledge, bevel=0.008, name="parapet_coping")

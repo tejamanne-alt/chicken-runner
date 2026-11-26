@@ -117,6 +117,10 @@ def spline(pts, n):
     return np.stack([np.interp(ss, s, dense[:, k]) for k in range(Pt.shape[1])], 1)
 
 
+def scale_hw(hw, k):
+    return [w * k for w in hw] if isinstance(hw, (list, tuple)) else hw * k
+
+
 def widths(hw, t, profile="frond"):
     """Half-widths (px) along a ribbon at t (0 base .. 1 tip): hw a number (shaped by profile), or a list (from the
     base to the tip, interpolated)."""
@@ -450,8 +454,8 @@ class Palm:
                 mean_y = np.mean([xf(Vector((P.x(x), yo(t), P.z(y)))).y for (x, y), t in zip(sp, np.linspace(0, 1, 8))])
                 if mean_y < self.R * 0.12:
                     continue
-                if self.fits(spine, hw * 0.9, d2, xf, profile=prof, need=need):
-                    self.frond(spine, hw * rng.uniform(0.85, 1.0), d2, xform=xf, profile=prof, name="frond_back")
+                if self.fits(spine, scale_hw(hw, 0.9), d2, xf, profile=prof, need=need):
+                    self.frond(spine, scale_hw(hw, rng.uniform(0.85, 1.0)), d2, xform=xf, profile=prof, name="frond_back")
                     break
 
     def stalks(self, mat, r0_px, r1_px, frac=0.3, heart=None):
@@ -716,3 +720,360 @@ def h4_3(K):
               stone, [(160, 922, 246, 975), (336, 952, 384, 998), (288, 1004, 335, 1046)], [-0.03, -0.03, -0.055],
               K.colour((0.16, 0.11, 0.06), vary=0.18, scale=40), 280, 140, 0.1, 1060)
     tufts(K, [(160, 922, 246, 975), (336, 952, 384, 998)], [0.04, 0.045])
+
+
+# ====================================================================== palmyras (fan palms)
+def relief_y(P, x, z, X0, y0, Z0, n, lim=1.6):
+    """The depth of a point (x, z) on the plane through (X0, y0, Z0) with normal n: a card bent onto it keeps its
+    painted x, z (from the front exactly the painting) however it is turned."""
+    ny = n.y if abs(n.y) > 1e-3 else -1e-3
+    sx = float(np.clip(-n.x / ny, -lim, lim))
+    sz = float(np.clip(-n.z / ny, -lim, lim))
+    return y0 + sx * (x - X0) + sz * (z - Z0)
+
+
+def fan_card(K, centre_px, r_px, y_c, normal, cup=0.3, spokes=20, rings=4, xform=None, rough=0.1, name="fan"):
+    """A palm's fan leaf: the painting inside the circle round centre_px (r_px), as a round card bent onto the plane
+    through its centre (at depth y_c) facing `normal`, cupped `cup` x its radius towards its face; every vertex at its
+    painted x, z, so from the front it is the painted fan. xform moves the whole card (a copy round the back)."""
+    P = K.paint
+    cx, cy = centre_px
+    n = Vector(normal).normalized()
+    X0, Z0 = P.x(cx), P.z(cy)
+    rm = P.m(r_px)
+    sgn = -1.0 if n.y < 0 else 1.0
+    bm = bmesh.new()
+    uvl = bm.loops.layers.uv.new("UVMap")
+    ph = K.rng.uniform(0, 6.28)
+    jit = [1.0 + K.rng.uniform(-rough, rough * 0.5) for _ in range(spokes)]
+
+    def vert(px, py, k):
+        px, py = float(np.clip(px, 0.5, P.w - 0.5)), float(np.clip(py, 0.5, P.h - 0.5))
+        x, z = P.x(px), P.z(py)
+        y = relief_y(P, x, z, X0, y_c, Z0, n) + sgn * cup * rm * k * k
+        v = Vector((x, y, z))
+        if xform is not None:
+            v = xform(v)
+        return bm.verts.new(v), (px / P.w, 1 - py / P.h)
+    centre = vert(cx, cy, 0.0)
+    ringv = []
+    for k in range(1, rings + 1):
+        f = k / rings
+        row = []
+        for i in range(spokes):
+            a = ph + 2 * math.pi * i / spokes
+            rr = r_px * f * (jit[i] if k == rings else 1.0)
+            row.append(vert(cx + rr * math.cos(a), cy + rr * math.sin(a), f))
+        ringv.append(row)
+
+    def face(vs):
+        f = bm.faces.new([v for v, _ in vs])
+        for lp, (_, uv) in zip(f.loops, vs):
+            lp[uvl].uv = uv
+    for i in range(spokes):
+        j = (i + 1) % spokes
+        face([centre, ringv[0][i], ringv[0][j]])
+        for k in range(rings - 1):
+            face([ringv[k][i], ringv[k + 1][i], ringv[k + 1][j], ringv[k][j]])
+    ob = _obj(name, bm, None)
+    nn = xform(Vector((X0, y_c, Z0)) + n) - xform(Vector((X0, y_c, Z0))) if xform is not None else n
+    ob["kit_normal"] = list((nn + Vector((0, 0, 0.4))).normalized())
+    K.cards_parts.append(ob)
+    return ob
+
+
+def wrap_card(K, box_px, axis_px, r_px, y0=0.0, depth=1.0, back=False, nx=12, nz=6, name="wrap"):
+    """The painting inside box_px wrapped onto the front (or back) half of an upright cylinder round axis_px, r_px
+    across: a round skirt, clump or bundle that keeps the painted ragged outline (it is a cut-out card), exactly the
+    painting from the front and round from the side."""
+    P = K.paint
+    x0, y0p, x1, y1p = box_px
+    bm = bmesh.new()
+    uvl = bm.loops.layers.uv.new("UVMap")
+    grid = []
+    for j in range(nz + 1):
+        row = []
+        for i in range(nx + 1):
+            px = x0 + (x1 - x0) * i / nx
+            py = y0p + (y1p - y0p) * j / nz
+            px, py = float(np.clip(px, 0.5, P.w - 0.5)), float(np.clip(py, 0.5, P.h - 0.5))
+            rr = r_px(py) if callable(r_px) else r_px
+            ax = axis_px(py) if callable(axis_px) else axis_px
+            d = P.m(math.sqrt(max(0.0, rr * rr - (px - ax) ** 2))) * depth
+            y = y0 + (d if back else -d)
+            row.append((bm.verts.new((P.x(px), y, P.z(py))), (px / P.w, 1 - py / P.h)))
+        grid.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            q = [grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]]
+            f = bm.faces.new([v for v, _ in q])
+            for lp, (_, uv) in zip(f.loops, q):
+                lp[uvl].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = [0.0, 0.6 if back else -0.6, 0.8]
+    K.cards_parts.append(ob)
+    return ob
+
+
+def palmyra(K, fans, heart_px, crown_r_px, skirt_box, skirt_r_px, trunk_pts, petiole_box, crown_box):
+    """A palmyra: a tall straight dark trunk, a ragged skirt of dead leaf-bases hanging round its top, and a ball of
+    stiff fan leaves on long stalks; the painted fans where they are painted, facing out from the heart, and more round
+    the back and sides."""
+    P = K.paint
+    rng = K.rng
+    rgb = painted_rgb(K)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    # ---- the trunk
+    tx = trunk_pts[-1][0]
+    tr_ok = opaque & ~halo(rgb) & (mx > 40) & box_mask(opaque.shape, [(0, skirt_box[3], P.w, P.h)])
+    bark = axis_material(K, tr_ok, lambda py: float(np.interp(py, [p[1] for p in trunk_pts][::-1],
+                                                              [p[0] for p in trunk_pts][::-1])), squeeze=0.8, inset=1)
+    trunk(K, trunk_pts, bark, segments=14)
+    foot = trunk_pts[0]
+    for k in range(6):                                   # the root flare
+        a = 2 * math.pi * (k + rng.uniform(-0.2, 0.2)) / 6
+        r0 = P.m(foot[2])
+        K.tube([(P.x(foot[0]) + math.cos(a) * r0 * 0.4, math.sin(a) * r0 * 0.4, P.z(foot[1]) + r0 * 1.2),
+                (P.x(foot[0]) + math.cos(a) * r0 * 1.05, math.sin(a) * r0 * 1.05, P.z(foot[1]) + r0 * 0.25),
+                (P.x(foot[0]) + math.cos(a) * r0 * 1.5, math.sin(a) * r0 * 1.5, P.z(foot[1]))],
+               [r0 * 0.4, r0 * 0.28, r0 * 0.1], bark, segments=8, name="root")
+    # ---- the skirt of dead leaf-bases: a solid core and the painted ragged skirt wrapped round it, front and back
+    sk_ok = opaque & ~halo(rgb) & (r >= g - 2) & box_mask(opaque.shape, [skirt_box])
+    skirt_mat = masked_material(K, sk_ok, inset=1)
+    sx0, sy0, sx1, sy1 = skirt_box
+    scx = (sx0 + sx1) / 2
+    top_r, bot_r = P.m(skirt_r_px * 0.9), P.m(trunk_pts[-1][2] * 1.3)
+    K.lathe([(bot_r, P.z(sy1 - 8)), (top_r * 0.8, P.z(sy1 - 20)), (top_r * 0.95, P.z(sy0 + 15)),
+             (top_r * 0.7, P.z(sy0 - 5)), (0.0, P.z(sy0 - 12))], skirt_mat, segments=18, centre=(P.x(scx), 0.0, 0.0),
+            wobble=0.06, name="skirt_core")
+    rr_fn = lambda py: skirt_r_px * (1.0 - 0.35 * np.clip((py - sy0) / max(1, sy1 - sy0), 0, 1))
+    wrap_card(K, skirt_box, scx, rr_fn, depth=1.0, nx=14, nz=6, name="skirt")
+    wrap_card(K, skirt_box, scx, rr_fn, depth=1.0, back=True, nx=14, nz=6, name="skirt")
+    # ---- the fans
+    leaf_ok = opaque & ~halo(rgb) & ~((r > g + 4) & (mx < 150)) & box_mask(opaque.shape, [crown_box])
+    leaf_ok = ndimage.binary_opening(leaf_ok, iterations=1)
+    both = (0, 0, P.w, max(crown_box[3], skirt_box[3]))
+    K.leaves_only(both, mask_rule(leaf_ok | sk_ok, both))
+    hx, hz = P.x(heart_px[0]), P.z(heart_px[1])
+    Rc = P.m(crown_r_px)
+    stalk = masked_material(K, opaque & box_mask(opaque.shape, [petiole_box]) & (g > b + 6) & (mx > 100), inset=0) \
+        if petiole_box else K.colour((0.25, 0.27, 0.12))
+    placed = []
+    for cx, cy, rad, d in fans:
+        X0, Z0 = P.x(cx), P.z(cy)
+        dx, dz = X0 - hx, Z0 - hz
+        h = math.sqrt(max(0.0, Rc * Rc - dx * dx - dz * dz))
+        y_c = d * max(h, Rc * 0.25)
+        s = -1.0 if d <= 0 else 1.0
+        n = (Vector((dx, y_c, dz)).normalized() + Vector((0, s * 0.9, 0.15))).normalized()
+        fan_card(K, (cx, cy), rad, y_c, n, cup=0.25 + rng.uniform(0, 0.15))
+        placed.append((cx, cy, rad, y_c, n))
+        K.tube([(hx, 0.0, hz), (hx + dx * 0.5, y_c * 0.5, hz + dz * 0.5 + P.m(rad) * 0.15), (X0, y_c + s * P.m(3), Z0)],
+               [P.m(2.6), P.m(2.2), P.m(1.6)], stalk, segments=6, name="petiole")
+    # round the back: each painted fan mirrored behind the heart, and the side ones turned round to the sides
+    for cx, cy, rad, y_c, n in placed:
+        n2 = Vector((n.x, -n.y, n.z))
+        y2 = -y_c if abs(y_c) > Rc * 0.2 else Rc * rng.uniform(0.3, 0.6)
+        fan_card(K, (cx, cy), rad * rng.uniform(0.9, 1.0), y2, n2, cup=0.3, name="fan_back")
+        X0, Z0 = P.x(cx), P.z(cy)
+        K.tube([(hx, 0.0, hz), (X0, y2, Z0)], [P.m(2.4), P.m(1.6)], stalk, segments=6, name="petiole")
+        dx = X0 - hx
+        if abs(dx) > Rc * 0.35:
+            for sgn in (1, -1):
+                deg = (rng.uniform(70, 110)) * sgn
+                xf = turn_about(hx, 0.0, deg)
+                c3 = xf(Vector((X0, y_c, Z0)))
+                if c3.y < 0:                      # turned to the front: it must hide behind the painted crown
+                    px_, pz_ = int(P.px(c3.x)), int(P.py(c3.z))
+                    if not (0 <= px_ < P.w and 0 <= pz_ < P.h and leaf_ok[pz_, px_]):
+                        continue
+                    xf = turn_about(hx, 0.0, deg, scale=0.85)
+                fan_card(K, (cx, cy), rad * 0.9, y_c, n, cup=0.3, xform=xf, name="fan_side")
+                c3 = xf(Vector((X0, y_c, Z0)))
+                K.tube([(hx, 0.0, hz), tuple(c3)], [P.m(2.4), P.m(1.6)], stalk, segments=6, name="petiole")
+    # the heart: the bud of new leaves at the top of the trunk, in the middle of the crown
+    K.lathe([(P.m(r_), P.z(heart_px[1] + dz)) for r_, dz in ((10, 30), (14, 10), (12, -15), (6, -30), (0.0, -36))],
+            stalk, segments=12, centre=(hx, 0.0, 0.0), name="heart")
+
+
+PALMYRA_1_FANS = [  # (centre px, radius px, depth: - in front of the heart, + behind)
+    (95, 70, 45, -0.3), (160, 85, 45, -0.2), (128, 40, 35, 0.3), (55, 100, 45, -0.15), (185, 115, 42, -0.1),
+    (120, 128, 50, -0.95), (70, 180, 42, -0.5), (155, 185, 45, -0.55), (190, 160, 32, 0.1), (40, 150, 32, 0.15)]
+PALMYRA_2_FANS = [
+    (100, 75, 45, -0.35), (135, 45, 40, 0.2), (170, 90, 45, -0.3), (45, 125, 40, -0.1), (70, 160, 40, -0.45),
+    (157, 127, 45, -0.85), (210, 120, 30, 0.0), (105, 210, 40, -0.7), (195, 190, 35, -0.3), (125, 125, 30, 0.3)]
+PALMYRA_3_FANS = [
+    (100, 70, 50, -0.35), (165, 90, 45, -0.3), (130, 40, 35, 0.3), (55, 105, 45, -0.15), (115, 150, 50, -0.95),
+    (175, 135, 45, -0.2), (50, 165, 40, -0.3), (65, 210, 40, -0.55), (150, 215, 40, -0.65), (185, 180, 40, -0.25)]
+
+
+@model("palmyra_1", "fields", kind="prop", atlas=1024, leaves=1024)
+def palmyra_1(K):
+    """A palmyra palm: a tall straight dark trunk flaring at its foot, a ragged brown skirt of old leaf-bases under a
+    round head of stiff grey-green fan leaves on long stalks."""
+    palmyra(K, PALMYRA_1_FANS, (122, 140), 105, (86, 190, 170, 258), 40,
+            [(117, 452, 17), (118, 430, 14), (120, 400, 11), (121, 360, 9.5), (122, 300, 9), (122, 262, 9),
+             (123, 215, 9)], (110, 55, 132, 125), (0, 0, 237, 240))
+
+
+@model("palmyra_2", "fields", kind="prop", atlas=1024, leaves=1024)
+def palmyra_2(K):
+    """A palmyra palm: a tall straight dark trunk, a ragged brown skirt of old leaf-bases, a round head of stiff
+    grey-green fan leaves on long stalks."""
+    palmyra(K, PALMYRA_2_FANS, (126, 135), 110, (85, 180, 172, 262), 42,
+            [(126, 483, 18), (126, 460, 15), (126, 430, 12), (127, 390, 10), (127, 330, 9.5), (126, 270, 9.5),
+             (126, 215, 9)], (118, 140, 135, 190), (0, 0, 242, 240))
+
+
+@model("palmyra_3", "fields", kind="prop", atlas=1024, leaves=1024)
+def palmyra_3(K):
+    """A palmyra palm: a tall straight dark trunk, a ragged brown skirt of old leaf-bases, a round head of stiff
+    grey-green fan leaves on long stalks."""
+    palmyra(K, PALMYRA_3_FANS, (122, 140), 108, (82, 195, 168, 266), 42,
+            [(117, 490, 16), (118, 465, 13), (121, 430, 10.5), (122, 390, 9.5), (122, 330, 9), (122, 275, 9),
+             (122, 225, 9)], (100, 90, 125, 140), (0, 0, 239, 250))
+
+
+# ====================================================================== h4_4: the bottle palm
+H44_FRONDS = [
+    ([(203, 288), (197, 220), (185, 150), (160, 90), (125, 45), (85, 18)], [4, 6, 22, 30, 26, 12], 0.25),
+    ([(205, 288), (207, 210), (218, 130), (245, 70), (290, 30), (333, 10)], [4, 6, 22, 30, 26, 12], 0.3),
+    ([(201, 288), (192, 215), (165, 150), (115, 100), (65, 80), (20, 88)], [4, 6, 20, 26, 22, 10], -0.05),
+    ([(200, 290), (188, 225), (155, 175), (105, 150), (55, 160), (8, 208)], [4, 6, 24, 30, 24, 10], -0.4),
+    ([(200, 292), (188, 250), (155, 215), (115, 215), (88, 240), (72, 272)], [4, 6, 18, 24, 20, 10], -0.75),
+    ([(206, 288), (213, 215), (245, 160), (295, 125), (350, 120), (400, 153)], [4, 6, 22, 28, 24, 10], 0.05),
+    ([(206, 292), (218, 240), (250, 200), (290, 205), (312, 240), (320, 288)], [4, 6, 22, 30, 24, 10], -0.75),
+]
+
+
+@model("h4_4", "plants", kind="prop", atlas=1024, leaves=1024)
+def h4_4(K):
+    """A young bottle palm: a squat, swollen, ringed trunk like a jar narrowing to a neck, two pointed sheaths at its
+    top, long green leaf-stalks rising out of it into broad arching fronds, a mound of earth and grass at its foot."""
+    P = K.paint
+    rgb = painted_rgb(K)
+    opaque = P.rgba[..., 3] > 0.5
+    leaf = leafy(rgb)
+    cx = 203
+    # ---- the bottle: turned, wearing its painted rings all round
+    tr_ok = opaque & barkish(rgb) & ~leaf & box_mask(opaque.shape, [(160, 270, 250, 468)])
+    bark = axis_material(K, tr_ok, lambda py: float(cx), squeeze=0.88, inset=2)
+    prof = [(31, 472), (34, 462), (35, 446), (34, 430), (31, 414), (27, 400), (23, 386), (20, 372), (20, 362),
+            (21, 356), (17, 350), (14, 340), (15, 326), (18, 316), (21, 306), (19, 298), (14, 290), (9, 282),
+            (0.0, 276)]
+    K.lathe([(P.m(r), P.z(py)) for r, py in prof], bark, segments=28, centre=(P.x(cx), 0.0, 0.0), wobble=0.015,
+            name="bottle")
+    # the two pointed sheaths at its neck
+    sheath = bark
+    for tip, side in (((178, 300), -1), ((230, 278), 1)):
+        base = (cx + side * 8, 318)
+        pts = [P.pt(base[0], base[1], -P.m(10)), P.pt((base[0] + tip[0]) / 2 + side * 3, (base[1] + tip[1]) / 2,
+                                                       -P.m(13)), P.pt(tip[0], tip[1], -P.m(12))]
+        K.tube(pts, [P.m(9), P.m(6), P.m(1.5)], sheath, segments=8, name="sheath")
+        for v in K.parts[-1].data.vertices:
+            v.co.y = -P.m(10) + (v.co.y + P.m(10)) * 0.45
+    # ---- the fronds on their long stalks
+    heart = (203, 290)
+    palm = Palm(K, heart, R=P.m(200) * 0.9)
+    crown_box = (0, 0, P.w, 300)
+    m = leaf & box_mask(opaque.shape, [crown_box]) & ~ndimage.binary_dilation(tr_ok, iterations=2)
+    K.leaves_only(crown_box, mask_rule(m, crown_box))
+    palm.crown(H44_FRONDS, back=1.0, extra=4, turn=(60, 170))
+    stalk = masked_material(K, opaque & leaf & box_mask(opaque.shape, [(185, 200, 225, 285)]) & not_ink(rgb), inset=1)
+    palm.stalks(stalk, 4.5, 3.0, frac=0.36, heart=(P.x(heart[0]), P.z(heart[1] + 10)))
+    # ---- the mound of earth and the grass at its foot
+    earth_ok = opaque & box_mask(opaque.shape, [(140, 462, 268, 480)]) & not_ink(rgb) & ~leaf
+    soil = masked_material(K, earth_ok, inset=1)
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((64, 480), (60, 474), (48, 468), (38, 464), (0.0, 462))], soil,
+            segments=28, centre=(P.x(cx), 0.0, 0.0), scale_y=0.9, wobble=0.1, name="mound")
+    grass = [(130, 408, 172, 470), (238, 418, 272, 470), (160, 440, 185, 472)]
+    K.leaves_only((128, 405, 275, 472), mask_rule(leaf, (128, 405, 275, 472)))
+    tufts(K, grass, [-P.m(25), -P.m(25), -P.m(36)])
+    tufts(K, grass[:2], [P.m(25), P.m(28)])
+
+
+# ====================================================================== h4_5: the coconut palm with its climbing rope
+H45_FRONDS = [
+    ([(316, 260), (288, 140), (233, 56), (177, 23), (126, 14)], 30, 0.3),
+    ([(335, 260), (363, 140), (409, 65), (456, 28), (505, 7)], 30, 0.3),
+    ([(325, 300), (325, 240), (324, 185), (323, 140)], [22, 55, 72, 55], -1.0, "leaf"),     # the frond facing us
+    ([(279, 195), (209, 140), (140, 116), (70, 126), (26, 160)], 30, 0.15),
+    ([(372, 195), (442, 149), (512, 121), (581, 130), (623, 149)], 30, 0.15),
+    ([(298, 260), (209, 219), (116, 223), (47, 279), (9, 353)], 40, -0.05),
+    ([(353, 260), (442, 219), (535, 223), (605, 270), (642, 335)], 40, -0.05),
+    ([(288, 288), (209, 288), (153, 326), (121, 409), (112, 516)], 40, -0.4),
+    ([(363, 288), (442, 288), (502, 335), (549, 409), (567, 493)], 38, -0.4),
+    ([(321, 260), (260, 233), (209, 260), (186, 326), (195, 409)], 40, -0.8),
+    ([(335, 260), (395, 251), (442, 288), (465, 349), (488, 442)], 42, -0.8),
+]
+H45_NUTS = [(293, 353, 23, 22), (344, 363, 24, 23), (381, 367, 20, 20), (260, 367, 18, 18), (307, 391, 24, 23),
+            (363, 395, 24, 23), (263, 397, 20, 20), (400, 400, 18, 18), (293, 433, 23, 22), (344, 428, 24, 23),
+            (256, 433, 20, 20), (386, 442, 20, 20), (279, 470, 22, 21), (321, 465, 22, 22), (367, 465, 22, 21),
+            (251, 465, 18, 18), (288, 502, 22, 21), (326, 507, 24, 23), (358, 493, 20, 20)]
+H45_TRUNK = [(326, 1110, 46), (326, 1060, 42), (326, 1010, 37), (326, 950, 33), (327, 850, 30), (327, 700, 28),
+             (327, 560, 27), (326, 420, 25), (325, 320, 22), (325, 290, 20)]
+
+
+@model("h4_5", "plants", kind="prop", atlas=2048, leaves=2048)
+def h4_5(K):
+    """A tall coconut palm heavy with a great bunch of green coconuts, dry fibres hanging round them, a climber's rope
+    loop tied round its ringed trunk, mossy boulders and grass at its foot."""
+    P = K.paint
+    rgb = painted_rgb(K)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    leaf = leafy(rgb)
+    rope_poly = ellipse_mask(opaque.shape, [(322, 815, 62, 88)]) & ~ellipse_mask(opaque.shape, [(323, 815, 44, 70)])
+    rope_poly |= box_mask(opaque.shape, [(296, 716, 360, 748)])
+    rope_ok = opaque & rope_poly & (mx > 150) & (r > b + 30)
+    nuts = ellipse_mask(opaque.shape, H45_NUTS, 1)
+    tr_ok = opaque & barkish(rgb) & ~leaf & box_mask(opaque.shape, [(290, 520, 365, 1100)]) & ~nuts
+    tr_ok &= ~(rope_poly & (mx > 150))
+    bark = axis_material(K, tr_ok, lambda py: 327.0, squeeze=0.84, inset=2)
+    trunk(K, H45_TRUNK, bark, segments=18)
+    # ---- the rope: a band tied round the trunk, its knot, and the loop hanging down in front
+    rope = masked_material(K, rope_ok, inset=1)
+    tr = P.m(28)
+    from trees import ring_tube
+    ring_tube(K, P.x(327), 0.0, P.z(727), tr + P.m(4), tr + P.m(4), rope, P.m(5), tilt=(0.0, P.m(4)), name="rope_band")
+    K.lathe([(P.m(rr), P.z(py)) for rr, py in ((4, 742), (7, 735), (7, 722), (4, 714))], rope, segments=10,
+            centre=(P.x(342), -tr - P.m(5), 0.0), name="knot")
+    loop = []
+    for k in range(41):
+        a = math.pi / 2 + 2 * math.pi * k / 40
+        px, py = 322 + 52 * math.cos(a), 815 - 76 * math.sin(a)
+        dy = -tr - P.m(6) - P.m(10) * max(0.0, (py - 760) / 130) - P.m(8) * abs(math.cos(a))
+        loop.append((P.x(px), dy, P.z(py)))
+    K.tube(loop, P.m(5.2), rope, segments=8, name="rope_loop", cap=False)
+    # ---- the crown
+    heart = (325, 290)
+    palm = Palm(K, heart, R=P.m(300) * 0.85)
+    crown_box = (0, 0, P.w, 540)
+    fibres = opaque & (r > g + 8) & (mx > 80) & box_mask(opaque.shape, [(190, 300, 460, 480)]) & ~nuts
+    m = (leaf & ~nuts | fibres) & box_mask(opaque.shape, [crown_box]) & ~ndimage.binary_dilation(tr_ok, iterations=2)
+    K.leaves_only(crown_box, mask_rule(m, crown_box))
+    palm.crown(H45_FRONDS, back=1.0, extra=6)
+    green = K.colour((300, 300, 340, 320), vary=0.12)
+    K.lathe([(P.m(rr), P.z(py)) for rr, py in ((22, 330), (34, 310), (36, 285), (28, 262), (14, 248), (0.0, 242))],
+            green, segments=16, centre=(P.x(heart[0]), 0.0, 0.0), name="heart")
+    palm.stalks(green, 7, 4, frac=0.3)
+    # the new spear leaf standing up in the middle
+    ribbon(K, [(322, 140), (321, 110), (320, 75)], [6, 5, 1], y_of=0.0, rows=3, n=6, name="spear", profile=None)
+    # the dry fibres hanging round the bunch, as cards round it
+    for box, cxx in (((195, 380, 265, 475), 230), ((390, 395, 455, 470), 422)):
+        for yy, yaw in ((-0.03, 0), (0.02, 40), (0.04, -40)):
+            K.card_from_painting(box, (P.x(cxx), yy, P.z((box[1] + box[3]) / 2)), yaw=yaw, name="fibres",
+                                 normal=(0, -0.3, 1))
+    coconuts(K, H45_NUTS, [], heart, 27, None, ring=9)
+    # ---- the boulders and grass at its foot
+    rock_boxes = [(183, 1105, 292, 1174), (248, 1156, 292, 1182), (303, 1133, 417, 1185), (353, 1098, 457, 1172),
+                  (438, 1153, 472, 1175)]
+    stone = masked_material(K, opaque & box_mask(opaque.shape, rock_boxes) & not_ink(rgb)
+                            & ~(barkish(rgb) & box_mask(opaque.shape, [(280, 1040, 375, 1140)])), inset=2)
+    palm_foot(K, [(237, 1172, 110, 66, -0.04), (270, 1181, 44, 24, -0.06), (360, 1185, 114, 52, -0.045),
+                  (405, 1171, 104, 74, -0.02), (455, 1175, 34, 22, -0.03), (280, 1170, 90, 50, 0.05),
+                  (380, 1170, 90, 55, 0.05)],
+              stone, [(203, 1043, 282, 1150), (368, 1052, 432, 1112), (284, 1113, 322, 1172), (418, 1138, 447, 1177)],
+              [-0.03, -0.03, -0.06, -0.04], K.colour((0.16, 0.11, 0.06), vary=0.18, scale=40), 326, 150, 0.1, 1180)
+    tufts(K, [(203, 1043, 282, 1150), (368, 1052, 432, 1112)], [0.045, 0.045])

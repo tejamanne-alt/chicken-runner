@@ -1934,8 +1934,9 @@ def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9):
     P = K.paint
     K.box(x0, x1, y1 - 0.04, y1, 0.0, z_top, inside, name="back_wall")
     K.box(x0, x1, y1, y1 + 0.02, 0.0, z_top, outside, name="back_wall_out")
-    for xa, xb in ((x0, x0 + 0.04), (x1 - 0.04, x1)):
+    for xa, xb, xo in ((x0 + 0.02, x0 + 0.04, x0), (x1 - 0.04, x1 - 0.02, x1 - 0.02)):
         K.box(xa, xb, y0, y1, 0.0, z_top, inside, name="side_wall")
+        K.box(xo, xo + 0.02, y0, y1 + 0.02, 0.0, z_top, outside, name="side_wall_out")
     for x in np.linspace(x0 + 0.04, x1 - 0.04, battens):
         K.box(x - 0.025, x + 0.025, y1 + 0.02, y1 + 0.04, 0.0, z_top, batten, bevel=0.004, name="batten")
     K.box(x0, x1, y1 + 0.02, y1 + 0.05, z_top - 0.12, z_top - 0.06, batten, bevel=0.004, name="batten_rail")
@@ -2006,8 +2007,9 @@ def stall_f_1(K):
     top = K.projected(squeeze=1.0, keep=[(95, 560, 676, 598)], exclude=[(128, 470, 450, 580), (440, 360, 640, 598)],
                       inset=1)
     yc0, yc1 = -0.36, 0.12
-    K.box(P.x(110), P.x(660), yc0, yc1, 0.0, Z(598), front, name="counter")
-    K.box(P.x(96), P.x(676), yc0 - 0.05, yc1 + 0.02, Z(598), Z(576), top, bevel=0.006, name="counter_top")
+    K.box(P.x(110), P.x(660), yc0, yc1, 0.0, Z(598), planks, name="counter")
+    K.box(P.x(96), P.x(676), yc0 - 0.05, yc1 + 0.02, Z(598), Z(576), K.colour((120, 578, 330, 592), vary=0.08),
+          bevel=0.006, name="counter_top")
     K.box(P.x(110), P.x(660), yc0 - 0.012, yc0, Z(780), Z(756), batten, bevel=0.004, name="plinth")
     for x_px in (128, 385, 640):
         K.box(P.x(x_px) - 0.02, P.x(x_px) + 0.02, yc0 - 0.012, yc0, Z(756), Z(606), batten, name="upright")

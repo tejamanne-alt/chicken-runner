@@ -638,8 +638,8 @@ def crown(K, foot, r, h):
     P = K.paint
     fx, fy = foot
     earth = K.colour((0.085, 0.055, 0.03), vary=0.15, scale=40)
-    z0 = P.z(fy) + h * 0.3
-    R = max(r, z0 * 1.4)
+    z0 = P.z(fy) + h * 0.12
+    R = max(r, z0 * 1.15)
     K.lathe([(R, 0.0), (R * 0.85, z0 * 0.45), (R * 0.55, z0 * 0.85), (R * 0.25, z0), (0.0, z0 * 1.02)],
             earth, segments=12, centre=(P.x(fx), R * 0.35, 0.0), wobble=0.15, name="mound")
 

@@ -1,0 +1,10 @@
+{
+ "name": "palmyra_1",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 4.647,
+ "height": 9.0,
+ "depth": 4.82,
+ "faces": 3850,
+ "source": "blender"
+}

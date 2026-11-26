@@ -693,7 +693,7 @@ class Crown:
                 yy = self.y0 + ext * K.rng.uniform(0.8, 1.0)
             else:
                 u = K.rng.uniform(-1, 1)
-                yy = self.y0 + math.copysign(abs(u) ** 0.6, u) * ext * squash     # more of them near its surface
+                yy = self.y0 + math.copysign(abs(u) ** 0.8, u) * ext * squash     # more of them near its surface
             k = 0.6 + 0.4 * self.reach(px, py) if layer != "front" else 1.0      # smaller towards its rim
             w, h = size_px[0] * K.rng.uniform(0.75, 1.25) * k, size_px[1] * K.rng.uniform(0.75, 1.25) * k
             out = Vector((P.x(px) - P.x(cx), (yy - self.y0) * 1.3, P.z(py) - P.z(cy) + P.m(self.rzu) * 0.25))
@@ -1976,8 +1976,13 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     crown = Crown(K, crown_box, P.m(cw) * depth_ratio, crown_centre, core=core, dome=dome, dome_pow=dome_pow,
                   mask=crown_mask)
     floor = P.m(cw) * 0.06
-    wood.grow(spread, root_z_px=root_z_px, root_spread=0.9,
-              ymax=lambda px, py: max(floor, crown.extent(px, py) * 0.8), seed_dy=seed_dy)
+    root_lim = crown.hd * 0.6                          # the roots spread round the foot, whatever the crown does
+
+    def ylim(px, py):
+        if root_z_px is not None and py > root_z_px:
+            return root_lim
+        return max(floor, crown.extent(px, py) * 0.8)
+    wood.grow(spread, root_z_px=root_z_px, root_spread=0.9, ymax=ylim, seed_dy=seed_dy)
     bark = bark_material(K, mask, axis_x=P.x(bark_axis_px or root_px[0]), squeeze=0.9)
     voxel = P.H / voxel_div
     fuse_r = voxel * 2.5 * P.ppm                     # thinner wood stays clean tubes (a voxel remesh would bloat it)
@@ -2150,9 +2155,10 @@ def h2_1(K):
     mask, _ = TRACE["h2_1"](K)
     wood, crown, bark, thin = traced_tree(K, mask, (540, 1060), (0, 0, 1120, 670), (560, 330), (330, 0, 680),
                                           sage_leaves, spread=0.5, root_z_px=980, limb_py_max=560, limb_py_min=250,
-                                          n_limbs=7, n_roots=5, root_py=1030, n_cards=(230, 100, 55, 25))
+                                          n_limbs=7, n_roots=5, root_py=1030, n_cards=(210, 95, 50, 20),
+                                          fuse_faces=7000)
     pm = pod_mask(K, (150, 220, 1000, 690))
-    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=1, flatten=0.6, lump=0.12, segments=8,
+    hang_pods(K, pm, crown, masked_material(K, pm, inset=1), copies=1, flatten=0.6, lump=0.12, segments=7,
               stalk=K.colour((0.12, 0.08, 0.03)))
     # mossy rocks, grass at the foot
     stone = K.projected(squeeze=1.0, keep=[(262, 1000, 415, 1085), (540, 1040, 620, 1080)], inset=3)
