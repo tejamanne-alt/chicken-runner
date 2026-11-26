@@ -1081,17 +1081,6 @@ def with_cutters(parts):
     return out
 
 
-def shear(K, k, y0, parts=None, kx=0.0):
-    """Turns a model built true (level ground, upright stacks) into what the painting shows from its look-down:
-    every point is raised by k per metre it lies behind y0 (z += k (y - y0)), so level tops and the ground rise
-    towards the back and face the front camera as they are painted, while every upright stays upright. kx also
-    shifts them sideways by kx per metre (a painting whose depth runs off up and to one side)."""
-    for ob in with_cutters(parts if parts is not None else K.parts + K.cards_parts):
-        for v in ob.data.vertices:
-            v.co.z += k * (v.co.y - y0)
-            v.co.x += kx * (v.co.y - y0)
-
-
 def stack(K, cx, cy, w, d, h, courses, mat, z0=0.0, yaw=0.0, name="stack"):
     """A pier of rough-dressed stones: `courses` layers of one or two blocks each, w by d by h metres in all,
     a little uneven, standing at (cx, cy) on z0."""
@@ -1127,17 +1116,6 @@ def canal_piece_2(K):
                 rot=(0, 0, K.rng.uniform(-1.5, 1.5)), bevel=0.06, jitter=0.008, name="slab")
         for px0, px1 in piers:
             stack(K, (P.x(px0) + P.x(px1)) / 2, (y0 + y1) / 2, P.m(px1 - px0) * 0.95, pd, H - t, 4, stone)
-
-
-def plan_box(K, origin, ua, up, a0, a1, p0, p1, z0, z1, mat, bevel=0.03, jitter=0.0, name="block"):
-    """A block in a plan turned along unit vector ua (and up, square to it): a0..a1 along ua, p0..p1 along up,
-    z0..z1, from origin (x, y)."""
-    ca, cp = (a0 + a1) / 2, (p0 + p1) / 2
-    cx = origin[0] + ua[0] * ca + up[0] * cp
-    cy = origin[1] + ua[1] * ca + up[1] * cp
-    yaw = math.degrees(math.atan2(ua[1], ua[0]))
-    return K.block(cx, cy, (z0 + z1) / 2, a1 - a0, p1 - p0, z1 - z0, mat, rot=(0, 0, yaw), bevel=bevel,
-                   jitter=jitter, name=name)
 
 
 @fmodel("canal_piece_3", "fields", kind="prop", atlas=1024)
