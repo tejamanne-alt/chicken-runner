@@ -709,7 +709,7 @@ def bunting(K):
         kx, ky = knot
         for (lx, ly, r) in ((-10, -5, 6), (1, -9, 5)):
             c = P.pt(kx + sx * lx, ky + ly, 0.0)
-            ring(K, c[0], 0.0, c[2], P.m(r), P.m(1.6), rope_m, n=14, name="bow_loop")
+            ring(K, c[0], 0.0, c[2], P.m(r), P.m(1.2), rope_m, n=14, name="bow_loop")
         K.tube([P.pt(kx, ky, 0), P.pt(kx - sx * 3, ky + 8, -0.005), P.pt(kx - sx * 7, ky + 14, 0),
                 P.pt(kx - sx * 4, ky + 18, 0.005)], P.m(1.6), rope_m, segments=6, name="bow_tail")
         K.lathe([(P.m(3.2), -P.m(3)), (P.m(3.6), 0.0), (P.m(3.2), P.m(3)), (0.0, P.m(3.2))], rope_m, segments=10,
@@ -785,12 +785,12 @@ def kite(K):
            name="spine")
     arch = [(25, 55), (40, 50.5), (60, 48), (87, 49.5), (110, 55), (128, 65), (143, 78)]
     K.tube([P.pt(x, y, depth(x, y) - 0.004) for x, y in arch], P.m(1.3), cane, segments=6, name="spar")
-    knot = K.colour((16, 52, 22, 58), vary=0.1)
+    knot = K.colour((0.3, 0.1, 0.03), vary=0.1)
     for (x, y) in ((19, 55), (145, 79), (70, 124), (98, 8)):
         ellipsoid(K, P.pt(x, y, depth(x, y) - 0.002), (P.m(3.5), P.m(3), P.m(3)), knot, seg=8, rings=6, name="knot")
     # the paper tassels at the corners, and the tail on its string
     def strip(pts, w, box, ys):
-        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        m = K.projected(squeeze=1.0, keep=[box], inset=2)
         ribbon(K, pts, w, m, ys=ys)
     yl, yr = depth(19, 55), depth(145, 79)
     strip([(19, 56), (14, 68), (9, 80)], 6, (6, 58, 20, 86), [yl, yl + 0.01, yl + 0.02])

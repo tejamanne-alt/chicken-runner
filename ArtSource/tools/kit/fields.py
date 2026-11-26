@@ -899,7 +899,7 @@ def canal_piece_1(K):
     K.tube([P.pt(40, 455, yb), P.pt(324, 233, yb), P.pt(608, 11, yb)], P.m(15.5), beam_mat, segments=12, name="beam")
     K.tube([P.pt(256, 286, -0.1), P.pt(256, 286, yb + 0.12)], P.m(6), wood, segments=8, name="pin")
     # the counterweight: a rough stone hung by a loop of rope from the beam's short end
-    stone = K.projected(squeeze=1.0, keep=[(10, 506, 166, 664)], inset=3)
+    stone = K.tile((26, 545, 124, 628), soften=0.3)
     K.block(P.x(88), yb, P.z(585), P.m(150), 0.62, P.m(150), stone, rot=(0, 3, 6), bevel=0.05, jitter=0.02,
             name="stone")
     rope = K.colour((574, 150, 581, 400), vary=0.08)

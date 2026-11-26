@@ -1,0 +1,10 @@
+{
+ "name": "crop_strip_1",
+ "folder": "fields",
+ "kind": "volume",
+ "width": 7.265,
+ "height": 1.27,
+ "depth": 1.525,
+ "faces": 1920,
+ "source": "blender"
+}
