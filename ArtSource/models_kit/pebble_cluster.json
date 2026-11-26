@@ -1,10 +1,10 @@
 {
  "name": "pebble_cluster",
  "folder": "ground",
- "kind": "slab",
+ "kind": "volume",
  "width": 0.35,
  "height": 0.24,
- "depth": 0.068,
- "faces": 727,
+ "depth": 0.305,
+ "faces": 1426,
  "source": "blender"
 }

@@ -416,8 +416,11 @@ def coconut(K):
         prof.append(((cols.max() - cols.min() + 1) / 2, py))
         axes.append((cols.max() + cols.min() + 1) / 2)
     ax = float(np.median(axes))
-    prof[0] = (prof[0][0] * 0.7, prof[0][1])
+    prof[0] = (prof[0][0] * 0.82, prof[0][1])
     prof[-1] = (prof[-1][0] * 0.6, prof[-1][1])
+    # it rests on the ground: its flat underside let down onto it (the painting's frame runs below it, to the
+    # tips of the fibres hanging under it)
+    prof.insert(0, (prof[0][0] * 0.62, P.h - 0.5))
     husk = wrapped(K, P.x(ax), squeeze=0.93, src=filled_source(P, ndimage.binary_erosion(body, iterations=5)))
     # three faces with a ridge between each (the painted ridge to the right of the middle and two more round it)
     bm = bmesh.new()
@@ -668,6 +671,18 @@ def tuft(K, n=5):
                          normal=(0, -0.4, 0.8))
     yaws = [180 / n * (k + 0.5) + K.rng.uniform(-8, 8) for k in range(n)]
     ring_cards(K, box, foot, yaws, y=P.m(4), scale=(0.78, 0.94), spread=P.m(box[2] - box[0]) * 0.08, name="tuft")
+    crown(K, foot, P.m(box[2] - box[0]) * 0.13, P.m(box[3] - box[1]) * 0.09)
+
+
+def crown(K, foot, r, h):
+    """The crown a tuft's blades grow from: a low, squat knot of their own dark green at the foot, down to the
+    ground, hidden behind the painted blades from the front."""
+    P = K.paint
+    fx, fy = foot
+    base = K.colour((fx - 12, fy - 14, fx + 12, fy - 2), vary=0.12, pct=35)
+    z0 = P.z(fy)
+    K.lathe([(r, 0.0), (r * 1.05, z0 * 0.5), (r, z0), (r * 0.75, z0 + h * 0.6), (r * 0.3, z0 + h), (0.0, z0 + h * 1.05)],
+            base, segments=14, centre=(P.x(fx), r * 1.15, 0.0), wobble=0.12, name="crown")
 
 
 @model("tuft_1", "ground", kind="prop")
@@ -700,18 +715,23 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
     where it is painted."""
     P = K.paint
     mask = plant_mask(P)
+    clean_front(K, mask)
     card_mask(K, mask)
     K.card_from_painting((0, 0, P.w, P.h), P.pt(P.w / 2, P.h / 2, 0.0), name="weed", normal=(0, -0.4, 0.8))
-    stalk = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=1)
+    rgb = P.rgba[..., :3] * 255
+    green = mask & (rgb[..., 1] > rgb[..., 0] + 5) & (rgb[..., 1] > rgb[..., 2] + 30) & (rgb.max(-1) < 170)
+    ys, xs = np.nonzero(green)
+    stalk = K.colour(tuple(float(v) for v in np.median(P.rgba[ys, xs, :3], 0) ** 2.2), vary=0.08)
     for pts in stems:
-        K.tube([P.pt(x, y, P.m(1.5)) for x, y, _ in pts], [P.m(r) for _, _, r in pts], stalk, segments=6,
+        K.tube([P.pt(x, y, P.m(1.2)) for x, y, _ in pts], [P.m(r) * 0.7 for _, _, r in pts], stalk, segments=6,
                name="stalk")
     for box in flowers:
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        for yaw in (65, -65):
-            K.card_from_painting(box, P.pt(cx, cy, P.m(2)), yaw=yaw + K.rng.uniform(-10, 10), name="flower",
+        for yaw in (80, -80):
+            K.card_from_painting(box, P.pt(cx, cy, P.m(3)), yaw=yaw + K.rng.uniform(-6, 6), name="flower",
                                  normal=(0, -0.3, 1))
     ring_cards(K, rosette_box, foot, [45, 90, 135], y=P.m(3), scale=(0.8, 0.95), name="rosette")
+    crown(K, foot, P.m(rosette_box[2] - rosette_box[0]) * 0.07, P.m(rosette_box[3] - rosette_box[1]) * 0.12)
     for box, yaw in upper:
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, P.pt(cx, cy, P.m(4)), yaw=yaw, name="leaf", normal=(0, -0.3, 1))
@@ -782,11 +802,11 @@ def cracked_mud(K):
 
     def yfn(px, py):
         dd = float(dist[min(P.h - 1, int(py)), min(P.w - 1, int(px))])
-        h = plate * (0.25 + 0.75 * min(1.0, dd / 3.5)) + 0.006 * math.exp(-max(0.0, dd - 3.5) / 7)
+        h = plate * (0.3 + 0.7 * min(1.0, dd / 8.0)) + 0.005 * math.exp(-max(0.0, dd - 8.0) / 8)
         return back - h
     skel = skeletonize(crack)
     extra = []
-    for mask_, cell in ((skel, 6), ((dist > 2.5) & (dist < 4.0) & a, 8)):
+    for mask_, cell in ((skel, 10), ((dist > 6.5) & (dist < 8.5) & a, 14)):
         ys, xs = np.nonzero(mask_)
         seen = set()
         for x, y in zip(xs, ys):
@@ -795,7 +815,7 @@ def cracked_mud(K):
                 seen.add(k)
                 extra.append((x + 0.5, y + 0.5))
     earth = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=6)
-    tri_sheet(K, a, 22, yfn, earth, eps=2.0, back_y=back, extra=extra, name="crust", smooth=False)
+    tri_sheet(K, a, 28, yfn, earth, eps=2.5, back_y=back, extra=extra, name="crust", smooth=True)
 
 
 @model("cart_rut", "ground", kind="flat")
@@ -816,7 +836,7 @@ def cart_rut(K):
         h = relief + np.clip((v - Lm) / 60.0, -1, 1) * relief * 0.8
         return back - h
     # denser rows along the two ruts
-    extra = [(x + K.rng.uniform(-2, 2), y) for y in list(range(44, 80, 4)) + list(range(108, 146, 4))
-             for x in range(4, P.w, 9)]
+    extra = [(x + K.rng.uniform(-2, 2), y) for y in list(range(46, 80, 6)) + list(range(110, 146, 6))
+             for x in range(4, P.w, 14)]
     earth = K.colour((300, 160, 500, 180), vary=0.12, scale=20)
-    tri_sheet(K, a, 14, yfn, earth, eps=2.0, back_y=back, extra=extra, name="earth")
+    tri_sheet(K, a, 20, yfn, earth, eps=2.5, back_y=back, extra=extra, name="earth")

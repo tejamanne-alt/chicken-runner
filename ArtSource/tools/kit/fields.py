@@ -728,3 +728,123 @@ def canal_bank(K):
                              yaw=K.rng.uniform(-80, 80), name="grass", normal=(0, -0.3, 1))
         K.card_from_painting((1130, 140, 1198, 168), (P.x(K.rng.uniform(1090, 1170)), y, P.z(160)),
                              yaw=K.rng.uniform(-80, 80), name="grass", normal=(0, -0.3, 1))
+
+
+def yz_prism(K, outline_yz, x0, x1, mat, name="yz_prism"):
+    """A prism whose outline [(y, z), ...] lies in the side plane, extruded across x from x0 to x1 (a bank or a ramp
+    seen from the side)."""
+    ob = K.prism([(y, z) for y, z in outline_yz], -x1, -x0, mat, name=name)
+    rotate(ob, 90, "Z", (0, 0, 0))
+    return ob
+
+
+def relief(K, inside, depth, mat, step=6, box=None, skirt=0.0, name="relief"):
+    """Ground painted in a look-down made real: a surface through every opaque painted pixel (inside(px, py) ->
+    bool, sampled every `step` px over box) at depth(px, py) metres, so from the front it is exactly the painting's
+    shape, and from the side its rows run back as a slope or a bank; its outline is walled down to z = skirt (the
+    sides of the mound) so it is solid from every side."""
+    P = K.paint
+    x0, y0, x1, y1 = box or (0, 0, P.w, P.h)
+    xs = list(np.arange(x0, x1 + 0.1, step))
+    ys = list(np.arange(y0, y1 + 0.1, step))
+    ok = np.array([[bool(inside(min(px, P.w - 1), min(py, P.h - 1))) for px in xs] for py in ys])
+    bm = bmesh.new()
+    vid = {}
+
+    def vert(i, j):
+        if (i, j) not in vid:
+            px, py = min(xs[i], P.w - 1), min(ys[j], P.h - 1)
+            vid[(i, j)] = bm.verts.new((P.x(px), depth(px, py), P.z(py)))
+        return vid[(i, j)]
+    for j in range(len(ys) - 1):
+        for i in range(len(xs) - 1):
+            if ok[j, i] and ok[j, i + 1] and ok[j + 1, i] and ok[j + 1, i + 1]:
+                bm.faces.new([vert(i, j + 1), vert(i + 1, j + 1), vert(i + 1, j), vert(i, j)])
+    bm.edges.ensure_lookup_table()
+    low = {}
+    for e in [e for e in bm.edges if len(e.link_faces) == 1]:
+        a, b = e.verts
+        for v in (a, b):
+            if v not in low:
+                low[v] = bm.verts.new((v.co.x, v.co.y, skirt))
+        f = bm.faces.new([a, b, low[b], low[a]])
+        f.normal_update()
+        out = (a.co + b.co) / 2 - e.link_faces[0].calc_center_median()
+        out.z = 0
+        if f.normal.dot(out) < 0:
+            f.normal_flip()
+    ob = _obj(name, bm, mat, smooth=False)
+    K.parts.append(ob)
+    return ob
+
+
+def alpha_at(K, thresh=0.5):
+    """inside(px, py) for relief(): the painting is opaque there."""
+    A = K.paint.rgba[..., 3]
+    return lambda px, py: A[int(py), int(px)] > thresh
+
+
+@fmodel("canal_bridge", "fields", kind="prop", atlas=1024)
+def canal_bridge(K):
+    """A plank-slab bridge over a field channel: the slabs laid across the two banks, the channel running out from
+    under it towards us between walls of dressed stone, big rocks and ferns on the banks. The painting looks down on
+    the water, so the channel runs a little downhill towards us (its surface faces us as it is painted) and the
+    banks rise either side of it."""
+    P = K.paint
+    K.front_min = 0.05
+    y_back, y_front, r0, r1 = 0.25, -1.4, 97, 286
+    xl, xr = interp([(97, 188), (200, 197), (286, 206)]), interp([(97, 332), (200, 398), (286, 450)])
+
+    def ydep(py):                                          # the depth of a painted row on the slope
+        return y_back + (y_front - y_back) * (py - r0) / (r1 - r0)
+
+    def bankness(px, py):
+        out = max(xl(py) - px, px - xr(py), 0.0)
+        return min(1.0, out / 28.0) if py >= r0 - 4 else 1.0
+
+    def depth(px, py):
+        return ydep(py) - 0.32 * bankness(px, py)
+    opaque = alpha_at(K)
+
+    def in_channel(px, py):
+        return py >= r0 - 2 and xl(py) - 5 <= px <= xr(py) + 5
+    earth = two_tiles(K, (10, 64, 46, 92), (10, 64, 46, 92), soften=0.3)
+    relief(K, lambda px, py: opaque(px, py) and not in_channel(px, py), depth, earth, step=5, name="banks")
+    wtile = K.tile((236, 160, 330, 250), vary=0.04)
+    relief(K, lambda px, py: in_channel(px, py) and (opaque(px, py) or py < 100), depth, wtile, step=5,
+           box=(170, 90, 470, 291), skirt=0.0, name="water")
+    # dressed stone walls lining the channel under the bridge, and the big rocks on the banks
+    walls = [(104, 98, 170, 150), (160, 100, 198, 172), (330, 92, 392, 172), (390, 94, 452, 150),
+             (398, 140, 472, 202), (418, 180, 500, 242)]
+    rocks = [(48, 144, 152, 216), (58, 204, 202, 284), (448, 158, 543, 236), (430, 228, 543, 290)]
+    stone = K.projected(squeeze=1.0, keep=walls + rocks, inset=2)
+    for x0, y0, x1, y1 in walls:
+        cx = (x0 + x1) / 2
+        d = P.m(x1 - x0) * 0.8
+        K.block(P.x(cx), depth(cx, y1) + d * 0.3, (P.z(y1) + P.z(y0)) / 2 - 0.04, P.m(x1 - x0), d,
+                P.m(y1 - y0) + 0.08, stone, bevel=0.02, jitter=0.006, name="wall")
+    for x0, y0, x1, y1 in rocks:
+        cx = (x0 + x1) / 2
+        w, h = P.m(x1 - x0), P.m(y1 - y0)
+        K.boulder(P.x(cx), depth(cx, y1) + w * 0.25, P.z(y1) + h * 0.45, w, w * 0.75, h * 1.05, stone,
+                  lumps=0.15, name="rock")
+    # the slabs of the bridge: a front row and a back row laid across on the banks
+    slab = K.tile((140, 66, 236, 92), vary=0.05)
+    for x0, x1, t in ((74, 246, 60), (246, 372, 60), (372, 462, 58)):
+        K.block((P.x(x0) + P.x(x1)) / 2, y_back + 0.2, (P.z(97) + P.z(t)) / 2, P.m(x1 - x0) - 0.01, 0.4,
+                P.z(t) - P.z(97), slab, bevel=0.012, jitter=0.004, name="slab")
+    for x0, x1 in ((92, 300), (300, 430)):
+        K.block((P.x(x0) + P.x(x1)) / 2, y_back + 0.62, (P.z(97) + P.z(51)) / 2, P.m(x1 - x0) - 0.01, 0.42,
+                P.z(51) - P.z(97), slab, bevel=0.012, jitter=0.004, name="slab")
+    # ferns over the banks, where they are painted and on back along them
+    K.leaves_only((0, 0, 543, 291), grass_pixels)
+    spots = [(40, 8, 165, 64), (350, 8, 470, 60), (22, 92, 132, 152), (150, 120, 215, 182), (84, 178, 200, 252),
+             (110, 230, 212, 291), (456, 92, 543, 160), (470, 196, 543, 262), (2, 52, 60, 112), (470, 40, 543, 100)]
+    for box in spots:
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        y = depth(cx, box[3]) - 0.04
+        K.card_from_painting(box, P.pt(cx, cy, y), name="fern", normal=(0, -0.3, 1))
+        for k in range(2):
+            dy = K.rng.uniform(0.15, 0.5)
+            K.card_from_painting(box, (P.x(cx + K.rng.uniform(-20, 20)), y + dy, P.z(cy) + dy * 0.43),
+                                 yaw=K.rng.uniform(-80, 80), name="fern", normal=(0, -0.3, 1))

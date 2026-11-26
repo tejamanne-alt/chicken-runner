@@ -1016,6 +1016,23 @@ def round_pot(K, cx_px, top_py, bot_py, r_px, y, mat, segments=20, name="pot", r
     return ob
 
 
+def halo_exclude(K, boxes, cell=6, near=12, white=205):
+    """The cut-out's white sticker halo (near-white pixels within `near` px of its transparent edge) inside the
+    given boxes, kept off the model: excluded from the front projection in small cells, so the part's own material
+    shows where the geometry reaches into it."""
+    a = (K.paint.rgba * 255).astype(np.int32)
+    op = a[..., 3] > 127
+    halo = (a[..., :3].min(axis=2) > white) & op & ndimage.binary_dilation(~op, iterations=near)
+    m = np.zeros_like(halo)
+    for x0, y0, x1, y1 in boxes:
+        m[int(y0):int(y1), int(x0):int(x1)] = True
+    halo &= m
+    h, w = halo.shape
+    cells = halo[:h // cell * cell, :w // cell * cell].reshape(h // cell, cell, w // cell, cell).any(axis=(1, 3))
+    for cy, cx in zip(*np.nonzero(cells)):
+        K.front_exclude.append((cx * cell, cy * cell, (cx + 1) * cell, (cy + 1) * cell))
+
+
 @model("house_potter", "lane", kind="building", atlas=2048)
 def house_potter(K):
     """A potter's mud hut under a hipped thatch with palm fronds laid on it, a carved plank door and a shuttered
@@ -1024,6 +1041,9 @@ def house_potter(K):
     P = K.paint
     D = 4.5
     K.front_min = 0.15
+    halo_exclude(K, [(300, 0, 1520, 540), (1430, 200, 2195, 1010)])
+    # inside the wheel's frame the cut-out is painted solid white: not the frame's back rails
+    K.front_exclude += [(1570, 822, 1672, 876), (1709, 822, 1814, 876), (1570, 924, 1673, 955), (1707, 924, 1814, 955)]
     mud = K.tile((480, 640, 660, 900), size=1.2, vary=0.05, soften=0.5)
     lime = K.tile((500, 930, 970, 980), size=1.0, vary=0.04, soften=0.4)
     thatch_m = K.tile((420, 250, 500, 440), size=0.6, vary=0.06, soften=0.3)   # clean golden straw, left of the fronds
@@ -1198,6 +1218,7 @@ def house_thatched_hut(K):
     P = K.paint
     D = 4.6
     K.front_min = 0.15
+    halo_exclude(K, [(0, 0, 1522, 660), (1222, 600, 1460, 910)])
     mud = K.tile((200, 880, 560, 1020), size=1.2, vary=0.05, soften=0.45)
     lime = K.tile((180, 1040, 590, 1120), size=1.0, vary=0.04, soften=0.4)
     thatch_m = K.tile((180, 280, 420, 520), size=0.7, vary=0.06, soften=0.25)
@@ -1246,7 +1267,8 @@ def house_thatched_hut(K):
         from kitlib import plant_pixels
         r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
         orange = (r > 170) & (g > 80) & (g < 175) & (b < 95) & (r - g > 60)
-        return plant_pixels(rgb) & ~orange
+        pale = np.minimum(np.minimum(r, g), b) > 175                   # the cut-out's white halo, not a flower
+        return plant_pixels(rgb) & ~orange & ~pale
     K.leaves_only((460, 10, 1455, 905), vine_keep)
     alpha = P.rgba[..., 3]
     placed = 0
@@ -1259,12 +1281,15 @@ def house_thatched_hut(K):
         rgb = (P.rgba[int(cy), int(cx), :3] * 255).astype(int)
         if not (rgb[1] > rgb[2] + 15 and rgb[1] >= rgb[0] - 20):
             continue
+        v = min(1.0, max(0.0, (P.z(cy) - ze) / (zr - ze)))
+        xa, xb = P.px(eave[0] + (ridge[0] - eave[0]) * v), P.px(eave[1] + (ridge[1] - eave[1]) * v)
+        on_roof = cy < 600 and xa + 30 < cx < xb - 30
         if cy > 615:
             y = -0.1 if cx < 1353 else -0.05
         else:
-            y = fy(cx, cy) - 0.06
+            y = fy(cx, cy) - (0.06 if on_roof else 0.03)
         K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (P.x(cx), y, P.z(cy)), yaw=K.rng.uniform(-35, 35),
-                             pitch=K.rng.uniform(-25, 25) - (40 if cy < 600 else 0), name="vine")
+                             pitch=K.rng.uniform(-15, 15) - (35 if on_roof else 0), name="vine")
         placed += 1
     side_cards(K, (1222, 640, 1450, 880), 8, (100, 100), X1, 1, (0.1, 1.4))
     for i in range(10):
@@ -1273,11 +1298,11 @@ def house_thatched_hut(K):
         yb = D + 0.62 - (fy(cx, cy) + 0.62) + 0.06
         K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (P.x(cx), yb, z), yaw=180 + K.rng.uniform(-30, 30),
                              pitch=40 + K.rng.uniform(-20, 20), name="vine_back")
-    for i in range(8):
-        cx, cy = K.rng.uniform(1250, 1440), K.rng.uniform(280, 580)
-        v = (P.z(cy) - ze) / (zr - ze)
+    for i in range(10):
+        cx, cy = K.rng.uniform(900, 1300), K.rng.uniform(120, 560)
+        v = (P.z(K.rng.uniform(250, 560)) - ze) / (zr - ze)
         xh = eave[1] + (ridge[1] - eave[1]) * v
         ya, yb2 = eave[2] + (D / 2 - eave[2]) * v, eave[3] + (D / 2 - eave[3]) * v
         K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (xh + 0.06, K.rng.uniform(ya + 0.2, yb2 - 0.2),
-                             P.z(cy)), yaw=90 + K.rng.uniform(-30, 30), pitch=K.rng.uniform(-20, 20) + 35,
+                             ze + (zr - ze) * v), yaw=90 + K.rng.uniform(-30, 30), pitch=K.rng.uniform(-20, 20) + 35,
                              name="vine_hip")

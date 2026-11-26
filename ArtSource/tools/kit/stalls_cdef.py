@@ -24,14 +24,15 @@ def _smooth(e0, e1, x):
 
 
 def ktile(K, box, size=None, vary=0.0, soften=0.0):
-    """K.tile, but cut from the painting with its inner holes (pixels the cut-out made transparent: gaps in a weave,
-    light patches) filled from the nearest painted pixel, so a tile never shows the white behind the cut-out."""
+    """K.tile, but cut from the painting with its holes (pixels the cut-out made transparent: gaps in a weave, light
+    patches) and the pale halo round its outline filled from the nearest painted pixel, so a tile never shows the
+    white behind the cut-out."""
     P = K.paint
     if not hasattr(K, "_filled"):
         from scipy import ndimage
         from PIL import Image
         a = np.asarray(P.img).astype(np.float32)
-        solid = a[..., 3] > 127
+        solid = ndimage.binary_erosion(a[..., 3] > 127, iterations=4)
         _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
         f = a[iy, ix]
         f[..., 3] = 255
@@ -450,6 +451,7 @@ def pile(K, height, cx, cy, rx, ry, n, r, mat, squash=0.8, elong=1.15, segs=8, n
         x, y = cx + rx * d * math.cos(ang), cy + ry * d * math.sin(ang)
         rr = r * K.rng.uniform(0.8, 1.2)
         z = height(x, y)
+        z = min(z, height(x, cy) - 2.1 * rr * squash)    # never above the heap's painted outline from the front
         prof = [(0.0, -rr * squash), (rr * 0.7, -rr * squash * 0.72), (rr, 0.0), (rr * 0.7, rr * squash * 0.72),
                 (0.0, rr * squash)]
         ob = K.lathe(prof, mat, segments=segs, centre=(x, y, z + rr * squash * 0.55), name=name)
@@ -569,7 +571,7 @@ def stall_c_2(K):
             * _smooth(P.W / 2, P.W / 2 - 0.05, x)
     K.grid_plane(-P.W / 2, P.W / 2, -0.8, 1.45, 0.0, 36, 26, earth, height=lambda x, y: ground(x, y), name="ground")
     # ---------------------------------------------------------------- the bench: a tapering top, tilted on the rise
-    wood = ktile(K, (690, 655, 775, 690), vary=0.08)
+    wood = ktile(K, (60, 700, 220, 716), vary=0.08)
     wood_dark = K.colour((300, 720, 400, 728), vary=0.1)
     yF, yB = -0.4, 0.58
     zF, zB = Z(698), Z(620)
@@ -593,14 +595,14 @@ def stall_c_2(K):
     K.grid_plane(P.x(285), P.x(560), yF + 0.08, yB - 0.12, 0.0, 10, 8, mat_w,
                  height=lambda x, y: top_z(y) + 0.008, name="mat")
     # ---------------------------------------------------------------- the umbrella
-    weave = ktile(K, (380, 85, 520, 150), vary=0.06)
+    weave = ktile(K, (290, 105, 420, 170), vary=0.06)
     under = ktile(K, (150, 200, 280, 240), vary=0.05)
     pole_mat = K.projected(axis_x=P.x(300), squeeze=0.9, keep=[(270, 270, 330, 620)], inset=2)
     yc = 0.92
-    umbrella(K, P.x(340), yc, Z(220), P.m(322), P.m(170), 5.9, weave, under, pole_mat, teeth=46, tooth=0.075)
+    umbrella(K, P.x(340), yc, Z(206), P.m(314), P.m(156), 5.9, weave, under, pole_mat, teeth=46, tooth=0.055)
     # the pole: leaning, lashed to the bench's back-left leg, up to the collar under the canopy
     bot = (P.x(258), yc - 0.24, ground(P.x(258), yc - 0.24) - 0.05)
-    bamboo(K, bot, (P.x(331), yc - 0.01, Z(222)), P.m(11), pole_mat, node_at=[0.42, 0.78], bend=0.0, taper=0.9,
+    bamboo(K, bot, (P.x(331), yc - 0.01, Z(212)), P.m(11), pole_mat, node_at=[0.42, 0.78], bend=0.0, taper=0.9,
            name="pole")
     rope = K.colour((0.12, 0.07, 0.03), vary=0.1)
     lashing(K, (P.x(281), yc - 0.24 + 0.24 * 0.32, top_z(yB) - 0.08), (0.08, 0.1, 1.0), P.m(11), rope, turns=4)
@@ -614,7 +616,7 @@ def stall_c_2(K):
     basket(K, P.x(170), yb1, zb1, [(P.m(62), 0.0), (P.m(85), Z(672) - zb1 * 0 - Z(690) + 0.02),
                                     (P.m(98), Z(640) - zb1), (P.m(106), Z(603) - zb1)], bask, inside=inside, sy=0.85)
     leafm = ktile(K, (180, 560, 260, 600), vary=0.05)
-    heap(K, P.x(172), yb1, P.m(98), P.m(98) * 0.85, Z(610), Z(578) - Z(610), leafm, name="leaves")
+    heap(K, P.x(172), yb1, P.m(96), P.m(96) * 0.85, Z(610), Z(590) - Z(610), leafm, name="leaves")
     # the brass areca-nut cutter on its base plate
     brass = K.colour((640, 600, 660, 640), vary=0.08)
     brass_d = K.colour((605, 625, 640, 655), vary=0.08)
@@ -650,7 +652,7 @@ def stall_c_2(K):
     y2 = -0.95
     basket(K, P.x(140), y2, 0.0, [(P.m(92), 0.0), (P.m(104), Z(810)), (P.m(110), Z(780)), (P.m(112), Z(752))], bask2,
            sy=0.85)
-    heap(K, P.x(140), y2, P.m(104), P.m(104) * 0.85, Z(760), Z(722) - Z(760), leafm, name="leaves2")
+    heap(K, P.x(140), y2, P.m(100), P.m(100) * 0.85, Z(760), Z(735) - Z(760), leafm, name="leaves2")
     bask3 = K.projected(axis_x=P.x(315), squeeze=0.92, keep=[(215, 785, 415, 836)], inset=2)
     y3 = -0.98
     basket(K, P.x(318), y3, 0.0, [(P.m(88), 0.0), (P.m(94), Z(815)), (P.m(100), Z(792))], bask3, sy=0.85)

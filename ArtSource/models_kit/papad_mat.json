@@ -1,0 +1,10 @@
+{
+ "name": "papad_mat",
+ "folder": "market",
+ "kind": "volume",
+ "width": 0.437,
+ "height": 0.25,
+ "depth": 0.312,
+ "faces": 4566,
+ "source": "blender"
+}

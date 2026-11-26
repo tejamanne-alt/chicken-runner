@@ -603,3 +603,65 @@ def chilli_mat(K):
         A = T.at(ax, ay, height(ax, ay) - r * 0.1)
         B = T.at(bx, by, height(bx, by) - r * 0.4)
         pod(K, tuple(A), tuple(B), r, r * 0.35, chilli, bend=tuple(T.n * r * 0.5), n=6, seg=6, name="chilli")
+
+
+def papad(K, T, px, py, r_px, lift, mat, tilt=(0.0, 0.0), name="papad"):
+    """A papad drying on the tray: a thin, slightly wavy disc r_px across, centred on the painted one at (px, py),
+    lying in the tray's plane, lifted `lift` metres off the mat (resting on the ones under it), tilted a little."""
+    P = K.paint
+    R = P.m(r_px)
+    c = T.at(px, py, lift)
+    ex = Vector((1, 0, 0))
+    ey = T.s
+    ez = T.n
+    M = Matrix.Rotation(math.radians(tilt[0]), 3, ex) @ Matrix.Rotation(math.radians(tilt[1]), 3, ey)
+    ex, ey, ez = M @ ex, M @ ey, M @ ez
+    ph = K.rng.uniform(0, 6.28, 3)
+
+    n, nr = 28, 3
+    bm = bmesh.new()
+    mid = bm.verts.new(c + ez * 0.0012)
+    rings = []
+    for j in range(1, nr + 1):
+        v = j / nr
+        ring_v = []
+        for i in range(n):
+            a = 2 * math.pi * i / n
+            rr = R * v * (1 + 0.035 * math.sin(5 * a + ph[0]) + 0.02 * math.sin(9 * a + ph[1]))
+            h = 0.0025 * v * v * math.sin(3 * a + ph[2]) + 0.0012 * (1 - v)
+            ring_v.append(bm.verts.new(c + ex * rr * math.cos(a) + ey * rr * math.sin(a) + ez * h))
+        rings.append(ring_v)
+    for i in range(n):
+        bm.faces.new([mid, rings[0][i], rings[0][(i + 1) % n]])
+    for r0, r1 in zip(rings, rings[1:]):
+        for i in range(n):
+            k = (i + 1) % n
+            bm.faces.new([r0[i], r1[i], r1[k], r0[k]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    if bm.faces[0].normal.dot(ez) < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=True)
+    mod = ob.modifiers.new("solid", "SOLIDIFY")
+    mod.thickness = 0.0016
+    mod.offset = 0
+    K.parts.append(ob)
+    return ob
+
+
+@model("papad_mat", "market", kind="prop")
+def papad_mat(K):
+    """Round papads laid out to dry, overlapping like scales, on a woven palm-leaf mat in a frame of four lashed
+    bamboo poles, the tray propped on bricks at the back."""
+    P = K.paint
+    T = Tray(K, 122.5, 13, 0.26)
+    poles = ((15, 122.5), (233, 122.5), (205, 13), (38, 13))
+    lash = [(0, 0.03), (0, 0.97), (0, 0.27), (0, 0.5), (0, 0.73), (1, 0.03), (1, 0.97), (1, 0.33), (1, 0.66),
+            (2, 0.06), (2, 0.94), (2, 0.5), (3, 0.06), (3, 0.94), (3, 0.5)]
+    drying_tray(K, T, poles, (40, 22, 60, 36), lashings=lash)
+    top = K.projected(squeeze=1.0, inset=0)
+    # (centre px, radius px, layer): the ones painted on top rest on the ones under them
+    for (px, py), r, layer, tilt in (((91.5, 31), 26, 0, (3, -2)), ((140.5, 33.5), 35.5, 1, (-4, 3)),
+                                     ((68, 55.5), 30, 0, (2, 3)), ((174, 54.5), 34, 0, (-2, -3)),
+                                     ((182, 90), 34, 0, (3, 2)), ((71, 93), 37, 1, (-3, -2)),
+                                     ((139, 91.5), 36, 1, (4, -2)), ((112, 71.5), 36, 2, (-2, 4))):
+        papad(K, T, px, py, r, P.m(2.5) + layer * 0.004, top, tilt=tilt)

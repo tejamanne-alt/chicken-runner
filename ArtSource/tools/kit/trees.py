@@ -955,10 +955,15 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
             q = []
             for i, (px, py, r) in enumerate(pts):
                 dist = abs(P.x(px) - x0)
-                x, y = x0 + dist * math.cos(a), dist * math.sin(a)
-                lim = crown.extent(P.px(x), py) * 0.8
+                for _ in range(12):                       # stay inside the painted crown, seen from the front
+                    x = x0 + dist * math.cos(a)
+                    if crown.mask[int(np.clip(py, 0, P.h - 1)), int(np.clip(P.px(x), 0, P.w - 1))]:
+                        break
+                    dist *= 0.85
+                y = dist * math.sin(a)
+                lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
                 y = float(np.clip(y, -lim, lim))
-                q.append((x, y, P.z(py) + (rng.uniform(-0.12, 0.12) if i else 0.0)))
+                q.append((x, y, P.z(py) + (rng.uniform(-0.1, 0.0) if i else 0.0)))
             wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts], bark, segments=12, name="limb_turned"))
     # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
     for pts in roots:
