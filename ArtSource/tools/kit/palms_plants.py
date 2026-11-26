@@ -1415,3 +1415,103 @@ def h6_1(K):
     tufts(K, grass, [-0.03, -0.11, -0.06, -0.03, -0.13])
     tufts(K, grass[:4], [0.1, 0.12, 0.1, 0.08], yaws=(20, -50))
     earth_disc(K, 360, 260, 0.26, K.colour((0.22, 0.15, 0.08), vary=0.18, scale=40), z=P.z(795) - P.m(3))
+
+
+# ====================================================================== h6_2: bougainvillea over a garden wall
+def scatter_cards(K, region, n, size_px, ys, ok, yaw=35.0, pitch=20.0, rough=0.35, name="leaf", normal=(0, -0.4, 1),
+                  y_of=None):
+    """n blob cards cut from the painting at random spots inside region where `ok` (bool HxW), at depth ys (lo, hi)
+    or y_of(px, py)."""
+    P = K.paint
+    x0, y0, x1, y1 = region
+    placed = tries = 0
+    while placed < n and tries < n * 60:
+        tries += 1
+        px, py = K.rng.uniform(x0, x1), K.rng.uniform(y0, y1)
+        if not ok[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))]:
+            continue
+        w, h = size_px[0] * K.rng.uniform(0.75, 1.25), size_px[1] * K.rng.uniform(0.75, 1.25)
+        y = y_of(px, py) if y_of else K.rng.uniform(*ys)
+        blob_card(K, (px - w / 2, py - h / 2, px + w / 2, py + h / 2), (P.x(px), y, P.z(py)),
+                  yaw=K.rng.uniform(-yaw, yaw), pitch=K.rng.uniform(-pitch, pitch), rough=rough, name=name,
+                  normal=normal)
+        placed += 1
+    return placed
+
+
+@model("h6_2", "plants", kind="prop", atlas=2048, leaves=2048)
+def h6_2(K):
+    """A length of old garden wall, its lime plaster fallen away in places to show the brick, a square pillar at its
+    end and a stone coping along its top; a bougainvillea heaped over the top spilling magenta down its face, grass and
+    a mossy stone at its foot."""
+    P = K.paint
+    rgb = painted_rgb(K)
+    r, g, b, mx, mn = chan(rgb)
+    opaque = P.rgba[..., 3] > 0.5
+    t = 0.11                                       # half the wall's thickness
+    plaster = K.tile((310, 360, 450, 440), vary=0.05, soften=0.45)
+    coping = K.tile((588, 145, 640, 172), vary=0.05, soften=0.3)
+    brick = K.tile((505, 420, 620, 490), vary=0.04, soften=0.1)
+    zb, ztop = P.z(503), P.z(176)
+    K.box(P.x(62), P.x(632), -t, t, zb, ztop, plaster, name="wall")
+    # the pillar at its left end, a little proud of the wall, its cap
+    K.box(P.x(16), P.x(72), -t - 0.03, t + 0.03, zb, ztop, plaster, bevel=0.004, name="pillar")
+    K.prism([(-t - 0.045, P.z(178)), (t + 0.045, P.z(178)), (t + 0.045, P.z(140)), (0.0, P.z(132)),
+             (-t - 0.045, P.z(146))], 0, 1, coping, name="pillar_cap")
+    cap = K.parts[-1]
+    for v in cap.data.vertices:                   # the prism was built in (x, z): swing it to run along x
+        yv, zv, xv = v.co.x, v.co.z, v.co.y
+        v.co = Vector((P.x(10) + xv * (P.x(76) - P.x(10)), yv, zv))
+    # the coping along the top: sloping back a little, so from the front its top shows as the painted band
+    K.prism([(-t - 0.025, P.z(176)), (t + 0.025, P.z(176)), (t + 0.025, P.z(150)), (0.0, P.z(138)),
+             (-t - 0.025, P.z(150))], 0, 1, coping, name="coping")
+    cp = K.parts[-1]
+    for v in cp.data.vertices:
+        yv, zv, xv = v.co.x, v.co.z, v.co.y
+        v.co = Vector((P.x(70) + xv * (P.x(646) - P.x(70)), yv, zv))
+    # the brick showing where the plaster has fallen: the painted patches repeated on the back and the far end
+    for box, x_back in (((70, 330, 140, 498), 470), ((500, 365, 628, 498), 80), ((560, 178, 630, 280), 160)):
+        x0, y0, x1, y1 = box
+        w = P.m(x1 - x0)
+        xb = P.x(x_back)
+        K.quad([(xb + w, t + 0.001, P.z(y1)), (xb, t + 0.001, P.z(y1)), (xb, t + 0.001, P.z(y0)),
+                (xb + w, t + 0.001, P.z(y0))], K.decal(box), name="brick_back")
+    K.quad([(P.x(632) + 0.001, -t, P.z(498)), (P.x(632) + 0.001, t, P.z(498)), (P.x(632) + 0.001, t, P.z(365)),
+            (P.x(632) + 0.001, -t, P.z(365))], K.decal((540, 365, 628, 498)), name="brick_end")
+    K.quad([(P.x(632) + 0.001, -t, P.z(285)), (P.x(632) + 0.001, t, P.z(285)), (P.x(632) + 0.001, t, P.z(178)),
+            (P.x(632) + 0.001, -t, P.z(178))], K.decal((560, 178, 630, 285)), name="brick_end")
+    # ---- the bougainvillea: a heap over the top of the wall, and its sprays hanging down the front and the back
+    flower = (plant_pixels(rgb) | ((r > 150) & (b > 100) & (g < 120))) & opaque & ~halo(rgb)
+    flower &= ~(box_mask(opaque.shape, [(0, 170, P.w, 538)]) & ~(((r - g > 60) & (b > g)) | ((g > r) & (g > b + 15))
+                                                                 | (mx < 70)))
+    flower = ndimage.binary_opening(flower, iterations=1)
+    fb = (0, 0, P.w, 470)
+    K.leaves_only(fb, mask_rule(flower, fb))
+    heap = flower & box_mask(opaque.shape, [(0, 0, P.w, 200)])
+    crown = Crown(K, (0, 0, P.w, 200), 0.17, (340, 150), mask=ndimage.binary_fill_holes(
+        ndimage.binary_closing(heap, iterations=5)), core=0.6, dome=(150, 0, 205), dome_pow=0.5)
+    bush_cards(K, crown, 150, (70, 60), "volume", yaw=80, pitch=40)
+    bush_cards(K, crown, 60, (80, 70), "front", yaw=25, pitch=15)
+    bush_cards(K, crown, 45, (70, 60), "back", yaw=30, pitch=20)
+    bush_cards(K, crown, 30, (70, 60), "top", yaw=90)
+    hang = flower & box_mask(opaque.shape, [(0, 165, P.w, 470)])
+    scatter_cards(K, (0, 165, P.w, 470), 90, (65, 55), (-t - 0.09, -t - 0.015), hang, name="spray")
+    scatter_cards(K, (0, 165, P.w, 470), 50, (60, 50), (-t - 0.05, -t - 0.02), hang, name="spray", pitch=10)
+    scatter_cards(K, (60, 165, 620, 330), 60, (65, 55), (t + 0.015, t + 0.08), hang, name="spray_back",
+                  normal=(0, 0.4, 1))
+    # ---- grass and the mossy stone at its foot, in front and behind
+    stone_ok = opaque & not_ink(rgb) & box_mask(opaque.shape, [(110, 462, 270, 528)]) & ~(leafy(rgb) & (b < 60))
+    stone = masked_material(K, stone_ok, inset=2)
+    rock(K, 190, 528, 150, 60, -t - 0.06, stone)
+    rock(K, 240, 530, 50, 20, -t - 0.1, stone)
+    rock(K, 400, 515, 90, 40, t + 0.06, stone)
+    gb = (0, 400, P.w, 538)
+    gm = (leafy(rgb) | ((r > 110) & (g > 100) & (b < 80) & (g > r * 0.8))) & opaque & ~halo(rgb)
+    gm &= ~box_mask(opaque.shape, [(140, 470, 260, 515)])
+    K.leaves_only(gb, mask_rule(gm, gb))
+    grass = [(10, 440, 95, 520), (60, 410, 200, 500), (190, 440, 320, 520), (560, 440, 655, 505),
+             (450, 450, 510, 490)]
+    tufts(K, grass, [-t - 0.04, -t - 0.05, -t - 0.04, -t - 0.04, -t - 0.02])
+    tufts(K, grass[:4], [t + 0.04, t + 0.05, t + 0.04, t + 0.04], yaws=(10, -40))
+    K.box(P.x(0), P.x(661), -t - 0.12, t + 0.1, zb - 0.02, zb + 0.004, K.colour((0.25, 0.17, 0.09), vary=0.2,
+                                                                                 scale=30), name="ground")
