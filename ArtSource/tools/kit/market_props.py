@@ -1545,7 +1545,10 @@ def roof_house_a_1(K):
     K.lathe(prof(P, [(0, 560), (9, 559), (10, 552), (8, 547), (9, 535), (8, 526), (5, 520), (3, 515), (0, 514)]), brass,
             segments=14, centre=(X(848), yp, 0), name="lantern")
     # the left: a tall stair tower, a masonry stair climbing its face, a stone stair up to the landing
-    K.box(X(118), X(455), 0.9, D, 0.0, Z(128), tower, name="tower")
+    tower_ob = K.box(X(118), X(455), 0.9, D, 0.0, Z(128), tower, name="tower")
+    side_window(K, tower_ob, -1, D * 0.6, Z(560), Z(450), 0.7, wood, iron, dark)
+    side_window(K, tower_ob, -1, D * 0.6, Z(250), Z(160), 0.6, wood, iron, dark)
+    side_window(K, body, 1, D * 0.55, Z(610), Z(515), 0.8, wood, iron, dark)
     steps = [(205, 350)]
     for k in range(5):
         x, y = steps[-1]

@@ -1805,51 +1805,84 @@ def stall_e_3(K):
     Z = P.z
     K.front_min = 0.12
     # ---------------------------------------------------------------- the bank of earth and the mat over it
-    y0, y_lip, y_back = -0.84, -0.7, 0.72
+    y0, y_lip, y_back, y_end = -0.84, -0.7, 0.72, 1.2
     z_lip, z_back = Z(632), Z(546)
 
     def bank(x, y):
+        """The mat's height: a steep lip at the front, then a long gentle rise; lower where the cage stands."""
         px_ = P.px(x)
-        cage = _smooth(150, 175, px_) * _smooth(445, 420, px_)
+        cage = _smooth(66, 84, px_) * _smooth(232, 214, px_)
         lip = z_lip + (Z(668) - z_lip) * cage
         if y < y_lip:
-            z = Z(698) + (lip - Z(698)) * _smooth(y0, y_lip, y)
-        elif y < -0.12:
-            z = lip + (z_back - lip) * (y - y_lip) / (y_back - y_lip) * (1 - cage) \
-                + cage * (lip + (z_back - lip) * _smooth(-0.3, -0.12, y) * (y + 0.12) / (y_back + 0.12) * 0)
-        else:
-            z = lip + (z_back - lip) * (y - y_lip) / (y_back - y_lip)
-            if cage > 0:
-                zc = lip + (z_back - lip) * (y - y_lip) / (y_back - y_lip) * _smooth(-0.12, 0.25, y)
-                z = z * (1 - cage) + zc * cage
-        z = z if y < y_back else z_back * _smooth(1.2, y_back + 0.1, y)
-        # the mat's painted outline: narrower towards the back
-        py_ = P.py(max(z, Z(698)))
+            return Z(698) + (lip - Z(698)) * _smooth(y0, y_lip, y)
+        rise = (y - y_lip) / (y_back - y_lip)
+        z = lip + (z_back - lip) * min(1.0, rise)
+        if cage > 0:
+            zc = lip + (z_back - lip) * min(1.0, rise) * _smooth(-0.1, 0.3, y)
+            z = z * (1 - cage) + zc * cage
+        return z
+
+    def edges(y):
+        """The mat's left and right edges at depth y: its painted outline, narrower towards the back."""
+        py_ = P.py(max(Z(698), z_lip + (z_back - z_lip) * max(0.0, min(1.0, (y - y_lip) / (y_back - y_lip)))
+                       if y > y_lip else Z(698) + (z_lip - Z(698)) * _smooth(y0, y_lip, y)))
         xl = P.x(15 + max(0.0, min(1.0, (690 - py_) / 142)) * 205)
         xr = P.x(700 - max(0.0, min(1.0, (680 - py_) / 135)) * 135)
-        return z * _smooth(xl - 0.01, xl + 0.03, x) * _smooth(xr + 0.01, xr - 0.03, x)
-    mat = K.projected(squeeze=1.0, keep=[(15, 545, 705, 700)], exclude=[(160, 415, 440, 675), (228, 300, 540, 645)],
+        return xl, xr
+
+    def top(u, v):
+        y = y0 + (y_back - y0) * v
+        xl, xr = edges(y)
+        x = xl + (xr - xl) * u
+        return (x, y, bank(x, y) + 0.004)
+    mat = K.projected(squeeze=1.0, keep=[(15, 545, 705, 700)], exclude=[(66, 450, 232, 672), (228, 300, 540, 645)],
                       inset=2)
-    K.grid_plane(P.x(0), P.x(712), y0 - 0.02, 1.25, 0.0, 48, 40, mat, height=bank, name="mat")
+    K.sheet(top, 40, 30, mat, name="mat", thickness=0.006)
+    straw = ktile(K, (560, 560, 660, 600), vary=0.06)
+    earth = K.colour((0.32, 0.2, 0.1), vary=0.15, scale=6)
+
+    def back(u, v):          # the mat's far end turns down over the back of the bank
+        xl, xr = edges(y_back)
+        x = xl + (xr - xl) * u
+        y = y_back + (y_end - y_back) * v
+        return (x, y, bank(x, y_back) * (1 - _smooth(0.0, 1.0, v)) + 0.004)
+    K.sheet(back, 20, 6, straw, name="mat_back", thickness=0.006)
+
+    def side(sgn):
+        def f(u, v):
+            if u < 0.85:
+                y = y0 + (y_back - y0) * u / 0.85
+                xl, xr = edges(y)
+                x = xl if sgn < 0 else xr
+                zt = bank(x, y)
+            else:
+                xl, xr = edges(y_back)
+                x = xl if sgn < 0 else xr
+                y = y_back + (y_end - y_back) * (u - 0.85) / 0.15
+                zt = bank(x, y_back) * (1 - _smooth(0.0, 1.0, (u - 0.85) / 0.15))
+            return (x, y, zt * (1 - v))
+        return f
+    for sgn in (-1, 1):
+        K.sheet(side(sgn), 40, 2, earth, name="bank_side", thickness=0.004)
     # ---------------------------------------------------------------- the umbrella on its shaft
     top_cloth = ktile(K, (300, 70, 420, 110), vary=0.06)
     under = ktile(K, (390, 200, 470, 260), vary=0.05)
     wood = K.colour((368, 200, 382, 290), vary=0.08)
     yc = 0.95
-    top, axis = rib_umbrella(K, P.x(378), yc, Z(205), P.m(368), P.m(196), 14.5, top_cloth, under, wood, ribs=10,
+    tip, axis = rib_umbrella(K, P.x(378), yc, Z(205), P.m(368), P.m(196), 14.5, top_cloth, under, wood, ribs=10,
                              phase=0.0)
     ax = Vector(axis)
-    t = (top[2] - bank(top[0], top[1] - 0.6)) / ax.z
-    base = Vector(top) - ax * t
-    K.tube([tuple(base - ax * 0.15), tuple(Vector(top))], P.m(7), wood, segments=8, name="shaft")
+    t = (tip[2] - bank(tip[0], tip[1] - 0.6)) / ax.z
+    base = Vector(tip) - ax * t
+    K.tube([tuple(base - ax * 0.15), tuple(Vector(tip))], P.m(7), wood, segments=8, name="shaft")
     # ---------------------------------------------------------------- the birdcage, its cup and the parrot
-    brass = K.colour((300, 640, 400, 665), vary=0.08)
+    brass = K.colour((95, 635, 200, 660), vary=0.08)
     ccy = -0.38
-    birdcage(K, P.x(298), ccy, Z(670), P.m(128), Z(548), Z(475), brass, bars=24, sy=0.62)
-    K.lathe([(P.m(16), Z(652)), (P.m(25), Z(640)), (P.m(28), Z(628))], K.colour((0.12, 0.1, 0.08), vary=0.05),
-            segments=14, centre=(P.x(300), ccy, 0.0), name="cup")
-    K.figure([(205, 640), (230, 598), (262, 565), (300, 545), (330, 535), (360, 538), (378, 552), (372, 575),
-              (335, 600), (325, 628), (300, 640), (265, 628), (240, 640), (215, 650)], y=ccy, name="parrot")
+    birdcage(K, P.x(149), ccy, Z(668), P.m(64), Z(542), Z(482), brass, bars=22, sy=0.8)
+    K.lathe([(P.m(9), Z(640)), (P.m(14), Z(632)), (P.m(15), Z(622))], K.colour((0.12, 0.1, 0.08), vary=0.05),
+            segments=14, centre=(P.x(150), ccy, 0.0), name="cup")
+    K.figure([(99, 626), (112, 600), (128, 575), (148, 555), (163, 530), (178, 521), (191, 529), (193, 545),
+              (185, 560), (171, 580), (166, 600), (153, 615), (131, 621), (112, 631)], y=ccy, name="parrot")
     # ---------------------------------------------------------------- the fortune cards fanned out in front
     card = K.projected(squeeze=1.0, keep=[(172, 625, 645, 700)], inset=1)
     fan = [(212, 671, 64, 44, -20), (255, 678, 52, 38, -14), (292, 684, 46, 30, -8), (328, 686, 44, 26, -4),

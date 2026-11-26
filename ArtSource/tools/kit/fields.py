@@ -1824,3 +1824,96 @@ def field_bldg_3(K):
     K.sheet(scoop, 12, 8, weave, name="winnow", thickness=0.02)
     rim = K.colour((560, 340, 620, 350), vary=0.08)
     K.tube([scoop(u, 1.0) for u in np.linspace(0, 1, 10)], P.m(5), rim, segments=6, name="winnow_rim")
+
+
+def pot(K, cx_px, base_py, prof, y, mat, inside=None, name="pot"):
+    """A turned vessel standing at painted (cx_px, base_py) at depth y: prof [(r_px, py), ...] from its foot up."""
+    P = K.paint
+    dz = P.z(base_py) - P.z(prof[0][1])
+    ob = K.lathe([(P.m(r), P.z(py) + dz) for r, py in prof], mat, segments=28, centre=(P.x(cx_px), y, 0),
+                 wobble=0.01, name=name, cap=False)
+    r_top, py_top = prof[-1]
+    K.lathe([(P.m(r_top) * 0.92, P.z(py_top) + dz - 0.005), (0.0, P.z(py_top) + dz - 0.08)],
+            inside or K.colour((0.08, 0.04, 0.02), vary=0.1), segments=28, centre=(P.x(cx_px), y, 0),
+            name=name + "_mouth", cap=False)
+    return ob
+
+
+@fmodel("field_bldg_1", "fields", kind="building", atlas=2048)
+def field_bldg_1(K):
+    """A kavalai, the bullock water-lift at a field well: a square well of dressed stone courses, two rough timber
+    posts with a log beam lashed across them, a pulley hung under the beam, the big leather bucket on its rope, the
+    rope running down to where the bullocks pull it along the earth ramp that falls away from the well; clay and
+    brass pots stand by the well. (The bullocks are not modelled: the ramp and the earth behind them are.)"""
+    P = K.paint
+    K.front_min = 0.08
+    K.front_exclude = [(664, 352, 1028, 540)]               # the two bullocks
+    stone_m = K.tile((560, 400, 640, 440), soften=0.3, vary=0.05) if False else K.tile((300, 455, 360, 495),
+                                                                                          soften=0.3, vary=0.05)
+    # the well: four walls of dressed stone courses round a square shaft, seen front and left as painted
+    x0, x1, D, kx, kz = P.x(255), P.x(452), 1.4, -0.48, 0.1
+    rows = [622, 596, 546, 496, 446, 398]
+    well = []
+    for c in range(len(rows) - 1):
+        za, zb = P.z(rows[c]), P.z(rows[c + 1])
+        off = 0.22 * (c % 2)
+        for (ax, ay), (bx, by) in (((x0, 0.0), (x1, 0.0)), ((x1, 0.0), (x1, D)), ((x1, D), (x0, D)), ((x0, D), (x0, 0.0))):
+            L = math.hypot(bx - ax, by - ay)
+            n = max(1, int(round(L / 0.45)))
+            ux, uy = (bx - ax) / L, (by - ay) / L
+            nx, ny = uy, -ux                                # outward
+            for i in range(n):
+                s0 = max(0.0, (i * L / n) - off * (i > 0))
+                s1 = min(L, ((i + 1) * L / n) - off * (i < n - 1))
+                sm = (s0 + s1) / 2
+                well.append(K.block(ax + ux * sm - nx * 0.13, ay + uy * sm - ny * 0.13, (za + zb) / 2, s1 - s0 - 0.015,
+                                    0.26, zb - za - 0.012, stone_m, rot=(0, 0, math.degrees(math.atan2(uy, ux))),
+                                    bevel=0.035, name="course"))
+    rim = K.tile((300, 378, 420, 394), soften=0.3)
+    for (ax, ay, bx, by) in ((x0 - 0.04, -0.04, x1 + 0.04, 0.26), (x0 - 0.04, D - 0.26, x1 + 0.04, D + 0.04),
+                             (x0 - 0.04, 0.26, x0 + 0.26, D - 0.26), (x1 - 0.26, 0.26, x1 + 0.04, D - 0.26)):
+        well.append(K.box(ax, bx, ay, by, P.z(398), P.z(380), rim, bevel=0.02, name="rim"))
+    well.append(K.box(x0 + 0.26, x1 - 0.26, 0.26, D - 0.26, P.z(398) - 0.6, P.z(398) - 0.58,
+                      K.colour((0.05, 0.08, 0.09), vary=0.1), name="water"))
+    shear(K, kz, 0.0, parts=well, kx=kx)
+    # the earth ramp the bullocks walk down, falling away to the right
+    earth = two_tiles(K, (560, 520, 660, 600), (720, 540, 820, 556), lo=0.5, hi=0.8, soften=0.3)
+    ramp = [(P.x(452), P.z(388)), (P.x(1032), P.z(572)), (P.x(1032), 0.0), (P.x(452), 0.0)]
+    K.prism(ramp, -0.7, 1.3, earth, name="ramp")
+    # the posts and the beam lashed across their heads, the pulley under it
+    timber = K.projected(squeeze=1.0, keep=[(214, 26, 256, 622), (506, 26, 550, 390)], inset=2)
+    K.box(P.x(220), P.x(252), -0.16, 0.12, 0.0, P.z(34), timber, bevel=0.01, name="post")
+    K.box(P.x(512), P.x(546), -0.16, 0.12, P.z(392), P.z(34), timber, bevel=0.01, name="post")
+    beam = K.projected(squeeze=1.0, keep=[(184, 28, 572, 78)], exclude=[(212, 26, 262, 80), (360, 36, 420, 82),
+                                                                          (505, 36, 550, 80)], inset=2)
+    K.tube([P.pt(186, 54, -0.02), P.pt(570, 52, -0.02)], P.m(20), beam, segments=12, name="beam")
+    rope = K.colour((0.42, 0.28, 0.12), vary=0.1)
+    for x in (236, 528, 388):
+        for dx in (-9, 0, 9):
+            rope_ring(K, P.x(x + dx), -0.02, P.z(54), P.m(23), rope, axis=(0.0, 1.0), thick=P.m(3.5), name="lashing")
+    wheel = K.projected(squeeze=1.0, keep=[(362, 66, 414, 140)], inset=1)
+    wl = K.lathe([(0.0, -0.05), (P.m(26), -0.05), (P.m(27), 0.0), (P.m(26), 0.05), (0.0, 0.05)], wheel, segments=24,
+                 centre=(P.x(388), 0, 0), name="pulley")
+    rotate(wl, 90, "X", (P.x(388), 0, 0))
+    for v in wl.data.vertices:
+        v.co.z += P.z(104)
+    K.tube([P.pt(388, 60, -0.02), P.pt(388, 80, -0.02)], P.m(5), rope, segments=6, name="hanger")
+    # the leather bucket on its rope, and the rope running away down to the yoke
+    bag = K.projected(axis_x=P.x(385), squeeze=0.9, keep=[(322, 160, 448, 358)], inset=2)
+    prof = [(2, 356), (20, 350), (40, 334), (55, 310), (60, 285), (55, 255), (40, 225), (24, 200), (13, 186),
+            (16, 176), (10, 166)]
+    K.lathe([(P.m(r), P.z(py)) for r, py in prof], bag, segments=24, centre=(P.x(385), -0.02, 0), name="bucket")
+    for x, top in ((370, 112), (405, 112)):
+        K.tube([P.pt(x, top, -0.02), P.pt(x + (385 - x) * 0.6, 182, -0.02)], P.m(3), rope, segments=6, name="rope")
+    K.tube([P.pt(405, 230, -0.02), P.pt(408, 212, -0.02), P.pt(402, 196, -0.02)], P.m(3), rope, segments=6,
+           name="rope")
+    K.tube([P.pt(408, 80, -0.02), P.pt(620, 225, -0.02), P.pt(832, 370, -0.02)], P.m(3.5), rope, segments=6,
+           name="haul_rope")
+    # the pots by the well
+    clay = K.projected(squeeze=0.92, keep=[(4, 480, 168, 622)], inset=2)
+    pot(K, 45, 622, [(28, 622), (38, 610), (40, 585), (34, 565), (22, 556), (26, 548), (24, 544)], -0.5, clay)
+    pot(K, 118, 622, [(30, 622), (42, 600), (44, 560), (32, 520), (18, 502), (26, 492), (24, 487)], -0.3, clay)
+    pot(K, 128, 622, [(30, 622), (44, 600), (46, 575), (36, 552), (24, 545), (32, 538), (30, 533)], -0.75, clay)
+    brass = K.projected(squeeze=0.92, keep=[(148, 560, 218, 622), (404, 556, 464, 622)], inset=2)
+    pot(K, 182, 622, [(22, 622), (32, 604), (30, 588), (18, 578), (24, 570), (22, 566)], -0.6, brass)
+    pot(K, 433, 622, [(20, 622), (28, 604), (27, 588), (16, 576), (22, 566), (20, 561)], -0.25, brass)

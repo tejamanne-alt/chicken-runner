@@ -298,7 +298,7 @@ class Wood:
         self.parent = {}
         self.children = collections.defaultdict(list)
         done = set()
-        order = sorted(nodes, key=lambda n: (n[1] - ry) ** 2 + (n[0] - rx) ** 2)
+        order = sorted(nodes, key=lambda n: (n[0] - ry) ** 2 + (n[1] - rx) ** 2)       # nodes are (row, col)
         for start in order:
             if start in ynode:
                 continue
@@ -311,6 +311,9 @@ class Wood:
                     if best is None or d < best[0]:
                         best = (d, yv)
                 ynode[start] = (best[1] if best else 0.0) + rng.uniform(-0.3, 0.3) * spread
+                if ymax is not None:
+                    lim = ymax(start[1], start[0]) if callable(ymax) else ymax
+                    ynode[start] = float(np.clip(ynode[start], -lim, lim))
             else:
                 ynode[start] = 0.0
             dq = collections.deque([start])
