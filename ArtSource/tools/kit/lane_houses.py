@@ -760,10 +760,10 @@ def house_mud_tin(K):
               name="side_flap")
         for a0, a1, z0, z1 in ((-0.36, -0.3, 724, 511), (0.3, 0.36, 724, 511), (-0.36, 0.36, 526, 511),
                                (-0.36, 0.36, 724, 712)):
-            K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), yc + a0, yc + a1, P.z(z0), P.z(z1), frame,
-                  bevel=0.005, name="side_window_frame")
+            K.box(min(xw, xw + side * 0.02), max(xw, xw + side * 0.02), yc + a0, yc + a1, P.z(z0), P.z(z1), frame,
+                  bevel=0.004, name="side_window_frame")
         for zz in (560, 640):
-            K.box(min(xw, xw + side * 0.03), max(xw, xw + side * 0.03), yc - 0.28, yc + 0.28, P.z(zz + 8), P.z(zz),
+            K.box(min(xw, xw + side * 0.015), max(xw, xw + side * 0.015), yc - 0.28, yc + 0.28, P.z(zz + 8), P.z(zz),
                   frame, name="flap_batten")
     back_decal(K, (553, 442, 866, 1085), depth)
 
