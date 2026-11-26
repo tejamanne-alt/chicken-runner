@@ -1,0 +1,10 @@
+{
+ "name": "stall_potter",
+ "folder": "market",
+ "kind": "volume",
+ "width": 4.33,
+ "height": 2.977,
+ "depth": 3.819,
+ "faces": 11270,
+ "source": "blender"
+}

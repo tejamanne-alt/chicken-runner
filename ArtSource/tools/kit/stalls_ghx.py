@@ -14,8 +14,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from kitlib import Mat, _image, _obj, model
-from stalls_cdef import (_smooth, bamboo, basket_stack, beam, green_leaves, hanging_cloth, heap_px, hip_thatch, joint,
-                         ktile, lashing, rib_umbrella, turned, unify_cards)
+from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, green_leaves, hanging_cloth, heap,
+                         heap_px, hip_thatch, joint, ktile, lashing, on_heap, pile, rib_umbrella, turned, unify_cards)
 
 
 # ====================================================================== helpers
@@ -1698,3 +1698,318 @@ def stall_low(K):
     shadow = K.colour((60, 182, 180, 188), vary=0.05)
     K.lathe([(0.0, 0.0), (1.25, 0.0), (1.2, 0.006), (0.0, 0.008)], shadow, segments=32, centre=(T.cx, 0.1, -0.004),
             scale_y=0.5, cap=False, name="ground")
+
+
+# ====================================================================== the potter
+def clay_horse(K, box, y, mat, face=-1, name="horse"):
+    """A terracotta toy horse standing where it is painted (box px, its head towards `face`): a round body on four
+    stubby legs, an arched neck, a head with ears, a little saddle hump."""
+    P = K.paint
+    import market_props as MP
+    x0, y0, x1, y1 = box
+    W, H = P.m(x1 - x0), P.m(y1 - y0)
+    cx = P.x((x0 + x1) / 2)
+    zb = P.z(y1)
+    bz = zb + H * 0.48
+    bl, bh = W * 0.42, H * 0.16
+    MP.ellipsoid(K, (cx - face * W * 0.04, y, bz), (bl, bh * 0.9, bh), mat, seg=12, rings=7, name=name)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            lx = cx - face * W * 0.04 + sx * bl * 0.62
+            K.tube([(lx, y + sy * bh * 0.45, bz - bh * 0.4), (lx, y + sy * bh * 0.5, zb)], [W * 0.07, W * 0.06], mat,
+                   segments=6, name=name + "_leg")
+    nx = cx + face * bl * 0.75
+    K.tube([(nx, y, bz + bh * 0.3), (nx + face * W * 0.06, y, zb + H * 0.78)], [W * 0.1, W * 0.08], mat, segments=7,
+           name=name + "_neck")
+    MP.ellipsoid(K, (nx + face * W * 0.12, y, zb + H * 0.86), (W * 0.13, W * 0.07, W * 0.08), mat, seg=8, rings=5,
+                 rot=(0, face * 25, 0), name=name + "_head")
+    for s in (-1, 1):
+        K.tube([(nx + face * W * 0.06, y + s * W * 0.03, zb + H * 0.9), (nx + face * W * 0.04, y + s * W * 0.035, zb + H)],
+               [W * 0.025, W * 0.008], mat, segments=4, name=name + "_ear")
+    MP.ellipsoid(K, (cx, y, bz + bh * 0.95), (bl * 0.35, bh * 0.85, bh * 0.35), mat, seg=8, rings=4, name=name + "_saddle")
+    K.tube([(cx - face * bl, y, bz + bh * 0.3), (cx - face * bl * 1.2, y, bz - bh * 0.6)], [W * 0.04, W * 0.02], mat,
+           segments=5, name=name + "_tail")
+
+
+@model("stall_potter", "market", kind="prop", atlas=2048)
+def stall_potter(K):
+    """A potter's pitch: a big black cloth umbrella leaning on its pole, a lean-to of woven coconut-leaf mat over a
+    bamboo ridge pole, a straw mat on a rise of earth spread with terracotta pots, diyas, brass lamps and painted
+    clay toys (horses, a goddess, figures), his wheel with a pot on it on its stone, a big grey water pot; the old
+    potter sitting by them is a painted cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.3, 0.2, 0.08), vary=0.1)
+    bam = K.colour((765, 260, 778, 330), vary=0.08)
+    bank = Bank(-1.25, Z(500), 21.0, flat=0.35, back=0.45)
+    # ---------------------------------------------------------------- the rise of earth and the straw mat on it
+    earth = K.colour((0.32, 0.17, 0.08), vary=0.12, scale=5)
+    K.grid_plane(P.x(10), P.x(925), bank.y0 - 0.03, bank.y3 + 0.02, 0.0, 30, 26, earth,
+                 height=lambda x, y: bank.z(y) * _smooth(P.x(10), P.x(40), x) * _smooth(P.x(925), P.x(900), x),
+                 name="earth")
+    straw = ktile(K, (880, 575, 915, 610), vary=0.06)
+
+    def mat_f(u, v):
+        py_ = 622 - (622 - 500) * v
+        xl = 25 + (75 - 25) * v
+        xr = 920 - (920 - 905) * v
+        p = bank.at(P, xl + (xr - xl) * u, py_, 0.006)
+        if v > 0.999:
+            p = Vector((p.x, bank.y1 + 0.25, bank.top + 0.006))
+        return tuple(p)
+    K.sheet(mat_f, 24, 10, straw, name="mat", thickness=0.006)
+    # ---------------------------------------------------------------- the umbrella, leaning on its pole
+    black = ktile(K, (250, 60, 330, 120), vary=0.05, soften=0.2)
+    under = ktile(K, (230, 175, 330, 225), vary=0.05, soften=0.2)
+    rib = K.colour((0.25, 0.2, 0.15), vary=0.08)
+    ax = Vector((-0.356, 0.45, 1.0)).normalized()
+    axc = Vector((-0.5, 0.4, 1.0)).normalized()
+    apex = None
+    base = Vector((P.x(470), bank.y1 + 0.1, bank.top))
+    t = (Z(20) - base.z) / ax.z
+    apex = base + ax * t
+    R, H = P.m(282), P.m(125)
+    n0 = collect(K)
+    rib_umbrella(K, 0.0, 0.0, 0.0, R, H, 0.0, black, under, rib, ribs=8, phase=0.3, tears=0.0)
+    q = Vector((0, 0, 1)).rotation_difference(axc).to_matrix().to_4x4()
+    transform(K.parts[n0:], Matrix.Translation(apex - axc * H) @ q)
+    pole_m = K.colour((0.3, 0.22, 0.15), vary=0.08)
+    K.tube([tuple(base - ax * 0.1), tuple(apex + ax * 0.02)], P.m(6), pole_m, segments=8, name="umbrella_pole")
+    # ---------------------------------------------------------------- the lean-to of woven mat over its ridge pole
+    weave = ktile(K, (560, 130, 700, 200), vary=0.06)
+    yr, ye_f, ye_b = 0.75, 0.2, 1.3
+    front = K.projected(squeeze=1.0, keep=[(432, 82, 858, 250)], exclude=[(430, 60, 820, 95)], inset=2)
+    zr = Z(92)
+
+    def slope(xl0, xr0, xl1, xr1, z1, y1, mat, name):
+        def f(u, v):
+            x = (P.x(xl0) + (P.x(xr0) - P.x(xl0)) * u) * (1 - v) + (P.x(xl1) + (P.x(xr1) - P.x(xl1)) * u) * v
+            y = yr + (y1 - yr) * v
+            z = zr + (z1 - zr) * v - 0.03 * math.sin(math.pi * v) * math.sin(math.pi * u)
+            return (x, y, z)
+        return K.sheet(f, 24, 8, mat, name=name, thickness=0.012)
+    slope(442, 810, 500, 856, Z(244), ye_f, front, "mat_roof")
+    slope(442, 810, 436, 800, Z(236), ye_b, weave, "mat_roof_back")
+    ridge = K.projected(squeeze=1.0, keep=[(434, 80, 812, 95)], inset=1)
+    bamboo(K, P.pt(434, 87, yr), P.pt(812, 87, yr), P.m(8), ridge, node_at=[0.17, 0.35, 0.52, 0.7, 0.87], taper=1.0,
+           name="ridge_pole")
+    pole(K, (772, 60), (772, 500), 7, yr, [(764, 60, 780, 80), (764, 245, 780, 380)], z_bot=bank.z(yr) - 0.05)
+    lashing(K, P.pt(772, 87, yr), (0, 0, 1), P.m(7), rope, turns=2.5)
+    bamboo(K, P.pt(460, 66, yr), P.pt(460, 100, yr), P.m(7), bam, node_at=[], taper=1.0, name="stub")
+    # its left end hangs from the umbrella pole by a rope; a brace inside it holds the ridge to the post
+    beam(K, P.pt(772, 236, yr), P.pt(600, 95, yr), 0.035, 0.035, bam, name="brace")
+    pole_at = base + ax * ((zr - base.z) / ax.z)
+    K.tube([P.pt(440, 88, yr), tuple(pole_at)], 0.006, rope, segments=4, name="guy")
+    # ---------------------------------------------------------------- the pots
+    def pot(cx, prof, y=None, mat=None, name="pot", mouth=True):
+        bot = prof[0][1]
+        y = bank.y(P.z(bot)) + P.m(max(r for r, _ in prof)) * 0.8 if y is None else y
+        hw = max(r for r, _ in prof)
+        m = mat or K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, prof[-1][1] - 3, cx + hw, bot)], inset=2)
+        pr = [(P.m(r), P.z(py)) for r, py in prof]
+        pr[0] = (pr[0][0], min(pr[0][1], bank.z(y) - 0.01))
+        K.lathe(pr, m, segments=28, centre=(P.x(cx), y, 0.0), wobble=0.012, name=name)
+        if mouth:
+            rr, rz = pr[-1]
+            K.lathe([(rr * 0.9, rz), (rr * 0.75, rz - 0.04), (0.0, rz - 0.06)], K.colour((0.07, 0.03, 0.015)),
+                    segments=20, centre=(P.x(cx), y, 0.0), cap=False, name=name + "_mouth")
+        return y
+    pots = [  # cx, profile (half-width px, py) from the foot up to the rim
+        (155, [(25, 520), (37, 495), (36, 470), (26, 456), (24, 451), (29, 447)]),
+        (222, [(30, 522), (45, 492), (44, 462), (32, 438), (28, 432), (33, 427)]),
+        (315, [(32, 522), (48, 495), (46, 462), (33, 440), (29, 434), (34, 429)]),
+        (400, [(24, 516), (35, 490), (34, 470), (26, 456), (23, 452), (28, 448)]),
+        (125, [(30, 570), (50, 532), (48, 500), (34, 484), (30, 479), (36, 474)]),
+        (227, [(28, 558), (46, 525), (45, 500), (32, 482), (28, 477), (34, 472)]),
+        (310, [(22, 556), (36, 530), (35, 505), (25, 494), (22, 491), (28, 487)]),
+        (397, [(23, 548), (37, 520), (35, 498), (25, 488), (22, 485), (27, 482)]),
+        (470, [(16, 546), (27, 525), (26, 506), (18, 494), (16, 491), (20, 486)]),
+        (89, [(26, 612), (42, 585), (40, 555), (28, 540), (24, 535), (29, 530)]),
+        (368, [(12, 562), (20, 548), (20, 534), (17, 529)]),
+        (855, [(38, 566), (55, 535), (54, 500), (42, 475), (37, 468), (41, 462)]),
+    ]
+    for cx, prof in pots:
+        pot(cx, prof)
+    # diyas and brass lamps
+    for cx, cy, hw in ((158, 600, 18), (218, 601, 19), (277, 601, 20), (292, 577, 19), (338, 580, 18), (338, 602, 19)):
+        y = bank.y(P.z(cy + 8)) + 0.03
+        m = K.projected(axis_x=P.x(cx), squeeze=0.95, keep=[(cx - hw, cy - 10, cx + hw, cy + 10)], inset=1)
+        K.lathe([(0.0, P.z(cy + 9)), (P.m(hw) * 0.5, P.z(cy + 9)), (P.m(hw), P.z(cy - 6)), (P.m(hw) * 0.9, P.z(cy - 8))],
+                m, segments=16, centre=(P.x(cx), y, 0.0), scale_y=0.8, cap=False, name="diya")
+    brass = K.colour((0.7, 0.45, 0.1), vary=0.08)
+    for cx, top, bot, hw in ((195, 548, 582, 16), (240, 566, 587, 11)):
+        y = bank.y(P.z(bot)) + 0.03
+        K.lathe([(P.m(hw) * 0.6, P.z(bot)), (P.m(hw) * 0.25, P.z(bot - 5)), (P.m(hw) * 0.15, P.z((top + bot) / 2)),
+                 (P.m(hw), P.z(top + 8)), (P.m(hw) * 0.9, P.z(top + 4))], brass, segments=14,
+                centre=(P.x(cx), y, 0.0), name="brass_lamp")
+    # ---------------------------------------------------------------- the potter's wheel with a pot on it
+    stone = K.colour((540, 488, 600, 505), vary=0.08)
+    yw = bank.y(Z(510)) + 0.12
+    K.block(P.x(550), yw, bank.z(yw) + 0.04, P.m(135), 0.42, 0.09, stone, rot=(0, 0, 0), bevel=0.02, jitter=0.006,
+            name="wheel_stone")
+    K.block(P.x(595), yw - 0.05, bank.z(yw) + 0.1, P.m(45), 0.2, 0.1, stone, bevel=0.02, jitter=0.006, name="stone")
+    disc = K.colour((520, 480, 560, 495), vary=0.06)
+    K.lathe([(0.0, Z(500)), (P.m(36), Z(500)), (P.m(37), Z(488)), (P.m(33), Z(478)), (0.0, Z(477))], disc, segments=28,
+            centre=(P.x(535), yw, 0.0), name="wheel")
+    pot(535, [(18, 480), (30, 462), (29, 444), (20, 432), (18, 428), (22, 424)], y=yw)
+    # ---------------------------------------------------------------- the clay toys in a row at the front
+    clay = K.colour((560, 560, 580, 590), vary=0.1)
+    yt = bank.y(Z(612)) + 0.06
+    for box in ((502, 522, 555, 612), (555, 525, 605, 612), (608, 512, 650, 612), (663, 515, 719, 612),
+                (719, 540, 772, 612), (766, 545, 800, 614), (798, 548, 830, 610), (828, 550, 866, 612)):
+        m = K.projected(squeeze=1.0, keep=[box], inset=1)
+        clay_horse(K, box, yt + K.rng.uniform(-0.03, 0.05), m, face=-1)
+    for (x0, y0, x1, y1) in ((375, 540, 410, 615), (422, 535, 451, 615), (466, 528, 501, 615)):
+        m = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=0.95, keep=[(x0, y0, x1, y1)], inset=1)
+        hw = (x1 - x0) / 2
+        cxp = (x0 + x1) / 2
+        K.lathe([(P.m(hw) * 0.9, P.z(y1)), (P.m(hw) * 0.95, P.z(y1 - 10)), (P.m(hw) * 0.6, P.z(y0 + 30)),
+                 (P.m(hw) * 0.55, P.z(y0 + 22)), (P.m(hw) * 0.25, P.z(y0 + 18)), (P.m(hw) * 0.45, P.z(y0 + 9)),
+                 (P.m(hw) * 0.3, P.z(y0 + 1)), (0.0, P.z(y0))], m, segments=14, centre=(P.x(cxp), yt, 0.0),
+                scale_y=0.8, name="figurine")
+    # ---------------------------------------------------------------- behind him: a heap of straw for packing pots
+    straw_h = K.colour((0.5, 0.38, 0.16), vary=0.15, scale=8)
+    K.lathe([(0.38, 0.0), (0.34, 0.1), (0.22, 0.2), (0.0, 0.25)], straw_h, segments=20,
+            centre=(P.x(720), bank.y1 + 0.2, bank.top - 0.02), wobble=0.1, name="straw_heap")
+    # ---------------------------------------------------------------- the potter
+    K.figure([(708, 318), (740, 316), (760, 330), (764, 370), (758, 390), (790, 402), (810, 425), (818, 460),
+              (812, 480), (800, 495), (805, 520), (785, 540), (760, 548), (735, 553), (700, 540), (655, 525), (632, 510),
+              (640, 490), (650, 465), (662, 430), (690, 400), (705, 385), (700, 350)], y=bank.y(Z(540)) + 0.25,
+             name="potter")
+    unify_cards(K)
+
+
+# ====================================================================== the sweet maker
+def steam_pixels(rgb):
+    """Card pixels for steam and smoke: pale grey-white wisps (not the iron wok, not the cloth)."""
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    keep = (mn > 150) & (mx - mn < 30)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
+def fire_pixels(rgb):
+    """Card pixels for flames: yellow, orange and red, hot white at their hearts."""
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    keep = ((r > 180) & (r - b > 80)) | ((r > 235) & (g > 220))
+    return ndimage.binary_opening(ndimage.binary_closing(keep, iterations=1), iterations=1)
+
+
+@model("stall_sweets", "market", kind="prop", atlas=2048)
+def stall_sweets(K):
+    """A sweet maker's stall: a faded red-striped cloth on four bamboo posts with lashed stubs, a three-stone hearth
+    of rough boulders with split logs burning under a big iron kadai of hot oil, a ladle in it, steam rising; steel
+    bowls; a low stone platform he sits on; steel plates heaped with jalebi on the ground, a tray and a basket of
+    jalebi behind and a basket heaped with laddus; the old sweet maker himself is a painted cut-out."""
+    P = K.paint
+    Z = P.z
+    K.front_min = 0.12
+    rope = K.colour((0.25, 0.15, 0.06), vary=0.1)
+    bam = K.colour((60, 300, 75, 400), vary=0.08)
+    yf, yb = -0.8, 0.85
+    # ---------------------------------------------------------------- posts, stubs and the cloth
+    posts = [((66, 122), (75, 632), 12, yf, [(52, 120, 88, 632)]),
+             ((1008, 122), (1000, 632), 12, yf, [(992, 120, 1024, 632)]),
+             ((147, 10), (160, 500), 10, yb, [(135, 8, 160, 40), (147, 210, 172, 380)]),
+             ((902, 10), (890, 500), 10, yb, [(890, 8, 915, 40), (880, 215, 905, 390)])]
+    for top, bot, rpx, y, keep in posts:
+        pole(K, top, bot, rpx, y, keep, nodes=0.5)
+    stubs = [((15, 160), (75, 160), yf, (62, 160)), ((1000, 160), (1062, 160), yf, (1012, 160)),
+             ((108, 42), (178, 42), yb, (148, 42)), ((880, 40), (962, 40), yb, (905, 40))]
+    for a, b, y, j in stubs:
+        bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(10), bam, node_at=[], taper=1.0, name="stub")
+        joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(11), rope)
+    cloth = K.projected(squeeze=1.0, keep=[(30, 25, 1035, 240)],
+                        exclude=[(0, 140, 80, 185), (990, 140, 1072, 185), (100, 20, 180, 60), (875, 20, 965, 58)],
+                        inset=3)
+    under = ktile(K, (420, 90, 640, 170), vary=0.05, soften=0.3)
+    awning(K, P.pt(40, 168, yf - 0.02), P.pt(1032, 168, yf - 0.02), P.pt(140, 36, yb - 0.02), P.pt(912, 34, yb - 0.02),
+           cloth, sag_front=P.m(52), sag_back=P.m(10), belly=0.06, sag_side=0.03, under=under, nu=44, nv=18,
+           hem=lambda u: 0.035 * math.exp(-((u - 0.45) / 0.012) ** 2) + 0.03 * math.exp(-((u - 0.79) / 0.012) ** 2))
+    # ---------------------------------------------------------------- the hearth: three boulders, logs, the fire
+    stone = ktile(K, (350, 520, 420, 570), vary=0.08, soften=0.2)
+    yh = -0.3
+    for (cx, cy, sx, sz), dy in (((190, 548, 105, 110), 0.0), ((380, 548, 100, 115), 0.0), ((165, 600, 85, 50), -0.25),
+                                 ((415, 600, 60, 45), -0.25), ((285, 520, 110, 40), 0.3)):
+        K.boulder(P.x(cx), yh + dy, P.z(cy), P.m(sx), P.m(sx) * 0.8, P.m(sz), stone, lumps=0.15, name="hearth_stone")
+    logw = K.colour((200, 590, 240, 605), vary=0.1)
+    for (ax_, ay_), (bx_, by_) in (((150, 602), (262, 562)), ((190, 615), (272, 572)), ((268, 618), (290, 565)),
+                                   ((348, 615), (308, 568)), ((432, 603), (330, 566))):
+        K.tube([P.pt(ax_, ay_, yh - 0.42), P.pt(bx_, by_, yh)], P.m(14), logw, segments=8, name="log")
+    ember = K.colour((0.6, 0.15, 0.02), vary=0.2)
+    K.lathe([(0.0, 0.0), (0.22, 0.0), (0.18, 0.04), (0.0, 0.06)], ember, segments=16, centre=(P.x(287), yh, 0.0),
+            name="embers")
+    K.leaves_only((235, 500, 350, 595), fire_pixels)
+    for yaw in (0, 60, -60):
+        K.card_from_painting((235, 500, 350, 595), (P.x(292), yh - (0.18 if yaw == 0 else 0.0), P.z(547)), yaw=yaw,
+                             name="flames", normal=(0, -1, 0.2))
+    # ---------------------------------------------------------------- the kadai of oil, its ladle
+    iron = K.colour((0.07, 0.07, 0.08), vary=0.06)
+    oil = K.projected(squeeze=1.0, keep=[(180, 420, 395, 446)], inset=2)
+    R = P.m(113)
+    c = Vector((P.x(287), yh, Z(510)))
+    h = Z(425) - Z(510)
+    parts = [K.lathe([(0.0, 0.0), (R * 0.45, 0.01), (R * 0.8, h * 0.4), (R * 0.97, h * 0.85), (R, h)], iron, segments=36,
+                     centre=tuple(c), cap=False, name="kadai"),
+             K.lathe([(0.0, h * 0.72), (R * 0.95, h * 0.72)], oil, segments=36, centre=tuple(c), cap=False, name="oil")]
+    parts.append(K.tube([(c.x + R * math.cos(2 * math.pi * i / 40), c.y + R * math.sin(2 * math.pi * i / 40), c.z + h)
+                         for i in range(41)], 0.012, iron, segments=6, name="kadai_rim"))
+    for s_ in (-1, 1):
+        pts = [(c.x + s_ * (R + 0.02 + 0.06 * math.sin(math.pi * i / 12)), c.y, c.z + h - 0.06 + 0.09 * (1 - math.cos(math.pi * i / 12)) / 2 * 2)
+               for i in range(13)]
+        parts.append(K.tube(pts, 0.014, iron, segments=6, name="kadai_handle"))
+    rot_x(parts, tuple(c), 6)
+    steel = K.colour((0.55, 0.56, 0.58), vary=0.06)
+    K.tube([P.pt(212, 396, yh - 0.05), P.pt(242, 430, yh - 0.02)], P.m(4), steel, segments=6, name="ladle")
+    K.lathe([(0.0, -0.03), (0.035, -0.02), (0.045, 0.0)], steel, segments=12, centre=P.pt(245, 432, yh), cap=False,
+            name="ladle_bowl")
+    K.leaves_only((190, 250, 420, 430), steam_pixels)
+    for yaw, dy in ((0, -0.05), (50, 0.05), (-50, 0.05), (90, 0.0)):
+        K.card_from_painting((190, 250, 420, 430), (P.x(305), yh + dy, P.z(340)), yaw=yaw, name="steam",
+                             normal=(0, -1, 0.3))
+    # steel vessels by the hearth
+    for cx, prof, y in ((442, [(18, 475), (26, 468), (28, 455), (24, 450)], 0.05),
+                        (446, [(22, 506), (28, 498), (30, 482), (27, 476)], -0.15)):
+        m = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - 30, prof[-1][1] - 2, cx + 30, prof[0][1])], inset=1)
+        turned(K, cx, prof, y, m, segs=24, name="vessel")
+    # ---------------------------------------------------------------- the low stone platform he sits on
+    slab = ktile(K, (470, 505, 560, 525), vary=0.06, soften=0.3)
+    K.box(P.x(430), P.x(935), -0.25, 0.6, 0.0, Z(506), slab, bevel=0.02, name="platform")
+    # ---------------------------------------------------------------- jalebi, laddus
+    plate = K.colour((0.6, 0.6, 0.62), vary=0.05)
+    for cx, hw, peak, y in ((518, 92, 524, -0.6), (707, 92, 527, -0.6)):
+        K.lathe([(0.0, 0.0), (P.m(hw) * 0.85, 0.0), (P.m(hw), Z(598)), (P.m(hw) * 1.02, Z(594))], plate, segments=32,
+                centre=(P.x(cx), y, 0.0), scale_y=0.55, cap=False, name="plate")
+        j = K.projected(squeeze=1.0, keep=[(cx - hw + 4, peak - 2, cx + hw - 4, 600)], inset=1)
+        heap_px(K, cx, y, [(hw * 0.94, 600), (hw * 0.85, 575), (hw * 0.6, 550), (hw * 0.3, 532), (0, peak + 1)], j,
+                sy=0.5, name="jalebi")
+    y3 = 0.25
+    zt = Z(506)
+    K.box(P.x(677), P.x(814), y3 - 0.2, y3 + 0.2, zt, Z(472), plate, bevel=0.008, name="tray")
+    j3 = K.projected(squeeze=1.0, keep=[(685, 428, 805, 475)], inset=1)
+    heap_px(K, 745, y3, [(58, 474), (50, 455), (35, 442), (0, 432)], j3, sy=0.25 / P.m(58), name="jalebi")
+    weave = ktile(K, (820, 470, 900, 495), vary=0.06)
+    basket(K, P.x(868), 0.3, zt, [(P.m(52), 0.0), (P.m(62), Z(480) - zt), (P.m(66), Z(462) - zt)], weave, sy=0.85)
+    j4 = K.projected(squeeze=1.0, keep=[(805, 392, 935, 468)], inset=1)
+    heap_px(K, 868, 0.3, [(64, 464), (58, 440), (45, 418), (25, 402), (0, 396)], j4, sy=0.85, name="jalebi")
+    weave2 = ktile(K, (830, 595, 920, 615), vary=0.06)
+    yl = -0.55
+    basket(K, P.x(880), yl, 0.0, [(P.m(62), 0.0), (P.m(75), Z(595)), (P.m(80), Z(568))], weave2, sy=0.85)
+    lad = K.projected(squeeze=1.0, keep=[(808, 480, 955, 575)], inset=1)
+    hl = heap_px(K, 880, yl, [(74, 570), (62, 540), (45, 515), (22, 495), (0, 486)], lad, sy=0.85, name="laddus")
+    on_heap(K, hl, P.x(880), yl, P.m(74) * 0.85, (808, 480, 955, 575), lad, dark=80, min_area=60, max_area=1200,
+            rmax=16, flat=0.9)
+    # ---------------------------------------------------------------- behind: his tin of batter, a sack of gram flour
+    burlap = K.colour((0.45, 0.33, 0.2), vary=0.1)
+    K.lathe([(0.2, 0.0), (0.24, 0.2), (0.23, 0.45), (0.2, 0.55), (0.0, 0.6)], burlap, segments=18,
+            centre=(P.x(560), 0.75, 0.0), wobble=0.05, name="flour_sack")
+    K.lathe([(0.16, 0.0), (0.16, 0.36), (0.15, 0.38)], K.colour((0.4, 0.4, 0.42), vary=0.05), segments=18,
+            centre=(P.x(760), 0.78, 0.0), name="batter_tin")
+    # ---------------------------------------------------------------- the sweet maker
+    K.figure([(560, 285), (590, 280), (605, 300), (603, 345), (640, 362), (650, 400), (648, 445), (660, 470),
+              (655, 500), (620, 510), (560, 512), (500, 505), (478, 485), (485, 455), (500, 440), (508, 380),
+              (530, 360), (550, 350), (547, 315)], y=0.1, name="sweet_maker")
+    unify_cards(K)

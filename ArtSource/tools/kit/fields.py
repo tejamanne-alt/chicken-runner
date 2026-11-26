@@ -987,6 +987,10 @@ def canal_bridge(K):
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, P.pt(cx, cy, y), name="fern", normal=(0, -0.3, 1))
     ferns = [(22, 92, 132, 152), (150, 120, 215, 182), (456, 92, 543, 160), (40, 8, 165, 64), (350, 8, 470, 60)]
+    for y, yaw in ((y_b0 - 0.12, 25), (y_end - 0.25, 10), (y_end - 0.6, -20)):    # hanging over the channel's edges
+        for x, sgn in ((xL, 1), (xR(y), -1)):
+            K.card_from_painting(ferns[1], (x + sgn * 0.04, y, zs + 0.1), yaw=sgn * yaw, scale=0.9, name="fern",
+                                 normal=(sgn, -0.3, 1))
     for k in range(48):
         side = -1 if k % 2 == 0 else 1
         y = K.rng.uniform(y_front + 0.15, y_end - 0.15)
@@ -1114,7 +1118,7 @@ def canal_piece_2(K):
     K.front_min = 0.2
     K.front_exclude = [(322, 0, 661, 329), (0, 0, 322, 150)]   # the slabs' tops and far ends, drawn from above
     stone = K.tile((36, 212, 118, 272), soften=0.25, vary=0.04)
-    slab_mat = K.tile((300, 84, 430, 118), soften=0.3, vary=0.04)
+    slab_mat = K.tile((300, 56, 336, 80), size=0.5, soften=0.4, vary=0.05)       # inside one slab's top
     H, t, pd = P.z(156), 0.27, 0.6                          # the slabs' top, their thickness, the piers' depth
     # (x0, x1 of the slab, y0, y1 of its width, its two piers (x0, x1))
     for (sx0, sx1, y0, y1, piers) in ((140, 640, -0.3, 0.27, ((165, 315), (505, 640))),
@@ -1144,8 +1148,8 @@ def canal_piece_3(K):
     or in perspective are their own stone."""
     P = K.paint
     K.front_min = 0.2
-    K.front_exclude = [(0, 0, 118, 351), ("poly", [(228, 238), (470, 182), (534, 236), (534, 336), (350, 336),
-                                                    (228, 304)])]
+    K.front_exclude = [(0, 0, 118, 351), (100, 318, 430, 340), ("poly", [(228, 238), (470, 182), (534, 236),
+                                                                         (534, 336), (350, 336), (228, 304)])]
     stone = K.tile((30, 150, 92, 236), soften=0.3, vary=0.05)
     top = K.tile((230, 110, 330, 140), soften=0.3, vary=0.05)
     T = 0.55                                                # each tread's depth
@@ -1287,7 +1291,9 @@ def sluice_gate(K):
     plan_prism(K, [(P.x(128), y_front), (P.x(300), y_front), (P.x(300), -0.17), (P.x(271), -0.17), (P.x(271), -0.04),
                    (P.x(151), -0.04), (P.x(151), -0.17), (P.x(128), -0.17)], 0.0, zw, wtile, name="water")
     K.box(P.x(151), P.x(271), 0.09, 0.75, 0.0, zw + 0.06, wtile, name="water_behind")
-    K.box(P.x(132), P.x(290), 0.75, 0.8, 0.0, zw + 0.12, wall, bevel=0.01, name="sill_back")
+    for x0, x1 in ((112, 151), (271, 310)):                 # the channel's walls behind the gate, lower
+        K.block((P.x(x0) + P.x(x1)) / 2, 0.48, (zw + 0.2) / 2, P.m(x1 - x0), 0.62, zw + 0.2, wall, bevel=0.03,
+                jitter=0.01, name="wing")
     # ferns on the walls and at their feet, stones at the water's edge
     K.leaves_only((0, 100, 419, 323), grass_pixels)
     for box, y in (((8, 104, 112, 192), -0.4), ((8, 222, 108, 292), y_front - 0.06), ((312, 106, 412, 190), -0.4),
@@ -1676,16 +1682,30 @@ def hut_with_pen(K):
                           name="peg"))
     plinth = K.tile((100, 425, 180, 445), soften=0.4)
     hut.append(K.box(d(212), d(40) + 0.1, -0.42, 0.02, 0.0, P.z(425) - 0.05, plinth, bevel=0.02, name="plinth"))
-    # bamboo bargeboards up the front gable's thatch edge, with their cross ties
-    for sgn in (-1, 1):
-        x0 = -W / 2 + sgn * (W / 2 + 0.32)
-        hut.append(K.tube([(x0, -0.36, ze - 0.15), (-W / 2, -0.36, zr + 0.02)], 0.045, bamboo, segments=8,
-                          name="bargeboard"))
-        for f in (0.25, 0.5, 0.75):
-            x = x0 + (-W / 2 - x0) * f
-            z = ze - 0.15 + (zr + 0.02 - ze + 0.15) * f
-            hut.append(K.tube([(x - 0.12, -0.38, z - 0.05), (x + 0.12, -0.38, z + 0.05)], 0.025, bamboo, segments=6,
-                              name="tie"))
+    # bamboo bargeboards up both gables' thatch edges, with their cross ties
+    for yb, dy in ((-0.36, -0.02), (L + 0.36, 0.02)):
+        for sgn in (-1, 1):
+            x0 = -W / 2 + sgn * (W / 2 + 0.32)
+            hut.append(K.tube([(x0, yb, ze - 0.15), (-W / 2, yb, zr + 0.02)], 0.045, bamboo, segments=8,
+                              name="bargeboard"))
+            for f in (0.25, 0.5, 0.75):
+                x = x0 + (-W / 2 - x0) * f
+                z = ze - 0.15 + (zr + 0.02 - ze + 0.15) * f
+                hut.append(K.tube([(x - 0.12, yb + dy, z - 0.05), (x + 0.12, yb + dy, z + 0.05)], 0.025, bamboo,
+                                  segments=6, name="tie"))
+    # a small barred vent high in the back gable, and a little window in the far long wall
+    dark = K.colour((0.06, 0.035, 0.025), vary=0.05)
+    back_gable = [o for o in hut if o.name.startswith("gable")][-1]
+    K.cut(back_gable, -W / 2 - 0.18, -W / 2 + 0.18, L - 0.3, L + 0.1, ze + 0.35, ze + 0.65)
+    hut.append(K.box(-W / 2 - 0.18, -W / 2 + 0.18, L - 0.2, L - 0.18, ze + 0.35, ze + 0.65, dark, name="vent_dark"))
+    for i in (-1, 0, 1):
+        hut.append(K.tube([(-W / 2 + i * 0.09, L - 0.05, ze + 0.35), (-W / 2 + i * 0.09, L - 0.05, ze + 0.65)], 0.015,
+                          bamboo, segments=6, name="vent_bar"))
+    K.cut(walls, -W - 0.1, -W + 0.15, L * 0.55 - 0.3, L * 0.55 + 0.3, zg + 0.9, zg + 1.35)
+    hut.append(K.box(-W + 0.1, -W + 0.12, L * 0.55 - 0.3, L * 0.55 + 0.3, zg + 0.9, zg + 1.35, dark, name="window_dark"))
+    for i in (-1, 0, 1):
+        hut.append(K.tube([(-W + 0.03, L * 0.55 + i * 0.14, zg + 0.9), (-W + 0.03, L * 0.55 + i * 0.14, zg + 1.35)],
+                          0.018, bamboo, segments=6, name="window_bar"))
     place(hut, -phi, C)
     # the pen along its side: bamboo posts and three rails, lashed; a metal tub inside
     yf, yb = 0.25, 2.5

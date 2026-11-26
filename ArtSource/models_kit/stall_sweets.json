@@ -1,0 +1,10 @@
+{
+ "name": "stall_sweets",
+ "folder": "market",
+ "kind": "volume",
+ "width": 5.002,
+ "height": 3.0,
+ "depth": 1.876,
+ "faces": 10496,
+ "source": "blender"
+}
