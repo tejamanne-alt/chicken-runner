@@ -575,9 +575,9 @@ def doorway_garland(K):
     with a kolam, grass at its feet."""
     P = K.paint
     d = 0.9                                                       # the doorway's depth through the wall
-    lat = K.tile((50, 140, 80, 260), vary=0.06, soften=0.25)       # laterite with its pits and lime splashes
-    lat2 = K.tile((290, 120, 310, 280), vary=0.06, soften=0.25)
-    slab = K.tile((60, 18, 280, 34), vary=0.05, soften=0.2)
+    lat = K.tile((50, 140, 80, 260), size=0.3, vary=0.06, soften=0.25)   # laterite with its pits and lime splashes
+    lat2 = K.tile((285, 120, 310, 280), size=0.3, vary=0.06, soften=0.25)
+    slab = K.tile((90, 14, 150, 42), size=0.5, vary=0.05, soften=0.2)
     wood = K.tile((120, 120, 170, 190), vary=0.05)
     frame_w = K.colour((86, 120, 100, 300), vary=0.08)
     ochre = K.colour((50, 45, 70, 72), vary=0.08)
@@ -626,3 +626,143 @@ def doorway_garland(K):
         for i in range(3):
             K.card_from_painting(box, (P.x(cx) + K.rng.uniform(-0.05, 0.05), K.rng.uniform(0.2, 0.9), P.z(386)),
                                  yaw=K.rng.uniform(-80, 80), name="grass_side")
+
+
+def hip_tin_roof(K, eave, ridge, ze, zr, mat, pitch=0.08, amp=0.018, cap=None, name="tin"):
+    """A hipped roof of corrugated tin: eave = (x0, x1, y0, y1) m at height ze, the ridge (x0, x1) m at height zr
+    over the middle; four slopes whose corrugations run down the fall, hip caps on the four hip lines and a ridge
+    cap (mat `cap`)."""
+    ex0, ex1, ey0, ey1 = eave
+    rx0, rx1 = ridge
+    ym = (ey0 + ey1) / 2
+    parts = []
+
+    def slope(front):
+        def f(u, v):
+            xa, xb = ex0 + (rx0 - ex0) * v, ex1 + (rx1 - ex1) * v
+            x = xa + (xb - xa) * u
+            y0 = ey0 if front else ey1
+            y = y0 + (ym - y0) * v
+            z = ze + (zr - ze) * v + amp * math.sin(2 * math.pi * (x - ex0) / pitch)
+            return (x, y, z)
+        n = int((ex1 - ex0) / pitch * (4 if front else 3))
+        return K.sheet(f, n, 6, mat, name=name + ("_front" if front else "_back"), smooth=False, thickness=0.01)
+
+    def hip(left):
+        def f(u, v):
+            ya, yb = ey0 + (ym - ey0) * v, ey1 + (ym - ey1) * v
+            y = ya + (yb - ya) * u
+            x0 = ex0 if left else ex1
+            r = rx0 if left else rx1
+            x = x0 + (r - x0) * v
+            z = ze + (zr - ze) * v + amp * math.sin(2 * math.pi * (y - ey0) / pitch)
+            return (x, y, z)
+        n = int((ey1 - ey0) / pitch * 3)
+        return K.sheet(f, n, 4, mat, name=name + "_hip", smooth=False, thickness=0.01)
+    parts += [slope(True), slope(False), hip(True), hip(False)]
+    cap = cap or mat
+    for (xa, ya), xr in (((ex0, ey0), rx0), ((ex0, ey1), rx0), ((ex1, ey0), rx1), ((ex1, ey1), rx1)):
+        K.tube([(xa, ya, ze + 0.02), (xr, ym, zr + 0.02)], 0.035, cap, segments=6, name="hip_cap")
+    K.tube([(rx0, ym, zr + 0.02), (rx1, ym, zr + 0.02)], 0.05, cap, segments=8, name="ridge_cap")
+    return parts
+
+
+def slope_y(y_eave, y_ridge, z_eave, z_ridge, z):
+    """Where a straight roof slope from (y_eave, z_eave) to (y_ridge, z_ridge) is at height z."""
+    return y_eave + (z - z_eave) / (z_ridge - z_eave) * (y_ridge - y_eave)
+
+
+def tyre(K, cx_px, cy_px, r_px, tube_px, y, tilt, mat, segments=28, name="tyre"):
+    """An old tyre: a torus (a tube bent round in a ring) lying on a surface tilted `tilt` degrees towards the camera,
+    centred where it is painted."""
+    P = K.paint
+    R, r = P.m(r_px), P.m(tube_px)
+    t = math.radians(tilt)
+    cx, cz = P.x(cx_px), P.z(cy_px)
+    pts = []
+    for i in range(segments + 1):
+        a = 2 * math.pi * i / segments
+        lx, ly = R * math.cos(a), R * math.sin(a)
+        pts.append((cx + lx, y + ly * math.cos(t), cz + ly * math.sin(t)))
+    return K.tube(pts, r, mat, segments=12, name=name, cap=False)
+
+
+@model("house_mud_tin", "lane", kind="building", atlas=2048)
+def house_mud_tin(K):
+    """A mud-walled house under a hipped roof of rusting corrugated tin held down with stones and an old tyre: a blue
+    plank door, a window with its plank flap propped open on a stick, a lime-washed skirting, an earth plinth."""
+    P = K.paint
+    depth = 4.0
+    K.front_min = 0.1                                    # the front slope of the roof faces the camera at a slant
+    mud = K.tile((180, 520, 520, 960), size=1.2, vary=0.05, soften=0.5)
+    tin = K.tile((380, 110, 560, 240), size=0.6, vary=0.05, soften=0.25)
+    lime = K.tile((200, 1012, 520, 1085), size=0.8, vary=0.04, soften=0.4)
+    earth = K.tile((200, 1100, 520, 1140), size=0.8, vary=0.06)
+    blue = K.tile((600, 520, 820, 980), size=0.7, vary=0.04)
+    frame = K.colour((560, 600, 585, 900), vary=0.06)
+    plank = K.tile((1040, 560, 1150, 640), vary=0.05)
+    dark = K.colour((0.04, 0.025, 0.025), vary=0.0)
+    X0, X1 = P.x(122), P.x(1312)
+    ze, zr = P.z(368), P.z(36)
+    body = K.box(X0, X1, 0.0, depth, 0.0, ze + 0.05, mud, name="walls")
+    K.box(X0 - 0.015, X1 + 0.015, -0.015, depth + 0.015, P.z(1095), P.z(1000), lime, name="skirting")
+    K.box(P.x(85), P.x(1350), -0.15, depth + 0.15, 0.0, P.z(1095), earth, bevel=0.03, name="plinth")
+    # the roof: hipped tin with an overhang all round, its eave over the wall's shadow band
+    ov = 0.38
+    hip_tin_roof(K, (P.x(8), P.x(1425), -ov, depth + ov), (P.x(200), P.x(1235)), ze, zr, tin,
+                 cap=K.colour((300, 26, 900, 44), vary=0.06))
+    # rafters under the overhang, front and back
+    timber = K.colour((0.16, 0.08, 0.04), vary=0.1)
+    for x in np.linspace(X0 + 0.2, X1 - 0.2, 7):
+        for y0, y1 in ((-ov + 0.05, 0.0), (depth, depth + ov - 0.05)):
+            K.box(x - 0.03, x + 0.03, y0, y1, ze - 0.06, ze - 0.01, timber, name="rafter")
+    # stones weighting the tin, and the tyre
+    stone = K.projected(squeeze=1.0, keep=[(298, 52, 382, 98), (556, 40, 648, 80), (856, 42, 915, 78),
+                                           (128, 260, 268, 333), (916, 252, 1012, 303), (1248, 282, 1338, 328),
+                                           (952, 5, 1012, 32)], inset=2)
+    ys = lambda z: slope_y(-ov, depth / 2, ze, zr, z)
+    for px, py, w, h in ((340, 76, 82, 40), (602, 60, 90, 38), (885, 60, 58, 32), (198, 298, 138, 70),
+                         (964, 280, 94, 48), (1293, 306, 88, 44), (982, 20, 58, 26), (285, 90, 22, 12),
+                         (270, 320, 30, 14)):
+        z = P.z(py)
+        K.boulder(P.x(px), ys(z) - P.m(h) * 0.1, z, P.m(w), P.m(w) * 0.7, P.m(h) * 1.05, stone, name="stone")
+    tyre_m = K.projected(axis_x=P.x(1107), squeeze=0.95, keep=[(990, 176, 1224, 313)], inset=2)
+    tilt = math.degrees(math.atan2(zr - ze, depth / 2 + ov))
+    tyre(K, 1107, 244, 88, 28, ys(P.z(244)) - 0.06, tilt, tyre_m)
+    # the door: a plank door recessed in its frame
+    K.cut(body, P.x(588), P.x(830), -0.05, 0.22, P.z(1080), P.z(475))
+    K.box(P.x(588), P.x(830), 0.1, 0.15, P.z(1080), P.z(475), blue, name="door")
+    for x0, x1 in ((553, 590), (828, 866)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.1, P.z(1085), P.z(442), frame, bevel=0.008, name="jamb")
+    K.box(P.x(553), P.x(866), -0.03, 0.1, P.z(476), P.z(442), frame, bevel=0.008, name="frame_head")
+    # the window: a dark opening in a plank frame, its flap hinged at the top and propped out on a stick
+    K.cut(body, P.x(1000), P.x(1170), -0.05, 0.25, P.z(716), P.z(526))
+    K.box(P.x(1000), P.x(1170), 0.2, 0.23, P.z(716), P.z(526), dark, name="window_back")
+    for a, b, c, d in ((983, 1000, 511, 724), (1162, 1185, 511, 724), (983, 1185, 511, 526), (983, 1185, 712, 724)):
+        K.box(P.x(a), P.x(b), -0.03, 0.06, P.z(d), P.z(c), frame, bevel=0.006, name="window_frame")
+    fy = -0.42
+    corners = [(P.x(1000), -0.03, P.z(526)), (P.x(1178), -0.03, P.z(526)), (P.x(1225), fy, P.z(664)),
+               (P.x(1040), fy, P.z(667))]
+    def flap(u, v):
+        a = [corners[0][k] + (corners[1][k] - corners[0][k]) * u for k in range(3)]
+        b = [corners[3][k] + (corners[2][k] - corners[3][k]) * u for k in range(3)]
+        return tuple(a[k] + (b[k] - a[k]) * v for k in range(3))
+    K.sheet(flap, 4, 4, plank, name="flap", smooth=False, thickness=0.03)
+    K.tube([P.pt(1057, 791, -0.02), P.pt(1135, 645, fy * 0.95)], 0.013, frame, segments=6, name="stick")
+    # the side walls: a smaller flap window each side; the back: the door again
+    for side in (-1, 1):
+        xw = X1 if side > 0 else X0
+        K.cut(body, xw - 0.25, xw + 0.25, depth * 0.55 - 0.3, depth * 0.55 + 0.3, P.z(716), P.z(526))
+        K.box(xw - side * 0.22, xw - side * 0.19, depth * 0.55 - 0.3, depth * 0.55 + 0.3, P.z(716), P.z(526), dark,
+              name="side_window_back")
+        for a, b, c, d in ((-0.36, -0.3, 0, 0), (0.3, 0.36, 0, 0)):
+            K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), depth * 0.55 + a, depth * 0.55 + b,
+                  P.z(724), P.z(511), frame, bevel=0.005, name="side_window_frame")
+        K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), depth * 0.55 - 0.36, depth * 0.55 + 0.36,
+              P.z(526), P.z(511), frame, bevel=0.005, name="side_window_frame")
+        K.box(min(xw, xw + side * 0.04), max(xw, xw + side * 0.04), depth * 0.55 - 0.36, depth * 0.55 + 0.36,
+              P.z(724), P.z(712), frame, bevel=0.005, name="side_window_frame")
+        hx = xw + side * 0.03
+        K.block(hx + side * 0.18, depth * 0.55, P.z(526) - 0.2, 0.42, 0.62, 0.03, plank, rot=(0, side * -48, 0),
+                name="side_flap")
+    back_decal(K, (553, 442, 866, 1085), depth)

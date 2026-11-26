@@ -234,7 +234,7 @@ def green_pixels(rgb):
 def straw_pixels(rgb):
     """Straw only: bright yellow-gold strands and their brown ink (not the grey ground, not the background)."""
     r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
-    straw = (r > 120) & (g > 0.5 * r) & (b < 0.6 * g) & (r - b > 70)
+    straw = (r > 120) & (g > 0.5 * r) & (r - b > 55) & (g - b > 25)
     keep = ndimage.binary_closing(straw, iterations=1)
     keep |= (np.maximum(np.maximum(r, g), b) < 110) & (r > b) & ndimage.binary_dilation(keep, iterations=1)
     return keep
@@ -439,13 +439,13 @@ def hens_basket(K):
            (67, 76, 84), 14, wicker)
     ground_disc(K, cx, 124, 75, 0.2, (12, 119, 30, 123), h=0.004)
     # the nest: a lumpy ring of straw heaped over the rim and drooping over it, its hollow bedded with straw
-    straw = K.tile((40, 68, 130, 82), vary=0.1, soften=0.15)
+    straw = K.tile((92, 66, 122, 86), vary=0.1, soften=0.1)
     sec = [(0, 72), (20, 72.5), (36, 71), (48, 67), (58, 63), (66, 63), (71, 67), (72, 73), (71, 80), (69, 86), (66, 87.5)]
     ring_sheet(K, P.x(cx), 0.0, [(P.m(r), P.z(y)) for r, y in sec], straw, nu=56, lumps=P.m(2.2), name="nest",
                thickness=0.01)
     # loose straws all round the rim, and the ragged fringe at the two ends as painted, carried round the nest
-    gold = K.colour((60, 70, 70, 74), vary=0.15, scale=40)
-    straws(K, 150, P.x(cx), 0.0, P.m(56), P.m(70), P.z(80), P.z(62), gold, length=(P.m(10), P.m(24)), radius=P.m(0.8))
+    gold = K.colour((60, 70, 70, 74), vary=0.15, scale=40, pct=85)
+    straws(K, 90, P.x(cx), 0.0, P.m(56), P.m(70), P.z(80), P.z(62), gold, length=(P.m(10), P.m(22)), radius=P.m(0.45))
     K.leaves_only((0, 45, 171, 95), straw_pixels)
     fringe = [(4, 50, 32, 90), (140, 50, 168, 90)]
     for box in fringe:

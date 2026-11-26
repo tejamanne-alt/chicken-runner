@@ -7,11 +7,13 @@ stone, brick, thatch and straw cut from it). The people and the animals in the p
 """
 import math
 
+import bmesh
 import numpy as np
+from PIL import Image
 from mathutils import Matrix, Vector
 from scipy import ndimage
 
-from kitlib import Mat, _image, model, plant_pixels, seamless
+from kitlib import Mat, _image, _obj, model, plant_pixels, seamless
 
 
 # ====================================================================== helpers
@@ -57,23 +59,7 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     ptex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], ptex.inputs["Vector"])
     # the tile
-    x0, y0, x1, y1 = tile_box
-    sw = tile_size or P.m(x1 - x0)
-    sh = sw * (y1 - y0) / max(1, x1 - x0)
-    crop = P.crop(tile_box)
-    if soften:
-        a = np.asarray(crop.convert("RGB")).astype(np.float32)
-        med = np.median(a.reshape(-1, 3), axis=0)
-        from PIL import Image
-        crop = Image.fromarray((a * (1 - soften) + med * soften).clip(0, 255).astype(np.uint8))
-    ttex = nt.nodes.new("ShaderNodeTexImage")
-    ttex.image = _image(seamless(crop, 0.25), f"{m.mat.name}_tile")
-    ttex.projection = "BOX"
-    ttex.projection_blend = 0.3
-    mapping = nt.nodes.new("ShaderNodeMapping")
-    mapping.inputs["Scale"].default_value = (1 / sw, 1 / sw, 1 / sh)
-    nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
-    nt.links.new(mapping.outputs[0], ttex.inputs["Vector"])
+    tcol = _tile_socket(K, m, coord, tile_box, tile_size, soften)
     # the blend on the normal
     geo = nt.nodes.new("ShaderNodeNewGeometry")
     sn = nt.nodes.new("ShaderNodeSeparateXYZ")
@@ -86,7 +72,81 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
     mix.data_type = "RGBA"
     nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
     nt.links.new(ptex.outputs["Color"], mix.inputs["A"])
-    nt.links.new(ttex.outputs["Color"], mix.inputs["B"])
+    nt.links.new(tcol, mix.inputs["B"])
+    m.set_colour(mix.outputs["Result"])
+    K._mats[key] = m
+    return m
+
+
+def _tile_socket(K, m, coord, box, size=None, soften=0.2, vary=0.0):
+    """Adds to material m a seamless tile of the painting inside box, box-projected at its painted scale (or `size`
+    metres across), sampled twice at different scales and blended by a large noise so it never lines up; returns
+    its colour socket."""
+    P = K.paint
+    nt = m.nt
+    x0, y0, x1, y1 = box
+    sw = size or P.m(x1 - x0)
+    sh = sw * (y1 - y0) / max(1, x1 - x0)
+    crop = P.crop(box)
+    if soften:
+        a = np.asarray(crop.convert("RGB")).astype(np.float32)
+        med = np.median(a.reshape(-1, 3), axis=0)
+        crop = Image.fromarray((a * (1 - soften) + med * soften).clip(0, 255).astype(np.uint8))
+    img = _image(seamless(crop, 0.25), f"{m.mat.name}_tile{len(nt.nodes)}")
+    outs = []
+    for scale, off in ((1.0, 0.0), (0.77, 0.381)):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.3
+        mapping = nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sh)
+        mapping.inputs["Location"].default_value = (off, off * 0.7, off * 1.3)
+        nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+        nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        outs.append(tex.outputs["Color"])
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    rng = nt.nodes.new("ShaderNodeMapRange")
+    rng.inputs["From Min"].default_value = 0.4
+    rng.inputs["From Max"].default_value = 0.6
+    nt.links.new(noise.outputs["Fac"], rng.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(outs[0], mix.inputs["A"])
+    nt.links.new(outs[1], mix.inputs["B"])
+    col = mix.outputs["Result"]
+    if vary:
+        from kitlib import _vary
+        col = _vary(m, col, vary, 3.0 / sw)
+    return col
+
+
+def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=None, soften=0.25, name=None):
+    """A material of two tiles of the painting: side_box on the surfaces that face sideways (an earth bank's face,
+    a wall) and top_box on those that face up (the bank's grassy or trodden top), blended on normal.z (lo..hi)."""
+    key = ("two", tuple(side_box), tuple(top_box), lo, hi, side_size, top_size, soften)
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(name or f"{K.name}_two{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    a = _tile_socket(K, m, coord, side_box, side_size, soften)
+    b = _tile_socket(K, m, coord, top_box, top_size, soften)
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sn = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], sn.inputs[0])
+    rng = nt.nodes.new("ShaderNodeMapRange")
+    rng.inputs["From Min"].default_value = lo
+    rng.inputs["From Max"].default_value = hi
+    nt.links.new(sn.outputs["Z"], rng.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(a, mix.inputs["A"])
+    nt.links.new(b, mix.inputs["B"])
     m.set_colour(mix.outputs["Result"])
     K._mats[key] = m
     return m
@@ -400,9 +460,9 @@ def scarecrow(K):
     for i in range(16):
         th = K.rng.uniform(15, 165)
         t = math.radians(th)
-        cx = K.rng.uniform(130, 230)
+        cx = K.rng.choice([K.rng.uniform(118, 140), K.rng.uniform(220, 240)])     # not the pole between them
         r = P.m(rsk(296)) * 0.9
-        K.card_from_painting((cx - 26, 290, cx + 26, 332), (P.x(ax) + r * math.cos(t), r * 0.8 * math.sin(t), P.z(307)),
+        K.card_from_painting((cx - 22, 290, cx + 22, 332), (P.x(ax) + r * math.cos(t), r * 0.8 * math.sin(t), P.z(307)),
                              yaw=th + 90, name="skirt_tips", normal=(math.cos(t), math.sin(t), -0.1))
     K.card_from_painting((96, 280, 266, 334), P.pt(181, 307, -P.m(52)), name="skirt_front", normal=(0, -1, 0.2))
     # the fists of straw out of the sleeves: fans of straw, turned about the arm so they are full from every side

@@ -92,9 +92,11 @@ Geometry (metres; every call returns the part, a Blender object):
   (a village house 4-6 m deep, a stall 1.5-2.5 m, a pot as deep as it is wide, a tree crown about 0.75 of its width).
 - `atlas=1024` for props, `2048` for buildings, stalls and trees. Faces: props under about 6k, buildings and stalls
   under 20k, trees under 25k with cards.
-- **People and animals are not modelled.** A stall with a vendor: build the stall, its counter, mat and goods; put the
-  vendor's box in `K.front_exclude`, and model what would be behind them (the mat, the goods, the floor). A cart with
-  bullocks: the cart only. A basket of hens: the basket, its straw, no hens.
+- **People and animals are not modelled: they stay painted cut-outs, as everywhere else in the game.** A stall with a
+  vendor, a basket of hens, a cart with bullocks, a shed with cattle: build the stall, basket, cart or shed for real,
+  model what is behind the figure (the mat, the goods, the floor, the straw), and add the figure itself with
+  `K.figure(polygon_px, y)`: a card of the painting masked to the outline you trace round it, standing where it is
+  painted (the front projection then skips it). The game needs them: the hens basket is the hens obstacle.
 - No text, logos or invented signage beyond what is painted.
 
 ## Lessons already learnt

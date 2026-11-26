@@ -1,0 +1,10 @@
+{
+ "name": "hens_basket",
+ "folder": "market",
+ "kind": "volume",
+ "width": 0.713,
+ "height": 0.55,
+ "depth": 0.709,
+ "faces": 3228,
+ "source": "blender"
+}

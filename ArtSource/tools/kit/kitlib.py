@@ -733,6 +733,26 @@ class Kit:
         HxWx3, overrides the rule)."""
         self.leaf_rules.append((tuple(box), keep or plant_pixels))
 
+    def figure(self, polygon_px, y=-0.05, name="figure"):
+        """A person or animal painted in the piece (a vendor, hens, bullocks), kept as it is everywhere else in the
+        game: a painted cut-out, standing where it is painted at depth y, inside the 3D model. polygon_px: its outline
+        [(px, py), ...] traced round it on the painting (generously: the card shows only what is inside). The
+        projection from the front skips it, so what is behind it gets its own materials."""
+        P = self.paint
+        xs, ys = [p[0] for p in polygon_px], [p[1] for p in polygon_px]
+        box = (max(0, min(xs)), max(0, min(ys)), min(P.w, max(xs)), min(P.h, max(ys)))
+        poly = [(float(x), float(y_)) for x, y_ in polygon_px]
+
+        def keep(rgb, box=box, poly=poly):
+            h, w = rgb.shape[:2]
+            im = Image.new("L", (w, h), 0)
+            ImageDraw.Draw(im).polygon([(x - int(round(box[0])), y_ - int(round(box[1]))) for x, y_ in poly], fill=255)
+            return np.asarray(im) > 127
+        self.leaf_rules.append((box, keep))
+        self.front_exclude.append(("poly", poly))
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        return self.card_from_painting(box, (P.x(cx), y, P.z(cy)), normal=(0.0, -1.0, 0.25), name=name)
+
     def cut(self, ob, x0, x1, y0, y1, z0, z1):
         """Cuts a box out of a part (a door or window recess, a vent, an arch), applied at finish."""
         bm = bmesh.new()
@@ -945,8 +965,14 @@ def _front_material(P, name, channel="color", exclude=()):
     img = P.img
     if exclude:
         a = np.asarray(img).copy()
-        for x0, y0, x1, y1 in exclude:
-            a[int(y0):int(y1), int(x0):int(x1), 3] = 0
+        for ex in exclude:
+            if ex[0] == "poly":
+                m = Image.new("L", img.size, 0)
+                ImageDraw.Draw(m).polygon(ex[1], fill=255)
+                a[np.asarray(m) > 127, 3] = 0
+            else:
+                x0, y0, x1, y1 = ex
+                a[int(y0):int(y1), int(x0):int(x1), 3] = 0
         img = Image.fromarray(a, "RGBA")
     m = Mat(name)
     nt = m.nt
