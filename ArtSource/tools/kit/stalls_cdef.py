@@ -1602,7 +1602,7 @@ def cone_stack(K, tip, r, h, n, mat, axis=(0, 0, 1), name="cones"):
     higher than the one inside it."""
     parts = []
     for k in range(n):
-        dz = k * h * 0.12
+        dz = k * h * 0.2
         prof = [(0.0, dz), (r * 0.98, dz + h), (r, dz + h + 0.003)]
         parts.append(K.lathe(prof, mat, segments=16, centre=tip, cap=False, name=name))
     for p in parts:
@@ -1679,7 +1679,7 @@ def stall_e_2(K):
     handle = K.colour((0.06, 0.05, 0.05), vary=0.05)
     for pts_ in (((172, 478), (140, 450), (128, 428), (150, 418), (170, 440), (180, 470)),
                  ((455, 470), (462, 440), (452, 422), (440, 432), (445, 465))):
-        K.tube([P.pt(px_, py_, wy) for px_, py_ in pts_], P.m(6), handle, segments=6, name="wok_handle")
+        K.tube([P.pt(px_, py_, wy) for px_, py_ in pts_], P.m(4), handle, segments=6, name="wok_handle")
     nuts = K.projected(squeeze=1.0, keep=[(215, 470, 420, 530)], inset=1)
     hn = heap_px(K, 316, wy, [(140, 520), (130, 500), (100, 488), (50, 481), (0, 479)], nuts, sy=0.8, name="peanuts")
     on_heap(K, hn, P.x(316), wy, P.m(130) * 0.8, (220, 472, 418, 532), nuts, dark=95, min_area=20, max_area=400,
@@ -1693,7 +1693,7 @@ def stall_e_2(K):
     wood = ktile(K, (500, 548, 580, 600), vary=0.08)
     top = K.projected(squeeze=1.0, keep=[(470, 455, 712, 548)], exclude=[(480, 450, 630, 525), (600, 390, 690, 525)],
                       inset=2)
-    ty0, ty1 = -0.3, 0.2
+    ty0, ty1 = -0.8, -0.32
     K.box(P.x(470), P.x(712), ty0, ty1, Z(545), Z(527), top, bevel=0.006, name="table_top")
     for x0, x1 in ((478, 493), (676, 695)):
         for y in (ty0 + 0.03, ty1 - 0.03):
@@ -1703,16 +1703,16 @@ def stall_e_2(K):
     K.box(P.x(478), P.x(495), ty0 + 0.05, ty1 - 0.05, Z(640), Z(620), wood, name="stretcher")
     K.box(P.x(676), P.x(695), ty0 + 0.05, ty1 - 0.05, Z(640), Z(620), wood, name="stretcher")
     plate = K.colour((0.55, 0.55, 0.55), vary=0.05)
-    py_ = -0.08
+    py_ = -0.56
     K.lathe([(0.0, Z(527)), (P.m(55), Z(526)), (P.m(68), Z(520)), (P.m(70), Z(516))], plate, segments=24,
             centre=(P.x(555), py_, 0.0), scale_y=0.8, cap=False, name="plate")
     hp = heap_px(K, 555, py_, [(64, 518), (55, 498), (35, 478), (12, 465), (0, 462)], nuts, sy=0.8, name="plate_nuts")
     on_heap(K, hp, P.x(555), py_, P.m(60) * 0.8, (490, 455, 625, 515), nuts, dark=95, min_area=20, max_area=400,
             rmax=9, kind="pod")
     paper = K.projected(squeeze=1.0, keep=[(598, 390, 690, 526)], inset=1)
-    cone_stack(K, (P.x(632), -0.02, Z(500)), P.m(28), P.m(95), 5, paper, axis=(-0.25, 0.0, 1.0))
-    cone_stack(K, (P.x(652), 0.02, Z(525)), P.m(30), P.m(85), 5, paper, axis=(0.05, 0.0, 1.0))
-    cone_stack(K, (P.x(668), -0.06, Z(527)), P.m(26), P.m(75), 4, paper, axis=(0.2, 0.0, 1.0))
+    cone_stack(K, (P.x(640), -0.42, Z(505)), P.m(26), P.m(58), 5, paper, axis=(-0.4, 0.0, 1.0))
+    cone_stack(K, (P.x(662), -0.47, Z(522)), P.m(27), P.m(58), 4, paper, axis=(-0.15, 0.0, 1.0))
+    cone_stack(K, (P.x(680), -0.52, Z(527)), P.m(26), P.m(55), 4, paper, axis=(0.1, 0.0, 1.0))
     # ---------------------------------------------------------------- his stool behind the wok, and the roaster himself
     K.box(P.x(345), P.x(445), 0.12, 0.42, 0.0, 0.42, wood, bevel=0.01, name="stool")
     K.figure([(352, 205), (380, 197), (410, 204), (420, 240), (414, 285), (448, 300), (462, 330), (470, 380),

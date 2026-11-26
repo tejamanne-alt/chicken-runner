@@ -734,14 +734,15 @@ def tree_mango_1(K):
     crown = Crown(K, (8, 8, 782, 445), P.m(770) * 0.36, (400, 300), core=0.2, dome=(260, 0, 470))
     wood.grow(spread=0.5, root_z_px=655, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.8))
     bark = bark_material(K, mask, axis_x=P.x(250), squeeze=0.9)
-    thick, thin = wood.tubes(bark, fuse_r_px=3.0)
+    thick, thin = wood.tubes(bark, fuse_r_px=8.0, min_r_px=1.5)
     # the big limbs again, turned into the crown's depth, and roots round the back of the foot
     limbs = pick_limbs(wood, py_max=430, r_min=6, min_len=60, n=6)
     picks = [(i, (1 if k % 2 else -1) * K.rng.uniform(60, 120), 0.0) for k, i in enumerate(limbs)]
-    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8)
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=8.0, min_r_px=1.5,
+                       ylim=lambda px, py: max(0.4, crown.extent(px, py) * 0.85))
     roots = pick_limbs(wood, r_min=5, min_len=40, n=4, roots=True, root_py=640)
     wood.turned_copies(bark, [(i, K.rng.choice([-1, 1]) * K.rng.uniform(100, 160), 0.0) for i in roots],
-                       thick=thick, thin=thin, whole=False, rscale=0.8)
+                       thick=thick, thin=thin, whole=False, rscale=0.8, fuse_r_px=8.0)
     K.fuse(thick, voxel=0.03, faces=10000)
     # the crown: the painting's leaves on cards through its depth, and the shell facing the camera
     K.leaves_only((0, 0, 789, 470), foliage_pixels)
@@ -1368,13 +1369,14 @@ def field_tree_1(K):
     wood.grow(spread=0.55, root_z_px=860, root_spread=0.9, ymax=lambda px, py: max(0.6, crown.extent(px, py) * 0.8),
               seed_dy=seed)
     bark = bark_material(K, mask, axis_x=P.x(465), squeeze=0.9)
-    thick, thin = wood.tubes(bark, fuse_r_px=5.0)
+    thick, thin = wood.tubes(bark, fuse_r_px=9.0, min_r_px=1.5)
     limbs = pick_limbs(wood, py_max=560, py_min=300, r_min=8, min_len=60, n=7)
     picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 120), 0.0) for k, i in enumerate(limbs)]
-    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=5.0)
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=9.0,
+                       ylim=lambda px, py: max(0.5, crown.extent(px, py) * 0.85))
     roots = pick_limbs(wood, r_min=6, min_len=60, n=6, roots=True, root_py=880)
     wood.turned_copies(bark, [(i, rng.choice([-1, 1]) * rng.uniform(70, 160), 0.0) for i in roots],
-                       thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=5.0)
+                       thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=9.0)
     # the aerial roots again, hanging in curtains through the crown's depth behind and before the painted ones
     for i, p in enumerate(wood.paths):
         if hanging(p):
@@ -1434,10 +1436,11 @@ def field_tree_2(K):
     crown = Crown(K, (0, 0, 525, 400), P.m(500) * 0.36, (262, 220), core=0.2, dome=(220, 0, 410), dome_pow=0.7)
     wood.grow(spread=0.6, root_z_px=505, root_spread=0.9, ymax=lambda px, py: max(0.4, crown.extent(px, py) * 0.85))
     bark = bark_material(K, mask, axis_x=P.x(275), squeeze=0.9)
-    thick, thin = wood.tubes(bark, fuse_r_px=4.0, rscale=0.88)
+    thick, thin = wood.tubes(bark, fuse_r_px=6.0, rscale=0.88, min_r_px=1.2)
     limbs = pick_limbs(wood, py_max=330, r_min=5, min_len=50, n=7)
     picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 130), 0.0) for k, i in enumerate(limbs)]
-    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.85, fuse_r_px=4.0)
+    wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.85, fuse_r_px=6.0,
+                       ylim=lambda px, py: max(0.3, crown.extent(px, py) * 0.85))
     # the foot flares into roots round the back
     for k in range(5):
         a = math.radians(rng.uniform(20, 160) * (1 if k % 3 else -1))
@@ -2032,7 +2035,7 @@ def h1_2(K):
     mask, _ = TRACE["h1_2"](K)
     traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_leaves, spread=0.6,
                 root_z_px=900, limb_py_max=520, limb_py_min=150, n_limbs=6, n_roots=4, root_py=920,
-                n_cards=(170, 80, 45, 15), card_px=(75, 65))
+                n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=2.5)
 
 
 TRACE["h1_3"] = lambda K: _trace_grey(K, [(0, 190, 864, 1024)], (150, 1000),
@@ -2049,7 +2052,7 @@ def h1_3(K):
     wood, crown, bark, thin = traced_tree(K, mask, (150, 1000), (90, 0, 864, 535), (480, 270), (280, 0, 540),
                                           sage_leaves, spread=0.5, root_z_px=960, limb_py_max=470, limb_py_min=200,
                                           n_limbs=6, n_roots=3, root_py=975, n_cards=(190, 90, 45, 20),
-                                          card_px=(90, 80))
+                                          card_px=(90, 80), min_r_px=2.5)
     # the swing: two ropes looped round the limb, each splitting into a V to the ends of a plank seat
     rope = K.colour((400, 650, 416, 760), vary=0.08)
     plank = K.tile((400, 874, 570, 896), vary=0.06)
@@ -2065,8 +2068,10 @@ def h1_3(K):
                 segments=10, centre=(P.x(kx), yb, 0.0), name="knot")
         for sx, dy in ((sx0, -P.m(28)), (sx1, P.m(28))):
             K.tube([knot, (P.x(sx), yb + dy, P.z(870))], P.m(2.6), rope, segments=6, name="rope_v")
-            K.tube([(P.x(sx), yb + dy, P.z(880)), (P.x(sx) + 0.002, yb + dy, P.z(935))], P.m(2.2), rope, segments=5,
-                   name="rope_end")
+            for k in range(3):                              # the frayed rope ends under the seat
+                K.tube([(P.x(sx), yb + dy, P.z(890)),
+                        (P.x(sx) + P.m(rng.uniform(-4, 4)), yb + dy + P.m(rng.uniform(-4, 4)), P.z(rng.uniform(915, 935)))],
+                       P.m(1.2), rope, segments=4, name="rope_end")
     ys, _ = wood.at(470, 495)
     K.block((P.x(383) + P.x(582)) / 2, ys, P.z(882), P.m(200), P.m(62), P.m(22), plank, rot=(0, 3.4, 0),
             bevel=P.m(2), name="seat")

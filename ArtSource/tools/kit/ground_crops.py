@@ -6,9 +6,9 @@ cut ends and back the painted layers carried through, its top a sheet of the pai
 rows), and its plants standing in rows through the depth, planted on a grid behind the painted ones: leaves, blades,
 grain heads and flowers as cards cut from the painting's own plants (the front row is the painting, every row behind it
 the painting's own plants turned and crossed), and solid parts where they are thick enough to be solid: straw stooks
-(turned cones of sheaves with their fans of ears), stubble, banana pseudostems, sugarcane canes, cotton bolls and
-groundnut pods. (Thin stalks stay on the cards: the game draws an ink outline round every solid part, and a thin solid
-stalk would be all outline.)
+(turned cones of sheaves with their fans of ears), stubble, banana pseudostems, sugarcane canes and groundnut pods.
+(Thin stalks, grain heads and cotton bolls stay cards, crossed so they have a side: the game draws an ink outline round
+every solid part, and a thin or small solid part would be all outline, and lose its painted fluff.)
 
 The ground pieces: stones (each a faceted stone on its painted outline, standing on the ground), a coconut (a turned,
 three-sided nut, its loose fibres as cards), a torn husk (a boat of fibre lying hollow side up), tufts and weeds (the

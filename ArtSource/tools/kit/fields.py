@@ -1516,7 +1516,7 @@ def hut_with_pen(K):
     C = (P.x(305), 0.0)                                   # the hut's nearest corner
     mud = K.tile((80, 290, 140, 400), soften=0.4, vary=0.05)
     thatch = K.tile((330, 70, 520, 200), soften=0.2, vary=0.04)
-    zg, ze, zr = P.z(462), P.z(262), P.z(32)
+    zg, ze, zr = P.z(462), P.z(262), P.z(54)
     hut = []
     walls = K.box(-W, 0.0, 0.0, L, zg - 0.05, ze, mud, name="walls")
     hut.append(walls)
@@ -1568,3 +1568,88 @@ def hut_with_pen(K):
     K.leaves_only((30, 440, 823, 478), grass_pixels)
     for cx in (60, 290, 600, 700):
         K.card_from_painting((cx - 30, 440, cx + 30, 470), P.pt(cx, 455, -0.1), name="grass", normal=(0, -0.3, 1))
+
+
+@fmodel("field_shrine", "fields", kind="building", atlas=2048)
+def field_shrine(K):
+    """A wayside shrine at the field's edge, of whitewashed dressed stone: a stepped plinth, a square cella with a
+    deep niche holding a painted Ganesha on his pedestal, a projecting cornice, two diminishing upper tiers (a small
+    niche with a golden image in the first), a squared dome crowned by a row of kalasha finials, and a saffron
+    swallow-tailed flag on a pole. It stands turned a little, as painted, so we see its front and right side; its
+    other two sides carry blind niches."""
+    P = K.paint
+    K.front_min = 0.1
+    phi = 25.0
+    cphi, sphi = math.cos(math.radians(phi)), math.sin(math.radians(phi))
+    W = 1.74
+    C = (P.x(230), 0.0)
+    stone_m = K.tile((36, 340, 76, 470), soften=0.35, vary=0.04)
+    cx, cy = -W / 2, W / 2                                  # the shrine's axis in the local frame
+
+    def half(px0):                                          # half-size of a square tier whose front-left edge is at px0
+        return (-(W / 2) * cphi + (W / 2) * sphi - (px0 - 230) / P.ppm) / (cphi + sphi)
+    parts = []
+
+    def tier(px0, r_top, r_bot, mat=stone_m, bevel=0.015, name="tier"):
+        h = half(px0)
+        ob = K.box(cx - h, cx + h, cy - h, cy + h, P.z(r_bot), P.z(r_top), mat, bevel=bevel, name=name)
+        parts.append(ob)
+        return ob, h
+    tier(10, 496, 524, name="plinth")
+    tier(20, 480, 496, name="plinth")
+    body, hb = tier(32, 320, 480, name="cella")
+    tier(12, 300, 322, name="cornice")
+    tier(22, 284, 300, name="cornice_top")
+    t1, h1 = tier(78, 232, 284, name="tier1")
+    tier(88, 226, 234, name="tier1_cap")
+    t2, h2 = tier(104, 172, 226, name="tier2")
+    hd = half(110)
+    dome = K.lathe([(hd * 1.414, P.z(172)), (hd * 1.38, P.z(160)), (hd * 1.25, P.z(145)), (hd * 0.95, P.z(133)),
+                    (hd * 0.5, P.z(127)), (0.0, P.z(125))], stone_m, segments=4, centre=(cx, cy, 0), name="dome",
+                   smooth=False)
+    rotate(dome, 45, "Z", (cx, cy, 0))
+    parts.append(dome)
+    for i in range(4):
+        for j in range(3):
+            a = math.radians(90 * i)
+            t = (j - 1) * hd * 0.6
+            fx = cx + math.cos(a) * hd * 0.95 - math.sin(a) * t
+            fy = cy + math.sin(a) * hd * 0.95 + math.cos(a) * t
+            parts.append(K.lathe([(0.0, P.z(136)), (P.m(9), P.z(132)), (P.m(10), P.z(126)), (P.m(6), P.z(120)),
+                                  (0.0, P.z(116))], stone_m, segments=8, centre=(fx, fy, 0), name="kalasha"))
+    # the niche in the front with the painted image on its pedestal; the small upper niche with the golden one
+    lx = lambda px: -(230 - px) / P.ppm / cphi              # a painted x on the front face, along the wall
+    fy0 = cy - hb                                           # the cella's front face
+    K.cut(body, lx(80), lx(182), fy0 - 0.05, fy0 + 0.42, P.z(478), P.z(330))
+    parts.append(K.box(lx(80), lx(182), fy0 + 0.36, fy0 + 0.4, P.z(478), P.z(330), stone_m, name="niche_back"))
+    parts.append(K.box(lx(112), lx(178), fy0 + 0.2, fy0 + 0.36, P.z(478), P.z(462), stone_m, bevel=0.01,
+                       name="pedestal"))
+    parts.append(K.panel((116, 372, 182, 462), fy0 + 0.27, depth=0.08, name="image"))
+    fy1 = cy - h1
+    K.cut(t1, lx(124), lx(172), fy1 - 0.05, fy1 + 0.22, P.z(282), P.z(234))
+    parts.append(K.box(lx(124), lx(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back"))
+    parts.append(K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image"))
+    # blind niches in the other three walls
+    for ang in (90, 180, 270):
+        a = math.radians(ang)
+        nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction
+        tx, ty = math.cos(a), math.sin(a)
+        mx, my = cx + nx * hb, cy + ny * hb
+        x0, x1 = sorted((mx - tx * 0.32 - nx * 0.12, mx + tx * 0.32 + nx * 0.12))
+        y0, y1 = sorted((my - ty * 0.32 - ny * 0.12, my + ty * 0.32 + ny * 0.12))
+        K.cut(body, x0, x1, y0, y1, P.z(470), P.z(345))
+    # the flag on its pole
+    pole = K.colour((186, 60, 196, 110), vary=0.08)
+    top = (C[0] + (lx(205) - cx) * 0, 0)
+    parts.append(K.tube([(cx, cy, P.z(128)), (cx, cy, P.z(10))], P.m(4), pole, segments=8, name="pole"))
+    place(parts, -phi, C)
+    pole_ob = parts[-1]
+    bx = sum(v.co.x for v in pole_ob.data.vertices) / len(pole_ob.data.vertices)
+    by = sum(v.co.y for v in pole_ob.data.vertices) / len(pole_ob.data.vertices)
+    for v in pole_ob.data.vertices:                         # lean it as painted: its head over to the right
+        t = (v.co.z - P.z(128)) / (P.z(10) - P.z(128))
+        v.co.x += t * (P.x(205) - P.x(186))
+    K.leaves_only((196, 4, 312, 126), everything)
+    K.card_from_painting((198, 4, 312, 124), (P.x(255), by, P.z(64)), name="flag", normal=(0, -0.5, 0.5))
+    K.card_from_painting((198, 4, 312, 124), (P.x(255), by + 0.12, P.z(64)), yaw=-20, name="flag",
+                         normal=(0, -0.5, 0.5))

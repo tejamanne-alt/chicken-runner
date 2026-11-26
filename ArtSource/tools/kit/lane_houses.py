@@ -952,6 +952,27 @@ def straw_pixels(rgb):
     return keep | (dark & ndimage.binary_dilation(keep, iterations=2))
 
 
+def hay_pixels(rgb):
+    """Golden hay (saturated), not the khaki mud wall painted behind it."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    return straw_clean(rgb) & ((mx - mn) > 0.42 * mx)
+
+
+def with_figure(box, keep, poly):
+    """A leaf rule for box that also keeps a figure's pixels (inside its traced polygon), so cards of hay or straw
+    round a painted animal do not punch holes in the animal's own card (the rules for one pixel are ANDed)."""
+    from PIL import Image as _I, ImageDraw as _D
+    x0, y0 = int(round(box[0])), int(round(box[1]))
+
+    def rule(rgb):
+        h, w = rgb.shape[:2]
+        im = _I.new("L", (w, h), 0)
+        _D.Draw(im).polygon([(x - x0, y - y0) for x, y in poly], fill=255)
+        return keep(rgb) | (np.asarray(im) > 127)
+    return rule
+
+
 def straw_clean(rgb):
     """straw_pixels away from the cut-out's white halo (and the pale edge blending into it)."""
     r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
@@ -2250,10 +2271,9 @@ def cattle_shed(K):
             K.block(P.x(x), y, (zf + P.z(800)) / 2, 0.1, 0.1, P.z(800) - zf, mw, bevel=0.01, name="manger_leg")
     # hay: the big heaps behind the calf and the one by the post, straw in the manger and on the floor
     hay = K.projected(squeeze=1.0, keep=[(880, 445, 1480, 880)], exclude=[(940, 615, 1380, 880)], inset=3)
-    for px, py, w, h, y in ((1320, 590, 300, 260, D - 0.75), (1240, 640, 220, 170, D - 0.9), (1120, 640, 260, 150, 1.85),
-                            (1410, 720, 150, 130, 1.6), (990, 790, 190, 170, 1.45), (930, 830, 120, 90, 1.3)):
+    for px, py, w, h, y in ((1320, 600, 320, 300, D - 0.75), (1120, 640, 260, 150, 1.85), (990, 800, 210, 170, 1.45)):
         K.boulder(P.x(px), y, P.z(py) - P.m(h) * 0.05, P.m(w), P.m(w) * 0.8, P.m(h), hay, lumps=0.12, name="hay")
-    K.leaves_only((870, 440, 1480, 880), straw_clean)
+    K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), hay_pixels, CALF_SHED))
     K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
     for i in range(140):
@@ -2598,7 +2618,7 @@ def shop_tea_stall(K):
     P = K.paint
     D = 2.3
     K.front_min = 0.05
-    halo_exclude(K, [(0, 0, 1465, 1145)])
+    halo_exclude(K, [(0, 0, 1465, 1145)], near=25)
     planks = K.tile((300, 860, 520, 1080), size=0.7, vary=0.04)
     inside = K.tile((620, 520, 760, 680), size=0.6, vary=0.04, soften=0.3)
     thatch_m = K.tile((560, 120, 860, 230), size=0.9, vary=0.05, soften=0.15)
@@ -2627,9 +2647,13 @@ def shop_tea_stall(K):
             K.card_from_painting(box, (P.x(cx), D - fy(cx, cy) + 0.08, P.z(cy)), yaw=180 + K.rng.uniform(-15, 15),
                                  pitch=-30 + K.rng.uniform(-10, 10), name="frond_back")
         else:
-            xe = eave[0] if cx < 730 else eave[1]
-            K.card_from_painting(box, (xe + (0.08 if cx < 730 else -0.08), K.rng.uniform(0.0, D), P.z(cy)),
-                                 yaw=90 + K.rng.uniform(-15, 15), pitch=K.rng.uniform(-10, 10), name="frond_side")
+            left = cx < 730
+            v = K.rng.uniform(0.0, 0.5)                    # on the hip end, low down where the fronds hang
+            xe = (eave[0] + (ridge[0] - eave[0]) * v) if left else (eave[1] + (ridge[1] - eave[1]) * v)
+            ya, yb2 = eave[2] + (D / 2 - eave[2]) * v, eave[3] + (D / 2 - eave[3]) * v
+            K.card_from_painting(box, (xe + (-0.06 if left else 0.06), K.rng.uniform(ya + 0.1, yb2 - 0.1),
+                                       ze + (zr - ze) * v - 0.05), yaw=90 + K.rng.uniform(-15, 15),
+                                 pitch=(30 if left else -30) + K.rng.uniform(-10, 10), name="frond_side")
     # the poles
     for x0, x1 in ((105, 150), (1315, 1355)):
         cx = (x0 + x1) / 2
