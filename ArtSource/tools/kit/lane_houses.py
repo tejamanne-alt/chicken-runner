@@ -5,6 +5,8 @@ its door and windows recessed into the wall, its steps, sunshades, pots and plan
 could stand on. The front takes the painting itself; the sides and back are the same plaster, stone and paint, cut
 from the painting, with a door or window repeated where a real house would have one.
 """
+import math
+
 from kitlib import model
 
 
@@ -283,3 +285,112 @@ def house_limewash(K):
     K.leaves_only((216, 395, 254, 512))
     scatter_cards(K, (216, 395, 254, 512), 10, (40, 45), (-0.45, -0.1), yaw=70, name="bush")
     K.card_from_painting((216, 395, 254, 512), (P.x(235), -0.47, P.z(453.5)), name="bush_front")
+
+
+def raised_parapet(K, x0_px, x1_px, top_py, base_py, depth, mat, rim=0.3, left=False, right=False, back=True):
+    """A raised stretch of parapet x0..x1 px from base_py up to top_py: a rim `rim` m thick along the front, and along
+    the back and the outer sides if asked (so from behind it is the same raised wall)."""
+    P = K.paint
+    X0, X1, Z0, Z1 = P.x(x0_px), P.x(x1_px), P.z(base_py), P.z(top_py)
+    K.box(X0, X1, -0.03, rim, Z0, Z1, mat, bevel=0.02, name="parapet_raised")
+    if back:
+        K.box(X0, X1, depth - rim, depth + 0.03, Z0, Z1, mat, bevel=0.02, name="parapet_raised_b")
+    if left:
+        K.box(X0, X0 + rim, 0.0, depth, Z0, Z1, mat, bevel=0.02, name="parapet_raised_l")
+    if right:
+        K.box(X1 - rim, X1, 0.0, depth, Z0, Z1, mat, bevel=0.02, name="parapet_raised_r")
+
+
+def barred_window(K, body, frame_box, opening_box, bars_x, bars_y, frame, iron, dark, depth=0.2, out=0.05):
+    """A window in the front wall: its wooden frame (frame_box px) standing out `out` m, the opening (px) recessed
+    `depth` m to a dark back, iron bars at bars_x (vertical) and bars_y (horizontal) px."""
+    P = K.paint
+    fx0, fy0, fx1, fy1 = frame_box
+    ox0, oy0, ox1, oy1 = opening_box
+    K.cut(body, P.x(ox0), P.x(ox1), -0.1, depth + 0.02, P.z(oy1), P.z(oy0))
+    K.box(P.x(ox0), P.x(ox1), depth - 0.03, depth, P.z(oy1), P.z(oy0), dark, name="window_back")
+    for a, b, c, d in ((fx0, ox0, fy0, fy1), (ox1, fx1, fy0, fy1), (ox0, ox1, fy0, oy0), (ox0, ox1, oy1, fy1)):
+        K.box(P.x(a), P.x(b), -out, 0.04, P.z(d), P.z(c), frame, bevel=0.006, name="window_frame")
+    r = P.m(2.2)
+    yb = depth * 0.35
+    for x in bars_x:
+        K.tube([P.pt(x, oy1, yb), P.pt(x, oy0, yb)], r, iron, segments=6, name="bar")
+    for y in bars_y:
+        K.tube([P.pt(ox0, y, yb - 0.02), P.pt(ox1, y, yb - 0.02)], r, iron, segments=6, name="bar")
+
+
+def shutter(K, hinge_px, width_m, py0, py1, angle, mat, side=-1, name="shutter"):
+    """A wooden shutter hinged at hinge_px, swung open `angle` degrees out from the wall towards the camera, to the
+    left (side -1) or right (+1)."""
+    P = K.paint
+    a = math.radians(angle)
+    hx = P.x(hinge_px)
+    tx, ty = hx + side * width_m * math.cos(a), -width_m * math.sin(a)
+    rot = math.degrees(math.atan2(ty, tx - hx))
+    return K.block((hx + tx) / 2, ty / 2, (P.z(py0) + P.z(py1)) / 2, width_m, 0.03, abs(P.z(py0) - P.z(py1)), mat,
+                   rot=(0, 0, rot), bevel=0.005, name=name)
+
+
+@model("house_turmeric_ladder", "lane", kind="building", atlas=2048)
+def house_turmeric_ladder(K):
+    """A turmeric-yellow house: a stepped parapet with five vents, a cornice, a barred window with an open shutter, a
+    teal door frame with a carved double door under a red kolam sunshade and a garland, red kolam steps, a pot on a
+    red thinnai platform, bushes either side. (Its ladder is a separate 3D prop in the game.)"""
+    P = K.paint
+    depth = 4.5
+    K.front_exclude = [(0, 96, 25, 152), (384, 0, 422, 477), (0, 0, 3, 400)]   # the neighbours' bits at the edges
+    wall = K.tile((135, 280, 172, 355), size=0.5, vary=0.05, soften=0.55)   # turmeric plaster between window and door
+    upper = K.tile((190, 18, 300, 74), vary=0.05, soften=0.3)                # the parapet's cream with orange streaks
+    ledge = K.colour((100, 82, 280, 92), vary=0.06)
+    red = K.tile((35, 405, 120, 470), vary=0.06, soften=0.35)               # the thinnai's red oxide, below its kolam
+    teal = K.colour((178, 250, 186, 380), vary=0.05)
+    wood = K.tile((190, 300, 230, 380), P.m(30))
+    frame = K.colour((56, 185, 68, 268), vary=0.08)
+    X0, X1 = P.x(3), P.x(383)
+    body = flat_roof_house(K, 3, 383, 25, depth, wall, plinth=red, plinth_top_py=455,
+                           cornice=(78, 97, 0.09, ledge), coping=(25, 34, upper), back_door=(175, 162, 293, 390))
+    raised_parapet(K, 3, 70, 5, 34, depth, upper, rim=0.32, left=True)
+    raised_parapet(K, 180, 383, 4, 34, depth, upper, rim=0.32, right=True)
+    K.box(X0 + 0.12, X1 - 0.12, 0.12, depth - 0.12, P.z(25), P.z(25) + 0.01,
+          K.colour((120, 30, 175, 40), vary=0.08, pct=70), name="roof_deck")
+    iron = K.colour((0.05, 0.04, 0.035), vary=0.05)
+    bars = K.colour((96, 199, 120, 204), vary=0.05)
+    dark = K.colour((0.03, 0.02, 0.015), vary=0.0)
+    # side windows, and the front window repeated on the back
+    for side in (-1, 1):
+        side_window(K, body, side, depth * 0.5, P.z(274), P.z(185), 0.7, frame, iron, dark)
+    back_decal(K, (52, 180, 132, 274), depth, x_shift=P.m(-20), name="back_window")
+    # the vents in the low stretch of parapet
+    for x0, x1 in ((72, 80), (93, 101), (118, 127), (145, 153), (168, 176)):
+        K.cut(body, P.x(x0), P.x(x1), -0.05, 0.14, P.z(62), P.z(42))
+        K.box(P.x(x0), P.x(x1), 0.1, 0.12, P.z(62), P.z(42), dark, name="vent_back")
+    # the window: frame, bars, the shutter swung open
+    barred_window(K, body, (52, 180, 132, 274), (72, 188, 126, 269), (85.5, 99, 111.5),
+                  (201.5, 214.5, 227.5, 241, 254.5), frame, bars, dark)
+    shutter(K, 72, 0.3, 183, 272, 56, frame, side=-1)
+    # the door, recessed in its teal frame
+    K.cut(body, P.x(186), P.x(280), -0.05, 0.25, P.z(391), P.z(174))
+    K.box(P.x(186), P.x(280), 0.12, 0.17, P.z(391), P.z(174), wood, name="door")
+    for x0, x1 in ((175, 186), (280, 292)):
+        K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(391), P.z(162), teal, bevel=0.008, name="jamb")
+    K.box(P.x(175), P.x(292), -0.03, 0.12, P.z(174), P.z(162), teal, bevel=0.008, name="frame_head")
+    K.box(P.x(147), P.x(320), -0.22, 0.0, P.z(152), P.z(137), red, bevel=0.01, name="sunshade")
+    flowers = K.colour((205, 185, 260, 200), vary=0.25, scale=40)
+    strings = K.colour((175, 185, 183, 225), vary=0.25, scale=40)
+    pts = [P.pt(x, y, -0.06) for x, y in ((180, 168), (205, 188), (233, 200), (262, 188), (288, 168))]
+    K.tube(pts, P.m(9), flowers, segments=8, name="garland")
+    for x in (178, 290):
+        K.tube([P.pt(x, 166, -0.05), P.pt(x, 228, -0.05)], P.m(6), strings, segments=8, name="garland_string")
+    stairs(K, [(171, 294, 390), (154, 308, 410), (143, 320, 431), (135, 332, 456)], red)
+    # the thinnai on the left with its pot, a low platform on the right behind the bush
+    K.box(P.x(26), P.x(174), -0.55, 0.0, 0.0, P.z(362), red, bevel=0.012, name="thinnai")
+    K.box(P.x(294), X1 + 0.03, -0.4, 0.0, 0.0, P.z(440), red, bevel=0.012, name="platform_r")
+    pot(K, 110.3, [(16.8, 364), (20, 357), (26, 348.5), (29.6, 336), (25.7, 321), (20.5, 315), (14, 311),
+                   (16.5, 305.5), (14.5, 303.5)], keep=[(78, 302, 143, 366)], y=-0.3)
+    # bushes at both feet of the wall
+    K.leaves_only((0, 398, 72, 477))
+    scatter_cards(K, (0, 398, 72, 477), 10, (40, 40), (-0.5, -0.05), yaw=70, name="bush_l")
+    K.card_from_painting((0, 398, 72, 477), (P.x(36), -0.57, P.z(437.5)), name="bush_l_front")
+    K.leaves_only((298, 355, 384, 477))
+    scatter_cards(K, (298, 355, 384, 477), 14, (45, 45), (-0.42, -0.05), yaw=70, name="bush_r")
+    K.card_from_painting((298, 355, 384, 477), (P.x(341), -0.44, P.z(416)), name="bush_r_front")
