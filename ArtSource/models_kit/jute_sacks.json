@@ -1,0 +1,10 @@
+{
+ "name": "jute_sacks",
+ "folder": "lane",
+ "kind": "volume",
+ "width": 1.153,
+ "height": 0.8,
+ "depth": 0.941,
+ "faces": 6069,
+ "source": "blender"
+}

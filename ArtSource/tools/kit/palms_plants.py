@@ -1955,16 +1955,21 @@ def h7_5(K):
 
 
 # ====================================================================== grass clumps
-def clump(K, box, axis_px, r_px, depth, n_cross=6, y0=0.0, name="clump", nx=16, nz=10):
+def clump(K, box, axis_px, r_px, depth, n_cross=6, y0=0.0, name="clump", nx=16, nz=10, cross_box=None,
+          cross_yaw=(-90.0, 90.0)):
     """A clump of grass or reeds round an upright axis: the painting inside box wrapped onto the front and the back
     halves of a cylinder (r_px(py) or a number, squashed `depth`), and n_cross upright cards through its axis at
     spread turns, each the painted clump (squeezed into the clump from the front), so it is round from every side."""
     P = K.paint
     wrap_card(K, box, axis_px, r_px, y0=y0, depth=depth, nx=nx, nz=nz, name=name)
     wrap_card(K, box, axis_px, r_px, y0=y0, depth=depth, back=True, nx=nx, nz=nz, name=name)
-    x0, y0p, x1, y1 = box
+    x0, y0p, x1, y1 = cross_box or box
     for k in range(n_cross):
-        yaw = 180.0 * (k + 0.5) / n_cross - 90.0 + K.rng.uniform(-8, 8)
+        if cross_yaw == (-90.0, 90.0):
+            yaw = 180.0 * (k + 0.5) / n_cross - 90.0 + K.rng.uniform(-8, 8)
+        else:                                     # turned well round: from the front they hide in the clump's middle
+            lo, hi = cross_yaw
+            yaw = (lo + (hi - lo) * (k // 2 + 0.5) / max(1, (n_cross + 1) // 2)) * (1 if k % 2 else -1)
         ax = axis_px(y1) if callable(axis_px) else axis_px
         f = turn_about(P.x(ax), y0, yaw)
         bm = bmesh.new()
@@ -2001,7 +2006,8 @@ def h7_2(K):
     keep = ndimage.binary_opening(keep, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
     rfn = lambda py: 40 + 190 * min(1.0, (700 - py) / 420.0)
-    clump(K, (0, 0, P.w, 700), 245, rfn, 0.6, n_cross=7, nx=18, nz=12)
+    clump(K, (0, 0, P.w, 700), 245, rfn, 0.6, n_cross=8, nx=18, nz=12, cross_box=(0, 300, P.w, 700),
+          cross_yaw=(50.0, 90.0))
     # the matted root of the clump and the earth
     base = K.colour((0.16, 0.14, 0.07), vary=0.15)
     K.lathe([(P.m(r_), P.z(py)) for r_, py in ((150, 705), (140, 690), (100, 665), (40, 650), (0.0, 645))], base,
@@ -2018,6 +2024,9 @@ H73_LEAVES = [
     ([(490, 330), (420, 380), (365, 450), (352, 500)], 50, 0.35, "leaf"),
     ([(495, 420), (452, 430), (422, 480), (432, 530)], 46, -0.4, "leaf"),
     ([(482, 560), (420, 552), (350, 572), (292, 600), (280, 645)], 40, -0.2, "leaf"),
+    ([(492, 300), (455, 335), (420, 372), (392, 420)], 46, 0.45, "leaf"),
+    ([(494, 440), (455, 455), (420, 480), (392, 510)], 40, 0.3, "leaf"),
+    ([(496, 600), (470, 640), (462, 690)], 20, 0.2, "leaf"),
 ]
 
 

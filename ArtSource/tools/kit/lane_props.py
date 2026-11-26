@@ -68,18 +68,43 @@ def prof(P, pts):
     return [(P.m(r), P.z(y)) for r, y in pts]
 
 
-def mirrored(K, axis_x, side=-1, squeeze=0.93, keep=None, exclude=(), inset=4, dz=0.0):
-    """Like K.projected, for a round thing whose other half is hidden on the painting (behind a neighbour): it wears
-    only the painting's `side` half (-1 left, +1 right of axis_x, metres), mirrored onto the hidden half, so the hidden
-    side shows the same bands and highlights instead of the neighbour's shadow."""
+def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_polys=(), inset=4, mirror=0, dz=0.0):
+    """Like K.projected (the painting straight through the model along y, squeezed towards axis_x), but the source
+    may be cut to polygons (polys: [[(px, py), ...], ...], the thing's own outline where it overlaps its neighbours)
+    and mirror = -1 / +1 makes it wear only its left / right half, mirrored onto the other (a round thing whose
+    other half is hidden behind a neighbour)."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    from scipy import ndimage
     from kitlib import Mat, _image
-    key = ("mirror", round(axis_x, 4), side, squeeze, tuple(tuple(b) for b in keep) if keep else None,
-           tuple(tuple(b) for b in exclude), inset, round(dz, 4))
+    key = ("proj2", round(axis_x, 4), squeeze, tuple(tuple(b) for b in keep) if keep else None,
+           tuple(tuple(map(tuple, q)) for q in polys) if polys else None, tuple(tuple(b) for b in exclude),
+           tuple(tuple(map(tuple, q)) for q in exclude_polys), inset, mirror, round(dz, 4))
     if key in K._mats:
         return K._mats[key]
     P = K.paint
-    m = Mat(f"{K.name}_mirror{len(K._mats)}")
-    nt = m.nt
+    a = np.asarray(P.img).astype(np.float32)
+    ok = a[..., 3] > 127
+    m = Image.new("L", P.img.size, 0 if (keep or polys) else 255)
+    d = ImageDraw.Draw(m)
+    for x0, y0, x1, y1 in keep or ():
+        d.rectangle((x0, y0, x1, y1), fill=255)
+    for q in polys or ():
+        d.polygon([tuple(map(float, v)) for v in q], fill=255)
+    for x0, y0, x1, y1 in exclude:
+        d.rectangle((x0, y0, x1, y1), fill=0)
+    for q in exclude_polys:
+        d.polygon([tuple(map(float, v)) for v in q], fill=0)
+    ok &= np.asarray(m) > 127
+    if inset:
+        ok = ndimage.binary_erosion(ok, iterations=inset)
+    if ok.any():
+        _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+        a = a[iy, ix]
+    a[..., 3] = 255
+    src = Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
+    mat = Mat(f"{K.name}_proj2_{len(K._mats)}")
+    nt = mat.nt
     coord = nt.nodes.new("ShaderNodeTexCoord")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     nt.links.new(coord.outputs["Object"], sep.inputs[0])
@@ -95,20 +120,27 @@ def mirrored(K, axis_x, side=-1, squeeze=0.93, keep=None, exclude=(), inset=4, d
             else:
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
-    off = op("MULTIPLY", op("ABSOLUTE", op("SUBTRACT", sep.outputs["X"], axis_x)), squeeze * side)
-    x = op("ADD", off, axis_x)
+    off = op("SUBTRACT", sep.outputs["X"], axis_x)
+    if mirror:
+        off = op("MULTIPLY", op("ABSOLUTE", off), float(mirror))
+    x = op("ADD", op("MULTIPLY", off, squeeze), axis_x)
     u = op("ADD", op("DIVIDE", x, P.W), 0.5)
     v = op("DIVIDE", op("ADD", sep.outputs["Z"], dz), P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_img")
+    tex.image = _image(src, f"{mat.mat.name}_img")
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
-    m.set_colour(tex.outputs["Color"])
-    K._mats[key] = m
-    return m
+    mat.set_colour(tex.outputs["Color"])
+    K._mats[key] = mat
+    return mat
+
+
+def mirrored(K, axis_x, side=-1, squeeze=0.93, keep=None, exclude=(), inset=4, dz=0.0):
+    """K.projected wearing only the painting's `side` half of the thing, mirrored onto its hidden half."""
+    return proj(K, axis_x, squeeze, keep=keep, exclude=exclude, inset=inset, mirror=side, dz=dz)
 
 
 def smooth_noise(K, shape, sigma, wrap_u=True):
@@ -304,12 +336,12 @@ def stone_block(K, outline_px, y0, y1, mat, bevel=0.012, jitter=0.0, name="stone
     return ob
 
 
-def axis_lathe(K, profile, mat, start, direction, segments=20, name="part", smooth=True):
+def axis_lathe(K, profile, mat, start, direction, segments=20, name="part", smooth=True, wobble=0.0):
     """A turned part (a nut, a flange, a pipe's collar) about any axis: profile [(r, t), ...] in metres along
     `direction` from `start`."""
     from mathutils import Vector
     d = Vector(direction).normalized()
-    ob = K.lathe(profile, mat, segments=segments, centre=(0, 0, 0), name=name, smooth=smooth)
+    ob = K.lathe(profile, mat, segments=segments, centre=(0, 0, 0), name=name, smooth=smooth, wobble=wobble)
     q = Vector((0, 0, 1)).rotation_difference(d)
     from mathutils import Matrix
     ob.data.transform(Matrix.Translation(Vector(start)) @ q.to_matrix().to_4x4())
@@ -367,3 +399,132 @@ def water_pot_stand(K):
     earth(K, 130, 268, 289, 124, 0.42, (60, 278, 100, 286), grass=[(5, 250, 62, 288), (114, 254, 146, 282),
                                                                      (215, 252, 258, 286)],
           pebbles=[(52, 284, 14), (100, 287, 10), (200, 284, 12)], pebble_box=(45, 278, 60, 287))
+
+
+def interp(samples, x):
+    """Piecewise-linear lookup in samples [(x, value), ...] (sorted by x), held flat past the ends."""
+    if x <= samples[0][0]:
+        return samples[0][1]
+    for (x0, a), (x1, b) in zip(samples, samples[1:]):
+        if x <= x1:
+            return a + (b - a) * (x - x0) / max(1e-9, x1 - x0)
+    return samples[-1][1]
+
+
+def weld(ob, dist=1e-5):
+    """Merges a part's coincident vertices (a sheet closed round on itself)."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=dist)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
+def sack(K, top, seam, bottom, depth, yc, mat, ground_py=None, e_top=0.75, e_bot=0.55, nu=40, nv=36, lump=0.0,
+         seam_mat=None, seam_r_px=2.2, name="sack"):
+    """A filled jute sack lying along x: top, seam and bottom [(px, py), ...] trace its painted outline's top, the
+    stitched edge along its front, and its bottom, from one end to the other; depth [(px, half depth m)] how deep
+    it is (shrinking to its ears); yc its middle in y. Its section is a soft pillow: a dome above the seam, a
+    flatter belly below, both sides meeting at the seam, which runs round the sack as a stitched ridge."""
+    P = K.paint
+    xa, xb = top[0][0], top[-1][0]
+    noise = smooth_noise(K, (nv + 1, nu + 1), (1.5, 2.0)) if lump else None
+    if noise is not None:
+        noise[:, -1] = noise[:, 0]
+
+    def section(px, t):
+        zs = P.z(interp(seam, px))
+        up = max(0.0, P.z(interp(top, px)) - zs)
+        dn = max(0.0, zs - P.z(interp(bottom, px)))
+        D = interp(depth, px)
+        ph = 2 * math.pi * t
+        c, s_ = math.cos(ph), math.sin(ph)
+        w = -math.copysign(abs(c) ** (e_top if s_ >= 0 else e_bot), c)
+        h = math.copysign(abs(s_) ** (e_top if s_ >= 0 else e_bot), s_)
+        y = yc + w * D
+        z = zs + (h * up if h >= 0 else h * dn)
+        if ground_py is not None:
+            z = max(z, P.z(ground_py))
+        return y, z
+
+    def fn(u, v):
+        px = xa + (xb - xa) * v
+        y, z = section(px, u)
+        if noise is not None:
+            k = lump * noise[int(round(v * nv)), int(round(u * nu))] * min(1.0, 4 * v * (1 - v) * 1.5)
+            y += k
+            z += k * 0.5
+        return (P.x(px), y, z)
+    ob = weld(K.sheet(fn, nu, nv, mat, name=name))
+    # the stitched edge: along the front, round the far end, back along the back and round the near end
+    pts = []
+    n = 24
+    for i in range(n + 1):
+        px = xa + (xb - xa) * i / n
+        y, z = section(px, 0.0)
+        pts.append((P.x(px), y - P.m(0.6), z))
+    for i in range(n + 1):
+        px = xb - (xb - xa) * i / n
+        y, z = section(px, 0.5)
+        pts.append((P.x(px), y + P.m(0.6), z))
+    pts.append(pts[0])
+    K.tube(pts, P.m(seam_r_px), seam_mat or mat, segments=6, name=name + "_seam", cap=False)
+    return ob
+
+
+@model("jute_sacks", "lane", kind="prop")
+def jute_sacks(K):
+    """Three full jute (gunny) sacks with purple stripes woven round them: two lying side by side on the earth and a
+    third across them on top, its neck gathered and tied off in a frilled knot; each a soft, slumped pillow of
+    coarse weave with a stitched seam all round it and its corners poking out as ears."""
+    P = K.paint
+    tops = [(35, 38), (68, 26), (100, 14), (150, 5), (200, 7), (250, 24), (299, 54), (299, 66), (260, 88),
+            (220, 106), (200, 112), (150, 111), (100, 103), (65, 92), (35, 88)]
+    left = [(4, 168), (20, 150), (40, 126), (60, 110), (80, 104), (110, 104), (135, 110), (142, 122), (136, 168),
+            (128, 192), (134, 228), (4, 228)]
+    right = [(128, 164), (138, 120), (160, 110), (200, 97), (240, 90), (270, 94), (300, 112), (320, 150), (336, 178),
+             (330, 196), (320, 226), (134, 228), (165, 215)]
+    grass = [(8, 192, 62, 222), (112, 207, 155, 226), (282, 200, 322, 222)]
+    # the bottom right sack, in front
+    m = proj(K, P.x(235), 0.95, polys=[right], exclude=grass, inset=3)
+    sack(K, top=[(135, 168), (140, 125), (150, 117), (160, 112), (180, 105), (200, 100), (220, 96), (240, 93),
+                 (260, 94), (280, 100), (300, 112), (310, 128), (318, 150), (324, 166), (333, 180)],
+         seam=[(135, 168), (160, 178), (190, 181), (220, 181), (250, 178), (270, 172), (300, 170), (320, 169),
+               (333, 180)],
+         bottom=[(135, 168), (138, 196), (150, 214), (180, 222), (250, 224), (300, 214), (315, 197), (324, 185),
+                 (333, 180)],
+         depth=[(135, 0.08), (150, 0.2), (190, 0.25), (290, 0.25), (318, 0.18), (333, 0.07)], yc=-0.05, mat=m,
+         ground_py=224.5, lump=0.006, name="sack_right")
+    # the bottom left sack, a little behind
+    m = proj(K, P.x(75), 0.95, polys=[left], exclude=grass, inset=3)
+    sack(K, top=[(8, 180), (20, 152), (30, 138), (40, 128), (55, 115), (70, 107), (90, 104), (110, 105), (130, 110),
+                 (145, 118), (160, 140), (166, 170)],
+         seam=[(8, 180), (20, 172), (40, 166), (60, 163), (90, 164), (110, 166), (125, 172), (150, 172), (166, 170)],
+         bottom=[(8, 180), (20, 195), (30, 205), (50, 215), (80, 220), (120, 222), (150, 222), (162, 200),
+                 (166, 170)],
+         depth=[(8, 0.07), (25, 0.17), (60, 0.23), (130, 0.23), (155, 0.16), (166, 0.07)], yc=0.12, mat=m,
+         ground_py=223.5, lump=0.006, name="sack_left")
+    # the top sack across them, its left end gathered into the neck
+    m = proj(K, P.x(170), 0.96, polys=[tops], inset=3)
+    sack(K, top=[(66, 48), (70, 30), (80, 22), (100, 16), (120, 10), (150, 7), (180, 6), (200, 9), (220, 14),
+                 (240, 21), (260, 33), (270, 41), (280, 44), (290, 49), (299, 60)],
+         seam=[(66, 62), (100, 62), (150, 64), (190, 70), (205, 76), (220, 72), (250, 66), (280, 60), (299, 60)],
+         bottom=[(66, 76), (70, 88), (80, 95), (100, 100), (130, 104), (160, 107), (200, 108), (220, 104),
+                 (240, 96), (260, 86), (280, 75), (299, 60)],
+         depth=[(66, 0.045), (80, 0.13), (110, 0.2), (240, 0.2), (280, 0.15), (299, 0.06)], yc=0.07, mat=m,
+         lump=0.005, name="sack_top")
+    # the neck: gathered, bound with twine, and the frilled mouth of the sack beyond it
+    neck = proj(K, P.x(50), 0.9, keep=[(33, 36, 70, 88)], inset=2)
+    axis_lathe(K, [(0.0, 0.0), (P.m(13), 0.0), (P.m(21), P.m(3)), (P.m(24), P.m(9)), (P.m(22), P.m(15)),
+                   (P.m(16), P.m(20)), (P.m(10), P.m(24)), (P.m(12), P.m(26)), (P.m(12), P.m(30)), (P.m(9), P.m(32)),
+                   (P.m(13), P.m(35)), (P.m(15), P.m(37))], neck, (P.x(34), 0.07, P.z(62)), (1, 0, 0), segments=24,
+               name="neck", wobble=0.12)
+    twine = K.colour((50, 52, 60, 58), vary=0.1)
+    for dx in (27.5, 29.5):
+        axis_lathe(K, [(P.m(12.5), 0.0), (P.m(13.5), P.m(0.8)), (P.m(12.5), P.m(1.6))], twine,
+                   (P.x(34 + dx - 0.8), 0.07, P.z(62)), (1, 0, 0), segments=16, name="twine")
+    earth(K, 170, 224, 232, 168, 0.48, (60, 222, 100, 230), grass=grass,
+          pebbles=[(45, 220, 10), (75, 218, 12), (260, 226, 12)], pebble_box=(40, 216, 55, 223))
