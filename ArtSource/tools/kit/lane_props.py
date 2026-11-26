@@ -60,3 +60,97 @@ def kolam(K):
 
 for _i in range(1, 7):
     model(f"kolam_{_i}", "lane", kind="flat")(kolam)
+
+
+# ====================================================================== helpers for the lane's props
+def prof(P, pts):
+    """A lathe profile [(radius px, y px), ...] in metres (z from the ground)."""
+    return [(P.m(r), P.z(y)) for r, y in pts]
+
+
+def smooth_noise(K, shape, sigma, wrap_u=True):
+    """A smooth random field (rows v, columns u) of unit spread; wrap_u makes it seamless round a turned thing."""
+    from scipy import ndimage
+    n = ndimage.gaussian_filter(K.rng.normal(0, 1, shape), sigma, mode=("nearest", "wrap") if wrap_u else "nearest")
+    n /= max(1e-6, n.std())
+    return n
+
+
+def straw(K, a_px, b_px, y0, y1, mat, r_px=1.1, sag=0.0, name="straw"):
+    """A loose straw lying from a to b (px) at depths y0 -> y1, a little bowed."""
+    P = K.paint
+    pts = []
+    for i in range(5):
+        t = i / 4
+        px = a_px[0] + (b_px[0] - a_px[0]) * t
+        py = a_px[1] + (b_px[1] - a_px[1]) * t
+        pts.append((P.x(px), y0 + (y1 - y0) * t, P.z(py) + sag * 4 * t * (1 - t)))
+    return K.tube(pts, P.m(r_px), mat, segments=5, name=name, taper=0.7)
+
+
+@model("dung", "lane", kind="prop")
+def dung(K):
+    """A coiled heap of cow dung, pressed by hand into a round cake: a thick rope of dung wound in on itself, three
+    coils rising to a dimple in the middle, lumpy lobes all round its outer coil, straw stuck in it and scattered
+    round it on a patch of earth."""
+    import numpy as np
+    P = K.paint
+    cx, foot = 156, 99
+    X0, Z0 = P.x(cx), P.z(foot)
+    dungm = K.projected(axis_x=X0, squeeze=0.93, keep=[(57, 8, 256, 96)], exclude=[(40, 88, 110, 100)], inset=3)
+    R = P.m(101)                              # the outer coil's radius (across); the heap is as deep as it is wide
+    pitch = R / 3.1                           # the dung rope's width: three turns from the rim to the dimple
+    nu, nv = 96, 40
+    lump = smooth_noise(K, (nv + 1, nu + 1), (1.0, 2.0))
+    lump[:, -1] = lump[:, 0]
+    # the heap's height (above its foot) at radius r: from the silhouette (centre 0.184 m, 0.11 m out 0.16, 0.17 m
+    # out 0.136, at the rim 0.09)
+    hr = [(0.0, 0.150), (0.02, 0.17), (0.045, 0.184), (0.11, 0.162), (0.17, 0.136), (0.19, 0.115), (0.2, 0.09),
+          (0.204, 0.05), (0.2, 0.015), (0.19, 0.0)]
+
+    def height(s):
+        # s: 0 (centre) .. 1 (rim) .. over the rim and down the outer wall to the foot (1.4): (r, z)
+        k = s * (len(hr) - 1) / 1.4
+        i = min(len(hr) - 2, int(k))
+        t = k - i
+        (r0, z0), (r1, z1) = hr[i], hr[i + 1]
+        return r0 + (r1 - r0) * t, z0 + (z1 - z0) * t
+
+    def surf(u, v):
+        a = 2 * math.pi * u
+        s = 1.4 * v
+        r, z = height(s)
+        r *= R / 0.2
+        # the coil: a groove where the spiral rope's turns meet (the rope winds inwards as it goes round)
+        ph = ((r - pitch * u) / pitch) % 1.0
+        groove = math.exp(-((ph - 0.5) / 0.13) ** 2) if 0.03 < r < R * 0.97 else 0.0
+        j, i = int(round(v * nv)), int(round(u * nu))
+        lobes = 0.25 + 0.75 * min(1.0, max(0.0, (r - R * 0.6) / (R * 0.3)))
+        bump = P.m(3.0) * lump[j, i] * lobes
+        z = z - 0.024 * groove + bump * 0.6 if s < 1.0 else z
+        r = r + bump
+        return (X0 + r * math.cos(a), -r * math.sin(a), Z0 + z)
+    K.sheet(surf, nu, nv, dungm, name="heap")
+    K.lathe([(0.0, Z0 + 0.0), (R * 0.95, Z0 + 0.0)], K.colour((0.07, 0.035, 0.015), vary=0.05), segments=24,
+            centre=(X0, 0, 0), name="heap_floor")
+    # straw: stuck in the dung, and dropped round it on the ground
+    gold = K.colour((200, 40, 230, 50), vary=0.15, pct=80)
+    for a, b, y0, y1 in (((48, 99), (100, 92), -0.13, -0.16), ((160, 96), (226, 108), -0.21, -0.24),
+                         ((184, 96), (151, 118), -0.2, -0.27), ((226, 89), (270, 100), -0.12, -0.16),
+                         ((240, 49), (284, 44), -0.02, -0.03), ((215, 84), (248, 96), 0.05, 0.12),
+                         ((70, 88), (40, 96), 0.08, 0.14), ((150, 99), (120, 104), 0.21, 0.26)):
+        straw(K, a, b, y0, y1, gold, r_px=1.3)
+    # bits of straw sticking out of the coil's top and back (painted ones show on the front)
+    for i in range(10):
+        ang = K.rng.uniform(0.15, 0.85) * math.pi            # the back half
+        rr = K.rng.uniform(0.3, 0.95) * R
+        r_, z_ = height(1.4 * min(1.0, rr / R) * 0.7)
+        base = np.array([X0 + rr * math.cos(ang), rr * math.sin(ang), Z0 + z_ - 0.01])
+        d = np.array([math.cos(ang + K.rng.uniform(-1.2, 1.2)), math.sin(ang + K.rng.uniform(-1.2, 1.2)), 0.3])
+        d /= np.linalg.norm(d)
+        L = K.rng.uniform(0.04, 0.08)
+        K.tube([tuple(base), tuple(base + d * L * 0.5), tuple(base + d * L)], P.m(1.2), gold, segments=5,
+               name="straw_in", taper=0.6)
+    ground_patch(K, cx, foot + 1, 128, 0.25, (95, 104, 130, 114),
+                 pebbles=[(62, 107, 14), (100, 117, 12), (205, 116, 14), (248, 104, 12), (283, 104, 8)],
+                 grass=[(0, 58, 48, 98), (256, 66, 292, 100)])

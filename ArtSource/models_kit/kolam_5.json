@@ -1,0 +1,10 @@
+{
+ "name": "kolam_5",
+ "folder": "lane",
+ "kind": "slab",
+ "width": 0.9,
+ "height": 0.642,
+ "depth": 0.002,
+ "faces": 7,
+ "source": "blender"
+}

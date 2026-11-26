@@ -1153,7 +1153,7 @@ def parapet_gap(K):
     wall = K.tile((140, 92, 215, 148), vary=0.05, soften=0.45)
     wall2 = K.tile((25, 30, 80, 148), vary=0.05, soften=0.45)
     coping = K.colour((138, 74, 218, 85), vary=0.12, scale=6.0)
-    red = K.tile((120, 186, 260, 194), vary=0.06, soften=0.3)
+    red = strip_tile(K, (100, 186, 280, 194), vary=0.06, soften=0.3)
     d = 0.26
     # the plinth all along, the piers standing proud of the wall, the steps and the low middle
     K.box(X(22), X(327), -0.04, d + 0.04, 0.0, Z(152), red, bevel=0.01, name="plinth")

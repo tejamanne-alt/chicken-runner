@@ -57,6 +57,17 @@ def green_leaves(rgb):
     return ndimage.binary_opening(keep, iterations=1)
 
 
+def fibre_pixels(rgb):
+    """Card pixels for palm-fibre brooms and straw: orange-brown fibres and their ink, not the dull brown wall."""
+    from scipy import ndimage
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    fib = (r - b > 64) & (r > 105)
+    keep = ndimage.binary_closing(fib, iterations=1)
+    dark = (r + g + b) < 200
+    keep |= dark & ndimage.binary_dilation(keep, iterations=2)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
 def orient(ob, origin, direction, roll=0.0):
     """Turns a part built along +Z about `origin` so that +Z points along `direction` (rolled `roll` degrees)."""
     d = Vector(direction).normalized()
@@ -1930,10 +1941,11 @@ def beam(K, a, b, w, h, mat, name="beam"):
     return ob
 
 
-def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9):
-    """A plank booth: a back wall and two side walls, dark inside, with battens down the outside of the back."""
+def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9, back=None):
+    """A plank booth: a back wall and two side walls, dark inside, with battens down the outside of the back.
+    back: the back wall's inside (the painted interior, with what stands in front of it filled in)."""
     P = K.paint
-    K.box(x0, x1, y1 - 0.04, y1, 0.0, z_top, inside, name="back_wall")
+    K.box(x0, x1, y1 - 0.04, y1, 0.0, z_top, back or inside, name="back_wall")
     K.box(x0, x1, y1, y1 + 0.02, 0.0, z_top, outside, name="back_wall_out")
     for xa, xb, xo in ((x0 + 0.02, x0 + 0.04, x0), (x1 - 0.04, x1 - 0.02, x1 - 0.02)):
         K.box(xa, xb, y0, y1, 0.0, z_top, inside, name="side_wall")
@@ -1996,7 +2008,9 @@ def stall_f_1(K):
     planks = ktile(K, (140, 620, 260, 740), vary=0.06)
     batten = K.colour((150, 640, 200, 700), vary=0.08)
     zt = Z(232)
-    booth_shell(K, P.x(108), P.x(660), -0.3, 0.5, zt, dark, planks, batten)
+    back = K.projected(squeeze=1.0, keep=[(225, 245, 650, 598)],
+                       exclude=[(165, 240, 605, 385), (128, 465, 450, 598), (440, 360, 640, 598)], inset=2)
+    booth_shell(K, P.x(108), P.x(660), -0.3, 0.5, zt, dark, planks, batten, back=back)
     shelf = K.colour((260, 322, 560, 330), vary=0.06)
     for py_ in (325, 425):
         K.box(P.x(215), P.x(568), 0.25, 0.46, Z(py_ + 4), Z(py_), shelf, bevel=0.004, name="shelf")
@@ -2186,7 +2200,9 @@ def stall_f_3(K):
     K.tube([P.pt(258, 325, my), P.pt(258, 272, my)], P.m(7), iron, segments=8, name="screw")
     K.box(P.x(246), P.x(270), my - 0.02, my + 0.02, Z(280), Z(270), iron, name="screw_head")
     # the flywheel on the left, its crank, and the handle on the right
-    flywheel(K, (P.x(153), my, Z(391)), P.m(58), iron, rim_r=P.m(5), spokes=6)
+    for part in flywheel(K, (P.x(153), my, Z(391)), P.m(58), iron, rim_r=P.m(5), spokes=6):
+        c = Vector((P.x(153), my, Z(391)))
+        part.data.transform(Matrix.Translation(c) @ Matrix.Rotation(math.radians(-21), 4, "Z") @ Matrix.Translation(-c))
     K.tube([(P.x(153), my, Z(391)), (P.x(195), my, Z(391))], P.m(5), iron, segments=8, name="axle")
     K.tube([(P.x(143), my, Z(391)), (P.x(140), my - 0.03, Z(458)), (P.x(68), my - 0.06, Z(462))], P.m(5), iron,
            segments=8, name="crank")
@@ -2201,7 +2217,8 @@ def stall_f_3(K):
     ends = [(640, 395), (662, 410), (618, 415), (645, 430), (672, 432), (600, 440), (628, 448), (655, 455), (676, 455),
             (608, 465), (636, 470), (662, 478), (590, 485), (618, 490), (645, 495), (603, 508), (630, 512), (582, 505)]
     for ex, ey in ends:
-        a = (P.x(ex) - 0.68, 0.15 + K.rng.uniform(-0.04, 0.04), P.z(ey) - 0.07 + (P.z(ey) - P.z(450)) * -0.3)
+        a = (P.x(500) + K.rng.uniform(0.0, 0.05), 0.18 + K.rng.uniform(-0.04, 0.04),
+             P.z(ey) - 0.05 + (P.z(ey) - P.z(450)) * -0.3)
         b = (P.x(ex) - P.m(10), -0.38 + K.rng.uniform(-0.03, 0.03), P.z(ey))
         bamboo(K, a, b, P.m(12), cane, nodes=0.18, bend=0.004, taper=1.0, segments=8, name="cane")
     rope = K.colour((530, 410, 540, 480), vary=0.08)
@@ -2265,7 +2282,10 @@ def stall_f_4(K):
     dark = ktile(K, (305, 380, 365, 520), vary=0.05, soften=0.5)
     wall = K.colour((140, 220, 160, 280), vary=0.08)
     batten = K.colour((75, 300, 86, 400), vary=0.08)
-    booth_shell(K, P.x(95), P.x(712), -0.32, 0.8, Z(200), dark, wall, batten, battens=10)
+    back = K.projected(squeeze=1.0, keep=[(100, 200, 712, 740)],
+                       exclude=[(330, 355, 545, 625), (80, 250, 310, 560), (500, 245, 705, 560), (0, 515, 360, 750),
+                                (475, 495, 770, 750)], inset=2)
+    booth_shell(K, P.x(95), P.x(712), -0.32, 0.8, Z(200), dark, wall, batten, battens=10, back=back)
     for x0, x1 in ((70, 88), (690, 708)):
         for y in (-0.5, 0.86):
             K.box(P.x(x0), P.x(x1), y - P.m(9), y + P.m(9), 0.0, Z(190), batten, name="post")
@@ -2290,7 +2310,15 @@ def stall_f_4(K):
     for (nx, ny), (tx, ty), sp, y in brooms:
         mat = K.projected(axis_x=P.x((nx + tx) / 2), squeeze=0.95,
                           keep=[(min(nx, tx) - sp // 2, ty - 10, max(nx, tx) + sp // 2, ny + 15)], inset=2)
-        broom(K, (P.x(nx), y, P.z(ny)), (P.x(tx), y, P.z(ty)), P.m(sp), mat, handle, rope, floor(0, y))
+        broom(K, (P.x(nx), y, P.z(ny)), (P.x(tx), y, P.z(ty)), P.m(sp) * 0.75, mat, handle, rope, floor(0, y))
+        # the ragged fibres: the painted broom head as cut-out cards, facing the front and turned across it
+        box = (min(nx, tx) - sp * 0.55, ty - 18, max(nx, tx) + sp * 0.55, ny - 5)
+        K.leaves_only(box, fibre_pixels)
+        cx_, cy_ = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        K.card_from_painting(box, (P.x(cx_), y - 0.06, P.z(cy_)), name="broom_head", normal=(0, -1, 0.3))
+        for yaw in (70, -70):
+            K.card_from_painting(box, (P.x(cx_), y, P.z(cy_)), yaw=yaw, scale=0.85, name="broom_head",
+                                 normal=(0, -1, 0.3))
     # ---------------------------------------------------------------- the rolled mats
     mats = K.projected(squeeze=1.0, keep=[(10, 525, 350, 748)], inset=1)
     body = ktile(K, (235, 530, 330, 560), vary=0.06)

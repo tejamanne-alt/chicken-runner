@@ -940,12 +940,23 @@ def canal_piece_1(K):
             centre=(P.x(265), 0, 0), wobble=0.15, name="mound")
 
 
+def with_cutters(parts):
+    """The parts and the cutter objects of their K.cut()s (moved with them when a builder turns or shears them)."""
+    out, seen = list(parts), set(id(p) for p in parts)
+    for ob in parts:
+        for mod in ob.modifiers:
+            if mod.type == "BOOLEAN" and mod.object is not None and id(mod.object) not in seen:
+                seen.add(id(mod.object))
+                out.append(mod.object)
+    return out
+
+
 def shear(K, k, y0, parts=None, kx=0.0):
     """Turns a model built true (level ground, upright stacks) into what the painting shows from its look-down:
     every point is raised by k per metre it lies behind y0 (z += k (y - y0)), so level tops and the ground rise
     towards the back and face the front camera as they are painted, while every upright stays upright. kx also
     shifts them sideways by kx per metre (a painting whose depth runs off up and to one side)."""
-    for ob in parts if parts is not None else K.parts + K.cards_parts:
+    for ob in with_cutters(parts if parts is not None else K.parts + K.cards_parts):
         for v in ob.data.vertices:
             v.co.z += k * (v.co.y - y0)
             v.co.x += kx * (v.co.y - y0)
@@ -1457,7 +1468,7 @@ def granary(K):
 
 def place(parts, angle, pivot):
     """Turns parts (as built in a local frame) by angle degrees about the vertical through pivot (x, y)."""
-    for ob in parts:
+    for ob in with_cutters(parts):
         rotate(ob, angle, "Z", (pivot[0], pivot[1], 0.0))
         for v in ob.data.vertices:
             v.co.x += pivot[0]
