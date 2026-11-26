@@ -1373,6 +1373,8 @@ def bush_cards(K, crown, n, size_px, layer="volume", yaw=40.0, pitch=25.0, regio
         elif layer == "top":
             yy = crown.y0 + K.rng.uniform(-1, 1) * ext * 0.85
             pk = K.rng.choice([-1, 1]) * K.rng.uniform(55, 85)
+        elif layer == "mid":
+            yy = crown.y0 + K.rng.uniform(-0.45, 0.45) * ext
         else:
             u = K.rng.uniform(-1, 1)
             yy = crown.y0 + math.copysign(abs(u) ** 0.6, u) * ext
@@ -1400,6 +1402,7 @@ def bush(K, region, centre, half_depth, cards, card_px, keep, dome=None, core=0.
     K.leaves_only(box, mask_rule(keep, box))
     nv, nf, nb, nt = cards
     bush_cards(K, crown, nv, card_px, "volume", yaw=85, pitch=45, rough=rough)
+    bush_cards(K, crown, nv // 5, card_px, "mid", yaw=90, pitch=45, rough=rough)
     bush_cards(K, crown, nf, (card_px[0] * 1.15, card_px[1] * 1.15), "front", yaw=25, pitch=15, rough=rough * 0.7)
     bush_cards(K, crown, nb, card_px, "back", yaw=30, pitch=20, rough=rough)
     if nt:
@@ -1535,7 +1538,7 @@ def h6_2(K):
     hang = flower & box_mask(opaque.shape, [(0, 165, P.w, 470)])
     scatter_cards(K, (0, 165, P.w, 470), 90, (65, 55), (-t - 0.09, -t - 0.015), hang, name="spray")
     scatter_cards(K, (0, 165, P.w, 470), 50, (60, 50), (-t - 0.05, -t - 0.02), hang, name="spray", pitch=10)
-    scatter_cards(K, (60, 165, 620, 330), 60, (65, 55), (t + 0.015, t + 0.08), hang, name="spray_back",
+    scatter_cards(K, (40, 165, 640, 400), 120, (65, 55), (t + 0.015, t + 0.08), hang, name="spray_back",
                   normal=(0, 0.4, 1))
     # ---- grass and the mossy stone at its foot, in front and behind
     stone_ok = opaque & not_ink(rgb) & box_mask(opaque.shape, [(110, 462, 270, 528)]) & ~(leafy(rgb) & (b < 60))
@@ -1876,14 +1879,29 @@ def h7_4(K):
            (345, 252), (352, 274), (362, 298), (365, 330)]
     out = [(0.0, zg)] + [(P.m(px - 212) / math.cos(th), P.z(py)) for px, py in jag] + \
           [(P.m(366 - 212) / math.cos(th), P.z(560)), (P.m(366 - 212) / math.cos(th), zg)]
-    wall_panel(K, out, O, R, L, t, plaster, name="wall")
+    wall = wall_panel(K, out, O, R, L, t, plaster, name="wall")
+    # where it has crumbled (its broken top and its end) the brick shows
+    brick = K.tile((112, 452, 186, 528), vary=0.04, soften=0.1)
+    wall.data.materials.append(brick.mat)
+    for f in wall.data.polygons:
+        if abs(Vector(f.normal).dot(L)) < 0.5 and f.center.z > zg + 0.01:
+            f.material_index = 1
     # brick showing on its broken top and its end, plaster patches fallen at the pillar's foot round the back
     back = C + R * s + L * s
     for k, (u0, u1, z0, z1) in enumerate(((0.1, 0.7, P.z(590), P.z(470)), (0.2, 0.8, P.z(300), P.z(250)))):
         a = back - R * s * u0 + L * 0.001
         bq = back - R * s * u1 + L * 0.001
         K.quad([tuple(a + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z1))),
-                tuple(a + Vector((0, 0, z1)))], K.decal((100, 420, 190, 520)), name="brick_back")
+                tuple(a + Vector((0, 0, z1)))], patch_decal(K, (100, 420, 190, 520), brickish, (262, 320, 340, 430)),
+               name="brick_back")
+    # and on the wall's back, low down
+    wb = O + L * (t + 0.001)
+    for u0, u1, z0, z1 in ((0.45, 0.75, P.z(600), P.z(520)), (0.15, 0.3, P.z(300), P.z(255))):
+        W_ = P.m(366 - 212) / math.cos(th)
+        a, bq = wb + R * W_ * u1, wb + R * W_ * u0
+        K.quad([tuple(a + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z1))),
+                tuple(a + Vector((0, 0, z1)))], patch_decal(K, (100, 420, 190, 520), brickish, (262, 320, 340, 430)),
+               name="brick_back")
     # ---- weeds, grass and the moss on the cap
     keep = opaque & ~halo(rgb) & (((g > r) & (g > b + 8)) | ((r > 150) & (g > 140) & (b > 100) & (mx - mn < 70)
                                                               & box_mask(opaque.shape, [(0, 480, 100, 610)]))
@@ -1910,21 +1928,19 @@ def h7_5(K):
     rgb = painted_rgb(K)
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
-    poly = [(118, 272), (114, 212), (128, 152), (160, 108), (204, 52), (258, 26), (330, 8), (382, 14), (440, 40),
-            (466, 90), (492, 132), (514, 180), (526, 232), (516, 274)]
+    poly = [(120, 305), (114, 212), (128, 152), (160, 108), (204, 52), (258, 26), (330, 8), (382, 14), (440, 40),
+            (466, 90), (492, 132), (514, 180), (526, 232), (518, 305)]
     rock_ok = opaque & poly_mask(opaque.shape, [poly]) & not_ink(rgb, 50)
     fernish = (g > r + 12) & (g > b + 12) & (mx > 110)
-    stone = masked_material(K, rock_ok & ~(fernish & ~poly_mask(opaque.shape, [[(p[0], p[1] - 30) for p in poly]])),
-                            inset=2)
+    # the boulder: the painting on its front; round its sides, back and top the same mossy stone
+    stone = K.tile((262, 40, 452, 190), vary=0.08, soften=0.15)
     poly_solid(K, poly, 0.0, stone, depth=0.78, segments=28, name="boulder")
-    # the cushion of moss it sits on
-    moss_ok = opaque & box_mask(opaque.shape, [(20, 250, 630, 340)]) & ~halo(rgb) & (g >= r)
-    moss = masked_material(K, moss_ok, inset=1)
-    zg = P.z(335)
-    K.grid_plane(P.x(20), P.x(625), -0.42, 0.42, zg, 30, 14, moss,
-                 height=lambda x, y: 0.03 * math.cos(min(1.0, abs(y) / 0.42) * math.pi / 2)
-                 * math.cos(min(1.0, abs(x - P.x(320)) / (P.x(625) - P.x(320))) * math.pi / 2)
-                 + 0.012 * math.sin(x * 37) * math.sin(y * 29), name="moss")
+    # the cushion of moss it sits on: a low oval mound, its front edge the painted band of moss
+    moss = K.tile((230, 300, 450, 332), vary=0.12, soften=0.1)
+    zg = P.z(338)
+    rx = P.m(305)
+    K.lathe([(rx, zg), (rx * 0.97, zg + 0.05), (rx * 0.88, zg + 0.095), (rx * 0.5, zg + 0.11), (0.0, zg + 0.115)],
+            moss, segments=40, centre=(P.x(322), 0.0, 0.0), scale_y=0.46 / rx, wobble=0.06, name="moss")
     # the ferns: fronds on cards in clumps round the boulder, the painted clumps in front, more round the back
     fern = opaque & ~halo(rgb) & ~(rock_ok & ~fernish)
     fern = ndimage.binary_opening(fern, iterations=1)
@@ -2085,7 +2101,7 @@ def h5_5(K):
     clump(K, (0, 0, P.w, 540), 245, rfn, 0.55, n_cross=6, nx=18, nz=12, name="blades")
     # grass at the foot, either side of the canes
     gl = [(95, 770, 168, 886), (335, 770, 405, 886)]
-    gm = opaque & ~halo(rgb) & (mx > 60)
+    gm = opaque & ((mx - mn > 18) | (mx < 110))
     for bx in gl:
         K.leaves_only(bx, mask_rule(gm, bx))
     tufts(K, gl, [-0.05, -0.05])

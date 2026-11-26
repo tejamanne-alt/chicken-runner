@@ -1310,7 +1310,7 @@ def pump_house(K):
     """A small brick pump house: walls of exposed red brick on a brick plinth, a flat roof slab with a two-course
     brick coping, a plank door in a timber frame under a stone lintel with a step before it; the delivery pipe comes
     out of its left wall and pours into a brick trough. Its right side runs back as painted; a barred vent in the
-    side and the back."""
+    back."""
     P = K.paint
     K.front_min = 0.0                                       # its right side, turned a little to us, takes the painting
     D, kx = 2.3, 0.2                                        # depth; the painting sees its right side
@@ -1339,14 +1339,9 @@ def pump_house(K):
     rotate(K.parts[-1], -90, "X", (P.x(284), 0.18, 0.0))
     for v in K.parts[-1].data.vertices:
         v.co.z += P.z(209)
-    # barred vents in the right side and in the back
+    # a barred vent high in the back wall (the right side is painted plain)
     dark = K.colour((0.04, 0.03, 0.03), vary=0.0)
     iron = K.colour((0.06, 0.05, 0.05), vary=0.05)
-    K.cut(body, P.x(400), P.x(420), D * 0.45, D * 0.45 + 0.45, P.z(130), P.z(95))
-    K.box(P.x(398), P.x(400), D * 0.45, D * 0.45 + 0.45, P.z(130), P.z(95), dark, name="vent_back")
-    for i in range(1, 4):
-        y = D * 0.45 + 0.45 * i / 4
-        K.tube([(P.x(410) - 0.02, y, P.z(130)), (P.x(410) - 0.02, y, P.z(95))], 0.008, iron, segments=6, name="bar")
     K.cut(body, P.x(250), P.x(310), D - 0.1, D + 0.05, P.z(130), P.z(95))
     K.box(P.x(250), P.x(310), D - 0.1, D - 0.08, P.z(130), P.z(95), dark, name="vent_back")
     for i in range(1, 4):

@@ -955,6 +955,32 @@ def cluster(K, cx, cy, cz, rx, ry, rz, n, r, mat, core=None, name="bunch"):
         ball(K, p, rr, mat, squash=1.05, segs=7, rings=4, name=name + "_fruit")
 
 
+def fruit_bunch(K, box, y_c, depth, mat, dark=55, min_w=14, core=None, name="bunch"):
+    """A bunch of round fruit traced off the painting: every painted fruit in box becomes a fruit where it is painted,
+    on the front of the bunch, and again (mirrored through its middle) on the back, round a core that fills it."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    cx, cz = P.x((x0 + x1) / 2), P.z((y0 + y1) / 2)
+    rx, rz, ry = P.m(x1 - x0) / 2, P.m(y1 - y0) / 2, depth / 2
+    fr = [b for b in blobs(K, box, dark, 40) if b[3] >= min_w]
+    r_avg = P.m(np.median([b[3] for b in fr]) / 2) if fr else 0.05
+    prof = [((rx - r_avg) * math.sin(math.pi * i / 8), -(rz - r_avg) * math.cos(math.pi * i / 8)) for i in range(9)]
+    prof[0], prof[-1] = (0.0, prof[0][1]), (0.0, prof[-1][1])
+    K.lathe(prof, core or mat, segments=12, centre=(cx, y_c, cz), scale_y=(ry - r_avg) / max(rx - r_avg, 1e-3),
+            name=name + "_core")
+    for bx, by, L, W, ang in fr:
+        r = P.m(W / 2) * 1.05
+        x, z = P.x(bx), P.z(by)
+        u, v = (x - cx) / rx, (z - cz) / rz
+        d = (ry - r * 0.6) * math.sqrt(max(0.06, 1 - u * u - v * v))
+        ball(K, (x, y_c - d, z), r, mat, squash=1.0, segs=8, rings=5, name=name + "_fruit")
+        ball(K, (x + K.rng.uniform(-r, r) * 0.4, y_c + d, z + K.rng.uniform(-r, r) * 0.4), r, mat, squash=1.0, segs=7,
+             rings=4, name=name + "_fruit")
+        if abs(u) > 0.55:          # and round its sides
+            ball(K, (x - math.copysign(r * 0.3, u), y_c + K.rng.uniform(-0.4, 0.4) * d, z), r, mat, segs=7, rings=4,
+                 name=name + "_fruit")
+
+
 # ====================================================================== stall D1: the palmyra-fruit stall
 @model("stall_d_1", "market", kind="prop", atlas=2048)
 def stall_d_1(K):
@@ -1021,8 +1047,7 @@ def stall_d_1(K):
     for (x0, y0, x1, y1), y, sx, ztop in bunches:
         mat = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=0.95, keep=[(x0, y0 + 10, x1, y1)], inset=2)
         rx, rz = P.m(x1 - x0) / 2, P.m(y1 - y0) / 2
-        cluster(K, P.x((x0 + x1) / 2), y, P.z((y0 + y1) / 2) - 0.02, rx, rx * 0.8, rz,
-                int(40 * (rx * rz) / 0.17 + 12), P.m(26), mat)
+        fruit_bunch(K, (x0, y0 + 8, x1, y1), y, rx * 1.6, mat)
         K.tube([(P.x(sx), y, P.z(y0) - 0.15), (P.x(sx), y, P.z(y0) + 0.05), (P.x(sx), y + 0.02, ztop)],
                [P.m(13), P.m(11), P.m(5)], stalk, segments=8, name="stalk")
     # ---------------------------------------------------------------- the counter at the back, its baskets
@@ -1044,8 +1069,8 @@ def stall_d_1(K):
                weave, sy=0.85)
         h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.9, py + 3) for r, py in prof[1:]], fruit, sy=0.85,
                     name="heap")
-        pile(K, h, P.x(cx), y, P.m(hw * 0.85), P.m(hw * 0.7), 14, P.m(17), fruit, squash=0.9, elong=1.0,
-             over=P.m(5))
+        on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 12, cx + hw, rim - 4), fruit,
+                dark=60 if fruit is dark else 130, min_area=120, max_area=3000, rmax=22, flat=0.95)
     # ---------------------------------------------------------------- on the ground in front
     front = [  # (cx, rim half-width, rim py, heap profile, y)
         (120, 80, 662, [(78, 662), (72, 630), (55, 605), (30, 590), (0, 585)], -0.85),
@@ -1057,11 +1082,11 @@ def stall_d_1(K):
         basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.85), 0.0), (P.m(hw), Z(rim))], weave, sy=0.85)
         h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.9, py + 4) for r, py in prof[1:]], nungu, sy=0.85,
                     name="heap")
-        pile(K, h, P.x(cx), y, P.m(hw * 0.85), P.m(hw * 0.7), 18, P.m(20), nungu, squash=0.9, elong=1.0,
-             over=P.m(6))
+        on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 15, cx + hw, rim - 4), nungu, dark=130,
+                min_area=150, max_area=4000, rmax=26, flat=0.95)
     # a cut bunch lying on the ground at the front left
     bunch = K.projected(squeeze=1.0, keep=[(160, 545, 320, 700)], inset=2)
-    cluster(K, P.x(240), -0.6, Z(625), P.m(72), P.m(60), P.m(70), 22, P.m(24), bunch)
+    fruit_bunch(K, (165, 548, 318, 700), -0.6, 0.45, bunch)
     K.tube([P.pt(262, 600, -0.6), P.pt(300, 545, -0.6), P.pt(322, 520, -0.62)], [P.m(12), P.m(11), P.m(9)], stalk,
            segments=8, name="stalk_cut")
 
