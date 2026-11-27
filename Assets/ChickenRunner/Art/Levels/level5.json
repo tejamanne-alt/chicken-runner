@@ -575,6 +575,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 42.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 44.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -1684,6 +1720,42 @@
        "kind": "water"
       },
       {
+       "piece": "bank",
+       "x": 134.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 137.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
        "piece": "plank",
        "x": 135.75,
        "y": -0.1,
@@ -2313,6 +2385,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 176.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 178.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -2991,6 +3099,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 231.62,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 233.88,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -4226,6 +4370,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 318.62,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 320.88,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -4437,6 +4617,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 327.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 331.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -5339,6 +5555,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 388.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 390.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -6305,6 +6557,42 @@
        "kind": "water"
       },
       {
+       "piece": "bank",
+       "x": 459.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 462.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
        "piece": "plank",
        "x": 460.75,
        "y": -0.1,
@@ -6947,6 +7235,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 497.62,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 499.88,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },
@@ -7541,6 +7865,42 @@
        "flat": true,
        "turn": 0,
        "kind": "water"
+      },
+      {
+       "piece": "bank",
+       "x": 549.12,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
+      },
+      {
+       "piece": "bank",
+       "x": 553.38,
+       "y": -0.32,
+       "z": -17.75,
+       "w": 0.24,
+       "h": 0.34,
+       "d": 44.5,
+       "color": [
+        0.6,
+        0.56,
+        0.52
+       ],
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "box"
       }
      ]
     },

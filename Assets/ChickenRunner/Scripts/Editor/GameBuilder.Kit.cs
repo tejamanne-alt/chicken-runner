@@ -27,6 +27,7 @@ namespace ChickenRunner.EditorTools
             public Material ground;
             public Material water;
             public Material puddle;
+            public Material stone;
             public Obstacles obstacles;
         }
 
@@ -387,6 +388,14 @@ namespace ChickenRunner.EditorTools
                 // The water's surface hides the kid's feet while she wades.
                 Box("Water", _root, new Vector3(x + width * 0.5f, -0.06f, (GroundFront + GroundBack) * 0.5f),
                     new Vector3(width, 0.01f, GroundBack - GroundFront), _z.water, false);
+                // Its stone-lined banks, as the fields' canals are painted: a granite kerb down each side, the plank bridge's
+                // sleepers resting on them. Looks only: the lane's own ground ends at the same edges.
+                if (_z.stone != null)
+                {
+                    foreach (float edge in new[] { x + 0.12f, x + width - 0.12f })
+                        Box("Bank", _root, new Vector3(edge, -0.15f, (GroundFront + GroundBack) * 0.5f),
+                            new Vector3(0.24f, 0.34f, GroundBack - GroundFront), _z.stone, false);
+                }
                 Hop(x - 0.6f, width + 1.2f, 0.5f + width * 0.1f);
                 if (!bridge)
                 {

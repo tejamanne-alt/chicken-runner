@@ -119,8 +119,13 @@ namespace ChickenRunner.EditorTools
             try
             {
                 var prims = PrimMaterial();
-                var water = GroundMaterial("Water", ArtAssets.Texture(ArtAssets.Cutout("canal_water"), true), 2.5f, null,
-                    new Color(0.82f, 0.92f, 1f), 0.05f, 6f, 40f);
+                // The canals' water: the light painted tile (road_textures.py: clear blue-green, sky and sun on it, ripples along
+                // the flow), else the old dark one, tinted lighter. Their stone-lined banks: the granite tile.
+                var lightWater = ArtAssets.Cutout("canal_water_light");
+                var water = GroundMaterial("Water", ArtAssets.Texture(lightWater ?? ArtAssets.Cutout("canal_water"), true), 2.5f, null,
+                    lightWater != null ? Color.white : new Color(0.82f, 0.92f, 1f), 0.05f, 6f, 40f);
+                var stone = GroundMaterial("CanalStone", ArtAssets.Texture(ArtAssets.Cutout("granite"), true), 1.2f, null,
+                    new Color(1f, 0.97f, 0.92f), 0.05f, 6f, 40f);
                 // The hand pump's puddle: the same water, lighter and bluer and in a smaller tile, so it reads as the shallow
                 // puddle painted under the pump rather than a dark patch of canal.
                 var puddle = GroundMaterial("Puddle", ArtAssets.Texture(ArtAssets.Cutout("canal_water"), true), 1.2f, null,
@@ -137,7 +142,7 @@ namespace ChickenRunner.EditorTools
                     tunings[zone] = CreateTuning(zone);
                     var ground = ZoneGround(zone);
                     arts[zone] = ZoneArtBuilder.Build(zone, s_layouts[zone - 1], ground, SceneryFolder);
-                    var kit = new ZoneKit { zone = zone, tuning = tunings[zone].Values, prims = prims, ground = ground, water = water, puddle = puddle, obstacles = obstacles };
+                    var kit = new ZoneKit { zone = zone, tuning = tunings[zone].Values, prims = prims, ground = ground, water = water, puddle = puddle, stone = stone, obstacles = obstacles };
                     kits[zone] = kit;
                     chunks[zone] = new Dictionary<string, Chunk>();
                     foreach (var design in ChunkDesigns(zone))

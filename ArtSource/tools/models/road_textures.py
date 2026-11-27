@@ -11,8 +11,9 @@ Each tile is 4 m along the lane (u, seamless) by the road's 3.4 m width (v, from
 v = 0 to its back edge by the houses at v = 1; the image's bottom row is v = 0); the kid's running line, z = 0, is at
 v = 0.71. The PaintedGround shader
 lays it as a band from z -2.4 to z 1.0 with soft, slightly wavy edges into the zone's earth (GameBuilder.ZoneGround).
-Writes ArtSource/cutouts/textures/road_mud_lane.png, road_cart_track.png and road_cement.png, and the side lanes that
-run back between the houses: ArtSource/cutouts/ground/side_lane_mud.png (with alpha).
+Writes ArtSource/cutouts/textures/road_mud_lane.png, road_cart_track.png and road_cement.png, the side lanes that run
+back between the houses (ArtSource/cutouts/ground/side_lane_mud.png, with alpha), the hand pump's puddle
+(ground/puddle_water.png) and the canals' water (textures/canal_water_light.png).
 """
 import pathlib
 import sys
@@ -242,6 +243,21 @@ def puddle(rng):
     return Image.fromarray(rgba, "RGBA").filter(ImageFilter.GaussianBlur(0.8))
 
 
+def canal_water(rng):
+    """The irrigation canals' water, as the colour script paints it: clear, light blue-green, the pale sky and the gold of
+    the late sun on it, ripples drawn out along the canal's flow. Seamless both ways; the ground shader lays it in world
+    space (u along the lane, v along the canal, which runs across the lane)."""
+    n = 512
+    base = 0.5 + 0.35 * (fbm(rng, 3, 3, 3, n, n) - 0.5)
+    ripples = fbm(rng, 40, 6, 3, n, n)                       # long along v: the flow
+    t = np.clip(base + 0.35 * (ripples - 0.5), 0, 1)
+    col = ramp(t, [(0.0, (70, 118, 118)), (0.35, (104, 150, 150)), (0.65, (150, 188, 192)), (1.0, (196, 220, 222))])
+    glint = np.clip((fbm(rng, 60, 8, 2, n, n) - 0.72) * 6, 0, 1)
+    col = col * (1 - glint[..., None] * 0.6) + np.array([250, 226, 170]) * glint[..., None] * 0.6
+    col = ndimage.gaussian_filter(col, sigma=(0.8, 0.6, 0), mode="wrap")
+    return Image.fromarray(np.clip(col, 0, 255).astype(np.uint8), "RGB")
+
+
 def main():
     rng = np.random.default_rng(1980)
     TEX.mkdir(parents=True, exist_ok=True)
@@ -259,6 +275,9 @@ def main():
     pud = puddle(rng)
     pud.save(GROUND / "puddle_water.png")
     print(f"puddle_water: {pud.size}")
+    water = canal_water(rng)
+    water.save(TEX / "canal_water_light.png")
+    print(f"canal_water_light: {water.size}")
     if "--sheet" in sys.argv:
         sheet_path = pathlib.Path(sys.argv[sys.argv.index("--sheet") + 1])
         # each road twice along (to show it tiles), stacked, with the kid's line marked

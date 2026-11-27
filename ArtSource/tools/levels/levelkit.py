@@ -283,6 +283,8 @@ class Plan:
                 "flat": True, "turn": 0, "kind": "hole"},
                {"piece": "_water", "x": round(x + width / 2, 3), "y": -0.06, "z": -17.75, "w": width, "h": 0.0,
                 "d": 44.5, "mirror": False, "flat": True, "turn": 0, "kind": "water"}]
+        for edge in (x + 0.12, x + width - 0.12):              # Kit.Canal's stone-lined banks
+            vis.append(box("bank", edge, -0.32, -17.75, 0.24, 0.34, 44.5, (0.6, 0.56, 0.52)))
         if bridge:
             vis.append(box("plank", x + width / 2, -0.1, 0.0, width + 0.4, 0.1, 0.9, WOOD))
             for z in (-0.45, 0.45):
