@@ -408,7 +408,7 @@ class built_at:
         del self.K._k_real
 
 
-def place(K, objs, anchor, Z=None, Y=None, k_build=None):
+def place(K, objs, anchor, Z=None, Y=None, k_build=None, size_cap=None):
     """Sets an object built round `anchor` with the slope alone (zo / yo, the painting's scale: anchor (x, y, z) drawn
     at x, z + k * y) at its real place: the anchor at height Z (it stands there: its depth follows) or at depth Y, the
     object as much bigger as it is further back (in plan only, without a vanishing row). objs: parts and cards."""
@@ -422,7 +422,8 @@ def place(K, objs, anchor, Z=None, Y=None, k_build=None):
     if Z is None:
         Z = (zc + (zp - zc) * f if zc is not None else zp) - k * Y
     # (without a vanishing row the painting keeps heights as they are: the object grows in plan only)
-    S_ = Matrix.Scale(f, 4) if zc is not None else Matrix.Diagonal((f, f, 1.0, 1.0))
+    sz = f if size_cap is None else min(f, size_cap)     # (size_cap: held to a real size, drawn smaller then)
+    S_ = Matrix.Scale(sz, 4) if zc is not None else Matrix.Diagonal((sz, sz, 1.0, 1.0))
     M = Matrix.Translation((X, Y, Z)) @ S_ @ Matrix.Translation((-ax, -ay, -az))
     kb = k if k_build is None else k_build
     for ob in objs:
@@ -762,42 +763,56 @@ def topped(K, outline, z0, z1, side, top, name="mat", drop_bottom=True, grid=12)
 def stall_c_1(K):
     """A spice stall: a sun-faded ochre cloth tied to four bamboo posts with lashed cross-stubs, over a crowd of
     gunny sacks with their mouths rolled down on heaps of dried red chillies, turmeric, lentils, grain and dried
-    roots, wooden scoops stuck in two, brass pots in front, a plank platform raising the back row."""
+    roots, wooden scoops stuck in two, brass pots in front.
+
+    The painting looks down on the stall: its slope (K.oblique 0.20) is measured off the brass pots' round mouths
+    (the big pot's opening 67 px across, 12-14 px deep); the sacks further back are painted higher because they
+    stand further back on the level ground, not on a bed (each stands where its rolled mouth's front, about 0.48 m
+    up, is painted). It draws the back narrower too: the back posts are painted 0.70 as far apart as the front ones,
+    both pairs meeting at column 547 (K.converge (0.165, 547), in width only, as the market's other stalls). With
+    both, the four posts stand on a true rectangle and everything stands level at its real depth and size; the back
+    row's sacks, which the painter drew as large as the front ones, would come out up to 1.05 m wide: they are held
+    to a real gunny sack's size (0.9 m across its rolled mouth)."""
     P = K.paint
+    Z = P.z
+    K.oblique = 0.20
+    K.converge = (0.165, 547)
     K.front_min = 0.12
-    yf, yb = 0.3, 1.05
-    # ---------------------------------------------------------------- the four bamboo posts
-    def post_x(top, k, py):
-        return top[0] + (py - top[1]) * k
-    posts = [  # (top px, x per py, radius px, y, keep boxes)
-        ((85, 113), 0.0925, 12, yf, [(66, 105, 145, 575)]),
-        ((938, 115), -0.083, 12, yf, [(880, 105, 960, 570)]),
-        ((222, 8), 0.036, 11, yb, [(205, 0, 240, 62), (218, 238, 252, 470)]),
-        ((822, 8), -0.022, 10, yb, [(805, 0, 842, 62), (798, 225, 830, 480)]),
-    ]
+    k = K.oblique
+    # ---------------------------------------------------------------- the four bamboo posts, splayed as painted
+    yf, yb = 0.6, 3.4                                     # the front pair stands among the middle sacks, the back pair
+    #                                                       behind the back row
+
+    def post_x(top, kx, py):
+        return top[0] + (py - top[1]) * kx
+    posts = [  # (top px, x per py, radius px, y)
+        ((85, 113), 0.0925, 12, yf), ((938, 115), -0.083, 12, yf), ((222, 8), 0.036, 11, yb), ((822, 8), -0.022, 10, yb)]
     rope = K.colour((80, 176, 92, 190), vary=0.1)
     # every pole wears the painted bamboo of the left post (the front projection paints the posts' fronts): projected
     # through, the back posts carried the red chillies and the ink painted over them round to their backs
     bam = pole_tile(K, (97, 300, 106, 360))
-    for top, k, rpx, y, keep in posts:
-        bot = (P.x(post_x(top, k, 793)), y, 0.0)
-        a = (P.x(top[0]), y, P.z(top[1]))
-        bamboo(K, bot, a, P.m(rpx), bam, nodes=0.42, bend=0.008, taper=0.95, name="post")
+    for top, kx, rpx, y in posts:
+        row_g = P.py(k * y)                               # where the ground at its depth is painted
+        bot = (xk(K, post_x(top, kx, row_g), y), y, 0.0)
+        a = (xk(K, top[0], y), y, zk(K, top[1], y))
+        bamboo(K, bot, a, P.m(rpx) * fk(K, y) - 0.006, bam, nodes=0.42, bend=0.008, taper=0.95, name="post")
     # the lashed cross-stubs at the tops, the cloth's corners tied to them
     stubs = [((47, 185), (125, 185), yf, (85, 185)), ((900, 182), (972, 182), yf, (938, 182)),
              ((182, 52), (250, 52), yb, (222, 50)), ((795, 48), (857, 48), yb, (822, 48))]
+    R_ = lambda px_, py_, y: (xk(K, px_, y), y, zk(K, py_, y))    # noqa: E731
     for (ax, ay), (bx, by), y, (jx, jy) in stubs:
-        bamboo(K, P.pt(ax, ay, y), P.pt(bx, by, y), P.m(11), bam, node_at=[], taper=1.0, name="stub")
-        joint(K, P.pt(jx, jy, y), (0, 0, 1), (1, 0, 0), P.m(12), rope, rope=0.007)
-    # ---------------------------------------------------------------- the awning
-    cloth = K.projected(squeeze=1.0, keep=[(95, 40, 935, 275)], exclude=[(60, 100, 112, 205), (905, 100, 960, 205),
-                                                                          (195, 0, 245, 62), (800, 0, 850, 60)],
-                        inset=3)
+        bamboo(K, R_(ax, ay, y), R_(bx, by, y), P.m(11) * fk(K, y), bam, node_at=[], taper=1.0, name="stub")
+        joint(K, R_(jx, jy, y), (0, 0, 1), (1, 0, 0), P.m(12) * fk(K, y), rope, rope=0.007)
+    # ---------------------------------------------------------------- the awning, tied at the four stubs, the painted
+    # cloth on it through the slope and the convergence
+    cloth = slope_proj(K, keep=[(95, 40, 935, 275)], boxes=[(60, 100, 112, 205), (905, 100, 960, 205),
+                                                          (195, 0, 245, 62), (800, 0, 850, 60)], inset=3)
     under = ktile(K, (560, 95, 700, 170), vary=0.05, soften=0.35)
-    awning(K, P.pt(100, 180, yf + 0.02), P.pt(925, 176, yf + 0.02), P.pt(214, 50, yb - 0.02), P.pt(828, 50, yb - 0.02),
-           cloth, sag_front=P.m(94), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=40, nv=18,
-           hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2), front_pow=0.63)
-    # ---------------------------------------------------------------- the ground, the platform for the back row
+    awning(K, R_(100, 180, yf + 0.02), R_(925, 176, yf + 0.02), R_(214, 50, yb - 0.02), R_(828, 50, yb - 0.02),
+           cloth, sag_front=P.m(94) * fk(K, yf), sag_back=P.m(8) * fk(K, yb), belly=0.06, sag_side=0.03, under=under,
+           nu=40, nv=18, hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2), front_pow=0.63)
+    # ---------------------------------------------------------------- the ground: a level rectangle of the painted
+    # earth under the front half (the painting shows it only at the right, past the last sack)
     burlap = ktile(K, (50, 670, 200, 770), vary=0.06, soften=0.3)
     burlap2 = ktile(K, (830, 680, 990, 770), vary=0.06, soften=0.3)
     chilli = ktile(K, (110, 585, 215, 635), vary=0.05)
@@ -811,75 +826,107 @@ def stall_c_1(K):
     roots = ktile(K, (500, 595, 620, 645), vary=0.04)
     orange = ktile(K, (320, 560, 420, 600), vary=0.05)
     # the earth: a strip of the painted ground left of its scuff mark, mirrored square (a thin crop repeated as a grid
-    # of dark marks); the white cut-out line along the ground's far edge is kept off the bed's bank
+    # of dark marks); the white cut-out line along the ground's far edge is kept off the front projection
     earth = pole_tile(K, (1100, 706, 1120, 752), soften=0.45, vary=0.08)
     K.front_exclude.append((998, 694, 1124, 708))
-    earth_patch(K, P.x(560), -0.15, 1.85, 1.3, earth, h=0.02)
-    plat = P.z(700)
-    # the back half stands on a raised bed of packed earth (its bank shows at the right, past the last sack)
-    mud_bed(K, P.x(150), P.x(1124), lambda x: -0.12 - 0.18 * _smooth(P.x(440), P.x(520), x), 1.2, plat, earth)
+    hg = 0.012
+    gtop = slope_proj(K, keep=[(1000, 704, 1124, 793)], inset=3)
+    y_g1 = yk(K, 700, hg)
+    topped(K, [(xk(K, 6, 0.0), 0.0), (xk(K, 1118, 0.0), 0.0), (xk(K, 1118, 0.0), y_g1), (xk(K, 6, 0.0), y_g1)], 0.0,
+           hg, earth, gtop, name="ground")
     plank = K.colour((0.22, 0.12, 0.05), vary=0.12, scale=8)
-    # behind the back row: a pile of empty sacks folded flat, and a sack lying on its side
-    for i in range(4):
-        K.block(P.x(560) + K.rng.uniform(-0.04, 0.04), 1.02, plat + 0.03 + i * 0.05, 0.62, 0.36, 0.05, burlap,
-                rot=(0, 0, K.rng.uniform(-8, 8)), bevel=0.02, name="folded_sack")
-    # ---------------------------------------------------------------- the goods
-    Z = P.z
-    sacks = [  # (cx px, half-width px, rim front py, rim back py, peak py, y, z0, cloth, goods)
-        # the back row, on the earth bed
-        (290, 98, 490, 432, 422, 0.62, plat, burlap, chilli),
-        (480, 86, 545, 500, 478, 0.5, plat, burlap2, turmeric),
-        (640, 86, 525, 495, 490, 0.64, plat, burlap, grain),
-        (778, 88, 500, 458, 452, 0.68, plat, burlap2, grain),
-        # the middle row, on the bed's front
-        (235, 76, 578, 530, 528, 0.02, plat, burlap, lentil),
-        (828, 78, 590, 545, 540, 0.0, plat, burlap2, brownl),
-        # on the ground in front of the bed
-        (380, 90, 620, 556, 545, -0.42, 0.0, burlap2, orange),
-        (730, 80, 650, 600, 588, -0.55, 0.0, burlap, roots),
-        (137, 107, 650, 595, 565, -0.6, 0.0, burlap, chilli),
-        (555, 86, 655, 590, 572, -0.62, 0.0, burlap2, roots),
-        (905, 95, 655, 605, 595, -0.62, 0.0, burlap, white),
-        # the front row
-        (317, 88, 690, 645, 640, -0.98, 0.0, burlap2, grain9),
-        (772, 93, 735, 690, 680, -1.0, 0.0, burlap, yellow),
-    ]
-    for cx, hw, f, b, pk, y, z0, cl, gd in sacks:
-        sack(K, P.x(cx), y, P.m(hw), Z(f), Z(b), Z(pk), cl, gd, z0=z0, sy=0.82, wobble=0.035)
-    # a crate behind the turmeric with a brass pot on it, and a small brass pot on a stool by the roots
-    crate(K, P.x(370), P.x(450), 0.78, 1.0, plat, Z(515), plank, slats=3)
-    brass = K.projected(axis_x=P.x(410), squeeze=0.92, keep=[(380, 455, 442, 512)], inset=2)
-    turned(K, 410, [(22, 515), (28, 505), (30, 485), (27, 468), (24, 462), (28, 457), (26, 454)], 0.89, brass)
-    K.box(P.x(705), P.x(748), 0.28, 0.44, plat, Z(595), plank, bevel=0.005, name="stool")
-    brass2 = K.projected(axis_x=P.x(725), squeeze=0.92, keep=[(700, 528, 752, 595)], inset=2)
-    turned(K, 725, [(20, 595), (24, 585), (25, 560), (22, 542), (25, 535), (24, 529)], 0.36, brass2)
-    # brass pots in front
-    brass3 = K.projected(axis_x=P.x(632), squeeze=0.92, keep=[(578, 683, 686, 793)], inset=2)
-    turned(K, 632, [(42, 793), (49, 775), (50, 740), (45, 713), (40, 703), (47, 696), (49, 688), (45, 685)], -1.28,
-           brass3, segs=32)
-    brass4 = K.projected(axis_x=P.x(445), squeeze=0.92, keep=[(413, 706, 478, 785)], inset=2)
-    turned(K, 445, [(22, 783), (28, 772), (30, 750), (25, 728), (23, 720), (29, 713), (30, 709), (27, 707)], -1.3, brass4)
-    brass5 = K.projected(axis_x=P.x(537), squeeze=0.92, keep=[(508, 730, 565, 788)], inset=2)
-    turned(K, 537, [(20, 788), (25, 775), (26, 758), (22, 745), (25, 739), (24, 735)], -1.36, brass5)
-    # the scoops
+    # ---------------------------------------------------------------- the sacks, each standing on the ground where its
+    # rolled mouth's front is painted (built in the painting's scale round its foot, set at its real place and size)
     scoopw = K.colour((640, 470, 660, 500), vary=0.08)
-    scoop(K, P.pt(338, 678, -0.98), P.pt(408, 582, -1.08), P.m(22), scoopw)
-    scoop(K, P.pt(630, 515, 0.6), P.pt(678, 433, 0.52), P.m(24), scoopw)
-    K.tube([P.pt(528, 750, -1.36), P.pt(518, 718, -1.38)], P.m(5), scoopw, segments=6, name="spoon")
-    # a loose heap of chillies spilling at the front-left, modelled pods on the two chilli heaps
     pod = K.colour((150, 600, 165, 615), vary=0.15, scale=30)
-    for cx, hw, f, b, pk, y, n in ((137, 107, 650, 595, 565, -0.6, 26), (290, 98, 490, 432, 422, 0.62, 22)):
-        tilt = (Z(b) - Z(f)) / 2
-        for i in range(n):
-            ang = K.rng.uniform(0, 2 * math.pi)
-            rad = math.sqrt(K.rng.uniform(0, 1)) * P.m(hw) * 0.62
-            px_, py_ = P.x(cx) + rad * math.cos(ang), y + rad * math.sin(ang) * 0.8
-            top = P.z(pk) - (rad / (P.m(hw) * 0.75)) ** 1.6 * 0.09 + tilt * (py_ - y) / (P.m(hw) * 0.82) * 0.7
-            d = Vector((math.cos(ang + 1.3), math.sin(ang + 1.3), K.rng.uniform(-0.3, 0.3))).normalized()
-            L = K.rng.uniform(0.06, 0.09)
-            c = Vector((px_, py_, top + 0.005))
-            K.tube([tuple(c - d * L / 2), tuple(c + Vector((0, 0, 0.008))), tuple(c + d * L / 2)], [0.009, 0.008, 0.002],
-                   pod, segments=5, name="chilli")
+    sacks = [  # (cx px, half-width px, rim front py, rim back py, peak py, rim front height m, cloth, goods)
+        (290, 98, 490, 432, 422, 0.48, burlap, chilli),      # the back row
+        (778, 88, 500, 458, 452, 0.48, burlap2, grain),
+        (640, 86, 525, 495, 490, 0.48, burlap, grain),
+        (480, 86, 545, 500, 478, 0.62, burlap2, turmeric),   # the tall turmeric sack
+        (235, 76, 578, 530, 528, 0.48, burlap, lentil),      # the middle row
+        (828, 78, 590, 545, 540, 0.48, burlap2, brownl),
+        (380, 90, 620, 556, 545, 0.55, burlap2, orange),     # in front of them
+        (730, 80, 650, 600, 588, 0.48, burlap, roots),
+        (137, 107, 650, 595, 565, 0.48, burlap, chilli),
+        (555, 86, 655, 590, 572, 0.48, burlap2, roots),
+        (905, 95, 655, 605, 595, 0.48, burlap, white),
+        (317, 88, 690, 645, 640, None, burlap2, grain9),     # the front row, standing on the frame's foot
+        (772, 93, 735, 690, 680, None, burlap, yellow),
+    ]
+    for cx, hw, f, b, pk, h_s, cl, gd in sacks:
+        n0 = len(K.parts)
+        foot_row = P.py(k * max(0.0, (Z(f) - h_s) / k)) if h_s is not None else 790
+        with built_at(K, foot_row, 0.0) as kb:
+            y = yo(K, foot_row, 0.0)
+            sack(K, P.x(cx), y, P.m(hw), zo(K, f, y), zo(K, b, y), zo(K, pk, y), cl, gd, z0=0.0, sy=0.82,
+                 wobble=0.035)
+            if cx == 317:
+                scoop(K, (P.x(338), y - 0.04, zo(K, 678, y - 0.04)), (P.x(408), y - 0.1, zo(K, 582, y - 0.1)),
+                      P.m(22), scoopw)
+            if cx == 640:
+                scoop(K, (P.x(630), y, zo(K, 515, y)), (P.x(678), y - 0.08, zo(K, 433, y - 0.08)), P.m(24), scoopw)
+            if cx in (137, 290):                          # modelled pods on the two chilli heaps
+                tilt = (zo(K, b, y) - zo(K, f, y)) / 2
+                for i in range(26 if cx == 137 else 22):
+                    ang = K.rng.uniform(0, 2 * math.pi)
+                    rad = math.sqrt(K.rng.uniform(0, 1)) * P.m(hw) * 0.62
+                    px_, py_ = P.x(cx) + rad * math.cos(ang), y + rad * math.sin(ang) * 0.8
+                    top = zo(K, pk, y) - (rad / (P.m(hw) * 0.75)) ** 1.6 * 0.09 + tilt * (py_ - y) / (P.m(hw) * 0.82) * 0.7
+                    d = Vector((math.cos(ang + 1.3), math.sin(ang + 1.3), K.rng.uniform(-0.3, 0.3))).normalized()
+                    L = K.rng.uniform(0.06, 0.09)
+                    c = Vector((px_, py_, top + 0.005))
+                    K.tube([tuple(c - d * L / 2), tuple(c + Vector((0, 0, 0.008))), tuple(c + d * L / 2)],
+                           [0.009, 0.008, 0.002], pod, segments=5, name="chilli")
+        # (a gunny sack is at most 0.9 m across its rolled mouth: the back row, drawn as large as the front, is held
+        # to that)
+        size_cap = 0.45 / (P.m(hw) * 1.0)
+        place(K, K.parts[n0:], (P.x(cx), y, 0.0), Z=0.0, k_build=kb, size_cap=size_cap)
+    # ---------------------------------------------------------------- behind the back row: empty sacks folded flat
+    n0 = len(K.parts)
+    for i in range(4):
+        K.block(xk(K, 560, 3.2) + K.rng.uniform(-0.04, 0.04), 3.2, 0.03 + i * 0.05, 0.62, 0.36, 0.05, burlap,
+                rot=(0, 0, K.rng.uniform(-8, 8)), bevel=0.02, name="folded_sack")
+    # ---------------------------------------------------------------- a crate behind the turmeric with a brass pot on
+    # it, and a small brass pot on a stool by the roots (each where its top is painted at a real height)
+    for (x0_, x1_, top_row, h_), (pcx, prof, keep) in (
+            ((370, 450, 515, 0.45), (410, [(22, 515), (28, 505), (30, 485), (27, 468), (24, 462), (28, 457), (26, 454)],
+                                     [(380, 455, 442, 512)])),
+            ((705, 748, 595, 0.35), (725, [(20, 595), (24, 585), (25, 560), (22, 542), (25, 535), (24, 529)],
+                                     [(700, 528, 752, 595)]))):
+        n0 = len(K.parts)
+        foot_row = P.py(Z(top_row) - h_)
+        with built_at(K, foot_row, 0.0) as kb:
+            y = yo(K, foot_row, 0.0)
+            Ya = anchor_y(K, ((P.x(x0_) + P.x(x1_)) / 2, y, 0.0), 0.0, kb)
+            if x0_ == 370:
+                crate(K, P.x(x0_), P.x(x1_), y - 0.11, y + 0.11, 0.0, zo(K, top_row, y), plank, slats=3)
+            else:
+                K.box(P.x(x0_), P.x(x1_), y - 0.08, y + 0.08, 0.0, zo(K, top_row, y), plank, bevel=0.005, name="stool")
+            brass = proj_at(K, Ya, axis_px=pcx, squeeze=0.92, keep=keep, inset=2)
+            K.lathe([(P.m(r), zo(K, py, y)) for r, py in prof], brass, segments=28, centre=(P.x(pcx), y, 0.0),
+                    name="pot")
+        place(K, K.parts[n0:], ((P.x(x0_) + P.x(x1_)) / 2, y, 0.0), Z=0.0, k_build=kb)
+    # ---------------------------------------------------------------- brass pots in front, a spoon in the small one
+    for pcx, prof, keep in ((632, [(42, 793), (49, 775), (50, 740), (45, 713), (40, 703), (47, 696), (49, 688), (45, 685)],
+                             [(578, 683, 686, 793)]),
+                            (445, [(22, 783), (28, 772), (30, 750), (25, 728), (23, 720), (29, 713), (30, 709), (27, 707)],
+                             [(413, 706, 478, 785)]),
+                            (537, [(20, 788), (25, 775), (26, 758), (22, 745), (25, 739), (24, 735)],
+                             [(508, 730, 565, 788)])):
+        n0 = len(K.parts)
+        foot_row = prof[0][1]
+        with built_at(K, foot_row, 0.0) as kb:
+            r0 = P.m(prof[0][0])
+            y = yo(K, foot_row, 0.0) + r0
+            Ya = anchor_y(K, (P.x(pcx), y, 0.0), 0.0, kb)
+            brass = proj_at(K, Ya, axis_px=pcx, squeeze=0.92, keep=keep, inset=2)
+            K.lathe([(P.m(prof[0][0]), 0.0)] + [(P.m(r), zo(K, py, y)) for r, py in prof[1:]], brass, segments=32,
+                    centre=(P.x(pcx), y, 0.0), name="pot")
+            if pcx == 537:
+                K.tube([(P.x(528), y, zo(K, 750, y)), (P.x(518), y + 0.02, zo(K, 718, y + 0.02))], P.m(5), scoopw,
+                       segments=6, name="spoon")
+        place(K, K.parts[n0:], (P.x(pcx), y, 0.0), Z=0.0, k_build=kb)
 
 
 # ====================================================================== more helpers
@@ -1098,14 +1145,15 @@ def stall_c_2(K):
               (512, 560), (510, 593), (537, 598), (558, 612), (558, 640), (530, 656), (505, 664), (498, 690),
               (470, 696), (420, 694), (360, 690), (330, 680), (302, 668), (282, 648), (276, 625), (284, 603),
               (315, 590), (318, 560), (320, 510), (330, 478), (352, 456), (368, 445), (366, 410), (372, 378)]
-    # ---------------------------------------------------------------- the ground: the red earth the painting shows
-    # (its band runs to the frame's edges at every depth, so it widens to the back), its top the painted band
+    # ---------------------------------------------------------------- the ground: a rectangle of red earth as wide as
+    # the frame, as deep as the painted band at the frame's middle, its top the painted band (the band runs to the
+    # frame's edges at every depth: its two far ends, drawn wider than a square patch's, are left over)
     earth = ktile(K, (762, 760, 868, 832), vary=0.08, soften=0.3)
     gtop = slope_proj(K, boxes=[(28, 728, 258, 836), (212, 770, 418, 836), (418, 750, 672, 836), (638, 640, 748, 836),
                                 (258, 712, 296, 790), (730, 700, 766, 822)], fill_tile=(762, 760, 868, 832), inset=4)
     y_g0, y_g1 = 0.0, yk(K, 749, hg)
-    topped(K, [(xk(K, 6, y_g0), y_g0), (xk(K, 871, y_g0), y_g0), (xk(K, 871, y_g1), y_g1), (xk(K, 6, y_g1), y_g1)],
-           0.0, hg, earth, gtop, name="ground")
+    gx0, gx1 = xk(K, 6, y_g0), xk(K, 871, y_g0)
+    topped(K, [(gx0, y_g0), (gx1, y_g0), (gx1, y_g1), (gx0, y_g1)], 0.0, hg, earth, gtop, name="ground")
     # ---------------------------------------------------------------- the bench: square and level, its front legs at
     # their painted feet, the painted top on it
     wood = pole_tile(K, (430, 702, 545, 716), soften=0.2, vary=0.08)      # squared: no stretch on the top
@@ -1452,8 +1500,7 @@ def stall_c_3(K):
     width only. With both, the cot is square (3.18 by 0.86 m) and level, its rails 0.5 m high, two more turned feet
     under its back rail where they are painted; the posts stand at their painted feet and the roof, square and
     level, covers them; the stacks of folded cloth stand in two rows on its bed, each as high as its painted top; the
-    earth is the ground the painting shows (its band, py 558-642, runs to the frame's edges, so it widens to the
-    back)."""
+    earth is a level rectangle under it, as deep as its painted band (py 558-642)."""
     P = K.paint
     Z = P.z
     K.oblique = 0.30
@@ -1465,11 +1512,12 @@ def stall_c_3(K):
     earth = ktile(K, (310, 566, 430, 598), vary=0.08, soften=0.3)
     gtop = slope_proj(K, boxes=[(46, 455, 110, 649), (920, 455, 982, 649), (186, 522, 228, 582), (768, 522, 814, 582),
                                 (124, 520, 162, 600), (820, 520, 856, 596)], fill_tile=(310, 566, 430, 598), inset=4)
+    # a rectangle no wider than the frame, as deep as the band at the frame's middle (the band runs to the frame's
+    # left edge at every depth, and its brushed right end runs back to the left: their far ends, drawn wider than a
+    # square patch's, are left over)
     yg0, yg1 = 0.0, yk(K, 558, hg)
-    right = [(918, 642), (911, 628), (909, 610), (880, 590), (852, 570), (838, 558)]   # its painted right end
-    topped(K, [(xk(K, 6, yg0), yg0)] + [(xk(K, x_, max(yg0, yk(K, py_, hg))), max(yg0, yk(K, py_, hg)))
-                                        for x_, py_ in right] + [(xk(K, 6, yg1), yg1)], 0.0, hg, earth, gtop,
-           name="ground")
+    gx0, gx1 = xk(K, 6, yg0), xk(K, 918, yg0)
+    topped(K, [(gx0, yg0), (gx1, yg0), (gx1, yg1), (gx0, yg1)], 0.0, hg, earth, gtop, name="ground")
     # ---------------------------------------------------------------- the string cot, square and level
     y_cf = yk(K, 643, hg)                                 # its front legs' feet
     y_cb = yk(K, 571.5, hg)                               # its back legs' (the painted block feet)
