@@ -424,7 +424,11 @@ namespace ChickenRunner.EditorTools
                 var stack = Box("Haystack", _root, new Vector3(x + width * 0.5f, top * 0.5f, 0f), new Vector3(solid, top, 1.4f), _z.prims, true);
                 stack.GetComponent<Renderer>().enabled = card == null;
                 if (card == null) stack.AddComponent<GreyboxColor>().SetColor(Palette.Hay);
-                Hop(x - 0.8f, width + 1.6f, top + 0.4f);
+                // His hop clears the stack's top by 0.25 m even at its edges (a hop's height is a sine over its length);
+                // top + 0.4 at the middle left him 0.17 m inside a big stack's shoulders.
+                float length = width + 1.6f;
+                float edge = Mathf.Sin(Mathf.PI * (0.8f + width * 0.1f) / length);
+                Hop(x - 0.8f, length, (top + 0.25f) / Mathf.Max(0.3f, edge));
                 return x + width;
             }
 

@@ -7,7 +7,7 @@ namespace ChickenRunner.EditorTools
 {
     /// <summary>
     /// Levels laid out piece by piece from a level plan (Art/Levels/levelN.json, written and audited by
-    /// ArtSource/tools/levels/levelN.py with levelkit.py) instead of shuffled from a zone's chunk pool: levels 1, 4 and 7. Each section of the plan becomes
+    /// ArtSource/tools/levels/levelN.py with levelkit.py) instead of shuffled from a zone's chunk pool: all nine levels. Each section of the plan becomes
     /// one chunk, laid in order; the first is the level's own opening. Every item is placed with the same Kit calls as
     /// the hand-written chunks, so a plan's pots, dung and hops behave exactly like theirs; the plan only says where.
     /// </summary>
@@ -63,6 +63,9 @@ namespace ChickenRunner.EditorTools
             public bool ladder;
             public bool big;
             public float end;
+            // hens and temple steps
+            public int count;
+            public float landing;
         }
 #pragma warning restore 0649
 
@@ -133,6 +136,33 @@ namespace ChickenRunner.EditorTools
                         if (Mathf.Abs(end - (item.end - section.x)) > 0.05f)
                             Debug.LogError($"Level plan section {section.name}: the roof row at {item.x} ends at {end + section.x:0.00}, "
                                 + $"not {item.end:0.00} as planned. Re-run the level's plan script (the house pictures changed?).");
+                        break;
+                    }
+                    case "cot": kit.Cot(x); break;
+                    case "mangotree": kit.MangoTree(x); break;
+                    case "hens": kit.Hens(x, Mathf.Max(1, item.count)); break;
+                    case "buffalo":
+                    {
+                        float end = kit.Buffalo(x);
+                        if (Mathf.Abs(end - (x + item.width)) > 0.05f)
+                            Debug.LogError($"Level plan section {section.name}: the buffalo at {item.x} is {end - x:0.00} m long, "
+                                + $"not {item.width:0.00} as planned. Re-run the level's plan script.");
+                        break;
+                    }
+                    case "stall":
+                    {
+                        float end = kit.Stall(x, item.piece);
+                        if (Mathf.Abs(end - (x + item.width)) > 0.05f)
+                            Debug.LogError($"Level plan section {section.name}: the stall {item.piece} at {item.x} is {end - x:0.00} m "
+                                + $"wide, not {item.width:0.00} as planned. Re-run the level's plan script.");
+                        break;
+                    }
+                    case "steps":
+                    {
+                        float end = kit.Steps(x, Mathf.Max(1, item.count), item.landing);
+                        if (Mathf.Abs(end - (item.end - section.x)) > 0.05f)
+                            Debug.LogError($"Level plan section {section.name}: the steps at {item.x} end at {end + section.x:0.00}, "
+                                + $"not {item.end:0.00} as planned.");
                         break;
                     }
                     case "haystack":

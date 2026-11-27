@@ -45,14 +45,32 @@ namespace ChickenRunner.EditorTools
             Build();
         }
 
-        [MenuItem("Chicken Runner/Play Level 1: Pots and the sleeping dog", priority = 20)]
+        [MenuItem("Chicken Runner/Play Level/1. Pots and the sleeping dog", priority = 20)]
         static void PlayLevel1() => PlayLevel(0);
 
-        [MenuItem("Chicken Runner/Play Level 4: The canal", priority = 21)]
+        [MenuItem("Chicken Runner/Play Level/2. Washing day", priority = 21)]
+        static void PlayLevel2() => PlayLevel(1);
+
+        [MenuItem("Chicken Runner/Play Level/3. Up on the roofs", priority = 22)]
+        static void PlayLevel3() => PlayLevel(2);
+
+        [MenuItem("Chicken Runner/Play Level/4. The canal", priority = 23)]
         static void PlayLevel4() => PlayLevel(3);
 
-        [MenuItem("Chicken Runner/Play Level 7: Rooftop run", priority = 22)]
+        [MenuItem("Chicken Runner/Play Level/5. Mango trees", priority = 24)]
+        static void PlayLevel5() => PlayLevel(4);
+
+        [MenuItem("Chicken Runner/Play Level/6. Buffalo and haystacks", priority = 25)]
+        static void PlayLevel6() => PlayLevel(5);
+
+        [MenuItem("Chicken Runner/Play Level/7. Rooftop run", priority = 26)]
         static void PlayLevel7() => PlayLevel(6);
+
+        [MenuItem("Chicken Runner/Play Level/8. Market day", priority = 27)]
+        static void PlayLevel8() => PlayLevel(7);
+
+        [MenuItem("Chicken Runner/Play Level/9. The temple steps", priority = 28)]
+        static void PlayLevel9() => PlayLevel(8);
 
         /// <summary>Opens the game scene and plays straight into a level, skipping the title, story and map.</summary>
         static void PlayLevel(int index)
@@ -145,9 +163,9 @@ namespace ChickenRunner.EditorTools
                 EditorSceneManager.SaveScene(scene, ScenePath);
                 AddSceneToBuildSettings(ScenePath);
                 AssetDatabase.SaveAssets();
-                Debug.Log("Chicken Runner built: " + ScenePath + ". Press Play: title, story, then level 1; levels 1, 4 and 7 "
-                    + "are open on the map from the start. Chicken Runner > Play Level jumps straight into one; tick "
-                    + "'Unlock All' on the Game object's GameSession to try any level.");
+                Debug.Log("Chicken Runner built: " + ScenePath + ". Press Play: title, story, then level 1; each zone's first "
+                    + "level (1, 4 and 7) is open on the map from the start. Chicken Runner > Play Level jumps straight into "
+                    + "any level; tick 'Unlock All' on the Game object's GameSession to open them all on the map.");
             }
             finally
             {
@@ -400,12 +418,10 @@ namespace ChickenRunner.EditorTools
             session.flow = flow;
             session.backdrop = backdrop;
             session.levels = levels;
-            // The levels laid from audited plans are open from the start, so each zone can be played straight away.
+            // Each zone's first level is open from the start, so every zone can be played straight away; the others keep
+            // the doc's star gates.
             var open = new List<int>();
-            for (int i = 0; i < s_levels.Length; i++)
-            {
-                if (!string.IsNullOrEmpty(s_levels[i].plan)) open.Add(i);
-            }
+            for (int zone = 1; zone <= StoryMap.ZoneCount; zone++) open.Add(StoryMap.FirstLevelOf(zone));
             session.openFromStart = open.ToArray();
             session.storyPages = 5;
 

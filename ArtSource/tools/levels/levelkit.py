@@ -115,6 +115,12 @@ class Rules:
     def fall_time(self, height):
         return math.sqrt(2 * height / self.G)
 
+    def bounce_length(self, height, from_y=0.0):
+        """How far she travels from a bounce `height` m high (JumpMath.BounceVelocity), launched `from_y` up, until she is
+        back on the lane."""
+        v = math.sqrt(2 * self.G * height)
+        return self.RUN * (v / self.G + math.sqrt(2 * (from_y + height) / self.G))
+
 
 # ------------------------------------------------------------------ the pieces, placed as GameBuilder.Kit places them
 def aspect(piece):
@@ -134,6 +140,21 @@ def card_aspect(piece):
         w, h = Image.open(p).size
         return w / h
     return 1.0
+
+
+def real_size(piece, fallback_height=1.0):
+    """A cut-out's real (width, height) as ArtAssets.SizeOf takes it: pixels per metre, else its height or width in
+    metres from the manifest, else `fallback_height`, keeping the picture's proportions."""
+    e = MANIFEST.get(piece)
+    a = card_aspect(piece)
+    if isinstance(e, dict):
+        if e.get("px_per_m") and e.get("px"):
+            return e["px"][0] / e["px_per_m"], e["px"][1] / e["px_per_m"]
+        if e.get("height_m"):
+            return e["height_m"] * a, e["height_m"]
+        if e.get("width_m"):
+            return e["width_m"], e["width_m"] / a
+    return fallback_height * a, fallback_height
 
 
 def real_width(piece):
@@ -306,10 +327,76 @@ class Plan:
         top = 1.85 if big else 1.05
         piece = "haystack" if big else "haystack_small"
         w = height * card_aspect(piece)
-        hop = (round(x - 0.8, 3), round(w + 1.6, 3), round(top + 0.4, 3))
+        length = w + 1.6
+        edge = math.sin(math.pi * (0.8 + w * 0.1) / length)
+        hop = (round(x - 0.8, 3), round(length, 3), round((top + 0.25) / max(0.3, edge), 3))   # as Kit.Haystack
         self.add(s, "haystack", x, [visual(piece, x + w / 2, 0.0, 0.15, h=height)], big=big, top=top,
                  span=round(w * 0.8, 4), width=round(w, 4), implicitHop=list(hop))
         return x + w
+
+    def cot(self, s, x, onto_roof=False):
+        """Kit.Cot: a rope cot 1.9 m long from x, a trampoline: run into it or land on it for a 2.4 m bounce. The
+        rooster bounces off it too, and mangoes trace the bounce; with `onto_roof` (a roof row starting about 1 m after
+        it), they rise onto the roof instead of coming back down into its wall."""
+        self.add(s, "cot", x, [visual("rope_cot", x + 0.95, 0.0, 0.05, w=1.9)], span=1.9)
+        self.hop(s, x, 4.8, 2.2)
+        if onto_roof:
+            for dx, y in ((0.5, 1.5), (1.3, 2.5), (2.1, 3.1)):
+                self.mango(s, x + dx, y)
+        else:
+            self.arc(s, x - 0.1, 4.8, 2.4, 6)
+
+    def mango_tree(self, s, x):
+        """Kit.MangoTree: a mango tree behind the lane, its branch over it from x+1 to x+5, 2.3 m up: jump at it to
+        pull up onto it, or run on underneath. The Kit lays the mangoes along the branch and the rooster's flutter up
+        onto it; this plan adds his flutter down off its end."""
+        vis = [visual("tree_mango_1", x + 3.0, 0.0, 0.9, h=5.2), box("branch", x + 3.0, 2.14, 0.0, 4.0, 0.16, 0.8, WOOD)]
+        vis += [visual("Mango", x + 1.4 + i * 0.6, 2.85, kind="pickup", h=0.28) for i in range(6)]
+        self.add(s, "mangotree", x, vis, branch=[round(x + 1.0, 3), round(x + 5.0, 3), 2.3],
+                 implicitHop=[round(x + 0.2, 3), 1.0, 0.5])
+        self.hop_down(s, x + 5.0)
+
+    def buffalo(self, s, x):
+        """Kit.Buffalo: a buffalo wallowing across the lane from x, its back 1.1 m up: jump onto it for a 2.6 m bounce,
+        or climb over it slowly. Returns where it ends."""
+        w = 1.5 * card_aspect("buffalo_mud")
+        vis = [visual("buffalo_mud", x + w / 2, 0.0, 0.15, h=1.5),
+               visual("cracked_mud", x + w / 2, 0.0, 0.0, w=w + 1.2, flat=True, kind="decal")]
+        self.add(s, "buffalo", x, vis, width=round(w, 4), top=1.1, span=round(w * 0.7, 4),
+                 implicitHop=[round(x - 1.0, 3), round(w + 2.0, 3), 1.6])
+        return x + w
+
+    def stall(self, s, x, piece):
+        """Kit.Stall: a market stall on the lane's far edge from x, at its real size: run under its awning, or jump into
+        the awning (about 2.1 m up) for a 2 m bounce from roof to roof. Returns where it ends."""
+        w, h = real_size(piece)
+        self.add(s, "stall", x, [visual(piece, x + w / 2, 0.0, 0.55, h=h)], piece=piece, width=round(w, 4),
+                 height=round(h, 4))
+        return x + w
+
+    def hens(self, s, x, count):
+        """Kit.Hens: a flock of `count` hens across the lane, jumped like a pot stack (or scattered: a stumble)."""
+        width = 0.3 + count * 0.36
+        vis = [visual(f"hen_{1 + i % 3}", x - width / 2 + 0.3 + i * 0.36, 0.0, 0.05 + 0.02 * i, h=0.42) for i in range(count)]
+        self.add(s, "hens", x, vis, count=count, top=0.45, span=round(width, 3))
+        self.hop_over(s, x, width, 0.45)
+        self.jump_arc(s, x)
+
+    def steps(self, s, x, count, landing):
+        """Kit.Steps: temple steps from x, `count` of them up (0.25 m each, low enough to walk up), a landing, the same
+        steps down; the landing's lamps behind. Returns where they end."""
+        rise, tread = 0.25, 0.7
+        end = x + count * tread * 2 + landing
+        vis = []
+        for i in range(count):
+            a, b = x + i * tread, end - i * tread
+            vis.append(box("step", (a + b) / 2, i * rise, 0.4, b - a, rise, 2.2, (0.62, 0.58, 0.55)))
+        top = count * rise
+        for k in range(2):
+            vis.append(visual("lamp_step", x + count * tread + landing * (0.25 + 0.5 * k), top, 1.2, h=1.9))
+        vis.append(visual("lantern", x + count * tread + landing * 0.5, top, 0.9, h=0.45))
+        self.add(s, "steps", x, vis, count=count, landing=landing, end=round(end, 4), top=top)
+        return end
 
     # ---- the rooster's route
     def hop(self, s, x, length, height):
@@ -409,6 +496,16 @@ class Plan:
             elif it["kind"] == "haystack":
                 c = it["x"] + it["width"] / 2
                 out.append((c - it["span"] / 2, c + it["span"] / 2, it["top"]))
+            elif it["kind"] == "mangotree":
+                a, b, top = it["branch"]
+                out.append((a, b, top))
+            elif it["kind"] == "buffalo":
+                c = it["x"] + it["width"] / 2
+                out.append((c - it["span"] / 2, c + it["span"] / 2, it["top"]))
+            elif it["kind"] == "steps":
+                tread, rise = 0.7, 0.25
+                for i in range(it["count"]):
+                    out.append((it["x"] + i * tread, it["end"] - i * tread, (i + 1) * rise))
         return out
 
     def holes(self):
@@ -449,7 +546,7 @@ def challenges(p):
     for s, it in p.items():
         k = it["kind"]
         base = it.get("y", 0.0) if k in ("pots", "tank") else 0.0
-        if k in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "clothesline"):
+        if k in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "clothesline", "hens"):
             # a hidden one (the rooster's mischief) counts too: it can be there when the kid arrives
             out.append((it["x"] - it["span"] / 2, it["x"] + it["span"] / 2, base, k, s["name"], it))
         elif k == "cart":
@@ -461,6 +558,25 @@ def challenges(p):
             out.append((c - it["span"] / 2, c + it["span"] / 2, 0.0, k, s["name"], it))
         elif k == "roofs":
             out.append((it["x"], it["end"], ROOF, "roofs", s["name"], it))
+        elif k == "cot":
+            out.append((it["x"], it["x"] + it["span"], 0.0, "cot", s["name"], it))
+        elif k == "buffalo":
+            c = it["x"] + it["width"] / 2
+            out.append((c - it["span"] / 2, c + it["span"] / 2, 0.0, "buffalo", s["name"], it))
+        elif k == "mangotree":
+            out.append((it["branch"][0], it["branch"][1], 0.0, "branch", s["name"], it))
+        elif k == "steps":
+            out.append((it["x"], it["end"], 0.0, "steps", s["name"], it))
+    # a row of stalls side by side is one stretch of awnings
+    stalls = sorted((it for _, it in p.items("stall")), key=lambda it: it["x"])
+    run = []
+    for it in stalls + [None]:
+        if run and (it is None or it["x"] - (run[-1]["x"] + run[-1]["width"]) > 1.0):
+            name = next(s["name"] for s, i2 in p.items("stall") if i2 is run[0])
+            out.append((run[0]["x"], run[-1]["x"] + run[-1]["width"], 0.0, "awnings", name, {"stalls": run}))
+            run = []
+        if it is not None:
+            run.append(it)
     return sorted(out, key=lambda c: c[0])
 
 
@@ -488,7 +604,7 @@ def audit(p, course_length, require_feathers=True):
     rows = []
     for x0, x1, base, kind, name, it in challenges(p):
         span, info, latest, land = x1 - x0, "", x0, x1
-        if kind in ("pots", "dung", "dog", "puddle", "tank", "hensbasket"):
+        if kind in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "hens"):
             held = r.takeoff_window(span, it["top"], r.HELD)
             tap = r.takeoff_window(span, it["top"], r.TAP)
             if held is None or (held[1] - held[0]) / r.RUN < 0.2:
@@ -541,6 +657,27 @@ def audit(p, course_length, require_feathers=True):
             info = (f"{'big' if it['big'] else 'small'}: hop onto it or over it"
                     + (f" (over: {(over[1] - over[0]) / r.RUN * 1000:.0f} ms)" if over else ""))
             land = x1 + 0.5
+        elif kind == "cot":
+            land = x0 + 0.95 + r.bounce_length(T["cotBounceHeight"], 0.5)
+            info = f"a trampoline: run into it (no input) for a {T['cotBounceHeight']:g} m bounce, landing about {land - x0:.1f} m on"
+        elif kind == "buffalo":
+            win = r.takeoff_window(0.05, it["top"], r.HELD)
+            if win is None or (win[1] - win[0]) / r.RUN < 0.2:
+                problems.append(f"buffalo at {x0:.1f}: a held jump has under 0.2 s to get onto its back")
+                win = win or (0.0, 0.0)
+            latest = x0 + win[1]
+            land = x0 + 0.3 + r.bounce_length(2.6, it["top"] + 0.1)
+            info = (f"jump onto its back ({(win[1] - win[0]) / r.RUN * 1000:.0f} ms) for a 2.6 m bounce, landing about "
+                    f"{land - x0:.1f} m on; or a slow climb over")
+        elif kind == "branch":
+            latest, land = x1, x1 + r.RUN * r.fall_time(it["branch"][2])
+            info = "optional: jump at the branch to pull up onto it (mangoes along it), or run on under it"
+        elif kind == "awnings":
+            latest, land = x1, x1 + r.RUN * r.fall_time(2.1 + 2.0)
+            info = f"{len(it['stalls'])} stalls: run under, or jump into an awning and bounce along them (optional)"
+        elif kind == "steps":
+            latest, land = x0, x0
+            info = f"{it['count']} steps up (walked), a {it['landing']:g} m landing {it['top']:g} m up, and down"
         elif kind == "roofs":
             continue                          # a roof row is its events below: getting up, then a gap or a drop
         rows.append([x0, x1, base, kind, name, it, latest, land, info])
@@ -556,6 +693,8 @@ def audit(p, course_length, require_feathers=True):
         prev = roofs[i - 1] if i > 0 else None
         nxt = roofs[i + 1] if i + 1 < len(roofs) else None
         from_gap = prev is not None and x0 - prev["end"] < 6.0
+        # or bounced up onto from a rope cot just before it (the bounce tops 2.9 m)
+        from_gap = from_gap or any(x0 - 6.0 <= c["x"] + c["span"] <= x0 for _, c in p.items("cot"))
         if it["ladder"]:
             w = it["widths"][0]
             head = x0 + 0.084 * w + 0.135 * w / (0.93 * (ROOF + 0.15)) * (ROOF + 0.08) + 0.3
@@ -598,18 +737,19 @@ def audit(p, course_length, require_feathers=True):
     rows.sort(key=lambda row: (row[0], row[1]))
 
     # ---- consecutive challenges: after one at the latest moment, room to react and still clear the next
-    no_input = ("ladder", "drop", "cart", "bridge")
+    no_input = ("ladder", "drop", "cart", "bridge", "cot", "branch", "awnings", "steps")
     for a, b in zip(rows, rows[1:]):
         slack = b[6] - a[7] - (0.0 if b[3] in no_input else r.REACT)
         if slack < 0.5:
             problems.append(f"{a[3]} at {a[0]:.1f} then {b[3]} at {b[0]:.1f}: {slack:.2f} m to react after the landing")
-        if (b[0] - a[1] < 4.5 and a[3] not in ("ladder", "drop", "roofgap") and b[3] not in ("cart", "ladder", "drop", "roofgap")
-                and a[2] == b[2]):
+        # (a step onto a branch, the awnings or the steps is meant to be close: they are routes, not obstacles)
+        if (b[0] - a[1] < 4.5 and a[3] not in ("ladder", "drop", "roofgap", "branch", "awnings", "steps", "cot")
+                and b[3] not in ("cart", "ladder", "drop", "roofgap", "branch", "awnings", "steps", "cot") and a[2] == b[2]):
             problems.append(f"{a[3]} at {a[0]:.1f} and {b[3]} at {b[0]:.1f} only {b[0] - a[1]:.1f} m apart")
 
     # ---- the rooster's route: a hop over everything in the lane, high enough, starting before it
     for x0, x1, base, kind, name, it, *_ in rows:
-        if kind in ("bridge", "ladder", "roofgap", "drop", "clothesline") or it.get("hidden"):
+        if kind in ("bridge", "ladder", "roofgap", "drop", "clothesline", "cot", "branch", "awnings", "steps") or it.get("hidden"):
             continue                          # he runs under a clothesline; a knocked-in obstacle lands behind him
         need = base + (it.get("top", 0.0) if kind not in ("canal",) else 0.0)
         margin = {"cart": -0.2, "canal": 0.2, "haystack": 0.1}.get(kind, 0.15)
@@ -625,7 +765,7 @@ def audit(p, course_length, require_feathers=True):
 
     # ---- chillies: no challenge inside the boost
     for s, it in p.items("chilli"):
-        nxt = [row for row in rows if row[0] > it["x"] and row[3] not in ("bridge", "ladder", "drop")]
+        nxt = [row for row in rows if row[0] > it["x"] and row[3] not in ("bridge", "ladder", "drop", "branch", "awnings", "steps")]
         if nxt and nxt[0][0] - it["x"] < r.BOOST * 0.8:
             problems.append(f"chilli at {it['x']}: {nxt[0][3]} {nxt[0][0] - it['x']:.1f} m after it, inside the boost")
 
@@ -635,9 +775,19 @@ def audit(p, course_length, require_feathers=True):
         problems.append("the three feathers (0, 1, 2) are not all there once")
     reach = T["doubleJumpTotalHeight"] + 0.55 + 0.3
     for f in feathers:
-        # the double jump's top is about 4 m on from its take-off: the surface it can start from
+        # the double jump's top is about 4 m on from its take-off: the surface it can start from, or a bounce
         under = max(p.ground_at(f["x"] + d) for d in (-4.0, -3.0, -2.0, -1.0, 0.0, 1.0))
-        if f["y"] > under + reach:
+        top = under + reach
+        extra = T["doubleJumpTotalHeight"] - T["jumpHeight"] + 0.85
+        for row in rows:
+            if row[0] - 5.0 <= f["x"] <= row[1] + 2.0:
+                if row[3] == "cot":
+                    top = max(top, 0.5 + T["cotBounceHeight"] + extra)
+                elif row[3] == "buffalo":
+                    top = max(top, 1.1 + 2.6 + extra)
+                elif row[3] == "awnings":
+                    top = max(top, 2.1 + 2.0 + extra)
+        if f["y"] > top:
             problems.append(f"feather {f['index']} at {f['x']}: {f['y']} m is above a double jump's reach")
 
     # ---- mischief: its target is hidden, in the same section
@@ -685,6 +835,18 @@ def describe(s):
             out.append(f"roofs {it['x']:g} to {it['end']:.1f}" + (" (ladder)" if it["ladder"] else ""))
         elif k == "haystack":
             out.append(f"{'big' if it['big'] else 'small'} haystack {it['x']:g}")
+        elif k == "cot":
+            out.append(f"rope cot {it['x']:g}")
+        elif k == "buffalo":
+            out.append(f"buffalo {it['x']:g}")
+        elif k == "mangotree":
+            out.append(f"mango tree and branch {it['x']:g}")
+        elif k == "stall":
+            out.append(f"stall {it['x']:g}")
+        elif k == "hens":
+            out.append(f"{it['count']} hens {it['x']:g}")
+        elif k == "steps":
+            out.append(f"temple steps {it['x']:g} to {it['end']:.1f}")
         elif k == "chilli":
             out.append(f"chilli {it['x']:g}")
         elif k == "feather":
@@ -733,7 +895,7 @@ def report(p, meta, notes, problems, rows):
 def run(p, meta):
     """Audit the plan, write its JSON (and with --report its beat sheet); exit non-zero on a problem."""
     T = p.r.T
-    course = T["courseLength"]
+    course = meta.get("courseLength", T["courseLength"])
     problems, notes, rows = audit(p, course)
     n = meta["level"]
     data = {"level": n, "zone": p.zone, "title": meta["title"], "subtitle": meta["subtitle"], "courseLength": course}
