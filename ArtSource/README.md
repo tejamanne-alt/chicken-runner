@@ -217,10 +217,13 @@ clip at three moments.
 ### The rooster, from his rigged Meshy model
 
 `tools/characters/meshy_rooster.py` builds the game's rooster from his rigged Meshy model
-(`ArtSource/supplied/rooster_meshy.glb`): at rest, scaled to 0.64 m to the top of his comb, welded along the texture's
-seams, and skinned with Meshy's own weights, its 65 numbered bones folded onto the hand-built rooster's 14 by where they
-sit (spine into the Body, the neck's chain into Neck1 and Neck2, skull, comb, eyes, beak and wattles into the Head, the
-lower beak by its colour onto the Jaw, the tail, wings and legs into theirs), so every clip in `rooster_anims.py` plays.
+(`ArtSource/supplied/rooster_meshy.glb`, the "Regal Rooster", chosen over the first, "Cocky", model: it is the B11-B14
+turnaround in the round, and its closed beak lets the crow, the panic and the startled hop open it): at rest, scaled to
+0.64 m to the top of his comb, centred on his own midline, welded along the texture's seams, and skinned with Meshy's
+own weights, its 81 numbered bones folded onto the hand-built rooster's 14 by where they sit, found from the skeleton's
+shape (spine into the Body, the neck's chain into Neck1 and Neck2, skull, comb, eyes, beak and wattles into the Head,
+the lower beak by its colour onto the Jaw, the tail, the wings hanging back from the spine and the legs into theirs),
+so every clip in `rooster_anims.py` plays. `--src` builds another Meshy rooster the same way.
 
 ```bash
 python ArtSource/tools/characters/meshy_rooster.py --sheet rooster.png --check CHECK_DIR

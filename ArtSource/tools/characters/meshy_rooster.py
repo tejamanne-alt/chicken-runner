@@ -5,11 +5,13 @@
 1. The model is taken in its rest pose (Meshy's helper sphere left out), scaled to the rooster's height (0.64 m to the
    top of his comb) with his feet on the ground, welded along Meshy's texture seams, its normals smoothed.
 2. The rig is the hand-built rooster's (rooster_model bones), with each joint moved to where Meshy's skeleton has it,
-   and skinned with Meshy's own weights, its 65 numbered bones folded onto the rooster's 14 by where they sit: the spine
-   into the Body, the neck's chain into Neck1 and Neck2, the skull, comb, eyes, beak and wattles into the Head (the lower
-   beak, found by its colour under the open mouth, onto the Jaw), the tail's chain into Tail1 and Tail2, each wing's chain
-   into its Wing, and each leg's drumstick, shank and toes into UpperLeg, LowerLeg and Foot (the thigh, hidden in the
-   body's feathers, stays with the Body). Every clip in rooster_anims then plays on it unchanged.
+   and skinned with Meshy's own weights, its numbered bones (81 on this model) folded onto the rooster's 14 by where
+   they sit, found from the skeleton's shape, not its names: the spine into the Body, the neck's chain into Neck1 and
+   Neck2 (with the wattles and plumage hanging from it), the skull, comb, eyes, beak and wattles into the Head (the lower
+   beak, found by its colour under the mouth, onto the Jaw), the tail's chain into Tail1 and Tail2, the two side chains
+   hanging back from the spine into the Wings, and each leg's drumstick, shank and toes into UpperLeg, LowerLeg and Foot
+   (the thigh, hidden in the body's feathers, stays with the Body). The skeleton is centred on its own midline first.
+   Every clip in rooster_anims then plays on it unchanged. (--src another.glb builds another Meshy rooster the same way.)
 3. Exported as Rooster.fbx with Rooster.clips.json and Rooster_painted.png.
 """
 import json
@@ -28,7 +30,7 @@ import rooster_anims as A  # noqa: E402
 import rooster_model as M  # noqa: E402
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
-SRC = K.ROOT / "ArtSource" / "supplied" / "rooster_meshy.glb"
+SRC = pathlib.Path(ARGS[ARGS.index("--src") + 1]) if "--src" in ARGS else K.ROOT / "ArtSource" / "supplied" / "rooster_meshy.glb"
 OUT = K.ROOT / "Assets" / "ChickenRunner" / "Art" / "Characters"
 HEIGHT, NAME = 0.64, "Rooster"
 
@@ -63,6 +65,11 @@ bpy.data.objects.remove(src)
 for act in list(bpy.data.actions):
     bpy.data.actions.remove(act)
 body.name = "RoosterBody"
+# centred on his own midline: the root's chain down the middle of the skeleton (one of Meshy's rigs sits off the origin)
+_root = next(b for b, p in PARENT.items() if p is None)
+MID_X = float(np.median([J[b].x for b in J if abs(J[b].x - J[_root].x) < 0.03]))
+body.data.transform(Matrix.Translation((-MID_X, 0, 0)))
+J = {k: Vector((v.x - MID_X, v.y, v.z)) for k, v in J.items()}
 
 src_mat = body.data.materials[0]
 src_img = next(n.image for n in src_mat.node_tree.nodes if n.type == "TEX_IMAGE" and n.image.name == "texture_0")
@@ -114,16 +121,22 @@ while b and b != pelvis:
     neck_chain.append(b)
     b = PARENT.get(b)
 neck_chain = neck_chain[::-1]      # pelvis's child ... skull
-# the chest: the spine's most forward joint, where the neck starts; the skull's own joint is at the base of the head
-chest = min(neck_chain[:-1], key=lambda n: J[n].y)
+# the chest: where the neck starts, the last joint of the chain in the lower 40 % of the way from the pelvis to the
+# head's joint; the skull's own joint is at the base of the head
 head_joint = PARENT[skull]
+lim = J[pelvis].z + 0.4 * (J[head_joint].z - J[pelvis].z)
+chest = [n for n in neck_chain if J[n].z <= lim][-1]
 neck_bones = neck_chain[neck_chain.index(chest):neck_chain.index(skull)]
+# the wings: the two side chains off the spine or the neck, well out to each side, hanging down and back from there
 wing_roots = []
-for nb in neck_bones:
+for nb in neck_chain[:-1]:
     for c in CHILDREN.get(nb, []):
-        if c not in neck_chain and abs(J[c].x) > 0.02 and min(J[d].z for d in descendants(c)) < J[nb].z - 0.04:
+        sub = descendants(c)
+        if c not in neck_chain and abs(J[c].x) > 0.03 and min(J[d].z for d in sub) < J[c].z - 0.05 \
+                and max(J[d].y for d in sub) > J[c].y + 0.03:
             wing_roots.append(c)
 wing_roots = sorted(wing_roots, key=lambda b: J[b].x)
+assert len(wing_roots) == 2, wing_roots
 print("root", root, "pelvis", pelvis, "skull", skull, "legs", leg_roots, "tail", tail_root, "wings", wing_roots)
 print("neck", [(n, round(J[n].z, 3)) for n in neck_bones], "chest", chest, "head joint", head_joint)
 
@@ -145,6 +158,11 @@ split = J[chest].z + 0.45 * (J[head_joint].z - J[chest].z)
 for n in neck_bones:
     MAP[n] = "Head" if n == head_joint else "Neck1" if J[n].z < split else "Neck2"
 upper_neck = next((n for n in neck_bones if MAP[n] == "Neck2"), head_joint)
+for n in neck_bones:
+    for c in CHILDREN.get(n, []):
+        if c not in neck_chain and c not in wing_roots:
+            for d in descendants(c):
+                MAP[d] = MAP[n]
 for d in descendants(skull):
     MAP[d] = "Head"
 MAP[skull] = "Head"
