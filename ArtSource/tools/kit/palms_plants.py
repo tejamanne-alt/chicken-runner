@@ -259,6 +259,102 @@ def patch_decal(K, box, keep_fn, base_box, feather=10):
     return K.decal(None, image=img)
 
 
+def round_material(K, ok, axis_px, tile_pil, tile_m, squeeze=0.85, inset=2, soften=0.25, lo=0.3, hi=0.7):
+    """For a big round solid (a boulder): its own painted pixels (ok) projected straight through it front to back,
+    squeezed to its axis (so its back is the same stone as its front, mirrored), blended by how squarely each face
+    looks along y into a tile of the same stone (tile_pil, tile_m metres across) on its ends and top, where a
+    projection would be dragged into streaks."""
+    P = K.paint
+    a = filled(K, ok, inset)
+    H, W = a.shape[:2]
+    xs = np.arange(W, dtype=np.float32)
+    src = np.clip(axis_px + (xs - axis_px) * squeeze, 0, W - 1)
+    out = np.empty_like(a)
+    for ch in range(3):
+        out[..., ch] = np.stack([np.interp(src, xs, a[py, :, ch]) for py in range(H)])
+    out[..., 3] = 255
+    m = Mat(f"{K.name}_round{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, x, y):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((x, y)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5), vec.inputs[0])
+    nt.links.new(op("DIVIDE", sep.outputs["Z"], P.H), vec.inputs[1])
+    proj = nt.nodes.new("ShaderNodeTexImage")
+    proj.image = _image(Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA"), f"{m.mat.name}_proj")
+    proj.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], proj.inputs["Vector"])
+    t = np.asarray(tile_pil.convert("RGB")).astype(np.float32)
+    med = np.median(t.reshape(-1, 3), axis=0)
+    tile = Image.fromarray((t * (1 - soften) + med * soften).clip(0, 255).astype(np.uint8))
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(seamless(tile, 0.25), f"{m.mat.name}_tile")
+    tex.projection = "BOX"
+    tex.projection_blend = 0.3
+    mapping = nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (1 / tile_m, 1 / tile_m, tile.width / (tile.height * tile_m))
+    nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], nsep.inputs[0])
+    rng_ = nt.nodes.new("ShaderNodeMapRange")
+    rng_.inputs["From Min"].default_value = lo
+    rng_.inputs["From Max"].default_value = hi
+    nt.links.new(op("ABSOLUTE", nsep.outputs["Y"], 0.0), rng_.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(rng_.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(tex.outputs["Color"], mix.inputs["A"])
+    nt.links.new(proj.outputs["Color"], mix.inputs["B"])
+    m.set_colour(mix.outputs["Result"])
+    K._mats[("round", len(K._mats))] = m
+    return m
+
+
+def patch_card(K, box, corners, keep_fn, normal, name="patch"):
+    """A patch of the painting inside box (fallen plaster showing the brick, a crack) as a cut-out card laid on a
+    face round the back (corners: the box's bottom-right, bottom-left, top-left, top-right, metres, a mm off the
+    face): only the pixels keep_fn(rgb) keeps show, with their painted ragged edge, and a card has no ink line round
+    it (a decal quad does: a framed rectangle)."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    a = painted_rgb(K)[int(y0):int(y1), int(x0):int(x1)]
+    m = np.zeros((P.h, P.w), bool)
+    m[int(y0):int(y1), int(x0):int(x1)] = ndimage.binary_opening(keep_fn(a), iterations=1)
+    K.leaves_only(box, mask_rule(m, box))
+    uvs = [(x1 / P.w, 1 - y1 / P.h), (x0 / P.w, 1 - y1 / P.h), (x0 / P.w, 1 - y0 / P.h), (x1 / P.w, 1 - y0 / P.h)]
+    return K.card([tuple(c) for c in corners], uvs, name=name, normal=normal)
+
+
+def hip_top(K, corners, z0, apex_z, mat, name="hip"):
+    """A low pyramid (a capstone's weathered top) on a level square: corners (x, y) at z0, its apex over their
+    middle at apex_z."""
+    bm = bmesh.new()
+    base = [bm.verts.new((x, y, z0)) for x, y in corners]
+    cx, cy = sum(c[0] for c in corners) / len(corners), sum(c[1] for c in corners) / len(corners)
+    apex = bm.verts.new((cx, cy, apex_z))
+    n = len(base)
+    for i in range(n):
+        bm.faces.new([base[i], base[(i + 1) % n], apex])
+    bm.faces.new(list(reversed(base)))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat)
+    K.parts.append(ob)
+    return ob
+
+
 def img_tile(K, pil, size_m, vary=0.05, soften=0.2, key=None, name=None):
     """Like K.tile, from a PIL image (a patch made opaque, a strip stacked square): seamless, box-projected size_m
     metres across, sampled twice at different scales blended by a soft noise so the repeat never lines up."""
@@ -323,6 +419,13 @@ def squared(pil):
         for i in range(n):
             out.paste(pil if i % 2 == 0 else pil.transpose(Image.FLIP_LEFT_RIGHT), (i * w, 0))
     return out
+
+
+def filled_crop(K, ok, box):
+    """The painting inside box as an opaque PIL image, every pixel outside ok filled from the nearest one in it."""
+    a = filled(K, ok & box_mask(ok.shape, [box]), inset=1)
+    x0, y0, x1, y1 = [int(v) for v in box]
+    return Image.fromarray(a[y0:y1, x0:x1, :3].clip(0, 255).astype(np.uint8))
 
 
 def patch_tile(K, ok, box, size_m=None, vary=0.05, soften=0.25, square=True):
@@ -2144,7 +2247,7 @@ def h7_4(K):
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
     plaster = K.tile((262, 320, 340, 430), vary=0.05, soften=0.4)
-    cap_mat = K.tile((140, 40, 210, 58), vary=0.05, soften=0.3)
+    cap_mat = patch_tile(K, opaque & (mx > 110) & ~leafy(rgb), (140, 42, 210, 57), vary=0.05, soften=0.35)
     th = math.radians(37.6)
     R = Vector((math.cos(th), math.sin(th), 0.0))
     L = Vector((-math.sin(th), math.cos(th), 0.0))
@@ -2153,13 +2256,13 @@ def h7_4(K):
     zg, zt = P.z(600), P.z(62)
     plan = [C, C + R * s, C + R * s + L * s, C + L * s]
     slab_plan(K, [(v.x, v.y) for v in plan], zg, zt, plaster, name="pillar")
-    # the cap: a little wider, its top rising to the back so the painted top shows from the front
+    # the cap: a little wider than the pillar, level, its top weathered to a low hip (the painting shows its top
+    # from above; a true, level cap cannot show that from the front, so the top band of the painting is left out)
     cs = s * 1.18
     Cc = C - (R + L) * (cs - s) / 2
     cplan = [Cc, Cc + R * cs, Cc + R * cs + L * cs, Cc + L * cs]
-    slope = (P.z(18) - P.z(45)) / (cs * 1.2)
-    slab_plan(K, [(v.x, v.y) for v in cplan], zt, None, cap_mat,
-              top=lambda x, y: P.z(45) + max(0.0, (y - Cc.y)) * slope, name="cap")
+    slab_plan(K, [(v.x, v.y) for v in cplan], zt, P.z(38), cap_mat, name="cap")
+    hip_top(K, [(v.x, v.y) for v in cplan], P.z(38), P.z(28), cap_mat, name="cap_top")
     # the broken wall beside it, set back from the pillar's face, as thick as half the pillar: its plaster stops
     # short of its crumbled top, where the brick courses stand out in steps through its whole thickness
     w0, t = P.m(14), s * 0.55
@@ -2204,44 +2307,39 @@ def h7_4(K):
     for k, (u0, u1, z0, z1) in enumerate(((0.1, 0.7, P.z(590), P.z(470)), (0.2, 0.8, P.z(300), P.z(250)))):
         a = back - R * s * u0 + L * 0.001
         bq = back - R * s * u1 + L * 0.001
-        K.quad([tuple(a + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z1))),
-                tuple(a + Vector((0, 0, z1)))], patch_decal(K, (100, 420, 190, 520), brickish, (262, 320, 340, 430)),
-               name="brick_back")
+        patch_card(K, (100, 420, 190, 520), [a + Vector((0, 0, z0)), bq + Vector((0, 0, z0)), bq + Vector((0, 0, z1)),
+                                             a + Vector((0, 0, z1))], brickish, (L.x, L.y, 0.3), name="brick_back")
     # and on the wall's back, low down
     wb = O + L * (t + 0.001)
     for u0, u1, z0, z1 in ((0.45, 0.75, P.z(600), P.z(520)), (0.15, 0.3, P.z(300), P.z(255))):
         W_ = P.m(366 - 212) / math.cos(th)
         a, bq = wb + R * W_ * u1, wb + R * W_ * u0
-        K.quad([tuple(a + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z0))), tuple(bq + Vector((0, 0, z1))),
-                tuple(a + Vector((0, 0, z1)))], patch_decal(K, (100, 420, 190, 520), brickish, (262, 320, 340, 430)),
-               name="brick_back")
+        patch_card(K, (100, 420, 190, 520), [a + Vector((0, 0, z0)), bq + Vector((0, 0, z0)), bq + Vector((0, 0, z1)),
+                                             a + Vector((0, 0, z1))], brickish, (L.x, L.y, 0.3), name="brick_back")
     # cracks in the plaster round the back, as painted on its front
     crack = lambda rgb: chan(rgb)[3] < 125
     W_ = U(366)
     for box, (u0, u1, z0, z1), side in (((296, 258, 336, 330), (0.55, 0.8, P.z(330), P.z(258)), "wall"),
                                         ((92, 190, 130, 290), (0.3, 0.55, P.z(290), P.z(190)), "pillar"),
                                         ((330, 440, 366, 520), (0.1, 0.32, P.z(520), P.z(440)), "wall")):
-        dec = patch_decal(K, box, crack, (262, 320, 340, 430), feather=6)
         if side == "wall":
             a_, b_ = wb + R * W_ * u1 + L * 0.0005, wb + R * W_ * u0 + L * 0.0005
         else:
             a_, b_ = back - R * s * u0 + L * 0.0015, back - R * s * u1 + L * 0.0015
-        K.quad([tuple(a_ + Vector((0, 0, z0))), tuple(b_ + Vector((0, 0, z0))), tuple(b_ + Vector((0, 0, z1))),
-                tuple(a_ + Vector((0, 0, z1)))], dec, name="crack_back")
-    # ---- weeds, grass and the moss on the cap
-    keep = opaque & ~halo(rgb) & (((g > r) & (g > b + 8)) | ((r > 150) & (g > 140) & (b > 100) & (mx - mn < 70)
-                                                              & box_mask(opaque.shape, [(0, 480, 100, 610)]))
-                                  | (mx < 70))
+        patch_card(K, box, [a_ + Vector((0, 0, z0)), b_ + Vector((0, 0, z0)), b_ + Vector((0, 0, z1)),
+                            a_ + Vector((0, 0, z1))], crack, (L.x, L.y, 0.3), name="crack_back")
+    # ---- weeds, grass and the moss on the cap: each tuft the painted tuft wrapped round its own stem, so from the
+    # front it is the painting (no squeezed copies beside it) and round from the side
+    green = (g > r) & (g > b + 8)
+    keep = opaque & ~halo(rgb) & (green | ((r > 150) & (g > 140) & (b > 100) & (mx - mn < 70)
+                                           & box_mask(opaque.shape, [(0, 480, 100, 610)]))
+                                  | ((mx < 70) & ndimage.binary_dilation(green, iterations=3)))
     keep &= ~box_mask(opaque.shape, [(105, 60, 215, 470)]) | ((g > r + 10) & (g > b + 10))
     keep = ndimage.binary_opening(keep, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
-    for box, y in (((10, 480, 110, 610), C.y - 0.02), ((200, 420, 280, 590), C.y + 0.06), ((330, 540, 400, 600),
-                                                                                           C.y + 0.12),
-                   ((90, 570, 300, 620), C.y - 0.03), ((50, 5, 190, 95), C.y + 0.04), ((140, 30, 190, 100),
-                                                                                   C.y + 0.02)):
-        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        for yaw in (0, 55, -55):
-            blob_card(K, box, (P.x(cx), y + K.rng.uniform(-0.01, 0.01), P.z(cy)), yaw=yaw, rough=0.3, name="weeds")
+    tufts(K, [(8, 478, 112, 612), (198, 418, 282, 592), (328, 538, 402, 602), (88, 568, 302, 622)],
+          [C.y - 0.03, C.y + 0.08, C.y + 0.13, C.y - 0.06], depth=0.5)
+    tufts(K, [(48, 3, 192, 97), (138, 28, 192, 102)], [Cc.y + cs * 0.55, Cc.y + cs * 0.45], depth=0.35)
     # and weeds round the back of its foot
     for k, (box, f) in enumerate((((10, 480, 110, 610), 0.2), ((200, 440, 280, 600), 0.6), ((330, 540, 400, 600), 0.9),
                                   ((10, 480, 110, 610), 1.15))):
@@ -2267,10 +2365,11 @@ def h7_5(K):
     rock_ok = opaque & poly_mask(opaque.shape, [poly]) & not_ink(rgb, 50)
     fernish = (g > r + 12) & (g > b + 12) & (mx > 110)
     # the boulder: the painting on its front; round its sides, back and top the same mossy stone
-    stone = K.tile((262, 40, 452, 190), vary=0.08, soften=0.15)
+    stone = round_material(K, rock_ok & ~fernish, 320, filled_crop(K, rock_ok, (250, 30, 460, 200)), 0.75,
+                           squeeze=0.88, soften=0.25)
     poly_solid(K, poly, 0.0, stone, depth=0.78, segments=28, name="boulder")
     # the cushion of moss it sits on: a low oval mound, its front edge the painted band of moss
-    moss = K.tile((230, 300, 450, 332), vary=0.12, soften=0.1)
+    moss = patch_tile(K, opaque & ~halo(rgb), (230, 302, 450, 332), vary=0.1, soften=0.15)
     zg = P.z(338)
     rx = P.m(305)
     K.lathe([(rx, zg), (rx * 0.97, zg + 0.05), (rx * 0.88, zg + 0.095), (rx * 0.5, zg + 0.11), (0.0, zg + 0.115)],

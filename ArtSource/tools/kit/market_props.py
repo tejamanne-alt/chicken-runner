@@ -438,6 +438,12 @@ def straw_pixels(rgb):
     return keep
 
 
+def golden_pixels(rgb):
+    """Golden straw only (straw_pixels without the brown hen's orange feathers or the white hen's cream ones)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    return straw_pixels(rgb) & (g > 0.55 * r) & (b < 0.36 * r)
+
+
 def ground_disc(K, cx_px, top_py, rx_px, ry, rgb_or_box, name="ground", h=0.012):
     """A low, flat disc of the floor a prop stands on (the painting's grey shadow under a basket or vessels)."""
     P = K.paint
@@ -763,20 +769,21 @@ def hens_basket(K):
     ring_sheet(K, P.x(cx), 0.0, [(P.m(r), P.z(y)) for r, y in sec], straw, nu=56, lumps=P.m(3.2), name="nest",
                thickness=0.01)
     # the two hens, sitting in the hollow of the nest: the brown one a little in front of the white one, each card
-    # turned a little in plan, its head towards the camera, so from the side it is not a sliver
-    hens = figures(K, [([(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37),
-                         (60, 37), (63, 33), (64, 27), (66, 21), (70, 13), (73, 8), (79, 4), (86, 6), (90, 11), (92, 16),
-                         (96, 20), (97, 25), (93, 29), (95, 38), (97, 50), (97, 67)], -0.03, "hen_brown", 28),
-                       ([(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7),
-                         (123, 11), (126, 17), (127, 21), (129, 25), (126, 30), (125, 36), (126, 39), (131, 38),
-                         (134, 33), (137, 27), (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)], 0.04,
-                        "hen_white", -28)], exact=True)
-    # the straw painted over the hens' bottoms belongs to the nest: keep it in the front projection
-    K.front_exclude = [e if not (isinstance(e, tuple) and e[0] == "poly")
-                       else ("poly", [(x, min(y, 59.0)) for x, y in e[1]]) for e in K.front_exclude]
+    # turned a little in plan, its head towards the camera, so from the side it is not a sliver. Their cards end just
+    # below the nest's top (the straw painted lower down belongs to the nest's front)
+    brown = [(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37), (60, 37), (63, 33),
+             (64, 27), (66, 21), (70, 13), (73, 8), (79, 4), (86, 6), (90, 11), (92, 16), (96, 20), (97, 25), (93, 29),
+             (95, 38), (97, 50), (97, 67)]
+    white = [(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7), (123, 11),
+             (126, 17), (127, 21), (129, 25), (126, 30), (125, 36), (126, 39), (131, 38), (134, 33), (137, 27),
+             (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)]
+    low = lambda poly: [(x, min(y, 63.0)) for x, y in poly]
+    figures(K, [(low(brown), -0.03, "hen_brown", 20), (low(white), 0.04, "hen_white", -20)], exact=True)
+    # below the cards the front projection keeps off (it would paint the hens' bottoms onto the nest's inside)
+    K.front_exclude += [("poly", brown), ("poly", white), (29, 55, 149, 70)]
     K.leaves_only((0, 45, 30, 95), straw_pixels)
     K.leaves_only((148, 45, 171, 95), straw_pixels)
-    K.leaves_only((30, 60, 148, 95), straw_pixels)
+    K.leaves_only((30, 63, 148, 95), golden_pixels)
     fringe = [(4, 50, 30, 90), (148, 50, 168, 90)]
     for box in fringe:
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
@@ -793,8 +800,8 @@ def hens_basket(K):
     # the wisps hanging over the nest's front, cut from the painting where they are, just in front of the straw
     yf = -P.m(72) - 0.012
     for x in range(30, 146, 13):
-        for y0, y1 in ((60, 78), (72, 92)):
-            xx = x + (6 if y0 > 60 else 0)
+        for y0, y1 in ((63, 80), (74, 92)):
+            xx = x + (6 if y0 > 63 else 0)
             rr = abs(xx + 11 - cx) / 72.0
             yy = yf * math.sqrt(max(0.0, 1 - min(1.0, rr) ** 2)) - 0.012
             K.card_from_painting((xx, y0, xx + 22, y1), (P.x(xx + 11), yy, P.z((y0 + y1) / 2)),

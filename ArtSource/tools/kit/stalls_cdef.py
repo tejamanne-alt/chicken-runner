@@ -2088,10 +2088,22 @@ def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9, ba
     back: the back wall's inside (the painted interior, with what stands in front of it filled in)."""
     P = K.paint
     K.box(x0, x1, y1 - 0.04, y1, 0.0, z_top, back or inside, name="back_wall")
-    K.box(x0, x1, y1, y1 + 0.02, 0.0, z_top, outside, name="back_wall_out")
+    # clad outside in vertical boards with narrow gaps between them (one plain slab read flat from the sides and back)
+    bw = 0.16
+
+    def boards(a, b, put):
+        n = max(1, int(round((b - a) / bw)))
+        edges = np.linspace(a, b, n + 1)
+        for k, (u0, u1) in enumerate(zip(edges, edges[1:])):
+            put(u0 + 0.003, u1 - 0.003, K.rng.uniform(-0.004, 0.004))
+    boards(x0, x1, lambda u0, u1, j: K.box(u0, u1, y1, y1 + 0.02 + j, 0.0, z_top + j, outside, bevel=0.004,
+                                            name="back_board"))
+    K.box(x0 + 0.01, x1 - 0.01, y1, y1 + 0.012, 0.0, z_top, inside, name="back_wall_gap")
     for xa, xb, xo in ((x0 + 0.02, x0 + 0.04, x0), (x1 - 0.04, x1 - 0.02, x1 - 0.02)):
         K.box(xa, xb, y0, y1, 0.0, z_top, inside, name="side_wall")
-        K.box(xo, xo + 0.02, y0, y1 + 0.02, 0.0, z_top, outside, name="side_wall_out")
+        K.box(xo + 0.004, xo + 0.016, y0, y1 + 0.02, 0.0, z_top, inside, name="side_wall_gap")
+        boards(y0, y1 + 0.02, lambda u0, u1, j, xo=xo: K.box(xo, xo + 0.02, u0, u1, 0.0, z_top + j, outside,
+                                                               bevel=0.004, name="side_board"))
     for x in np.linspace(x0 + 0.04, x1 - 0.04, battens):
         K.box(x - 0.025, x + 0.025, y1 + 0.02, y1 + 0.04, 0.0, z_top, batten, bevel=0.004, name="batten")
     K.box(x0, x1, y1 + 0.02, y1 + 0.05, z_top - 0.12, z_top - 0.06, batten, bevel=0.004, name="batten_rail")
@@ -2301,7 +2313,7 @@ def stall_f_3(K):
                fringe=P.m(12), nu=110, nv=6)
     bam = K.colour((300, 14, 400, 20), vary=0.08)
     bamboo(K, P.pt(82, 14, yr), P.pt(616, 14, yr), P.m(7), bam, node_at=[0.2, 0.4, 0.6, 0.8], taper=1.0, name="ridge")
-    post = K.colour((78, 300, 96, 420), vary=0.08)
+    post = pole_tile(K, (82, 300, 92, 440), soften=0.25)
     for x0, x1 in ((77, 97), (601, 621)):
         K.box(P.x(x0), P.x(x1), yr - P.m(10), yr + P.m(10), 0.0, Z(22) - 0.02, post, name="post")
     under = K.colour((0.25, 0.2, 0.08), vary=0.1)
@@ -2312,13 +2324,14 @@ def stall_f_3(K):
             K.box(P.x(x0) + 0.01, P.x(x1) - 0.01, min(y, yr), max(y, yr), z - 0.04, z, post, name="tie")
     # ---------------------------------------------------------------- the table
     wood = ktile(K, (155, 535, 300, 560), vary=0.08)
+    legw = pole_tile(K, line=((178, 560), (158, 720)), half=6, soften=0.2)
     ty0, ty1 = -0.3, 0.18
     K.box(P.x(150), P.x(620), ty0, ty1, Z(532), Z(497), wood, bevel=0.006, name="table_top")
     K.panel((150, 497, 620, 532), ty0 - 0.003, name="table_front")
     legs = [((182, 532), (150, 738)), ((312, 532), (342, 738)), ((563, 532), (563, 722))]
     for (ax, ay), (bx, by) in legs:
         for y in (ty0 + 0.06, ty1 - 0.06):
-            beam(K, P.pt(ax, ay, y), P.pt(bx, by, y), P.m(20), P.m(20), wood, name="leg")
+            beam(K, P.pt(ax, ay, y), P.pt(bx, by, y), P.m(30), P.m(26), legw, name="leg")
     for y in (ty0 + 0.06, ty1 - 0.06):
         beam(K, P.pt(165, 668, y), P.pt(330, 668, y), P.m(16), P.m(22), wood, name="stretcher")
     beam(K, P.pt(247, 668, ty0 + 0.06), P.pt(247, 668, ty1 - 0.06), P.m(16), P.m(16), wood, name="stretcher_x")
@@ -2417,19 +2430,21 @@ def stall_f_4(K):
     P = K.paint
     Z = P.z
     K.front_min = 0.12
-    # ---------------------------------------------------------------- the floor: a green mat sloping up into the booth
-    yF, yS = -0.85, -0.38
-    zS = Z(694)
+    # ---------------------------------------------------------------- the floor: a low plank platform under a green mat
+    # (level: it sloped up into the booth to match the painted floor, seen from above)
+    yF = -0.85
+    zS = Z(741)
 
     def floor(x, y):
-        return zS * _smooth(yF, yS, y)
-    green = K.projected(squeeze=1.0, keep=[(20, 690, 760, 748)], exclude=[(0, 520, 360, 750), (480, 600, 770, 750)],
-                        inset=1)
-    K.grid_plane(P.x(15), P.x(762), yF, 0.85, 0.0, 30, 22, green, height=floor, name="floor")
+        return zS
+    green = ktile(K, (330, 705, 470, 738), vary=0.06)
+    edge = pole_tile(K, (40, 741, 300, 748), soften=0.3)
+    K.box(P.x(15), P.x(762), yF, 0.85, 0.0, zS - 0.012, edge, name="floor")
+    K.box(P.x(18), P.x(759), yF + 0.01, 0.84, zS - 0.012, zS, green, name="floor_mat")
     # ---------------------------------------------------------------- the booth and the thatch
     dark = ktile(K, (305, 380, 365, 520), vary=0.05, soften=0.5)
-    wall = K.colour((140, 220, 160, 280), vary=0.08)
-    batten = K.colour((75, 300, 86, 400), vary=0.08)
+    wall = pole_tile(K, (74, 300, 85, 420), soften=0.25)
+    batten = wall
     back = wall_behind(K, (100, 200, 712, 740), SELLER_F4,
                        others=[(80, 250, 310, 560), (500, 245, 705, 560), (0, 515, 360, 750), (475, 495, 770, 750)])
     booth_shell(K, P.x(95), P.x(712), -0.32, 0.8, Z(200), dark, wall, batten, battens=10, back=back)
@@ -2487,7 +2502,7 @@ def stall_f_4(K):
     weave = ktile(K, (500, 700, 600, 730), vary=0.06)
     ropes = K.projected(squeeze=1.0, keep=[(480, 500, 770, 690)], inset=1)
     for cx, hw, rim, y in ((552, 70, 668, -0.55), (695, 70, 664, -0.5)):
-        basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.8), 0.0), (P.m(hw * 0.97), Z(700)), (P.m(hw), Z(rim))],
+        basket(K, P.x(cx), y, zS, [(P.m(hw * 0.8), 0.0), (P.m(hw * 0.97), Z(700) - zS), (P.m(hw), Z(rim) - zS)],
                K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, rim - 6, cx + hw, 748)], inset=2), sy=0.9)
     h1 = heap_px(K, 552, -0.55, [(68, 668), (64, 640), (50, 615), (25, 600), (0, 595)], ropes, sy=0.9, name="rope_heap")
     h2 = heap_px(K, 695, -0.5, [(68, 664), (66, 630), (58, 600), (40, 580), (0, 575)], ropes, sy=0.9, name="rope_heap")

@@ -2460,8 +2460,11 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
         rows = trunk_runs(mask, py_bot, py_top, tx, flare_py=flare_py, flare=flare)
         if rows:
             hw = float(np.median([(b - a) / 2 for py, a, b in rows if flare_py is None or py <= flare_py]))
-            ob = loft_trunk(K, rows, bark, y=0.0, depth=depth,
-                            max_depth_px=lambda py: None if flare_py is not None and py > flare_py else hw * 1.1)
+            def cap(py):
+                if flare_py is None or py <= flare_py:
+                    return hw * 1.1
+                return hw * 1.1 * (1 + 0.35 * min(1.0, (py - flare_py) / max(1.0, py_bot - flare_py)))
+            ob = loft_trunk(K, rows, bark, y=0.0, depth=depth, max_depth_px=cap)
             if ob is not None:
                 thick.append(ob)
     limbs = pick_limbs(wood, py_max=limb_py_max, py_min=limb_py_min, r_min=max(fuse_r * 0.6, min_r_px),

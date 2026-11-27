@@ -167,7 +167,7 @@ def pil_tile(K, pil, sw, key, vary=0.0):
     return m
 
 
-def quilt_tile(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.15, vary=0.05, exclude=()):
+def quilt_tile(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.3, vary=0.05, exclude=()):
     """A tile of the painting's own material (earth, stone, weave) quilted from box (see quilt()), at its painted
     scale."""
     key = ("quilt", tuple(int(v) for v in box), keep.__name__, size_px, patch_px, soften, tuple(map(tuple, exclude)))

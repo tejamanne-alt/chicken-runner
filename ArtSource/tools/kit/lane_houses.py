@@ -497,7 +497,7 @@ def house_turmeric_ladder(K):
     upper = K.tile((190, 18, 300, 74), vary=0.05, soften=0.3)                # the parapet's cream with orange streaks
     ledge = strip_tile(K, (40, 80, 280, 92), soften=0.5)                     # the cornice, stacked square
     red = strip_tile(K, (84, 414, 148, 432), soften=0.4)    # the thinnai's red oxide, between its kolam and the steps
-    deck = strip_tile(K, (215, 18, 300, 30), soften=0.5)    # the parapet's cream top, for the roof deck
+    deck = K.tile((215, 40, 300, 72), size=1.0, vary=0.05, soften=0.6)   # the parapet's cream, for the roof deck
     teal = K.colour((178, 250, 186, 380), vary=0.05)
     wood = K.tile((190, 300, 230, 380), P.m(30))
     frame = K.colour((56, 185, 68, 268), vary=0.08)
@@ -864,7 +864,7 @@ def house_mud_tin(K):
     mud = K.tile((180, 520, 520, 960), size=1.2, vary=0.07, soften=0.2)     # (softer than this it reads as flat paint)
     tin = K.tile((380, 110, 560, 240), size=0.6, vary=0.05, soften=0.25)
     lime = K.tile((200, 1012, 520, 1085), size=0.8, vary=0.04, soften=0.4)
-    earth = K.tile((200, 1100, 520, 1140), size=0.8, vary=0.06)
+    earth = strip_tile(K, (200, 1100, 520, 1140), soften=0.2)          # the earth plinth's strip, stacked square
     blue = K.tile((600, 520, 820, 980), size=0.7, vary=0.04)
     frame = K.colour((560, 600, 585, 900), vary=0.06)
     plank = K.tile((1040, 560, 1150, 640), vary=0.05)
@@ -1020,7 +1020,7 @@ def house_plank_sheet(K):
     post = K.colour((84, 300, 100, 600), vary=0.08)
     frame = K.colour((380, 500, 405, 900), vary=0.08)
     dark = K.colour((0.035, 0.025, 0.03), vary=0.0)
-    earth = K.colour((300, 1004, 800, 1022), vary=0.12, scale=10)
+    earth = strip_tile(K, (300, 1004, 800, 1022), soften=0.2)          # the earth floor's strip, stacked square
     roof_mats = [K.tile((470, 60, 640, 150), size=0.7, vary=0.04), K.tile((110, 60, 300, 140), size=0.7, vary=0.04),
                  K.tile((900, 175, 1080, 250), size=0.7, vary=0.04), K.tile((1150, 60, 1380, 130), size=0.7, vary=0.04),
                  K.tile((60, 165, 280, 250), size=0.7, vary=0.04)]
@@ -1242,10 +1242,11 @@ def house_potter(K):
     halo_exclude(K, [(300, 0, 1520, 540), (1430, 200, 2195, 1010)])
     # inside the wheel's frame the cut-out is painted solid white: not the frame's back rails
     K.front_exclude += [(1570, 822, 1672, 876), (1709, 822, 1814, 876), (1570, 924, 1673, 955), (1707, 924, 1814, 955)]
-    mud = K.tile((480, 640, 660, 900), size=1.2, vary=0.05, soften=0.5)
+    mud = K.tile((480, 640, 660, 900), size=1.2, vary=0.06, soften=0.25)
     lime = K.tile((500, 930, 970, 980), size=1.0, vary=0.04, soften=0.4)
     thatch_m = K.tile((420, 250, 500, 440), size=0.6, vary=0.06, soften=0.3)   # clean golden straw, left of the fronds
-    earth = K.tile((300, 1110, 1300, 1128), size=1.0, vary=0.08)
+    # the earth: its painted strip stacked square (box-projected as it is, an 18 px strip streaks across the top)
+    earth = strip_tile(K, (300, 1110, 1300, 1128), soften=0.2)
     wood = K.tile((1010, 660, 1220, 900), size=0.6, vary=0.04)
     frame = K.colour((985, 700, 1000, 1000), vary=0.06)
     dark = K.colour((0.05, 0.03, 0.025), vary=0.0)
@@ -1255,7 +1256,7 @@ def house_potter(K):
     K.box(P.x(0), P.x(2190), -1.25, D + 0.4, 0.0, P.z(1108), earth, bevel=0.03, name="ground")
     # the hut's thatch, its ridge pole, palm fronds weighting it front (painted) and back (cards)
     hip_thatch(K, (P.x(334), P.x(1500), -0.55, D + 0.55), (P.x(506), P.x(1414)), P.z(474), P.z(40), thatch_m,
-               thickness=0.25, shag=0.05, fringe=0.1)
+               thickness=0.25, shag=0.05, fringe=0.1, pull=0.12)
     K.tube([P.pt(506, 28, D / 2), P.pt(1414, 28, D / 2)], P.m(17), K.colour((560, 15, 1300, 40), vary=0.06),
            segments=10, name="ridge_pole")
     K.leaves_only((440, 40, 1310, 470), olive_leaf_pixels)
@@ -1313,12 +1314,13 @@ def house_potter(K):
     noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (13, 31)), 1.0)
     def lean_surf(u, v):
         px = 1430 + (2130 - 1430) * u
-        return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - 0.06 + 0.02 * noise[int(v * 12), int(u * 30)])
+        # (the mat's top face, half its thickness above this, on the painted top line)
+        return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - th / 2 - 0.01 + 0.02 * noise[int(v * 12), int(u * 30)])
     K.sheet(lean_surf, 30, 12, lean, name="lean_to", thickness=th)
     bamboo = K.projected(axis_x=P.x(2010), squeeze=0.9, keep=[(1985, 600, 2034, 1030)], inset=2)
     bamboo2 = K.projected(axis_x=P.x(1918), squeeze=0.9, keep=[(1903, 600, 1932, 965)], inset=2)
     for y in (-0.1, 0.9, 1.9, 2.8):
-        K.tube([(P.x(1430), y, lean_top(1430) - th - 0.03), (P.x(2120), y, lean_top(2120) - th - 0.03)], 0.035, bamboo,
+        K.tube([(P.x(1430), y, lean_top(1430) - th - 0.05), (P.x(2120), y, lean_top(2120) - th - 0.05)], 0.035, bamboo,
                segments=8, name="rafter")
     # posts: the two painted at the front (one behind the clay heap), two more at the back
     for x, y, top_py, m in ((2010, -0.3, 529, bamboo), (1918, 0.35, 560, bamboo2), (2010, yb - 0.25, 560, bamboo),
@@ -1463,10 +1465,10 @@ def house_thatched_hut(K):
     D = 4.6
     K.front_min = 0.15
     halo_exclude(K, [(0, 0, 1522, 660), (1222, 600, 1460, 910)])
-    mud = K.tile((200, 880, 560, 1020), size=1.2, vary=0.05, soften=0.45)
+    mud = K.tile((200, 880, 560, 1020), size=1.2, vary=0.06, soften=0.25)
     lime = K.tile((180, 1040, 590, 1120), size=1.0, vary=0.04, soften=0.4)
     thatch_m = K.tile((180, 280, 420, 520), size=0.7, vary=0.06, soften=0.25)
-    earth = K.tile((200, 1140, 1000, 1175), size=1.0, vary=0.08)
+    earth = strip_tile(K, (200, 1140, 1000, 1175), soften=0.2)          # the earth strip, stacked square
     wood = K.tile((660, 720, 860, 1060), size=0.6, vary=0.04)
     frame = K.colour((622, 700, 645, 1100), vary=0.06)
     X0, X1 = P.x(165), P.x(1353)
@@ -1476,7 +1478,7 @@ def house_thatched_hut(K):
     eave = (P.x(15), P.x(1508), -0.62, D + 0.62)
     ridge = (P.x(305), P.x(1220))
     ze, zr = P.z(598), P.z(82)
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.26, shag=0.05, fringe=0.11)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.26, shag=0.05, fringe=0.11, pull=0.12)
     K.tube([P.pt(305, 77, D / 2), P.pt(1220, 77, D / 2)], P.m(18), K.colour((500, 62, 1000, 90), vary=0.06),
            segments=10, name="ridge_pole")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
@@ -1519,7 +1521,9 @@ def house_thatched_hut(K):
             y = fy(cx, cy) - (0.06 if on_roof else 0.03)
         return y, K.rng.uniform(-30, 30), K.rng.uniform(-15, 15) - (35 if on_roof else 0)
     cover_cards(K, (460, 10, 1455, 905), vine_keep, 70, 110, place, name="vine")
-    side_cards(K, (1222, 640, 1450, 880), 8, (100, 100), X1, 1, (0.1, 1.4))
+    cover_cards(K, (380, 30, 1300, 110), vine_keep, 40, 70, place, thresh=0.08, name="vine_top")   # leaves on the ridge
+    # round the right corner: hugging it below the eave, as one mass with the front's
+    corner_climber(K, (1300, 640, 1450, 880), 12, 95, X1, 1, 615, 880, 1.0)
     for i in range(10):
         cx, cy = K.rng.uniform(800, 1250), K.rng.uniform(40, 330)
         z = P.z(cy)
@@ -1563,7 +1567,7 @@ def house_weaver(K):
     white = K.tile((200, 560, 440, 900), size=1.0, vary=0.04, soften=0.45)
     indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
     thatch_m = K.tile((500, 120, 800, 380), size=0.8, vary=0.06, soften=0.25)
-    earth = K.tile((200, 1092, 1300, 1130), size=1.0, vary=0.08)
+    earth = strip_tile(K, (200, 1092, 1300, 1130), soften=0.2)          # the earth strip, stacked square
     brown = K.colour((495, 560, 520, 700), vary=0.06)
     timber = K.colour((560, 600, 568, 750), vary=0.08)
     X0, X1 = P.x(152), P.x(1345)
@@ -1706,7 +1710,7 @@ def house_hut_porch(K):
     lime = K.tile((982, 992, 1036, 1078), size=0.6, vary=0.04, soften=0.4)
     thatch_m = K.tile((500, 100, 800, 400), size=0.8, vary=0.06, soften=0.25)
     mat_m = K.tile((280, 462, 560, 532), size=0.7, vary=0.05)
-    earth = K.tile((300, 1100, 1300, 1130), size=1.0, vary=0.08)
+    earth = strip_tile(K, (300, 1100, 1300, 1130), soften=0.2)          # the earth strip, stacked square
     wood = K.tile((720, 660, 940, 1040), size=0.6, vary=0.04)
     frame = K.colour((688, 700, 700, 1000), vary=0.06)
     X0, X1 = P.x(130), P.x(1525)

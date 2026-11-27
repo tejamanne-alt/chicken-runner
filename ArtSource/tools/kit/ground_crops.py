@@ -67,7 +67,7 @@ def alpha_mask(P, thresh=0.5):
     return P.rgba[..., 3] > thresh
 
 
-def halo_free(P, reach=12, bright=145, sat=38):
+def halo_free(P, reach=8, bright=145, sat=30):
     """The painting's opaque pixels less the pale grey halo a cut-out keeps round its outline and in its gaps: pale,
     unsaturated pixels reached from the transparent outside through other such pixels (up to `reach` px), so a pale
     part inside its own ink line (a cotton boll, a seed head) is kept."""
@@ -1530,7 +1530,7 @@ def crop_strip_6(K):
     with bolls from every side."""
     P = K.paint
     depth = 1.5
-    clean = halo_free(P)
+    clean = halo_free(P, reach=6, sat=24)          # the halo is grey; the bolls' cream white must not leak out with it
     clean_front(K, clean)
     rgb = P.rgba[..., :3] * 255
     mx, mn = rgb.max(-1), rgb.min(-1)
@@ -1549,8 +1549,8 @@ def crop_strip_6(K):
         K.card_from_painting(box, fr(ft[0], ft[1] + r * 0.075), yaw=yaw + 90 + K.rng.uniform(-25, 25), scale=s,
                              name="boll", normal=(0, -0.2, 1))
     at = [105, 228, 335, 470, 640, 790, 925, 1065]                  # the painted bushes' stems
-    crop_rows(K, 5, 1176, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.8, 0.95), yaw=40,
-              cross=True, src=at, at=at)
+    crop_rows(K, 5, 1176, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.92, 1.0), yaw=30,
+              cross=True, src=at, at=at, same=0.85)
 
 
 # banana pseudostems of crop_strip_7: (axis px, foot py, top py, half-width at the foot, at the top px)
@@ -1602,20 +1602,21 @@ def crop_strip_7(K):
                    K.rng.uniform(-4, 4), 1.0, name="banana")
     main = [bn for bn in BANANAS if bn[3] >= 15]
     for ax, foot, top, wf, wt in main:
-        plant_card(K, (ax - 150, 0, ax + 150, foot), (P.x(ax), rows[0] + 0.3, z0), 90 + K.rng.uniform(-8, 8), 0.85,
+        plant_card(K, (ax - 150, 0, ax + 150, foot), (P.x(ax), rows[0] + 0.3, z0), 90 + K.rng.uniform(-3, 3), 0.85,
                    name="banana")
     # and the rows behind, planted on the same grid: behind every painted plant one like it (its own stem and its
-    # crown turned), crossed by a second
+    # crown turned a little, as tall as it, so from the front it stays behind the painted one and the painted gaps
+    # stay open), crossed by a second turned square to the painting
     for k, y in enumerate(rows[1:]):
         for ax, foot, top, wf, wt in main:
-            s = K.rng.uniform(0.84, 0.97)
-            yaw = K.rng.uniform(-35, 35)
-            X, Y = P.x(ax) + K.rng.uniform(-0.06, 0.06), y + K.rng.uniform(-0.12, 0.12)
+            s = K.rng.uniform(0.94, 1.0)
+            yaw = K.rng.uniform(-25, 25)
+            X, Y = P.x(ax) + K.rng.uniform(-0.02, 0.02), y + K.rng.uniform(-0.12, 0.12)
             mat = wrapped(K, X, axis_y=Y, squeeze=0.9, src=src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
-            pseudostem(K, ax, foot, top, wf, wt, X, Y, z0, mat, scale=s)
+            pseudostem(K, ax, foot, top, wf, wt, X, Y, z0, mat, scale=s * 0.97)
             box = (ax - 150, 0, ax + 150, foot)
             for j in range(2):
-                plant_card(K, box, (X, Y, z0), yaw + (90 + K.rng.uniform(-15, 15) if j else 0), s * (0.9 if j else 1),
+                plant_card(K, box, (X, Y, z0), yaw + (90 + K.rng.uniform(-4, 4) if j else 0), s * (0.9 if j else 1),
                            name="banana")
 
 
