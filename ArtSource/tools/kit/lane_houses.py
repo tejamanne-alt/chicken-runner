@@ -1463,7 +1463,8 @@ def house_potter(K):
     for i, (cx, cy) in enumerate(((640, 250), (860, 260), (1040, 240), (1180, 230))):
         u = 0.35 + 0.2 * (i % 2)
         z = ze + (zr - ze) * u
-        y = D + 0.55 - (D / 2 + 0.55) * u + 0.34            # clear of the thatch's thickness and lumps
+        y = D + 0.55 - (D / 2 + 0.55) * u + 0.5             # clear of the thatch's thickness and lumps (at 0.34 the
+                                                            # lumps poked through and tore the fronds into bits)
         # (boxes stop above the straw fringe's leaf rule: where two rules overlap their pixels are ANDed, and the
         # fringe's straw rule erased the fronds' lower halves into torn green bits)
         K.card_from_painting((cx - 130, cy - 200, cx + 130, 398), (P.x(cx) + K.rng.uniform(-0.3, 0.3), y, z),
@@ -2871,7 +2872,7 @@ def shop_provisions(K):
     halo_exclude(K, [(0, 0, 1508, 1143)])
     # the mud below the window, right of the pole's shadow, its crack and specks taken out (the old crops took the
     # poles' shadow lines and the parapet's drips, which repeated as dark verticals and 'Y' marks round the walls)
-    mud = clean_tile(K, (240, 840, 520, 975), size=1.1, vary=0.18, soften=0.0, thresh=40, radius=7)
+    mud = clean_tile(K, (240, 840, 520, 975), size=1.1, vary=0.22, soften=0.0, thresh=16, radius=7)
     lime = K.tile((280, 1005, 590, 1078), size=1.0, vary=0.04, soften=0.35)     # clear of the poles' shadows
     tin = K.tile((300, 270, 700, 390), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((280, 420, 310, 790), vary=0.08)

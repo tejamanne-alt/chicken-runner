@@ -1633,16 +1633,22 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
             q = []
             for i, (px, py, r) in enumerate(pts):
                 dist = abs(P.x(px) - x0)
+                ok = False
                 for _ in range(16):                       # stay behind the painted crown, seen from the front
                     x = x0 + dist * math.cos(a)
                     if hidden(x, py, r):
+                        ok = True
                         break
                     dist *= 0.85
+                if not ok and i:
+                    break                                 # (where it cannot hide, behind a painted gap: it ends)
                 y = dist * math.sin(a)
                 lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
                 y = y0 + float(np.clip(y, -lim, lim))
                 q.append((x, y, P.z(py) - 0.05 * math.sin(math.pi * i / max(1, len(pts) - 1))))
-            wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts], bark, segments=12, name="limb_turned"))
+            if len(q) >= 2:
+                wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts[:len(q)]], bark, segments=12,
+                                   name="limb_turned"))
     # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
     for pts in roots:
         q, rr = [], []
@@ -3113,7 +3119,7 @@ def h2_3(K):
     pm = pm & ~box_mask(pm.shape, [(398, 345, 478, 440), (155, 345, 228, 452)])
     bunch = [([(418, 362), (416, 385), (410, 405), (405, 422)], 7), ([(430, 356), (432, 380), (428, 405), (433, 432)], 7),
              ([(446, 366), (450, 390), (456, 410), (462, 432)], 7),
-             ([(183, 356), (181, 385), (178, 410), (174, 438)], 12), ([(206, 354), (206, 385), (203, 410), (197, 436)], 12)]
+             ([(181, 356), (177, 385), (173, 412), (168, 442)], 13), ([(208, 354), (209, 385), (207, 412), (201, 440)], 13)]
     hang_pods(K, pm, crown, mat, copies=2, flatten=0.6, lump=0.12, segments=10, stalk=K.colour((0.12, 0.08, 0.03)),
               traced=bunch)
 
