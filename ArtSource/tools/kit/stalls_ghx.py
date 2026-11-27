@@ -1028,10 +1028,10 @@ def stall_h_1(K):
     frame_to(ob, tuple(p), (0.3, 0.1, 0.95), (1, 0, 0))
     # ---------------------------------------------------------------- behind him (hidden by him from the front): his tin
     # box of nails and thread, and a roll of leather on the back slope of the bank
-    tin = K.colour((0.3, 0.3, 0.33), vary=0.08)
+    tin = K.colour((0.07, 0.06, 0.05), vary=0.15, scale=6)
     zt_ = bank.top
-    K.box(P.x(575), P.x(705), bank.y1 + 0.08, bank.y1 + 0.3, zt_, Z(640), tin, bevel=0.01, name="tool_box")
-    K.box(P.x(572), P.x(708), bank.y1 + 0.07, bank.y1 + 0.31, Z(640), Z(632), tin, bevel=0.008, name="tool_box_lid")
+    K.box(P.x(575), P.x(705), bank.y1 + 0.08, bank.y1 + 0.3, zt_, Z(700), tin, bevel=0.01, name="tool_box")
+    K.box(P.x(572), P.x(708), bank.y1 + 0.07, bank.y1 + 0.31, Z(700), Z(692), tin, bevel=0.008, name="tool_box_lid")
     roll = K.lathe([(0.0, -0.3), (0.07, -0.3), (0.07, 0.3), (0.0, 0.3)], hide, segments=14, name="leather_roll")
     frame_to(roll, (P.x(330), bank.y2 + 0.2, bank.z(bank.y2 + 0.2) + 0.03), (1, 0, 0), (0, 1, 0))
     # ---------------------------------------------------------------- the cobbler
