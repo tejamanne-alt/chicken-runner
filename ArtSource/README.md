@@ -214,10 +214,33 @@ python ArtSource/tools/characters/meshy_kid.py --sheet kid.png --closeup kid_clo
 `--check DIR` renders her from eight sides, close looks at the jewellery, the henna and under the skirt, and every
 clip at three moments.
 
-### The rooster (and the earlier kid), from their turnarounds
+### The rooster, from his rigged Meshy model
+
+`tools/characters/meshy_rooster.py` builds the game's rooster from his rigged Meshy model
+(`ArtSource/supplied/rooster_meshy.glb`): at rest, scaled to 0.64 m to the top of his comb, welded along the texture's
+seams, and skinned with Meshy's own weights, its 65 numbered bones folded onto the hand-built rooster's 14 by where they
+sit (spine into the Body, the neck's chain into Neck1 and Neck2, skull, comb, eyes, beak and wattles into the Head, the
+lower beak by its colour onto the Jaw, the tail, wings and legs into theirs), so every clip in `rooster_anims.py` plays.
+
+```bash
+python ArtSource/tools/characters/meshy_rooster.py --sheet rooster.png --check CHECK_DIR
+```
+
+### Running, jumping and landing, as in Kick Off
+
+The clips follow Kick Off's `KidAnimator`: each step as long as the ground covered while that foot is down, so a planted
+foot stays put; knees folding early in the swing, elbows driving against the legs, the head steady against the lean;
+the jump driving a knee up, the double jump a second push in the air (no spin), the landing a quick crouch. The kid's
+run solves each planted foot by two-bone IK (`kid_anims.run_leg`: flat on the ground, sliding back under her at the
+game's 6 m/s, rolling onto the toes to push off), with her model's leg lengths. Both builders then set every grounded
+clip down so its lowest point touches the ground (`charkit.ground`, like Kick Off's `CharacterRig.KeepOnGround`) and
+measure the run (`charkit.gait`: how fast a sole point that is down slides back, against the run speed; the kid's is
+1.07). The rooster's 0.18 m legs cannot stay planted at 5.5 m/s, so he scuttles with a quick, long stride.
+
+### The earlier kid and rooster, from their turnarounds
 
 `tools/characters/hull_character.py` builds each from its four painted views (A0 front/back/left/right, B11-B14). It
-built the kid until her Meshy model came; running it for the kid now would replace `Kid.fbx` with the carved one:
+built both until their Meshy models came; running it now would replace `Kid.fbx` or `Rooster.fbx` with the carved one:
 
 1. Each view is cut from its background and scaled to the character's height (1.08 m and 0.64 m).
 2. The shape is carved slice by slice: every span the front and back views see is paired with every span the side

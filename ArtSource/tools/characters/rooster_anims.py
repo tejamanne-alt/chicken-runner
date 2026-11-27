@@ -29,34 +29,49 @@ def out(P, up=0.0, forward=0.0):
     return {k: tuple(v) for k, v in P.items()}, {"Body": body_loc(up, forward)}
 
 
-# ------------------------------------------------------------------ run: quick little strides, head held steady
-def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0):
+# ------------------------------------------------------------------ run: Kick Off's gait on a bird's legs
+# His legs are 0.18 m long and he runs at 5.5 m/s (RoosterModelVisual plays Run at that, Panic at 1.3 times it): no foot
+# that short can stay planted at that speed for more than a moment, so, like a real chicken flat out, he scuttles: a
+# quick stride (6 a second) with long swings, each leg's drumstick and toes folding up early in its swing (Kick Off's
+# knee fold) and reaching forward flat to strike, the body lowest as the legs pass and lifted between the steps, the
+# head held steady by the neck while the body pumps, the wings half out for balance and the tail bouncing a beat late.
+RUN_SPEED = 5.5
+RUN_T = 6 / 30
+PANIC_T = 5 / 30
+
+
+def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0, swing=42.0):
     P = pose()
     phi = 2 * math.pi * t / T
     for side, p in (("Left", phi), ("Right", phi + math.pi)):
-        legs(P, side, thigh=26 * math.cos(p), shank=14 * math.cos(p - 0.3 * math.pi) - 42 * g(p, 1.3 * math.pi, 0.4 * math.pi),
-             foot=10 * g(p, 0.0, 0.3 * math.pi) - 45 * g(p, 1.2 * math.pi, 0.45 * math.pi))
-    bob = math.cos(2 * (phi - 0.6 * math.pi))
-    P["Body"] = [-lean + 2 * bob, 3 * math.cos(phi), 0]
-    # The head stays level and steady while the body pumps underneath: the neck takes up the bob.
-    P["Neck1"] = [lean * 0.55 - 4 * bob, -2 * math.cos(phi), 0]
-    P["Neck2"] = [lean * 0.25, 0, 0]
-    P["Head"] = [-lean * 0.75 + 3 * bob, 0, 0]
+        sp = math.sin(p)
+        fold = max(0.0, math.cos(p + 0.9)) ** 2            # most early in the swing, none while the foot is down
+        legs(P, side, thigh=swing * sp, shank=-8 - 74 * fold + 10 * g(p, math.pi, 0.25 * math.pi),
+             foot=8 * g(p, 0.5 * math.pi, 0.35 * math.pi) - 58 * fold + 6 * g(p, math.pi, 0.25 * math.pi))
+    spread = abs(math.sin(phi))
+    lift = max(0.0, (spread - 0.5) / 0.5) ** 2           # between the steps
+    pump = math.cos(2 * phi)                               # the body's pitch, twice a stride
+    P["Body"] = [-lean + 2.5 * pump, 3 * math.cos(phi), 2 * math.sin(phi)]
+    # The head stays level and steady while the body pumps underneath: the neck takes up the bob and the pitch.
+    P["Neck1"] = [lean * 0.55 - 3 * pump, -2 * math.cos(phi), 0]
+    P["Neck2"] = [lean * 0.25 - 1.5 * pump, 0, 0]
+    P["Head"] = [-lean * 0.75 + 2 * pump - 6 * lift, 0, 0]
     P["Jaw"] = [-beak, 0, 0]
     wings(P, lift=wing_lift + wing_flap * math.sin(2 * phi), spread=wing_lift * 0.8 + wing_flap * 0.5 * math.sin(2 * phi))
-    P["Tail1"] = [-4 + 6 * math.sin(2 * phi - 1.0), 0, 2 * math.sin(phi)]
-    P["Tail2"] = [5 * math.sin(2 * phi - 2.0), 0, 0]
-    return P, 0.012 * bob - 0.01
+    P["Tail1"] = [-4 + 7 * math.sin(2 * phi - 1.2), 0, 3 * math.sin(phi - 0.6)]
+    P["Tail2"] = [6 * math.sin(2 * phi - 2.2), 0, 0]
+    return P, 0.014 * lift - 0.006
 
 
 def run(t):
-    P, up = run_cycle(t, 10 / 30, lean=14, wing_lift=10, wing_flap=8)
+    P, up = run_cycle(t, RUN_T, lean=16, wing_lift=12, wing_flap=10)
     return out(P, up)
 
 
 def panic(t):
-    P, up = run_cycle(t, 8 / 30, lean=24, wing_lift=42, wing_flap=40, beak=18 + 10 * math.sin(2 * math.pi * t / 0.13))
-    return out(P, up - 0.01)
+    P, up = run_cycle(t, PANIC_T, lean=26, wing_lift=44, wing_flap=42, beak=18 + 10 * math.sin(2 * math.pi * t / 0.13),
+                      swing=50.0)
+    return out(P, up - 0.004)
 
 
 # ------------------------------------------------------------------ flutter over hops and up onto roofs
@@ -96,7 +111,7 @@ def crow(t):
 
 # ------------------------------------------------------------------ startled: a leap with wings up, beak open
 def startled(t):
-    rest, up = run_cycle(0.0, 10 / 30, 14, 10, 8)
+    rest, up = run_cycle(0.0, RUN_T, 16, 12, 10)
     leap = pose()
     wings(leap, lift=72, spread=52)
     for side in ("Left", "Right"):
@@ -144,8 +159,8 @@ def idle(t):
 
 CLIPS = [
     ("Idle", 54, True, "", idle),
-    ("Run", 10, True, "", run),
-    ("Panic", 8, True, "", panic),
+    ("Run", round(RUN_T * 30), True, "", run),
+    ("Panic", round(PANIC_T * 30), True, "", panic),
     ("Flutter", 8, True, "", flutter),
     ("Crow", 36, False, "", crow),
     ("Startled", 10, False, "", startled),

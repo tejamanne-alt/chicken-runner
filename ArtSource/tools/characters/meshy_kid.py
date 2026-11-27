@@ -666,9 +666,22 @@ mod.object = arm
 missing = [b.name for b in arm.data.bones if b.name not in body.vertex_groups]
 print("bones without weights:", missing)
 
+# the run's IK works on this model's legs
+for side in ("Left",):
+    hip_, knee_, ankle_ = J[f"{side}UpperLeg"], J[f"{side}LowerLeg"], J[f"{side}Foot"]
+    A.LEGS.update(thigh=(knee_ - hip_).length, shank=(ankle_ - knee_).length, hip=hip_.z, ankle=ankle_.z,
+                  thigh_rest=math.atan2(-(knee_.y - hip_.y), hip_.z - knee_.z),
+                  shank_rest=math.atan2(-(ankle_.y - knee_.y), knee_.z - ankle_.z),
+                  ball=abs(J[f"{side}Toes"].y - ankle_.y))
+print("legs", {k: round(v, 3) for k, v in A.LEGS.items()})
 actions = {}
 for clip, frames, loop, face, fn in A.CLIPS:
     actions[clip] = K.bake(arm, clip, frames, fn, loop=loop)
+# feet on the ground (Kick Off's ground contact), and how well the run's planted foot keeps pace with the ground
+print("ground (lowest point before, per clip):",
+      K.ground(arm, body, actions, "Hips", settle=("Idle", "Land", "Slide", "Stumble", "Wade"), cycle=("Run",)))
+ratio, down = K.gait(arm, body, actions["Run"], {"Left": ["LeftFoot"], "Right": ["RightFoot"]}, A.RUN_SPEED)
+print(f"run at {A.RUN_SPEED} m/s: the planted foot sweeps back at {ratio} of the run speed; down {down}")
 if "--no-fbx" not in ARGS:
     arm.animation_data.action = actions[A.CLIPS[0][0]]
     K.export_fbx(OUT / f"{NAME}.fbx", [arm, body])

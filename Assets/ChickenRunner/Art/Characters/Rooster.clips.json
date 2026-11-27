@@ -7,13 +7,13 @@
  },
  {
   "name": "Run",
-  "frames": 10,
+  "frames": 6,
   "loop": true,
   "face": ""
  },
  {
   "name": "Panic",
-  "frames": 8,
+  "frames": 5,
   "loop": true,
   "face": ""
  },

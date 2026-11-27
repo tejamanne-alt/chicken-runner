@@ -409,3 +409,116 @@ def export_fbx(path, objects):
         use_armature_deform_only=False, bake_anim=True, bake_anim_use_all_actions=True,
         bake_anim_use_nla_strips=False, bake_anim_force_startend_keying=True, bake_anim_simplify_factor=0.0,
         mesh_smooth_type="FACE", use_mesh_modifiers=True, path_mode="COPY", embed_textures=True)
+
+
+# ------------------------------------------------------------------ ground contact and the gait check
+def _lowest(mesh_ob, groups=None):
+    """The posed mesh's points (world), and the lowest z; groups: only points weighted mostly to these bones."""
+    import numpy as np
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = mesh_ob.evaluated_get(dg)
+    me = ev.to_mesh()
+    co = np.empty(len(me.vertices) * 3)
+    me.vertices.foreach_get("co", co)
+    co = co.reshape(-1, 3)
+    m = np.array(ev.matrix_world)
+    co = co @ m[:3, :3].T + m[:3, 3]
+    ev.to_mesh_clear()
+    return co
+
+
+def ground(arm_ob, mesh_ob, actions, root, settle=(), cycle=()):
+    """Feet on the ground, as Kick Off's CharacterRig keeps them: in each `settle` clip every frame is set down so its lowest
+    point touches the ground (z = 0); a `cycle` clip (a run) is set down as a whole, so it touches at the lowest moment of
+    its stride and is off the ground in its flight. Shifts the root bone's location keys."""
+    scene = bpy.context.scene
+    pb = arm_ob.pose.bones[root]
+    rest_inv = pb.bone.matrix_local.to_3x3().inverted()
+    report = {}
+    for name in list(settle) + list(cycle):
+        act = actions[name]
+        arm_ob.animation_data.action = act
+        f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
+        lows = {}
+        for f in range(f0, f1 + 1):
+            scene.frame_set(f)
+            lows[f] = float(_lowest(mesh_ob)[:, 2].min())
+        if name in cycle:
+            base = -min(lows.values())
+            shift = {f: base for f in lows}
+        else:
+            shift = {f: -z for f, z in lows.items()}
+        curves = {}
+        for fc in _fcurves(act):
+            if fc.data_path == f'pose.bones["{root}"].location':
+                curves[fc.array_index] = fc
+        for f, dz in shift.items():
+            d = rest_inv @ Vector((0, 0, dz))
+            for i in range(3):
+                fc = curves.get(i)
+                if fc is None:
+                    continue
+                for kp in fc.keyframe_points:
+                    if abs(kp.co.x - f) < 0.01:
+                        kp.co.y += d[i]
+                        kp.handle_left.y += d[i]
+                        kp.handle_right.y += d[i]
+        for fc in curves.values():
+            fc.update()
+        report[name] = (round(min(lows.values()), 4), round(max(lows.values()), 4))
+    return report
+
+
+def _fcurves(act):
+    """An action's F-curves (Blender 5 keeps them in layers and channelbags)."""
+    if hasattr(act, "fcurves") and len(getattr(act, "fcurves", [])):
+        return list(act.fcurves)
+    out = []
+    for layer in getattr(act, "layers", []):
+        for strip in layer.strips:
+            for bag in strip.channelbags:
+                out += list(bag.fcurves)
+    return out
+
+
+def gait(arm_ob, mesh_ob, act, feet, speed, forward=Vector((0, -1, 0)), contact=0.015):
+    """How well a run's planted foot keeps pace with the ground at `speed` (m/s): while a foot is down (its lowest point
+    within `contact` of the ground), it should slide back under the body at the running speed. Returns the ratio of its
+    backward speed to the running speed (1.0: planted; below: the foot skates forward over the ground) and the share of
+    the stride each foot is down."""
+    import numpy as np
+    scene = bpy.context.scene
+    fps = scene.render.fps
+    arm_ob.animation_data.action = act
+    f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
+    vg = {g.name: g.index for g in mesh_ob.vertex_groups}
+    idx = {}
+    for side, names in feet.items():
+        ids = [vg[n] for n in names if n in vg]
+        idx[side] = np.array([v.index for v in mesh_ob.data.vertices
+                              if sum(g.weight for g in v.groups if g.group in ids) > 0.5])
+    # the same point of the sole from one frame to the next while it is down: a planted point slides back under the
+    # body at the running speed (a foot rolling from heel to toe moves its lowest point forward without slipping)
+    frames = {side: [] for side in feet}
+    for f in range(f0, f1 + 1):
+        scene.frame_set(f)
+        co = _lowest(mesh_ob)
+        for side, ids in idx.items():
+            frames[side].append((f, co[ids]))
+    fwd = np.array(forward)
+    import os
+    if os.environ.get("GAIT_DEBUG"):
+        for side, tr in frames.items():
+            for f, pts in tr:
+                i = int(np.argmin(pts[:, 2]))
+                print(f"  {side} f{f:2d} low z {pts[i, 2]:+.4f} fwd {float(pts[i] @ fwd):+.4f} mean fwd {float(pts.mean(0) @ fwd):+.4f}")
+    ratios, down = [], {}
+    for side, tr in frames.items():
+        floor = min(float(pts[:, 2].min()) for _, pts in tr)
+        on = [(f, pts) for f, pts in tr if float(pts[:, 2].min()) < floor + contact]
+        down[side] = round(len(on) / len(tr), 2)
+        for (fa, pa), (fb, pb) in zip(on, on[1:]):
+            if fb == fa + 1:
+                i = int(np.argmin(pa[:, 2]))
+                ratios.append(-float((pb[i] - pa[i]) @ fwd) * fps / speed)
+    return (round(float(np.median(ratios)), 2) if ratios else None), down

@@ -4,7 +4,7 @@ namespace ChickenRunner
 {
     /// <summary>
     /// Plays the 3D kid's clips (built in ArtSource/tools/characters) from the KidController's state: run, idle, jump,
-    /// fall, land, double-jump somersault, slide, vault, ladder climb, stumble, wade and the dive. Running and wading play
+    /// fall, land, double jump (a second push in the air), slide, vault, ladder climb, stumble, wade and the dive. Running and wading play
     /// faster or slower with her speed, so her feet keep pace with the ground. Swaps her face (neutral, grin, shocked,
     /// straining) with the action. Purely cosmetic: it only reads the controller.
     /// </summary>

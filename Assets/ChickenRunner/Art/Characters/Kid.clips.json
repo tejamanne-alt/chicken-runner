@@ -7,7 +7,7 @@
  },
  {
   "name": "Run",
-  "frames": 16,
+  "frames": 12,
   "loop": true,
   "face": "neutral"
  },
@@ -31,7 +31,7 @@
  },
  {
   "name": "DoubleJump",
-  "frames": 12,
+  "frames": 14,
   "loop": false,
   "face": "grin"
  },
