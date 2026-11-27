@@ -752,7 +752,7 @@ class Palm:
     """A palm's crown: fronds as ribbons radiating from the heart (centre_px, at depth 0), each painted frond where it
     is painted, arching to the front (d < 0) or back (d > 0) by d x R metres at its tip; copies turned round the back."""
 
-    def __init__(self, K, centre_px, R, ok_mask=None, fit_mask=None, fit_lim=(0.35, 2.2, 6), owned=False):
+    def __init__(self, K, centre_px, R, ok_mask=None, fit_mask=None, fit_lim=(0.35, 2.2, 6), owned=True):
         self.K, self.P = K, K.paint
         self.c = centre_px
         self.R = R

@@ -2181,9 +2181,11 @@ def field_tree_3(K):
             culm(K, pts, [r0, r0 * 0.95, r0 * 0.88, r0 * 0.75, r0 * 0.55, r0 * 0.3], green, node, node_every=0.6)
     # the knot of roots at the foot: a low mound of earth and root, and the fibrous roots on cards round it
     # (low, inside the painted knot of roots, and a tile of the painted root knot: a tall plain lump read as a sack)
-    soil = strip_tile(K, (215, 785, 300, 815), soften=0.3, quilt=True)
-    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((62, 837), (58, 818), (50, 800), (36, 786), (18, 778), (0.0, 775))],
-            soil, segments=20, centre=(P.x(cx), 0.0, 0.0), scale_y=0.85, wobble=0.12, name="root_mound")
+    # (a low dome inside the knot: the fibrous roots round it are cards; a full lump showed as a block)
+    soil = K.colour((0.09, 0.06, 0.035), vary=0.15, scale=8)
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((44, 837), (40, 826), (32, 815), (20, 808), (0.0, 805))],
+            soil, segments=18, centre=(P.x(cx), 0.0, 0.0), scale_y=0.85, wobble=0.12, name="root_mound")
+    K.front_exclude.append((150, 790, 340, 840))     # the painted root tangle is on the cards, not the dome
 
     def roots_rule(rgb):
         r, g, b, mx, mn = chan(rgb)
@@ -2789,7 +2791,7 @@ def h1_2(K):
     mask, _ = TRACE["h1_2"](K)
     traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_inked, spread=0.6,
                 root_z_px=900, limb_py_max=520, limb_py_min=150, n_limbs=6, n_roots=4, root_py=920,
-                n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=3.5, trunk=(950, 530, 275, 900, 0.8),
+                n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=3.5, trunk=(950, 530, 275, 910, 0.4),
                 leaf_all=True)
 
 
