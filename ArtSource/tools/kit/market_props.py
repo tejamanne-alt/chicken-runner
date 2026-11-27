@@ -1272,7 +1272,10 @@ def decal_faces(K, box_px, x0, x1, y0, y1, z0, z1, faces=("back", "left", "right
     a carved panel or a door on the back and the sides, each the right way round seen from outside."""
     m = K.decal(box_px)
     for f in faces:
-        if f == "back":
+        if f == "front":
+            y = y0 - inset
+            K.quad([(x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1)], m, name="decal_front")
+        elif f == "back":
             y = y1 + inset
             K.quad([(x1, y, z0), (x0, y, z0), (x0, y, z1), (x1, y, z1)], m, name="decal_back")
         elif f == "left":
@@ -1603,19 +1606,23 @@ def tank_wall(K):
         diya(K, px, 1.62, 105, 113, 8, (px - 3, 92, px + 3, 105), (px - 9, 104, px + 9, 113), name="lamp")
 
 
-def carved_pillar(K, cx, y, half_px, mat_front, stone, cubes, necks, base, capital, decal=True, name="pillar"):
+def carved_pillar(K, cx, y, half_px, mat_front, stone, cubes, necks, base, capital, decal=True, name="pillar",
+                  faces=("back", "left", "right"), mid=None):
     """A square stone temple pillar standing at painted x cx (px), its front face at depth y: carved cubes
     [(top py, bottom py)] joined by octagonal necks [(top py, bottom py)], a base block and a bracket capital
-    (top py, bottom py, half-width px); the painted carving of each cube repeated on its sides and back."""
+    (top py, bottom py, half-width px); the painted carving of each cube repeated on its `faces`. mid: (top py,
+    bottom py) of another painted cube whose carving the middle cube's faces wear instead of their own (the middle
+    cube's own painting has a lamp burning in front of it)."""
     P = K.paint
     X, Z = P.x, P.z
     h = P.m(half_px)
     c = Vector((X(cx), y + h, 0))
-    for top, bot in cubes:
+    for k, (top, bot) in enumerate(cubes):
         K.box(c.x - h, c.x + h, y, y + 2 * h, Z(bot), Z(top), mat_front, bevel=0.006, name=name)
         if decal:
-            decal_faces(K, (cx - half_px, top + 1, cx + half_px, bot - 1), c.x - h, c.x + h, y, y + 2 * h, Z(bot - 1),
-                        Z(top + 1))
+            t_, b_ = mid if (mid and k == 1) else (top, bot)
+            decal_faces(K, (cx - half_px, t_ + 1, cx + half_px, b_ - 1), c.x - h, c.x + h, y, y + 2 * h, Z(bot - 1),
+                        Z(top + 1), faces=faces)
     for top, bot in necks:
         K.lathe([(h * 0.82, Z(bot)), (h * 0.72, (Z(bot) + Z(top)) / 2), (h * 0.82, Z(top))], stone, segments=8,
                 centre=(c.x, c.y, 0), name="neck", smooth=False)
@@ -1637,11 +1644,13 @@ def mandapam(K):
     heavy granite roof slab, jointed, with a curved eave."""
     P = K.paint
     X, Z = P.x, P.z
-    granite = K.colour((100, 14, 300, 46), vary=0.12, scale=2.5)
+    # the granite: the roof slab's clean face between two joints; the inside's beams, pillars and the shrine wall
+    # in the same stone (their dark in the painting is shade, not paint: the front projection paints it there)
+    granite = K.tile((100, 28, 165, 44), vary=0.06, soften=0.45)
     cornice = K.tile((440, 14, 540, 48), vary=0.06, soften=0.45)
-    plinth = strip_tile(K, (100, 244, 440, 257), vary=0.06, soften=0.4)
-    dark = K.colour((500, 110, 540, 200), vary=0.1)
-    inner = K.colour((0.09, 0.07, 0.06), vary=0.12)
+    plinth = square_tile(K, (300, 244, 440, 257), vary=0.06, soften=0.4)
+    dark = granite
+    inner = granite
     joint = K.colour((0.1, 0.08, 0.065), vary=0.05)
     D = 4.0
     # the plinth, its mouldings all round, the steps up the middle, the floor
@@ -1649,7 +1658,7 @@ def mandapam(K):
                               (258, 270, 28, 998, 0.02), (270, 281, 22, 1002, 0.08)):
         K.box(X(x0), X(x1), -out, D + out, Z(b), Z(t), plinth, bevel=0.01, name="plinth")
     for k, (x0, x1, t) in enumerate(((472, 560, 238), (467, 566, 250), (464, 570, 262))):
-        K.box(X(x0), X(x1), -0.33 * (k + 1), 0.0, 0.0, Z(t), plinth, bevel=0.01, name="step")
+        K.box(X(x0), X(x1), -0.33 * (k + 1), 0.0, Z(282), Z(t), plinth, bevel=0.01, name="step")
     K.box(X(25), X(1000), 0.0, D, Z(225), Z(224), granite, name="floor")
     # the carved pillars all round the hall: the front row (lamps burning on them), the back row, and down the
     # two sides, each wearing a painted pillar's carving
@@ -1659,22 +1668,32 @@ def mandapam(K):
     for cx in fronts:
         mat = K.projected(axis_x=X(cx), squeeze=1.0, keep=[(cx - 13, 60, cx + 13, 226)], inset=1)
         carved_pillar(K, cx, yf, 12.5, mat, granite, [(80, 115), (128, 168), (175, 206)], [(115, 128), (168, 175)],
-                      (206, 225), (62, 80, 18))
+                      (206, 225), (62, 80, 18), mid=(175, 206))
         diya(K, cx, yf - 0.07, 152, 162, 9, (cx - 3, 136, cx + 3, 152), (cx - 10, 151, cx + 10, 162), name="lamp")
         K.box(X(cx - 6), X(cx + 6), yf - 0.12, yf, Z(165), Z(162), granite, name="lamp_bracket")
-        carved_pillar(K, cx, yb, 12.5, mat, granite, [(80, 115), (128, 168), (175, 206)], [(115, 128), (168, 175)],
-                      (206, 225), (62, 80, 18), name="pillar_back")
+        # the back row: the same carving all round, the middle cube's without the front's lamp
+        carved_pillar(K, cx, yb, 12.5, granite, granite, [(80, 115), (128, 168), (175, 206)],
+                      [(115, 128), (168, 175)], (206, 225), (62, 80, 18), name="pillar_back",
+                      faces=("front", "back", "left", "right"), mid=(175, 206))
     for cx in (49, 972):
-        mat = K.projected(axis_x=X(cx), squeeze=1.0, keep=[(cx - 13, 60, cx + 13, 226)], inset=1)
         for yy in (1.25, 2.3):
-            carved_pillar(K, cx, yy, 12.5, mat, granite, [(80, 115), (128, 168), (175, 206)],
-                          [(115, 128), (168, 175)], (206, 225), (62, 80, 18), name="pillar_side")
+            carved_pillar(K, cx, yy, 12.5, granite, granite, [(80, 115), (128, 168), (175, 206)],
+                          [(115, 128), (168, 175)], (206, 225), (62, 80, 18), name="pillar_side",
+                          faces=("front", "back", "left", "right"), mid=(175, 206))
+    # the lamps burning on brackets off the two corner pillars' outer faces, as painted
+    for px, post in ((28.5, 36.5), (992.5, 984.5)):
+        y = yf + P.m(12.5)
+        K.box(X(min(px, post)), X(max(px, post)), y - 0.03, y + 0.03, Z(165), Z(162), granite, name="lamp_arm")
+        diya(K, px, y, 157, 163, 6.5, (px - 3, 142, px + 3, 157), (px - 8, 156, px + 8, 163), name="lamp")
     # inside, in the shade: rows of plainer pillars and the shrine's dark wall
     for row, (yy, off) in enumerate(((1.45, 30), (2.45, 58))):
+        done = set()
         for cx in fronts:
             x = cx + (off if cx < 512 else -off)
-            if not 120 < x < 905:
+            # not twice on one spot, and none in the middle bay's dark doorway (the painting has none there)
+            if not 120 < x < 905 or x in done or 500 < x < 532:
                 continue
+            done.add(x)
             carved_pillar(K, x, yy, 11, dark, dark, [(80, 115), (128, 168), (175, 206)], [(115, 128), (168, 175)],
                           (206, 225), (62, 80, 16), decal=False, name="pillar_in")
     K.box(X(62), X(962), 2.95, 3.1, Z(225), Z(62), inner, name="shrine_wall")

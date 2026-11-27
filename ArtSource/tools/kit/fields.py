@@ -784,18 +784,20 @@ def scarecrow(K):
         rotate(ob, -12, "Y", (P.x(178), 0, P.z(106)))
     # the kurta: a body of cloth hung on the frame, its shoulders sloping in to the neck, open at the hem
     cloth = turned(K, P.x(187), (200, 168, 242, 238), squeeze=0.93, keep=[(84, 100, 284, 252)], exclude=[], soften=0.3)
-    c, n = P.x(187), 3.0
+    c, n = P.x(182), 3.0
+    half = interp([(110, 48), (175, 49), (205, 53), (235, 58), (250, 61)])     # its painted half width, flaring
+    mid = interp([(110, 181), (175, 181), (250, 184)])                         # to the hem
 
     def body(u, v):
         t = 2 * math.pi * u
         if v < 0.82:
             py = 250 - (250 - 110) * v / 0.82
-            hw, s, z = P.m(59 + 2 * (py > 230) * (py - 230) / 20), 1.0, P.z(py)
+            hw, s, z, cc = P.m(half(py)), 1.0, P.z(py), P.x(mid(py))
         else:
             k = (v - 0.82) / 0.18
-            hw, s, z = P.m(59), 1 - 0.62 * k, P.z(110) + P.m(8) * math.sin(k * math.pi / 2)
+            hw, s, z, cc = P.m(half(110)), 1 - 0.62 * k, P.z(110) + P.m(8) * math.sin(k * math.pi / 2), P.x(mid(110))
         cx, cy = math.cos(t), math.sin(t)
-        return (c + hw * s * math.copysign(abs(cx) ** (2 / n), cx), hd * s * math.copysign(abs(cy) ** (2 / n), cy), z)
+        return (cc + hw * s * math.copysign(abs(cx) ** (2 / n), cx), hd * s * math.copysign(abs(cy) ** (2 / n), cy), z)
     K.sheet(body, 40, 16, cloth, name="kurta", thickness=0.012)
     # the sleeves on the crossbar
     sleeve = turned(K, P.x(187), (200, 168, 242, 238), squeeze=1.0, keep=[(84, 100, 284, 172)], side="z",
@@ -819,7 +821,7 @@ def scarecrow(K):
             v.co.z += P.z(cz)
 
     def front_y(x, out=0.012):                              # the kurta's front surface at x, and a little before it
-        a = min(1.0, abs(x - c) / P.m(59))
+        a = min(1.0, abs(x - c) / P.m(52))
         ct = a ** 1.5
         return -hd * (max(0.0, 1 - ct * ct) ** 0.5) ** (2 / n) - out
     # the scarf: a band over the right shoulder, across the chest to the left hip, its end hanging with a fringe;
@@ -877,8 +879,14 @@ def scarecrow(K):
         for pitch in (0, 30, 60, 90, 120, 150):                # a full fan round the arm, from every side
             K.card_from_painting(box, P.pt(cx, cz, 0.0), pitch=pitch + K.rng.uniform(-8, 8), name="hand",
                                  normal=(1 if cx > 180 else -1, -0.3, 0.6))
-    # the stones it is stood in and its weeds, on the ground (the painting has no patch of earth: the game's ground)
+        sgn = 1 if cx > 180 else -1                         # and the straw's spread seen end-on
+        for k, yaw in enumerate((80, 100)):
+            K.card_from_painting(box, (P.x(cx) + sgn * P.m(12 + 8 * k), 0.0, P.z(cz)), yaw=yaw, scale=0.7,
+                                 name="hand", normal=(sgn, 0, 0.5))
+    # the low patch of trodden earth it is stood in (as wide as painted), its stones and weeds
     grain = speckle(P.crop((200, 420, 236, 434)), sigma=3.0, amount=1.2)
+    soil = img_tile(K, quilt(grain, 4, seed=2), P.m(40), vary=0.06, mottle=0.18, mottle_size=0.3, key="soil")
+    earth_disc(K, 197, 428, P.m(94), 0.38, soil)
     stone = proj_tiles(K, [(110, 412, 250, 440)], [(98, 368, 168, 418), (188, 372, 268, 418)], grain, grain,
                        side_size=P.m(36), top_size=P.m(36), y_from=0.6, y_to=0.85, inset=2, soften=0.0, vary=0.1,
                        blur=3.0)

@@ -652,7 +652,7 @@ def stall_c_2(K):
     earth_patch(K, 0.0, 0.25, P.W / 2 + 0.05, 1.25, earth, h=0.02)
     # ---------------------------------------------------------------- the bench: level and square, at the height of its
     # painted front edge (its top, painted from above, is a wood tile; the front projection paints its front edge)
-    wood = ktile(K, (430, 702, 545, 716), vary=0.08)
+    wood = pole_tile(K, (430, 702, 545, 716), soften=0.2, vary=0.08)      # squared: no stretch on the top
     wood_dark = K.colour((300, 720, 400, 728), vary=0.1)
     legw = pole_tile(K, (741, 735, 755, 800), soften=0.2)
     yF, yB = -0.4, 0.58
@@ -2328,7 +2328,7 @@ def stall_f_3(K):
         for x0, x1 in ((77, 97), (601, 621)):
             K.box(P.x(x0) + 0.01, P.x(x1) - 0.01, min(y, yr), max(y, yr), z - 0.04, z, post, name="tie")
     # ---------------------------------------------------------------- the table
-    wood = ktile(K, (155, 535, 300, 560), vary=0.08)
+    wood = pole_tile(K, (155, 535, 300, 560), soften=0.15, vary=0.08)     # squared: no stretch on the top
     legw = pole_tile(K, line=((178, 560), (158, 720)), half=6, soften=0.2)
     ty0, ty1 = -0.3, 0.18
     K.box(P.x(150), P.x(620), ty0, ty1, Z(532), Z(497), wood, bevel=0.006, name="table_top")
@@ -2444,7 +2444,7 @@ def stall_f_4(K):
 
     def floor(x, y):
         return zS
-    green = ktile(K, (330, 705, 470, 738), vary=0.06)
+    green = pole_tile(K, (330, 705, 470, 738), soften=0.1, vary=0.06)
     edge = pole_tile(K, (40, 741, 300, 748), soften=0.3)
     K.box(P.x(15), P.x(762), yF, 0.85, 0.0, zS - 0.012, edge, name="floor")
     K.box(P.x(18), P.x(759), yF + 0.01, 0.84, zS - 0.012, zS, green, name="floor_mat")

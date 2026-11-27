@@ -377,7 +377,9 @@ class Wood:
             return None, None
         xs, zs = np.interp(ss, s, pts[:, 0]), np.interp(ss, s, pts[:, 1])
         rs, yv = np.interp(ss, s, r), np.interp(ss, s, y)
-        return [(P.x(a), b, P.z(c)) for a, b, c in zip(xs, yv, zs)], [P.m(max(0.7, v)) for v in rs]
+        # (+0.6 px: the distance map measures to the nearest pixel outside, so a traced tube came out a pixel thinner
+        # than the painted limb with its ink line, and thin twigs and aerial roots showed red edges from the front)
+        return [(P.x(a), b, P.z(c)) for a, b, c in zip(xs, yv, zs)], [P.m(max(0.7, v + 0.6)) for v in rs]
 
     def tubes(self, mat, fuse_r_px=3.0, thick=None, thin=None, rscale=1.0, seg_thick=14, seg_thin=6, only=None,
               transform=None, name="limb", inside=None, min_r_px=0.0, ylim=None):
@@ -2002,7 +2004,7 @@ def field_tree_1(K):
         K, mask, (470, 930), (0, 0, 938, 510), (470, 300), (300, 0, 510), foliage_pixels, spread=0.55,
         root_z_px=860, card_px=(110, 95), n_cards=(230, 90, 50, 30), limb_py_max=560, limb_py_min=300, n_limbs=7,
         n_roots=6, root_py=880, depth_ratio=0.365, core=0.18, dome_pow=0.9, seed_dy=seed, min_r_px=1.5,
-        trunk=(940, 560, 465, 860, 0.7), leaf_all=True)          # its dark shaded leaves are not "foliage" green
+        trunk=(940, 560, 465, 860, 0.95), leaf_all=True)          # its dark shaded leaves are not "foliage" green
     # the aerial roots again, hanging in curtains through the crown's depth behind and before the painted ones
     for i, p in enumerate(wood.paths):
         if hanging(p):
@@ -2013,6 +2015,11 @@ def field_tree_1(K):
                     K.tube(pts, [r * 0.7 for r in rs], bark, segments=6, name="aerial_root")
     # the mound of red earth at its foot, pebbles on it
     ground = mound(K, 455, 335, 2.6, 980, 945, (300, 950, 600, 964))
+    # the painted earth and pebbles round the roots' tips are not projected onto the roots reaching over them (white
+    # pebbles came out as white claws on the root tips): the mound and stones carry their own tile and colour
+    a = np.asarray(P.img).copy()
+    a[box_mask(mask.shape, [(0, 930, P.w, P.h)]) & ~ndimage.binary_dilation(mask, iterations=3), 3] = 0
+    P.img = Image.fromarray(a, "RGBA")
     stone = K.colour((0.32, 0.3, 0.27), vary=0.15)
     for px, w in ((222, 16), (418, 20), (478, 18), (520, 14), (650, 12), (300, 12)):
         y = rng.uniform(-1.6, -0.6)

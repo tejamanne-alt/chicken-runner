@@ -122,16 +122,19 @@ def clean_tile(K, box, size=None, vary=0.05, soften=0.2, thresh=16, radius=5, st
         P.img = saved
 
 
-def projected_solid(K, keep, white=200, **kw):
+def projected_solid(K, keep, white=200, drop=None, **kw):
     """K.projected(keep=keep, ...) with the near-white pixels inside the keep boxes (the cut-out's halo and the pale
     background painted in the gaps of a woodpile or a heap) left out first, so the gaps are filled from the nearest
-    wood or clay instead of showing as white blotches on the ends and sides."""
+    wood or clay instead of showing as white blotches on the ends and sides. drop(rgb) -> bool leaves out more (the
+    wall painted behind a woodpile)."""
     P = K.paint
     a = np.asarray(P.img).copy()
     m = np.zeros(a.shape[:2], bool)
     for x0, y0, x1, y1 in keep:
         m[int(y0):int(y1), int(x0):int(x1)] = True
     pale = (a[..., :3].min(axis=2) > white) & m
+    if drop is not None:
+        pale |= drop(a[..., :3]) & m
     a[ndimage.binary_dilation(pale, iterations=1), 3] = 0
     from PIL import Image
     saved, P.img = P.img, Image.fromarray(a, "RGBA")
@@ -1990,7 +1993,10 @@ def house_hut_porch(K):
     rope_cot(K, 125, 660, 955, 1100, -0.95, -0.15, cotleg, K.colour((150, 990, 600, 1000), vary=0.08),
              K.tile((300, 955, 600, 985), vary=0.06))
     # the firewood: logs end-on at the bottom, sticks piled across them
-    logs = projected_solid(K, [(1065, 945, 1555, 1100)], squeeze=1.0, inset=2)
+    def behind(rgb):                             # the lime skirting and red mud painted behind the logs
+        r, g, b_ = [rgb[..., i].astype(np.int32) for i in range(3)]
+        return (np.minimum(np.minimum(r, g), b_) > 170) | ((r - b_ > 55) & (r > 130))
+    logs = projected_solid(K, [(1065, 945, 1555, 1100)], drop=behind, squeeze=1.0, inset=2)
     bark = K.colour((1200, 1000, 1300, 1040), vary=0.12)
     for cx, cy, rr in ((1110, 1078, 18), (1150, 1080, 19), (1195, 1078, 18), (1240, 1080, 18), (1290, 1078, 19),
                        (1335, 1080, 18), (1380, 1078, 18), (1425, 1080, 18), (1470, 1078, 19), (1515, 1082, 17),

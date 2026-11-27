@@ -533,7 +533,7 @@ def stall_g_2(K):
     K.sheet(lambda u, v: (lambda p: (p[0], p[1] + 0.004, p[2] - 0.016))(f(u, v)), 36, 18, under, name="awning_under",
             thickness=0.005)
     # ---------------------------------------------------------------- the two-step table under its cloth
-    purple = ktile(K, (360, 628, 560, 684), vary=0.05, soften=0.3)
+    purple = pole_tile(K, (360, 628, 560, 684), soften=0.3, vary=0.05)
     front = K.projected(squeeze=1.0, keep=[(95, 545, 812, 688)],
                         exclude=[(70, 612, 355, 688), (565, 612, 850, 688), (120, 375, 352, 612)], inset=2)
     y_l0, y_l1, y_u1 = -0.56, -0.18, 0.4
@@ -962,7 +962,7 @@ def stall_h_1(K):
     # ---------------------------------------------------------------- the bank of earth and the mats on it
     earth = ktile(K, (935, 792, 1020, 860), vary=0.1, soften=0.6)
     xl, xr = P.x(60), P.x(1026)
-    straw = ktile(K, (292, 866, 345, 884), vary=0.06)
+    straw = pole_tile(K, (292, 866, 345, 884), soften=0.1, vary=0.06)
     # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
     earth_patch(K, P.x(540), bank.y1 - 0.1, (xr - xl) / 2 + 0.12, bank.y1 - bank.y0 + 0.65, earth, h=0.015)
     raked_stand(K, bank, P.x(70), P.x(1010), straw, pole_tile(K, line=((498, 380), (498, 700)), half=5), back=0.6)
@@ -1339,7 +1339,7 @@ def stall_h_3(K):
     # ---------------------------------------------------------------- the earth and the mat
     earth = ktile(K, (8, 760, 60, 850), vary=0.08, soften=0.4)
     xl, xr = P.x(4), P.x(905)
-    orange = ktile(K, (560, 880, 640, 898), vary=0.06)
+    orange = pole_tile(K, (560, 880, 640, 898), soften=0.1, vary=0.06)
     # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
     bam_f = pole_tile(K, line=((105, 300), (108, 600)), half=4)
     raked_stand(K, ramp, xl + 0.02, xr - 0.02, orange, bam_f, back=0.5)
@@ -2316,7 +2316,7 @@ def stall_vessels(K):
     rope = K.colour((0.25, 0.16, 0.07), vary=0.1)
     bank = Bank(-1.05, Z(604), 22.0, flat=1.5, back=0.4)
     # ---------------------------------------------------------------- the mat floor and the earth
-    weave = ktile(K, (300, 630, 500, 660), vary=0.06)
+    weave = pole_tile(K, (300, 630, 500, 660), soften=0.1, vary=0.06)
     # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
     bam_f = pole_tile(K, line=((150, 200), (150, 400)), half=4)
     raked_stand(K, bank, P.x(5), P.x(1026), weave, bam_f, back=1.9)
@@ -2376,7 +2376,7 @@ def stall_vessels(K):
                      m, seg=12, rings=8, lumps=0.08, name="string_bag")
         K.tube([P.pt(cx, top + 4, yfp + 0.06), (P.x(cx), yfp + 0.06, zb)], 0.004, rope, segments=4, name="bag_string")
     # ---------------------------------------------------------------- the two-step stand under its cloth
-    cloth = ktile(K, (300, 562, 520, 596), vary=0.05, soften=0.3)
+    cloth = pole_tile(K, (300, 562, 520, 596), soften=0.3, vary=0.05)
     front = K.projected(squeeze=1.0, keep=[(140, 440, 880, 625)], inset=2)
     s1y, s2y, sby = -0.38, 0.05, 0.62
     z1, z2 = Z(553), Z(443)
@@ -2506,7 +2506,7 @@ def stall_flowers(K):
     bank = Bank(-1.3, Z(645), 22.0, flat=1.1, back=0.4)
     # ---------------------------------------------------------------- the earth and her mat
     earth = ktile(K, (330, 715, 560, 760), vary=0.08, soften=0.4)
-    matw = ktile(K, (380, 690, 560, 705), vary=0.06)
+    matw = pole_tile(K, (380, 690, 560, 705), soften=0.1, vary=0.06)
     # level ground, and a raked bamboo stand under the goods, its sides woven matting (a bank of earth
     # rising to the back was a wedge of ground)
     bam_f = pole_tile(K, line=((103, 250), (103, 450)), half=3)

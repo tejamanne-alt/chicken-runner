@@ -1227,7 +1227,7 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
         fan_card(K, (cx, cy), rad, y_c, n, cup=cup + rng.uniform(0, 0.15), pleat=pleat, lim=lim)
         placed.append((cx, cy, rad, y_c, n))
         K.tube([(sx0, 0.0, sz0), ((sx0 + X0) / 2, y_c * 0.5, (sz0 + Z0) / 2 + P.m(rad) * (0.15 if pet_from is None else 0.03)),
-                (X0, y_c + s * P.m(3), Z0)],
+                (X0, y_c - s * P.m(4), Z0)],                    # meeting the fan from behind its face
                [P.m(pet[0]), P.m((pet[0] + pet[1]) / 2), P.m(pet[1])], stalk, segments=6, name="petiole")
     # round the back: each painted fan mirrored behind the heart, and the side ones turned round to the sides
     crown_px = ndimage.binary_dilation(leaf_ok, iterations=1) if back_turn else ndimage.binary_closing(leaf_ok,
@@ -1802,6 +1802,7 @@ def side_cards(K, crown, n, size_px, inside, yaw_jit=0.0, rough=0.35, name="leaf
         ext = crown.extent(px, py)
         k = 0.65 + 0.35 * crown.reach(px, py)
         w, h = size_px[0] * rng.uniform(0.8, 1.2) * k, size_px[1] * rng.uniform(0.8, 1.2) * k
+        w = max(12.0, min(w, 1.5 * ext * P.ppm))       # turned side-on its width lies in depth: within the crown
         for _ in range(40):
             qx, qy = rng.uniform(x0 + w / 2, x1 - w / 2), rng.uniform(y0 + h / 2, y1 - h / 2)
             pts = [(qx + fx * w * 0.32, qy + fy * h * 0.32) for fx in (-1, 0, 1) for fy in (-1, 0, 1)]
@@ -1809,7 +1810,7 @@ def side_cards(K, crown, n, size_px, inside, yaw_jit=0.0, rough=0.35, name="leaf
                 break
         else:
             continue
-        yy = crown.y0 + rng.uniform(-1, 1) * ext
+        yy = crown.y0 + rng.uniform(-1, 1) * max(0.0, ext - P.m(w) * 0.5)
         sgn = 1.0 if px >= cx else -1.0
         out = Vector((sgn * 1.0, (yy - crown.y0) * 1.3 / max(1e-6, crown.hd), (cy - py) / max(1.0, crown.R) * 0.5 + 0.3))
         blob_card(K, (qx - w / 2, qy - h / 2, qx + w / 2, qy + h / 2), (P.x(px), yy, P.z(py)),
@@ -2327,7 +2328,7 @@ def h7_1(K):
     stalk = masked_material(K, opaque & box_mask(opaque.shape, [(290, 400, 460, 525)]) & not_ink(rgb, 50), inset=1)
     # the leaves, each turned a little sideways and up (a broad leaf seen edge-on is a sliver), on their stalks
     fan_crown(K, H71_LEAVES, (362, 470), 300, keep & box_mask(opaque.shape, [(0, 0, P.w, 470)]), stalk,
-              pet=(6.5, 4.5), side_min=0.3, cup=-0.42, tilt=1.0, grow=1.15, back_turn=True, fit_need=0.9)
+              pet=(6.5, 4.5), side_min=0.3, cup=-0.42, tilt=1.0, grow=1.15, back_turn=True, fit_need=0.97)
     # the bundle of stalks from the ground, fanning out a little as painted: each a fleshy tube, the ones in front
     # where they are painted, more behind them all round
     rng = K.rng
@@ -2335,13 +2336,13 @@ def h7_1(K):
         xb, xt = 262 + 178 * k / 12, 240 + 216 * k / 12
         yb = rng.uniform(-0.035, 0.035)
         yt = yb * 2.2 + rng.uniform(-0.04, 0.04)
-        K.tube([P.pt(xb, 530, yb), P.pt((xb + xt) / 2, 462, (yb + yt) / 2), P.pt(xt, 392, yt)],
+        K.tube([P.pt(xb, 520, yb), P.pt((xb + xt) / 2, 458, (yb + yt) / 2), P.pt(xt, 392, yt)],
                [P.m(7.5), P.m(7), P.m(6.5)], stalk, segments=8, name="stalk_base")
     for k in range(10):
         a = math.radians(rng.uniform(15, 165))               # behind the painted ones
         x0, y0 = P.x(350) + P.m(60) * math.cos(a), P.m(45) * math.sin(a)
         x1, y1 = P.x(350) + P.m(105) * math.cos(a), P.m(85) * math.sin(a)
-        K.tube([(x0, y0, P.z(530)), ((x0 + x1) / 2, (y0 + y1) / 2, P.z(462)), (x1, y1, P.z(395))],
+        K.tube([(x0, y0, P.z(520)), ((x0 + x1) / 2, (y0 + y1) / 2, P.z(458)), (x1, y1, P.z(395))],
                [P.m(7.5), P.m(7), P.m(6.5)], stalk, segments=8, name="stalk_back")
 
 
@@ -2658,7 +2659,7 @@ def h7_2(K):
                 yaw=25, pitch=15, name="blade_bits", max_cards=320)
     # the matted root of the clump: a low mound wearing the painted dark bases of the blades
     base = patch_tile(K, keep & (chan(rgb)[3] < 150), (150, 640, 350, 690), vary=0.08, soften=0.15)
-    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((136, 690), (128, 682), (94, 671), (40, 665), (0.0, 663))], base,
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((112, 697), (106, 689), (80, 677), (35, 670), (0.0, 668))], base,
             segments=24, centre=(P.x(255), 0.0, 0.0), scale_y=0.75, wobble=0.1, name="root_mat")
 
 
