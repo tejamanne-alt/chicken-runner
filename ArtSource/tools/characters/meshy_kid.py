@@ -376,6 +376,213 @@ def our_bone(name):
     return None
 
 
+# the frock's hem and waist, from the texture's place map
+y0 = J["Hips"].y
+frock_z = Z[COVER & (((HUE > 170) & (HUE < 215)) | (HUE > 320) | (HUE < 8)) & (SAT > 0.4) & (Z < 0.5)]
+HEM = float(np.percentile(frock_z, 0.5))
+WAIST = float(J["Spine"].z)
+hem_ring = COVER & (Z < HEM + 0.03) & (Z > HEM) & ~SKIN & ~HAIR & (SAT > 0.3)
+R_HEM = float(np.percentile(np.hypot(X[hem_ring], Y[hem_ring] - y0), 95))
+waist_ring = COVER & (np.abs(Z - WAIST) < 0.008) & ~SKIN & ~HAIR & (np.hypot(X, Y - y0) < 0.12)
+R_WAIST = float(np.percentile(np.hypot(X[waist_ring], Y[waist_ring] - y0), 60))
+print(f"hem {HEM:.3f} r {R_HEM:.3f}, waist {WAIST:.3f} r {R_WAIST:.3f}")
+
+
+def leg_dist(pts, side):
+    a_, b_ = np.array(J[f"{side}UpperLeg"]), np.array(J[f"{side}Foot"])
+    return seg_dist(pts, a_, b_)[0]
+
+
+def smoothstep(x):
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3 - 2 * x)
+
+
+# Meshy closed the frock with a floor running in from the hem and welded to the legs at the knees, so no leg could move
+# without tearing the hem. Its inner part goes, so each leg is free inside the skirt (her thighs and bloomers are built
+# there); a 3 cm band of it stays turned up inside the hem as its lining.
+def free_the_legs():
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    bm.verts.ensure_lookup_table()
+    pts = np.array([v.co[:] for v in bm.verts])
+    nz = np.array([v.normal.z for v in bm.verts])
+    r = np.hypot(pts[:, 0], pts[:, 1] - y0)
+    ang = np.round(np.degrees(np.arctan2(pts[:, 0], -(pts[:, 1] - y0))) / 3).astype(int)
+    band = (pts[:, 2] > HEM - 0.04) & (pts[:, 2] < HEM + 0.06)
+    outer = {}
+    for b, rr in zip(ang[band], r[band]):
+        outer[b] = max(outer.get(b, 0.0), rr)
+    r_out = np.array([outer.get(b, 0.0) for b in ang])
+    legd = np.minimum(leg_dist(pts, "Left"), leg_dist(pts, "Right"))
+    # the legs: grown up from below the hem along the surface while they stay upright and round their bones
+    leg = pts[:, 2] < HEM - 0.03
+    ok = (legd < 0.058) & (np.abs(nz) < 0.75)
+    todo = list(np.nonzero(leg)[0])
+    while todo:
+        nxt = []
+        for i in todo:
+            for e in bm.verts[i].link_edges:
+                j = e.other_vert(bm.verts[i]).index
+                if not leg[j] and ok[j]:
+                    leg[j] = True
+                    nxt.append(j)
+        todo = nxt
+    floor = band & ~leg & (((r < r_out - 0.03) & (nz < -0.35)) | (r < r_out - 0.06))
+    kill = [f for f in bm.faces if any(floor[v.index] for v in f.verts)]
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+    bm.to_mesh(body.data)
+    bm.free()
+    body.data.update()
+    return len(kill)
+
+
+print("skirt floor faces cut away:", free_the_legs())
+
+# Meshy also fused the inside of each arm into her bodice and skirt, from below the armpit down to the forearm (the
+# forearm even carried thigh weights). Cut each arm free below the armpit and close both openings: the arm's with skin,
+# rounded out to the arm's radius round its bones, the side's with frock blue. New points are marked in the "patch"
+# attribute (1 on an arm, 2 on her side), new faces use material slots 1 (skin) and 2 (frock).
+Z_CUT = float(J["LeftUpperArm"].z) - 0.06
+
+
+def free_the_arms():
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    bm.verts.ensure_lookup_table()
+    dl = bm.verts.layers.deform.active
+    names = {g.index: g.name for g in body.vertex_groups}
+    flag = bm.verts.layers.int.new("_arm")
+    for v in bm.verts:
+        tot = sum(w for _, w in v[dl].items()) or 1.0
+        aw = {"Left": 0.0, "Right": 0.0}
+        for gi, w in v[dl].items():
+            b = our_bone(names[gi]) or ""
+            if any(k in b for k in ("UpperArm", "LowerArm", "Hand")):
+                aw["Left" if b.startswith("Left") else "Right"] += w / tot
+        v[flag] = 1 if max(aw.values()) > 0.5 else 0
+    segs = {s: [np.array(J[f"{s}{j}"]) for j in ("UpperArm", "LowerArm", "Hand")] for s in ("Left", "Right")}
+
+    def bone_near(p):
+        """The arm bone (side, head, tail) nearest p and the distance to it."""
+        best = None
+        for s, ch in segs.items():
+            for a, b in zip(ch, ch[1:]):
+                d = seg_dist(np.asarray(p)[None], a, b)[0][0]
+                if best is None or d < best[3]:
+                    best = (s, a, b, d)
+        return best
+
+    kill = [f for f in bm.faces if all(v.co.z < Z_CUT for v in f.verts) and len({v[flag] for v in f.verts}) == 2
+            and bone_near(f.verts[0].co)[3] < 0.08]
+    bmesh.ops.delete(bm, geom=kill, context="FACES_ONLY")
+    bmesh.ops.delete(bm, geom=[e for e in bm.edges if not e.link_faces], context="EDGES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_edges], context="VERTS")
+    pv = bm.verts.layers.int.new("patch")
+    uvl = bm.loops.layers.uv.active
+    # the openings' rims: boundary edges near the arms, on an arm or on her side (never across), in chains
+    edges = [e for e in bm.edges if e.is_boundary and e.verts[0][flag] == e.verts[1][flag]
+             and all(0.45 < v.co.z < Z_CUT + 0.04 for v in e.verts) and bone_near(e.verts[0].co)[3] < 0.09]
+    adj = {}
+    for e in edges:
+        a_, b_ = e.verts
+        adj.setdefault(a_, []).append(b_)
+        adj.setdefault(b_, []).append(a_)
+    seen, chains = set(), []
+    for v0 in adj:
+        if v0 in seen:
+            continue
+        comp, stack = [], [v0]
+        seen.add(v0)
+        while stack:
+            v = stack.pop()
+            comp.append(v)
+            for w in adj[v]:
+                if w not in seen:
+                    seen.add(w)
+                    stack.append(w)
+        chains.append(comp)
+    made = {1: 0, 2: 0}
+    for comp in chains:
+        if len(comp) < 3 or any(len(adj[v]) > 2 for v in comp):
+            continue
+        ends = [v for v in comp if len(adj[v]) == 1]
+        order, prev, cur = [ends[0] if ends else comp[0]], None, None
+        cur = order[0]
+        while True:
+            nxt = [w for w in adj[cur] if w is not prev and w not in order]
+            if not nxt:
+                break
+            prev, cur = cur, nxt[0]
+            order.append(cur)
+        if len(order) != len(comp):
+            continue
+        kind = 1 if order[0][flag] else 2
+        c = np.mean([v.co[:] for v in order], 0)
+        s, a_s, b_s, _ = bone_near(c)
+        axis_pt = a_s + (b_s - a_s) * np.clip(((c - a_s) @ (b_s - a_s)) / ((b_s - a_s) @ (b_s - a_s)), 0, 1)
+        out_dir = (c - axis_pt) if kind == 1 else (axis_pt - c)
+        # the patch: a ring of points halfway in and one at the middle, smoothed with the rim held
+        n_ = len(order)
+        mids = [bm.verts.new(Vector((np.array(v.co[:]) + c) / 2)) for v in order]
+        centre = bm.verts.new(Vector(c))
+        region = []
+        try:
+            for i in range(n_):
+                j = (i + 1) % n_
+                region.append(bm.faces.new((order[i], order[j], mids[j], mids[i])))
+                region.append(bm.faces.new((mids[i], mids[j], centre)))
+        except ValueError:
+            for f in region:
+                bm.faces.remove(f)
+            for v in mids + [centre]:
+                bm.verts.remove(v)
+            continue
+        for f in region:
+            f.material_index = kind
+            f.normal_update()
+        if np.mean([np.dot(np.array(f.normal[:]), out_dir) for f in region]) < 0:
+            for f in region:
+                f.normal_flip()
+        rim = set(order)
+        inner = mids + [centre]
+        for v in inner:
+            v[pv] = kind
+        for _ in range(40):
+            bmesh.ops.smooth_vert(bm, verts=inner, factor=0.6, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+        if kind == 1:
+            # round it out to the arm's surface: each point pushed out from the bone to the rim's radius there
+            ab = b_s - a_s
+            rim_t = np.array([np.clip(((np.array(v.co[:]) - a_s) @ ab) / (ab @ ab), 0, 1) for v in order])
+            rim_r = np.array([seg_dist(np.array(v.co[:])[None], a_s, b_s)[0][0] for v in order])
+            for v in inner:
+                p = np.array(v.co[:])
+                tt = np.clip(((p - a_s) @ ab) / (ab @ ab), 0, 1)
+                q = a_s + ab * tt
+                r_ = np.average(rim_r, weights=1.0 / (np.abs(rim_t - tt) + 0.02) ** 2)
+                d = p - q
+                if np.linalg.norm(d) > 1e-6:
+                    v.co = Vector(q + d / np.linalg.norm(d) * r_)
+        # UVs: each corner takes its point's UV from an old face, or the nearest rim point's
+        for f in region:
+            for lp in f.loops:
+                src = lp.vert if lp.vert in rim else min(order, key=lambda r: (r.co - lp.vert.co).length)
+                old = next((l2 for l2 in src.link_loops if l2.face.material_index == 0), None)
+                if old is not None:
+                    lp[uvl].uv = old[uvl].uv
+        made[kind] += 1
+    bm.verts.layers.int.remove(flag)
+    bm.normal_update()
+    bm.to_mesh(body.data)
+    bm.free()
+    body.data.update()
+    while len(body.data.materials) < 3:
+        body.data.materials.append(body.data.materials[0])
+    return len(kill), made
+
+
+print("arms cut free of her sides (faces cut, patches on arms and sides):", free_the_arms())
+
 me = body.data
 nv = len(me.vertices)
 gname = {g.index: g.name for g in body.vertex_groups}
@@ -405,68 +612,121 @@ vh, vs, vv = hsv(np.clip(vcol, 0, 1))
 v_skin = (vh > 8) & (vh < 32) & (vs > 0.22) & (vs < 0.7) & (vv > 0.45)
 v_hair = vv < 0.3
 
-y0 = J["Hips"].y
-frock_z = Z[COVER & (((HUE > 170) & (HUE < 215)) | (HUE > 320) | (HUE < 8)) & (SAT > 0.4) & (Z < 0.5)]
-HEM = float(np.percentile(frock_z, 0.5))
-WAIST = float(J["Spine"].z)
-hem_ring = COVER & (Z < HEM + 0.03) & (Z > HEM) & ~SKIN & ~HAIR & (SAT > 0.3)
-R_HEM = float(np.percentile(np.hypot(X[hem_ring], Y[hem_ring] - y0), 95))
-waist_ring = COVER & (np.abs(Z - WAIST) < 0.008) & ~SKIN & ~HAIR & (np.hypot(X, Y - y0) < 0.12)
-R_WAIST = float(np.percentile(np.hypot(X[waist_ring], Y[waist_ring] - y0), 60))
-print(f"hem {HEM:.3f} r {R_HEM:.3f}, waist {WAIST:.3f} r {R_WAIST:.3f}")
+# the legs are their own pieces now (each with its foot); if the cut ever fails, fall back to the points round the bones
+from scipy.sparse.csgraph import connected_components  # noqa: E402
+from scipy.spatial import cKDTree  # noqa: E402
+E_BODY = K.edge_array(me)
+_, comp = connected_components(K.adjacency(E_BODY, nv), directed=False)
+leg_comps = set(comp[co[:, 2] < 0.08].tolist()) - set(comp[co[:, 2] > 0.95].tolist())
+on_leg = np.isin(comp, list(leg_comps))
+print("legs free of the frock:", len(leg_comps), "pieces,", int(on_leg.sum()), "points")
+if not on_leg.any():
+    on_leg = (np.minimum(leg_dist(co, "Left"), leg_dist(co, "Right")) < 0.052) & (co[:, 2] < HEM + 0.08)
 
-# the legs: everything close round the thigh and shin bones (Meshy painted their hidden tops dark, so not by colour)
-def leg_dist(pts, side):
-    a_, b_ = np.array(J[f"{side}UpperLeg"]), np.array(J[f"{side}Foot"])
-    return seg_dist(pts, a_, b_)[0]
+patch = np.zeros(nv, np.int64)
+if "patch" in me.attributes:
+    me.attributes["patch"].data.foreach_get("value", patch)
+v_hair &= patch == 0
+
+BN = [b[0] for b in M.BONES]
+BI = {b: i for i, b in enumerate(BN)}
+Wm = np.zeros((nv, len(BN)))
+for i, w in enumerate(weights):
+    for b, val in w.items():
+        Wm[i, BI[b]] += val
+Wm /= np.maximum(Wm.sum(1, keepdims=True), 1e-9)
 
 
-LEG_R = 0.052
-on_leg = ((np.minimum(leg_dist(co, "Left"), leg_dist(co, "Right")) < LEG_R) & (co[:, 2] < J["Hips"].z - 0.05))
+def cols(*keys):
+    return [BI[b] for b in BN if any(k in b for k in keys)]
 
-# the frock hangs from the waist on the four skirt bones (Meshy hung it on the thighs inside it)
-moved = 0
-for i in range(nv):
-    x, y, z = co[i]
-    if not (HEM - 0.03 < z < WAIST + 0.04) or v_skin[i] or on_leg[i]:
-        continue
-    w = weights[i]
-    if sum(val for b, val in w.items() if "Arm" in b or "Hand" in b or "Shoulder" in b) > 0.3:
-        continue
-    rad = math.hypot(x, y - y0) or 1e-6
-    skirt = {"SkirtFront": max(0.0, -(y - y0) / rad) ** 2, "SkirtBack": max(0.0, (y - y0) / rad) ** 2,
-             "SkirtLeft": max(0.0, x / rad) ** 2, "SkirtRight": max(0.0, -x / rad) ** 2}
-    k = min(1.0, max(0.0, (WAIST + 0.04 - z) / 0.1))
-    tot = sum(w.values()) or 1.0
-    new = {b: val / tot * (1 - k) for b, val in w.items()}
-    for b, val in skirt.items():
-        new[b] = new.get(b, 0.0) + val * k
-    weights[i] = new
-    moved += 1
-print(f"{moved} frock points hung on the skirt bones")
 
-# the hair below the ears on the hair bones, so it swings
+def move(mask, frm, to):
+    """Weight on bones `frm` goes to bone `to`, at the points in mask."""
+    for b in frm:
+        Wm[mask, BI[to]] += Wm[mask, BI[b]]
+        Wm[mask, BI[b]] = 0.0
+
+
+z_ = co[:, 2]
+arm_all = Wm[:, cols("UpperArm", "LowerArm", "Hand")].sum(1)
+arm_all[patch == 1], arm_all[patch == 2] = 1.0, 0.0
+arm_low = Wm[:, cols("LowerArm", "Hand")].sum(1)
+arm_low[patch == 1], arm_low[patch == 2] = 1.0, 0.0
+
+# below the armpit each arm is free now: her side lets go of the arm's bones and the arm of the body's and the legs'
+# (blended in over 8 cm round the armpit, where they still meet)
+cut_k = smoothstep((Z_CUT + 0.06 - z_) / 0.08)
+is_arm = arm_all > 0.5
+for side, sx in (("Left", 1), ("Right", -1)):
+    chain_b = [side + b for b in ("Shoulder", "UpperArm", "LowerArm", "Hand")]
+    ci = [BI[b] for b in chain_b]
+    torso_pts = ~is_arm & ~on_leg & (co[:, 0] * sx > 0) & (z_ > HEM)
+    to = np.where(z_ > J["Chest"].z - 0.03, BI["Chest"], BI["Spine"])
+    for c_ in ci[1:]:
+        moved_w = Wm[:, c_] * cut_k * torso_pts
+        Wm[:, c_] -= moved_w
+        np.add.at(Wm, (np.arange(nv), to), moved_w)
+    arm_pts = is_arm & (co[:, 0] * sx > 0)
+    dom = np.array(ci)[np.argmax(Wm[:, ci], 1)]
+    others = [j for j in range(len(BN)) if j not in ci]
+    moved_w = Wm[:, others].sum(1) * cut_k * arm_pts
+    Wm[:, others] *= (1 - cut_k * arm_pts)[:, None]
+    np.add.at(Wm, (np.arange(nv), dom), moved_w)
+
+# the frock hangs from the waist on the four skirt bones (Meshy hung it on the thighs inside it): everything round her
+# hips from the hem to just above the waist that is not a leg or an arm, chosen by place (its lining is skin-coloured)
+skirt = (z_ > HEM - 0.04) & (z_ < WAIST + 0.04) & ~on_leg & (arm_all < 0.5)
+move(skirt, [s + b for s in ("Left", "Right") for b in ("UpperLeg", "LowerLeg", "Foot")], "Hips")
+dx, dy = co[:, 0].astype(np.float64), co[:, 1] - y0
+rad = np.maximum(np.hypot(dx, dy), 1e-6)
+share = np.zeros_like(Wm)
+share[:, BI["SkirtFront"]] = np.maximum(0, -dy / rad) ** 2
+share[:, BI["SkirtBack"]] = np.maximum(0, dy / rad) ** 2
+share[:, BI["SkirtLeft"]] = np.maximum(0, dx / rad) ** 2
+share[:, BI["SkirtRight"]] = np.maximum(0, -dx / rad) ** 2
+k_skirt = (smoothstep((WAIST + 0.04 - z_) / 0.13) * skirt)[:, None]
+Wm = (1 - k_skirt) * Wm + k_skirt * share
+print(f"{int(skirt.sum())} frock points hung on the skirt bones")
+
+# her bob: Meshy welded it to her face, neck and shoulders, so it swings only where it is clear of them (its share of the
+# hair bones grows with its distance from them, over 5 cm) and never follows the arms (their share goes to the shoulder)
 HAIR_FROM = head_z + 0.06
 HAIR_LOW = J["UpperChest"].z - 0.04        # the hair ends on her shoulders; dark below that is the frock's inside
 hy = J["Head"].y
-hung = 0
-for i in range(nv):
-    x, y, z = co[i]
-    if not v_hair[i] or z > HAIR_FROM or z < HAIR_LOW or (abs(x) < 0.055 and y < hy - 0.04):
-        continue
-    w = weights[i]
-    rad = math.hypot(x, y - hy) or 1e-6
-    back = max(0.0, (y - hy) / rad) ** 2
-    side_w = 1 - back
-    hair = {"HairBack": back, "HairLeft": side_w * (1.0 if x > 0 else 0.0), "HairRight": side_w * (1.0 if x <= 0 else 0.0)}
-    k = min(1.0, max(0.0, (HAIR_FROM - z) / 0.05)) * 0.85
-    tot = sum(w.values()) or 1.0
-    new = {b: val / tot * (1 - k) for b, val in w.items()}
-    for b, val in hair.items():
-        new[b] = new.get(b, 0.0) + val * k
-    weights[i] = new
-    hung += 1
-print(f"{hung} hair points on the hair bones")
+face_front = (np.abs(co[:, 0]) < 0.06) & (co[:, 1] < hy - 0.03) & (z_ < head_z + 0.10)
+hair = v_hair & (z_ > HAIR_LOW) & ~face_front & ~skirt
+anchor = ~hair & ~on_leg & (z_ > HAIR_LOW - 0.1)
+d_anchor = cKDTree(co[anchor]).query(co[hair])[0]
+for side in ("Left", "Right"):
+    move(hair, [side + b for b in ("UpperArm", "LowerArm", "Hand")], side + "Shoulder")
+hx, hb = co[hair, 0].astype(np.float64), co[hair, 1] - hy
+back = np.maximum(0.0, hb / np.maximum(np.hypot(hx, hb), 1e-6)) ** 2
+left = smoothstep(0.5 + hx / 0.04)
+hs = np.zeros((int(hair.sum()), len(BN)))
+hs[:, BI["HairBack"]] = back
+hs[:, BI["HairLeft"]] = (1 - back) * left
+hs[:, BI["HairRight"]] = (1 - back) * (1 - left)
+k_hair = (0.85 * smoothstep((HAIR_FROM - z_[hair]) / 0.06) * smoothstep((d_anchor - 0.004) / 0.05))[:, None]
+Wm[hair] = (1 - k_hair) * Wm[hair] + k_hair * hs
+print(f"{int(hair.sum())} hair points, {int((k_hair > 0.4).sum())} of them swinging")
+
+# smooth joints: the weights blend over a set distance (heat diffusion over the surface): 6 mm everywhere, 1.5 cm where
+# the hair meets the face and shoulders, 1.2 cm round the shoulders and the skirt's waist, 1 cm at the other joints
+bnd = np.unique(E_BODY[hair[E_BODY[:, 0]] != hair[E_BODY[:, 1]]].ravel())
+d_bnd = cKDTree(co[bnd]).query(co)[0] if len(bnd) else np.full(nv, 9.0)
+t = np.full(nv, 0.006 ** 2)
+t = np.where(d_bnd < 0.03, 0.015 ** 2, t)
+t = np.where((np.abs(z_ - WAIST) < 0.07) & ~on_leg & (arm_all < 0.5), np.maximum(t, 0.012 ** 2), t)
+for side in ("Left", "Right"):
+    t = np.where(np.linalg.norm(co - np.array(J[f"{side}UpperArm"]), axis=1) < 0.08, np.maximum(t, 0.02 ** 2), t)
+    for j_, r_, s_ in (("LowerArm", 0.04, 0.012), ("Hand", 0.035, 0.01), ("LowerLeg", 0.06, 0.02), ("Foot", 0.035, 0.01)):
+        t = np.where(np.linalg.norm(co - np.array(J[f"{side}{j_}"]), axis=1) < r_, np.maximum(t, s_ ** 2), t)
+t = np.where(np.linalg.norm(co - np.array(J["Neck"]), axis=1) < 0.05, np.maximum(t, 0.01 ** 2), t)
+t = np.where(patch > 0, 1.0, t)          # the patches take their weights from their rims
+Wd = K.diffuse_weights(Wm, co, E_BODY, t, floor=0.02)
+weights = [{BN[j]: float(Wd[i, j]) for j in np.nonzero(Wd[i] > 0)[0]} for i in range(nv)]
+print("points on more than 4 bones before the limit:", int(((Wd > 0).sum(1) > 4).sum()))
 
 
 def set_weights(ob, ws):
@@ -483,6 +743,17 @@ def set_weights(ob, ws):
 
 set_weights(body, weights)
 
+# what each of Meshy's points is, for the deformation checks: skin, frock, hair or the anklets (by colour and place)
+in_bodice = (z_ >= WAIST + 0.04) & (z_ < J["Neck"].z + 0.01) & ~v_skin & ~v_hair & (arm_low < 0.5)
+BODY_PART = np.full(nv, "skin", dtype=object)
+BODY_PART[skirt | in_bodice] = "frock"
+BODY_PART[hair] = "hair"
+BODY_PART[(vs < 0.12) & (vv > 0.55) & (z_ < 0.12)] = "anklet"
+BODY_PART[patch == 1] = "skin"
+BODY_PART[patch == 2] = "frock"
+BODY_CO = co.copy()
+LEG_TREE, LEG_W = cKDTree(co[on_leg]), Wd[on_leg]
+
 # ------------------------------------------------------------------ 4. what the model lacks: jhumkas, bangles, bloomers
 painted = bpy.data.images.load(str(tex_path))
 MATS = {
@@ -492,8 +763,11 @@ MATS = {
     "green": K.materials("KidGlassGreen", M.srgb(22, 140, 64), gloss=0.6),
     "bloomers": K.materials("KidBloomers", tuple(float(c) for c in (FROCK_BLUE * 1.1) ** 2.2), shadow=(0.62, 0.62, 0.78)),
     "skin": K.materials("KidThighs", tuple(float(c) for c in SKIN_RGB ** 2.2), shadow=(0.8, 0.72, 0.82)),
+    "frock": K.materials("KidFrockSide", tuple(float(c) for c in FROCK_BLUE ** 2.2), shadow=(0.62, 0.62, 0.78)),
 }
 K.assign(body, MATS["body"])
+body.data.materials.append(MATS["skin"][0])       # slot 1: the arms' patches
+body.data.materials.append(MATS["frock"][0])      # slot 2: her sides' patches
 parts = []
 
 
@@ -529,12 +803,16 @@ for side, sx in (("Left", 1), ("Right", -1)):
     c0 = np.array(Wv - axis * 0.011)
     along = (pts - c0) @ np.array(axis)
     radial = np.linalg.norm((pts - c0) - along[:, None] * np.array(axis), axis=1)
-    slab = (np.abs(along) < 0.006) & (radial < 0.045)
-    r_wrist = float(np.percentile(radial[slab], 90)) if slab.any() else 0.02
+    # each bangle clears the widest point of the wrist under it by 1.5 mm, so it hangs loose and never cuts in
+    radii = []
     for k, mat in enumerate(("gold", "red", "gold", "green", "gold")):
-        c = Wv - axis * (0.0045 + k * 0.0024)
-        part(f"Bangle{side}{k}", torus(c, axis, r_wrist + 0.0021, 0.0011), mat, {f"{side}LowerArm": 1.0})
-    print(side, "wrist radius", round(r_wrist, 4))
+        off = 0.0045 + k * 0.0024
+        c = Wv - axis * off
+        slab = (np.abs(along - (0.011 - off)) < 0.0035) & (radial < 0.045)
+        r_k = float(radial[slab].max()) if slab.any() else 0.022
+        radii.append(r_k)
+        part(f"Bangle{side}{k}", torus(c, axis, r_k + 0.0011 + 0.0015, 0.0011), mat, {f"{side}LowerArm": 1.0})
+    print(side, "wrist radii under the bangles", [round(r, 4) for r in radii])
 
     # a jhumka: a gold stud on the lobe and a small bell hanging from it, in front of the hair at the jaw
     z_lobe = head_z + 0.033
@@ -545,7 +823,7 @@ for side, sx in (("Left", 1), ("Right", -1)):
     hairfront = band_ & HAIR & (np.abs(X * sx - ex) < 0.008)
     if hairfront.any():
         ey = min(ey, float(np.percentile(Y[hairfront], 3)))
-    cx, cy = sx * (ex - 0.002), ey - 0.003
+    cx, cy = sx * (ex - 0.002), ey - 0.0065          # its bell (4.4 mm round) clear in front of the hair
     top = Vector((cx, cy, z_lobe))
     part(f"JhumkaStud{side}", K.ellipsoid(top, 0.0018, 0.0012, 0.0018, rings=5, n=8), "gold", {"Head": 1.0})
     prof = [(0.0018, 0.0007), (0.0035, 0.0016), (0.0070, 0.0030), (0.0105, 0.0042), (0.0120, 0.0044)]
@@ -584,11 +862,16 @@ for side, sx in (("Left", 1), ("Right", -1)):
             out.append(K.ring(Vector((c[0], c[1], z)), r, r * 0.96, 18))
         return out
 
-    def thigh_w(pts, side=side, knee_j=knee_j):
+    def thigh_w(pts, side=side):
+        """Where it overlaps Meshy's leg, the thigh moves as the leg does (its nearest point's weights); above the leg's
+        top it is the thigh bone's alone."""
         out = []
-        for x, y, z in pts:
-            k = min(1.0, max(0.0, (z - knee_j[2]) / 0.03))
-            out.append({f"{side}UpperLeg": 0.4 + 0.6 * k, f"{side}LowerLeg": 0.6 * (1 - k)})
+        _, idx = LEG_TREE.query(pts)
+        for (x, y, z), j in zip(pts, idx):
+            k = float(smoothstep((z - (HEM + 0.035)) / 0.05))
+            w = {BN[c]: float(LEG_W[j, c]) * (1 - k) for c in np.nonzero(LEG_W[j])[0]}
+            w[f"{side}UpperLeg"] = w.get(f"{side}UpperLeg", 0.0) + k
+            out.append(w)
         return out
 
     part(f"Thigh{side}", K.loft(tube_rings(HEM + 0.012, 0.372, 6, -0.002), closed=True), "skin", thigh_w)
@@ -665,6 +948,61 @@ mod = body.modifiers.new("Armature", "ARMATURE")
 mod.object = arm
 missing = [b.name for b in arm.data.bones if b.name not in body.vertex_groups]
 print("bones without weights:", missing)
+# Unity skins with 4 bones a vertex: cut to that here, so Blender shows (and the checks measure) what the game plays
+if "--no-limit" not in ARGS:
+    print("4-bone limit:", K.limit_weights(body), "points had more than 4 bones")
+
+
+def audit_parts():
+    """Each point's part (skin, frock, hair, anklet, jewel, bloomers, thighs) and the surfaces the checks compare."""
+    me_ = body.data
+    n = len(me_.vertices)
+    co_ = np.empty(n * 3)
+    me_.vertices.foreach_get("co", co_)
+    co_ = co_.reshape(-1, 3)
+    assert np.allclose(co_[:nv], BODY_CO, atol=1e-6), "Meshy's points are no longer first"
+    vmat = np.zeros(n, np.int64)
+    for p in me_.polygons:
+        vmat[list(p.vertices)] = p.material_index
+    names = [m.name for m in me_.materials]
+    part = np.empty(n, dtype=object)
+    part[:nv] = BODY_PART
+    for i in range(nv, n):
+        m = names[vmat[i]]
+        part[i] = "bloomers" if m == "KidBloomers" else "thighs" if m == "KidThighs" else "jewel"
+    bones_ = [b.name for b in arm.data.bones]
+    dom = np.array(bones_)[K.weight_matrix(body, bones_).argmax(1)]
+    part = part.astype(str)
+
+    def on(*keys):
+        return np.array([any(k in d for k in keys) for d in dom])
+    sets = {}
+    for side, sx in (("Left", 1), ("Right", -1)):
+        s = side[0]
+        sets[f"leg{s}"] = ((part == "skin") | (part == "thighs") | (part == "anklet")) & on(f"{side}UpperLeg",
+                                                                                          f"{side}LowerLeg", f"{side}Foot")
+        sets[f"arm{s}"] = (part == "skin") & on(f"{side}UpperArm", f"{side}LowerArm", f"{side}Hand")
+        sets[f"wrist{s}"] = (part == "skin") & on(f"{side}LowerArm", f"{side}Hand")
+        sets[f"bangle{s}"] = (part == "jewel") & on(f"{side}LowerArm")
+        sets[f"jhumka{s}"] = (part == "jewel") & on("Head") & (co_[:, 0] * sx > 0)
+    sets["skirt"] = (part == "frock") & (co_[:, 2] < WAIST + 0.04)
+    sets["bodice"] = (part == "frock") & (co_[:, 2] >= WAIST + 0.04)
+    sets["bloomers"] = part == "bloomers"
+    for side, sx in (("Left", 1), ("Right", -1)):
+        sets[f"bloomer{side[0]}"] = (part == "bloomers") & on(f"{side}UpperLeg")
+        sets[f"thigh{side[0]}"] = (part == "thighs") & (co_[:, 0] * sx > 0)
+    sets["thighs"] = part == "thighs"
+    sets["hair"] = part == "hair"
+    sets["face"] = (part == "skin") & on("Head", "Neck")
+    sets["head"] = sets["hair"] | sets["face"]
+    pairs = [("legL", "skirt"), ("legR", "skirt"), ("bloomers", "skirt"), ("thighs", "bloomers"), ("armL", "skirt"),
+             ("armR", "skirt"), ("armL", "bodice"), ("armR", "bodice"), ("armL", "legL"), ("armR", "legR"),
+             ("hair", "face"), ("hair", "bodice"), ("bangleL", "wristL"), ("bangleR", "wristR"), ("jhumkaL", "face"),
+             ("jhumkaR", "face"), ("jhumkaL", "hair"), ("jhumkaR", "hair"), ("legL", "legR")]
+    attached = [("jhumkaL", "jhumkaL", "head", 0.004), ("jhumkaR", "jhumkaR", "head", 0.004),
+                ("bangleL", "bangleL", "wristL", 0.006), ("bangleR", "bangleR", "wristR", 0.006),
+                ("bloomersL", "bloomerL", "thighL", 0.012), ("bloomersR", "bloomerR", "thighR", 0.012)]
+    return part, sets, pairs, attached
 
 # the run's IK works on this model's legs
 for side in ("Left",):
@@ -689,8 +1027,26 @@ if "--no-fbx" not in ARGS:
         [{"name": c, "frames": f, "loop": l, "face": fc} for c, f, l, fc, _ in A.CLIPS], indent=1))
     print("exported", OUT / f"{NAME}.fbx")
 
-# ------------------------------------------------------------------ previews, sprite frames and checks
+# ------------------------------------------------------------------ the deformation checks, every frame of every clip
 SHEET, FRAMES, CLOSE, CHECK = arg("--sheet"), arg("--frames"), arg("--closeup"), arg("--check")
+AUDIT = arg("--audit") or CHECK
+ONLY = set(ARGS[ARGS.index("--clips") + 1].split(",")) if "--clips" in ARGS else None
+CHECK_CLIPS = [(c, f, l) for c, f, l, _, _ in A.CLIPS if not ONLY or c in ONLY]
+# flags judged natural by eye, with the reason (kept in the report, marked)
+NATURAL = getattr(A, "NATURAL_FLAGS", ())
+check = None
+if "--no-audit" not in ARGS:
+    import time
+    t0 = time.time()
+    part, sets, pairs, attached = audit_parts()
+    check = K.DeformCheck(arm, body, part, sets, pairs, attached)
+    print("parts:", {p: int((part == p).sum()) for p in sorted(set(part))})
+    print("rest crossings:", {f"{a} x {b}": n for (a, b), n in check.rest_overlap.items()})
+    check.measure(actions, CHECK_CLIPS)
+    if AUDIT:
+        AUDIT.mkdir(parents=True, exist_ok=True)
+    print(check.report("Kid", AUDIT / "kid_report.txt" if AUDIT else None, natural=NATURAL))
+    print(f"audit took {time.time() - t0:.0f} s; {len(check.flags)} flags")
 if SHEET or FRAMES or CLOSE or CHECK:
     K.use_toon(True)
     K.ink(1.3)
@@ -793,10 +1149,15 @@ if CHECK:
     look(CHECK / "z_feet_front.png", (0, -0.02, 0.1), 0.3, 0, 20)
     look(CHECK / "z_feet_side.png", (0.06, -0.02, 0.08), 0.24, 90)
     look(CHECK / "z_under_skirt.png", (0, 0, 0.42), 0.6, 0, -55)
-    for clip, frames, loop, face, fn in A.CLIPS:
-        arm.animation_data.action = actions[clip]
-        for k, f in enumerate(sorted({0, frames // 2, frames - 1})):
-            scene.frame_set(f)
-            for yaw in (65, 0):
-                look(CHECK / f"clip_{clip}_{k}_{yaw:03d}.png", (0, 0, 0.56), 1.4, yaw)
+    # every clip at six moments from the front, her left side, three-quarter and the back
+    scene.cycles.samples = 8
+    if "--no-sheets" not in ARGS:
+        K.clip_sheets(arm, actions, CHECK_CLIPS, CHECK, (0, -0.05, 0.54), 1.25, res=300)
+    # a close look at every flagged region at its worst frame, its faces painted red
+    if check is not None and "--heat" in ARGS:
+        K.heat_sheets(check, actions, CHECK_CLIPS, CHECK, (0, -0.05, 0.54), 1.25, res=300)
+    if check is not None and "--no-flags" not in ARGS:
+        made = K.flag_closeups(check, actions, CHECK / "flags", limit=int(ARGS[ARGS.index("--flag-limit") + 1])
+                               if "--flag-limit" in ARGS else 40)
+        print("flag close-ups:", len(made))
     print("check renders", CHECK)

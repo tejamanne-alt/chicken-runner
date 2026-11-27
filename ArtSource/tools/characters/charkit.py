@@ -198,6 +198,90 @@ def bind(mesh_ob, arm_ob, weights):
     mesh_ob.parent = arm_ob
 
 
+def limit_weights(mesh_ob, limit=4):
+    """Unity imports a skin with at most 4 bone weights a vertex (its default quality): keep each vertex's `limit`
+    strongest and normalise them (vertex_group_limit_total, then normalize), so what Blender deforms, and the checks
+    measure, is what the game plays. Returns how many vertices had more."""
+    me = mesh_ob.data
+    over = sum(1 for v in me.vertices if sum(1 for g in v.groups if g.weight > 1e-6) > limit)
+    with bpy.context.temp_override(object=mesh_ob, active_object=mesh_ob, selected_objects=[mesh_ob],
+                                   selected_editable_objects=[mesh_ob]):
+        bpy.ops.object.vertex_group_clean(group_select_mode="ALL", limit=1e-4)
+        bpy.ops.object.vertex_group_limit_total(group_select_mode="ALL", limit=limit)
+        bpy.ops.object.vertex_group_normalize_all(group_select_mode="ALL", lock_active=False)
+    return over
+
+
+def weight_matrix(mesh_ob, names):
+    """The mesh's weights as a (vertices x bones) array, its columns in the order of `names`."""
+    import numpy as np
+    col = {n: i for i, n in enumerate(names)}
+    gi = {g.index: col.get(g.name) for g in mesh_ob.vertex_groups}
+    W = np.zeros((len(mesh_ob.data.vertices), len(names)), np.float64)
+    for v in mesh_ob.data.vertices:
+        for g in v.groups:
+            c = gi.get(g.group)
+            if c is not None:
+                W[v.index, c] += g.weight
+    return W
+
+
+def edge_array(me):
+    import numpy as np
+    e = np.empty(len(me.edges) * 2, np.int64)
+    me.edges.foreach_get("vertices", e)
+    return e.reshape(-1, 2)
+
+
+def adjacency(edges, n, keep=None):
+    """A sparse vertex adjacency matrix from an (E x 2) edge array; keep: a bool per edge (cut the others)."""
+    import numpy as np
+    from scipy.sparse import coo_matrix
+    if keep is not None:
+        edges = edges[keep]
+    i = np.r_[edges[:, 0], edges[:, 1]]
+    j = np.r_[edges[:, 1], edges[:, 0]]
+    return coo_matrix((np.ones(len(i)), (i, j)), shape=(n, n)).tocsr()
+
+
+def smooth_weights(W, adj, amount, rounds=8):
+    """Laplacian smoothing of skin weights over the mesh's edges: `amount` per vertex (0 keeps its weights; 1 takes its
+    neighbours' mean every round), rows normalised. Cut `adj` where two surfaces meet that must not share weights."""
+    import numpy as np
+    deg = np.asarray(adj.sum(1)).ravel()
+    a = (np.asarray(amount, np.float64) * (deg > 0))[:, None]
+    deg[deg == 0] = 1
+    for _ in range(rounds):
+        W = W + a * ((adj @ W) / deg[:, None] - W)
+    return W / np.maximum(W.sum(1, keepdims=True), 1e-9)
+
+
+def diffuse_weights(W, co, edges, t, keep=None, floor=0.0):
+    """Heat diffusion of skin weights over the mesh's edges, solved implicitly so it blends over a set distance however
+    dense the mesh is: t per vertex in square metres (about the square of the distance it blends over; 0 holds the
+    vertex's weights), edges weighted by 1/length^2. keep: a bool per edge (cut the others where two surfaces must not
+    share weights). Weights below `floor` are dropped afterwards. Rows normalised."""
+    import numpy as np
+    from scipy.sparse import coo_matrix, diags, identity
+    from scipy.sparse.linalg import splu
+    if keep is not None:
+        edges = edges[keep]
+    n = len(co)
+    ln = np.linalg.norm(co[edges[:, 0]] - co[edges[:, 1]], axis=1)
+    w = 1.0 / np.maximum(ln, 5e-4) ** 2
+    A = coo_matrix((np.r_[w, w], (np.r_[edges[:, 0], edges[:, 1]], np.r_[edges[:, 1], edges[:, 0]])),
+                   shape=(n, n)).tocsr()
+    L = diags(np.asarray(A.sum(1)).ravel()) - A
+    M = (identity(n, format="csr") + diags(np.asarray(t, np.float64)) @ L).tocsc()
+    out = splu(M).solve(np.asarray(W, np.float64))
+    out = np.clip(out, 0.0, None)
+    out /= np.maximum(out.sum(1, keepdims=True), 1e-9)
+    if floor > 0:
+        out[out < floor] = 0.0
+        out /= np.maximum(out.sum(1, keepdims=True), 1e-9)
+    return out
+
+
 def chain(t, joints):
     """Weights along a limb: joints = [(bone, t_end), ...] in order; within `soft` of each joint the two bones blend."""
     soft = 0.08
@@ -522,3 +606,465 @@ def gait(arm_ob, mesh_ob, act, feet, speed, forward=Vector((0, -1, 0)), contact=
                 i = int(np.argmin(pa[:, 2]))
                 ratios.append(-float((pb[i] - pa[i]) @ fwd) * fps / speed)
     return (round(float(np.median(ratios)), 2) if ratios else None), down
+
+
+# ------------------------------------------------------------------ deformation checks
+class DeformCheck:
+    """Measures how a skinned mesh holds its shape through every frame of its clips, against its rest pose.
+
+    - stretch: every edge's deformed length over its rest length, worst and 99th percentile per region and frame;
+      flagged above STRETCH or below SQUASH (inside a deep knee or elbow some squash is natural: judge those by eye);
+    - collapse: triangles whose area falls below COLLAPSE of their rest area;
+    - fold: triangles whose normal turns more than FOLD degrees from the rest normal carried by the triangle's dominant
+      bone (a fold-over or a candy-wrapper twist);
+    - interpenetration: triangle pairs of two surfaces that must not cross (mathutils.bvhtree overlap; pairs that share
+      a vertex are left out), flagged when there are more than at rest;
+    - loose parts: how far an attached part's points drift from the surface they sit on, against rest.
+
+    A region is a vertex's part (its label: skin, frock, hair, ...) and its dominant bone. part: a label per vertex;
+    sets: {name: bool per vertex} surfaces for the pairs and the attached parts (a triangle belongs to a set when two of
+    its corners do); pairs: [(set, set)]; attached: [(name, set of the part, set of the surface, tolerance in metres)].
+    """
+    STRETCH, SQUASH, COLLAPSE, FOLD = 1.3, 0.6, 0.15, 100.0
+
+    def __init__(self, arm_ob, mesh_ob, part, sets=None, pairs=(), attached=()):
+        import numpy as np
+        self.arm, self.ob = arm_ob, mesh_ob
+        me = mesh_ob.data
+        me.calc_loop_triangles()
+        nt = len(me.loop_triangles)
+        tri = np.empty(nt * 3, np.int64)
+        me.loop_triangles.foreach_get("vertices", tri)
+        self.tri = tri.reshape(-1, 3)
+        self.tri_poly = np.empty(nt, np.int64)
+        me.loop_triangles.foreach_get("polygon_index", self.tri_poly)
+        self.edges = edge_array(me)
+        self.bones = [b.name for b in arm_ob.data.bones]
+        W = weight_matrix(mesh_ob, self.bones)
+        self.W = W
+        self.vbone = W.argmax(1)
+        self.tbone = W[self.tri].sum(1).argmax(1)
+        part = np.asarray(part).astype(str)
+        self.part = part
+        labels = np.char.add(np.char.add(part, "/"), np.array(self.bones)[self.vbone])
+        self.region_names, self.vregion = np.unique(labels, return_inverse=True)
+        self.eregion = self.vregion[self.edges[:, 0]]
+        # a triangle's region: its corner most weighted to its dominant bone
+        corner = np.argmax(W[self.tri, self.tbone[:, None]], axis=1)
+        self.tregion = self.vregion[self.tri[np.arange(nt), corner]]
+        self.sets = {}
+        for k, mask in (sets or {}).items():
+            mask = np.asarray(mask, bool)
+            self.sets[k] = np.nonzero(mask[self.tri].sum(1) >= 2)[0]
+        self.vsets = {k: np.nonzero(np.asarray(m, bool))[0] for k, m in (sets or {}).items()}
+        self.pairs = [tuple(p) for p in pairs if p[0] in self.sets and p[1] in self.sets
+                      and len(self.sets[p[0]]) and len(self.sets[p[1]])]
+        self.attached = [a for a in attached if a[1] in self.vsets and a[2] in self.sets and len(self.vsets[a[1]])]
+        pose = arm_ob.data.pose_position
+        arm_ob.data.pose_position = "REST"
+        bpy.context.view_layer.update()
+        self.rest = self.coords()
+        arm_ob.data.pose_position = pose
+        bpy.context.view_layer.update()
+        self.rest_len = np.linalg.norm(self.rest[self.edges[:, 0]] - self.rest[self.edges[:, 1]], axis=1)
+        self.rest_area, self.rest_n = self._tris(self.rest)
+        self.ok_e = self.rest_len > 1e-5
+        self.ok_t = self.rest_area > 1e-9
+        self.e_idx = [np.nonzero((self.eregion == r) & self.ok_e)[0] for r in range(len(self.region_names))]
+        self.t_idx = [np.nonzero((self.tregion == r) & self.ok_t)[0] for r in range(len(self.region_names))]
+        self._cache = {}
+        self.rest_overlap = {p: len(self.overlap(self.rest, *p)) for p in self.pairs}
+        self.rest_dist = {a[0]: self.distances(self.rest, a) for a in self.attached}
+        self._cache = {}
+
+    # ---- geometry
+    def coords(self):
+        import numpy as np
+        dg = bpy.context.evaluated_depsgraph_get()
+        ev = self.ob.evaluated_get(dg)
+        me = ev.to_mesh()
+        co = np.empty(len(me.vertices) * 3, np.float64)
+        me.vertices.foreach_get("co", co)
+        ev.to_mesh_clear()
+        return co.reshape(-1, 3)
+
+    def _tris(self, co):
+        import numpy as np
+        a, b, c = co[self.tri[:, 0]], co[self.tri[:, 1]], co[self.tri[:, 2]]
+        n = np.cross(b - a, c - a)
+        ln = np.linalg.norm(n, axis=1)
+        return 0.5 * ln, n / np.maximum(ln, 1e-12)[:, None]
+
+    def bone_rotations(self):
+        import numpy as np
+        R = np.zeros((len(self.bones), 3, 3))
+        for i, name in enumerate(self.bones):
+            pb = self.arm.pose.bones[name]
+            R[i] = np.array((pb.matrix @ pb.bone.matrix_local.inverted()).to_3x3().normalized())
+        return R
+
+    def _tree(self, co, name):
+        from mathutils.bvhtree import BVHTree
+        if name not in self._cache:
+            if "_co" not in self._cache:
+                self._cache["_co"] = co.tolist()
+            self._cache[name] = BVHTree.FromPolygons(self._cache["_co"], self.tri[self.sets[name]].tolist(),
+                                                     all_triangles=True)
+        return self._cache[name]
+
+    def overlap(self, co, a, b):
+        """The crossing triangles of sets a and b, as (n x 2) indices into self.tri."""
+        import numpy as np
+        hits = self._tree(co, a).overlap(self._tree(co, b))
+        if not hits:
+            return np.zeros((0, 2), np.int64)
+        h = np.array(hits, np.int64)
+        ta, tb = self.sets[a][h[:, 0]], self.sets[b][h[:, 1]]
+        A, B = self.tri[ta], self.tri[tb]
+        shared = (A[:, :, None] == B[:, None, :]).any(axis=(1, 2))
+        return np.stack([ta[~shared], tb[~shared]], 1)
+
+    def distances(self, co, att):
+        import numpy as np
+        name, pset, surf, tol = att
+        tree = self._tree(co, surf)
+        idx = self.vsets[pset]
+        if len(idx) > 600:
+            idx = idx[:: len(idx) // 600 + 1]
+        return np.array([tree.find_nearest(co[i])[3] or 0.0 for i in idx])
+
+    # ---- the measurement
+    def measure(self, actions, clips):
+        """clips: [(name, frames, loop)]; returns {clip: results} and keeps the flags (with the faces to show)."""
+        import numpy as np
+        scene = bpy.context.scene
+        self.results, self.flags = {}, []
+        for name, frames, loop in clips:
+            self.arm.animation_data.action = actions[name]
+            reg = {}
+            pairs = {p: {"rest": self.rest_overlap[p], "max": [0, 0], "frames_over": 0} for p in self.pairs}
+            att = {a[0]: {"drift": [0.0, 0], "tol": a[3]} for a in self.attached}
+            worst = {}       # (kind, key) -> (value, frame, faces)
+
+            def keep(kind, key, value, frame, faces, higher=True):
+                w = worst.get((kind, key))
+                if w is None or (value > w[0] if higher else value < w[0]):
+                    worst[(kind, key)] = (value, frame, faces)
+
+            for f in range(frames):
+                scene.frame_set(f)
+                self._cache = {}
+                co = self.coords()
+                ratio = np.linalg.norm(co[self.edges[:, 0]] - co[self.edges[:, 1]], axis=1) / np.maximum(self.rest_len, 1e-9)
+                area, nrm = self._tris(co)
+                R = self.bone_rotations()
+                carried = np.einsum("tij,tj->ti", R[self.tbone], self.rest_n)
+                ang = np.degrees(np.arccos(np.clip((nrm * carried).sum(1), -1, 1)))
+                small = (area < self.COLLAPSE * self.rest_area) & self.ok_t
+                folded = (ang > self.FOLD) & self.ok_t
+                for r, rname in enumerate(self.region_names):
+                    ei, ti = self.e_idx[r], self.t_idx[r]
+                    d = reg.setdefault(rname, {"max": [0.0, 0], "p99": [0.0, 0], "min": [9.0, 0], "p1": [9.0, 0],
+                                               "n_stretch": [0, 0], "n_squash": [0, 0], "collapse": [0, 0],
+                                               "fold": [0, 0], "edges": int(len(ei)), "tris": int(len(ti))})
+                    if len(ei):
+                        v = ratio[ei]
+                        mx, mn = float(v.max()), float(v.min())
+                        p99, p1 = (float(x) for x in np.percentile(v, (99, 1)))
+                        hi, lo = v > self.STRETCH, v < self.SQUASH
+                        for key, val, better in (("max", mx, 1), ("p99", p99, 1), ("min", mn, -1), ("p1", p1, -1),
+                                                 ("n_stretch", int(hi.sum()), 1), ("n_squash", int(lo.sum()), 1)):
+                            if (val > d[key][0]) if better > 0 else (val < d[key][0]):
+                                d[key] = [val, f]
+                        if hi.any():
+                            keep("stretch", rname, mx, f, self.edges[ei[hi]].ravel())
+                        if lo.any():
+                            keep("squash", rname, mn, f, self.edges[ei[lo]].ravel(), higher=False)
+                    if len(ti):
+                        for key, mask in (("collapse", small), ("fold", folded)):
+                            n = int(mask[ti].sum())
+                            if n > d[key][0]:
+                                d[key] = [n, f]
+                            if n:
+                                keep(key, rname, n, f, ti[mask[ti]])
+                for p in self.pairs:
+                    hit = self.overlap(co, *p)
+                    n = len(hit)
+                    if n > pairs[p]["max"][0]:
+                        pairs[p]["max"] = [n, f]
+                    if n > pairs[p]["rest"]:
+                        pairs[p]["frames_over"] += 1
+                        keep("cross", f"{p[0]} x {p[1]}", n - pairs[p]["rest"], f, hit.ravel())
+                for a in self.attached:
+                    dd = self.distances(co, a)
+                    drift = float(np.abs(dd - self.rest_dist[a[0]]).max())
+                    if drift > att[a[0]]["drift"][0]:
+                        att[a[0]]["drift"] = [drift, f]
+                    if drift > a[3]:
+                        keep("loose", a[0], drift, f, self.vsets[a[1]])
+            self.results[name] = {"frames": frames, "regions": reg,
+                                  "pairs": {f"{a} x {b}": v for (a, b), v in pairs.items()}, "attached": att}
+            for (kind, key), (value, frame, faces) in worst.items():
+                self.flags.append({"clip": name, "kind": kind, "region": key, "value": value, "frame": frame,
+                                   "items": faces})
+        return self.results
+
+    def faces_of(self, flag):
+        """The polygons a flag points at (stretch/squash/loose items are vertices, the others triangles)."""
+        import numpy as np
+        items = np.unique(np.asarray(flag["items"], np.int64))
+        if flag["kind"] in ("stretch", "squash", "loose"):
+            hit = np.isin(self.tri, items).any(1)
+            return np.unique(self.tri_poly[hit]), np.nonzero(hit)[0]
+        return np.unique(self.tri_poly[items]), items
+
+    # ---- the report
+    def report(self, title, path=None, natural=()):
+        """A plain-text report: per clip, the worst of each part over its bones, then every flagged region. natural:
+        [(clip or '*', kind, region substring, why)] flags judged natural by eye (still listed, marked)."""
+        lines = [f"=== {title}: deformation over every frame of every clip ===",
+                 f"flags: edge stretch > {self.STRETCH} or squash < {self.SQUASH}; triangle area < {self.COLLAPSE:.0%} of "
+                 f"rest; normal > {self.FOLD:.0f} deg from the rest normal carried by its bone; more crossing triangle "
+                 f"pairs than at rest; an attached part drifting from its surface by more than its tolerance", ""]
+        parts = sorted({r.split("/")[0] for r in self.region_names})
+        for clip, res in self.results.items():
+            lines.append(f"--- {clip} ({res['frames']} frames)")
+            lines.append(f"  {'part':<10} {'stretch max':>12} {'p99':>6} {'squash min':>11} {'p1':>6} "
+                         f"{'>1.3':>5} {'<0.6':>5} {'collapse':>8} {'fold':>5}")
+            for p in parts:
+                rs = [v for k, v in res["regions"].items() if k.split("/")[0] == p and v["edges"]]
+                if not rs:
+                    continue
+                mx = max(rs, key=lambda v: v["max"][0])
+                mn = min(rs, key=lambda v: v["min"][0])
+                lines.append(f"  {p:<10} {mx['max'][0]:>7.2f} @{mx['max'][1]:<3} {max(v['p99'][0] for v in rs):>6.2f} "
+                             f"{mn['min'][0]:>6.2f} @{mn['min'][1]:<3} {min(v['p1'][0] for v in rs):>6.2f} "
+                             f"{max(v['n_stretch'][0] for v in rs):>5} {max(v['n_squash'][0] for v in rs):>5} "
+                             f"{max(v['collapse'][0] for v in rs):>8} {max(v['fold'][0] for v in rs):>5}")
+            for k, v in res["pairs"].items():
+                lines.append(f"  cross {k:<34} rest {v['rest']:>4}  max {v['max'][0]:>4} @{v['max'][1]:<3} "
+                             f"frames over rest {v['frames_over']}")
+            for k, v in res["attached"].items():
+                lines.append(f"  loose {k:<34} drift {v['drift'][0] * 1000:5.1f} mm @{v['drift'][1]:<3} "
+                             f"(tolerance {v['tol'] * 1000:.0f} mm)")
+            fl = [f for f in self.flags if f["clip"] == clip]
+            for f in sorted(fl, key=lambda f: (f["kind"], f["region"])):
+                why = next((w for c, k, r, w in natural if c in ("*", clip) and k == f["kind"] and r in f["region"]), None)
+                val = f"{f['value']:.2f}" if isinstance(f["value"], float) else str(f["value"])
+                lines.append(f"  FLAG {f['kind']:<8} {f['region']:<40} {val:>6} @{f['frame']:<3}"
+                             + (f"  natural: {why}" if why else ""))
+            lines.append("")
+        text = "\n".join(lines)
+        if path:
+            import json
+            pathlib.Path(path).write_text(text)
+            pathlib.Path(path).with_suffix(".json").write_text(json.dumps(
+                {"results": self.results,
+                 "flags": [{k: v for k, v in f.items() if k != "items"} for f in self.flags]}, indent=1))
+        return text
+
+    # ---- looking at the flags
+    def highlight(self, polys):
+        """Paints the given polygons red for a render; returns a function that undoes it."""
+        import numpy as np
+        me = self.ob.data
+        mat = bpy.data.materials.get("CheckRed")
+        if mat is None:
+            mat = bpy.data.materials.new("CheckRed")
+            mat.use_nodes = True
+            nt = mat.node_tree
+            for node in list(nt.nodes):
+                nt.nodes.remove(node)
+            out = nt.nodes.new("ShaderNodeOutputMaterial")
+            em = nt.nodes.new("ShaderNodeEmission")
+            em.inputs["Color"].default_value = (1.0, 0.0, 0.05, 1)
+            nt.links.new(em.outputs[0], out.inputs["Surface"])
+        if mat.name not in me.materials:
+            me.materials.append(mat)
+        slot = list(me.materials).index(mat)
+        old = np.empty(len(me.polygons), np.int64)
+        me.polygons.foreach_get("material_index", old)
+        new = old.copy()
+        new[np.asarray(polys, np.int64)] = slot
+        me.polygons.foreach_set("material_index", new)
+        me.update()
+
+        def undo():
+            me.polygons.foreach_set("material_index", old)
+            me.update()
+        return undo
+
+
+def aim(cam, target, yaw=0.0, pitch=0.0, size=1.0, direction=None, res=None):
+    """Points the orthographic check camera at `target` from `yaw` (0: in front, 90: her left side) and `pitch`, or
+    from `direction` (a vector toward the camera)."""
+    scene = bpy.context.scene
+    if direction is None:
+        direction = Vector((math.sin(math.radians(yaw)) * math.cos(math.radians(pitch)),
+                            -math.cos(math.radians(yaw)) * math.cos(math.radians(pitch)), math.sin(math.radians(pitch))))
+    d = Vector(direction).normalized()
+    cam.location = Vector(target) + d * 6
+    cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+    cam.data.type = "ORTHO"
+    cam.data.ortho_scale = size
+    if res:
+        scene.render.resolution_x = scene.render.resolution_y = res
+
+
+def clip_sheets(arm_ob, actions, clips, out_dir, target, size, moments=6, yaws=(0, 90, 45, 180), res=260,
+                label=""):
+    """Every clip at `moments` frames (rows) from the front, the side, three-quarter and the back (columns), one sheet
+    per clip: out_dir/sheet_<clip>.png. The armature stays unturned; the camera goes round."""
+    from PIL import Image, ImageDraw
+    scene = bpy.context.scene
+    cam = scene.camera
+    out_dir = pathlib.Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp = out_dir / "_tile.png"
+    paths = []
+    for name, frames, loop in clips:
+        arm_ob.animation_data.action = actions[name]
+        fs = sorted({round(i * (frames - 1) / (moments - 1)) for i in range(moments)})
+        sheet = Image.new("RGB", (res * len(yaws), (res + 18) * len(fs)), (206, 198, 186))
+        draw = ImageDraw.Draw(sheet)
+        for r, f in enumerate(fs):
+            scene.frame_set(f)
+            for c, yaw in enumerate(yaws):
+                aim(cam, target, yaw=yaw, size=size, res=res)
+                render_to(tmp)
+                tile = Image.open(tmp).convert("RGBA")
+                sheet.paste(tile, (c * res, r * (res + 18) + 18), tile)
+                draw.text((c * res + 4, r * (res + 18) + 3), f"{label}{name} f{f} yaw {yaw}", fill=(40, 20, 10))
+        p = out_dir / f"sheet_{name}.png"
+        sheet.save(p)
+        paths.append(p)
+    tmp.unlink(missing_ok=True)
+    return paths
+
+
+def flag_closeups(check, actions, out_dir, flags=None, limit=40, res=300, min_size=0.12, natural=()):
+    """A close render of each flagged region at its worst frame, its faces painted red, from the side they face, beside
+    the same view unpainted: out_dir/flag_<n>_<clip>_<kind>.png. Worst flags first."""
+    import numpy as np
+    from PIL import Image
+    scene = bpy.context.scene
+    cam = scene.camera
+    out_dir = pathlib.Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    order = {"cross": 0, "fold": 1, "collapse": 2, "loose": 3, "stretch": 4, "squash": 5}
+    flags = sorted(flags if flags is not None else check.flags,
+                   key=lambda f: (order.get(f["kind"], 9), -abs(f["value"]) if f["kind"] != "squash" else f["value"]))
+    tmp = out_dir / "_tile.png"
+    made = []
+    for n, fl in enumerate(flags[:limit]):
+        check.arm.animation_data.action = actions[fl["clip"]]
+        scene.frame_set(fl["frame"])
+        co = check.coords()
+        polys, tris = check.faces_of(fl)
+        if not len(tris):
+            continue
+        m = np.array(check.ob.matrix_world)
+        pts = co[check.tri[tris]].reshape(-1, 3) @ m[:3, :3].T + m[:3, 3]
+        c = pts.mean(0)
+        R = check.bone_rotations()
+        nrm = np.einsum("tij,tj->ti", R[check.tbone[tris]], check.rest_n[tris]).mean(0) @ m[:3, :3].T
+        if np.linalg.norm(nrm) < 0.2:
+            nrm = np.array([c[0], c[1], 0.0]) if abs(c[0]) + abs(c[1]) > 1e-3 else np.array([0.0, -1.0, 0.0])
+        nrm = nrm / np.linalg.norm(nrm)
+        nrm = 0.7 * nrm + 0.3 * np.array([0.0, -0.7, 0.7])      # a little from the front and above, to see round it
+        size = max(min_size, 2.2 * float(np.ptp(pts, 0).max()))
+        aim(cam, Vector(c), size=size, direction=Vector(nrm), res=res)
+        render_to(tmp)
+        plain = Image.open(tmp).convert("RGBA")
+        undo = check.highlight(polys)
+        render_to(tmp)
+        undo()
+        red = Image.open(tmp).convert("RGBA")
+        pair = Image.new("RGB", (res * 2, res), (206, 198, 186))
+        pair.paste(plain, (0, 0), plain)
+        pair.paste(red, (res, 0), red)
+        safe = fl["region"].replace("/", "-").replace(" ", "")
+        p = out_dir / f"flag_{n:02d}_{fl['clip']}_{fl['kind']}_{safe}_f{fl['frame']}.png"
+        pair.save(p)
+        made.append(p)
+    tmp.unlink(missing_ok=True)
+    return made
+
+
+HEAT = ((0.0, (0.15, 0.35, 1.0)), (0.6, (0.55, 0.8, 1.0)), (0.8, (0.92, 0.92, 0.92)), (1.15, (1.0, 0.85, 0.1)),
+        (1.3, (1.0, 0.45, 0.0)), (1.6, (0.85, 0.0, 0.0)))
+
+
+def heat_sheets(check, actions, clips, out_dir, target, size, yaws=(0, 90, 45, 180), res=260, frames=None):
+    """The mesh coloured by how much each face stretches against rest (its worst edge: blue squashed below 0.6, pale
+    blue below 0.8, white near 1, yellow above 1.15, orange above 1.3, red above 1.6), at each clip's worst frames
+    (or `frames` {clip: [frames]}), from the four sides: out_dir/heat_<clip>.png."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    scene = bpy.context.scene
+    cam = scene.camera
+    me = check.ob.data
+    mats = []
+    for i, (_, col) in enumerate(HEAT):
+        m = bpy.data.materials.get(f"CheckHeat{i}") or bpy.data.materials.new(f"CheckHeat{i}")
+        m.use_nodes = True
+        nt = m.node_tree
+        for node in list(nt.nodes):
+            nt.nodes.remove(node)
+        out = nt.nodes.new("ShaderNodeOutputMaterial")
+        em = nt.nodes.new("ShaderNodeEmission")
+        em.inputs["Color"].default_value = (*col, 1)
+        nt.links.new(em.outputs[0], out.inputs["Surface"])
+        if m.name not in me.materials:
+            me.materials.append(m)
+        mats.append(list(me.materials).index(m))
+    old = np.empty(len(me.polygons), np.int64)
+    me.polygons.foreach_get("material_index", old)
+    a, b, c = check.tri[:, 0], check.tri[:, 1], check.tri[:, 2]
+    rest_e = np.stack([np.linalg.norm(check.rest[x] - check.rest[y], axis=1) for x, y in ((a, b), (b, c), (c, a))], 1)
+    out_dir = pathlib.Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp = out_dir / "_tile.png"
+    paths = []
+    for name, nframes, loop in clips:
+        res_ = check.results.get(name, {}).get("regions", {})
+        if frames and name in frames:
+            fs = frames[name]
+        else:
+            score = {}
+            for v in res_.values():
+                for key in ("max", "n_stretch", "n_squash", "fold"):
+                    score[v[key][1]] = score.get(v[key][1], 0) + (v[key][0] if key != "max" else 10 * max(0, v[key][0] - 1.3))
+            fs = sorted(sorted(score, key=lambda f: -score[f])[:2]) or [0]
+        check.arm.animation_data.action = actions[name]
+        sheet = Image.new("RGB", (res * len(yaws), (res + 18) * len(fs)), (206, 198, 186))
+        draw = ImageDraw.Draw(sheet)
+        for r, f in enumerate(fs):
+            scene.frame_set(f)
+            co = check.coords()
+            e = np.stack([np.linalg.norm(co[x] - co[y], axis=1) for x, y in ((a, b), (b, c), (c, a))], 1)
+            ratio = e / np.maximum(rest_e, 1e-9)
+            hi, lo = ratio.max(1), ratio.min(1)
+            val = np.where(lo < 0.8, lo, hi)
+            poly_v = np.ones(len(me.polygons))
+            worst = np.abs(np.log(np.maximum(val, 1e-6)))
+            order = np.argsort(worst)
+            poly_v[check.tri_poly[order]] = val[order]       # the worst triangle of each polygon wins
+            idx = np.zeros(len(me.polygons), np.int64)
+            for k, (lim, _) in enumerate(HEAT):
+                idx[poly_v >= lim] = mats[k]
+            me.polygons.foreach_set("material_index", idx)
+            me.update()
+            for col_i, yaw in enumerate(yaws):
+                aim(cam, target, yaw=yaw, size=size, res=res)
+                render_to(tmp)
+                tile = Image.open(tmp).convert("RGBA")
+                sheet.paste(tile, (col_i * res, r * (res + 18) + 18), tile)
+                draw.text((col_i * res + 4, r * (res + 18) + 3), f"heat {name} f{f} yaw {yaw}", fill=(40, 20, 10))
+        me.polygons.foreach_set("material_index", old)
+        me.update()
+        p = out_dir / f"heat_{name}.png"
+        sheet.save(p)
+        paths.append(p)
+    tmp.unlink(missing_ok=True)
+    return paths

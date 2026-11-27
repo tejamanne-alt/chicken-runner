@@ -234,6 +234,29 @@ def set_weights(ob, ws):
             grp.add([i], val / tot, "REPLACE")
 
 
+# smooth joints: Meshy's 81 bones folded onto 14 leave steps where two of his bones meet, and the jaw (picked by colour)
+# a hard edge at the mouth. The weights blend over a set distance (heat diffusion over the surface): 6 mm everywhere,
+# 1.5 cm round the wing roots, the base of the neck and the tail, 1 cm up the neck and at the hocks, 4 mm at the beak
+if "--raw-weights" not in ARGS:
+    BN = [b[0] for b in M.BONES]
+    BI = {b: i for i, b in enumerate(BN)}
+    Wm = np.zeros((nv, len(BN)))
+    for i, w in enumerate(weights):
+        for b, val in w.items():
+            Wm[i, BI[b]] += val
+    Wm /= np.maximum(Wm.sum(1, keepdims=True), 1e-9)
+    t = np.full(nv, 0.006 ** 2)
+
+    def near(p, r):
+        return np.linalg.norm(co - np.array(p), axis=1) < r
+    for side, wroot in zip(("Right", "Left"), wing_roots):
+        t = np.where(near(J[wroot], 0.05), 0.015 ** 2, t)
+        t = np.where(near(J[LEGS[side][2]], 0.025) | near(J[LEGS[side][1]], 0.03), np.maximum(t, 0.01 ** 2), t)
+    t = np.where(near(J[chest], 0.05) | near(J[tail_root], 0.05), np.maximum(t, 0.015 ** 2), t)
+    t = np.where(near(J[upper_neck], 0.04) | near(J[head_joint], 0.035), np.maximum(t, 0.01 ** 2), t)
+    t = np.where(near(hinge, 0.02), 0.004 ** 2, t)
+    Wm = K.diffuse_weights(Wm, co, K.edge_array(me), t, floor=0.02)
+    weights = [{BN[j]: float(Wm[i, j]) for j in np.nonzero(Wm[i] > 0)[0]} for i in range(nv)]
 set_weights(body, weights)
 painted = bpy.data.images.load(str(tex_path))
 K.assign(body, K.materials(f"{NAME}Painted", (1, 1, 1), image=painted, shadow=(0.8, 0.72, 0.82)))
@@ -268,6 +291,29 @@ body.parent = arm
 mod = body.modifiers.new("Armature", "ARMATURE")
 mod.object = arm
 print("bones without weights:", [b.name for b in arm.data.bones if b.name not in body.vertex_groups])
+# Unity skins with 4 bones a vertex: cut to that here, so Blender shows (and the checks measure) what the game plays
+if "--no-limit" not in ARGS:
+    print("4-bone limit:", K.limit_weights(body), "points had more than 4 bones")
+BEAK = (beak_zone & (beakish | mouthish)) | jaw
+
+
+def audit_parts():
+    """Each point's part (by its strongest bone; the beak by colour) and the surfaces the checks compare."""
+    bones_ = [b.name for b in arm.data.bones]
+    dom = np.array(bones_)[K.weight_matrix(body, bones_).argmax(1)]
+    part = np.array(["body" if d == "Body" else "neck" if d.startswith("Neck") else "head" if d == "Head" else
+                     "beak" if d == "Jaw" else "wing" if d.endswith("Wing") else "tail" if d.startswith("Tail") else
+                     "leg" for d in dom])
+    part[BEAK & (part == "head")] = "beak"
+    sets = {"body": part == "body", "neck": part == "neck", "head": part == "head", "beak": part == "beak",
+            "tail": part == "tail"}
+    for side in ("Left", "Right"):
+        s = side[0]
+        sets[f"wing{s}"] = dom == f"{side}Wing"
+        sets[f"leg{s}"] = np.isin(dom, [f"{side}UpperLeg", f"{side}LowerLeg", f"{side}Foot"])
+    pairs = [("wingL", "body"), ("wingR", "body"), ("wingL", "legL"), ("wingR", "legR"), ("tail", "legL"),
+             ("tail", "legR"), ("head", "neck"), ("head", "body"), ("beak", "neck"), ("beak", "body"), ("legL", "legR")]
+    return part, sets, pairs, []
 
 actions = {}
 for clip, frames, loop, face, fn in A.CLIPS:
@@ -285,8 +331,27 @@ if "--no-fbx" not in ARGS:
         [{"name": c, "frames": f, "loop": l, "face": fc} for c, f, l, fc, _ in A.CLIPS], indent=1))
     print("exported", OUT / f"{NAME}.fbx")
 
-# ------------------------------------------------------------------ previews, sprite frames and checks
+# ------------------------------------------------------------------ the deformation checks, every frame of every clip
 SHEET, FRAMES, CHECK = arg("--sheet"), arg("--frames"), arg("--check")
+AUDIT = arg("--audit") or CHECK
+ONLY = set(ARGS[ARGS.index("--clips") + 1].split(",")) if "--clips" in ARGS else None
+CHECK_CLIPS = [(c, f, l) for c, f, l, _, _ in A.CLIPS if not ONLY or c in ONLY]
+NATURAL = getattr(A, "NATURAL_FLAGS", ())
+check = None
+if "--no-audit" not in ARGS:
+    import time
+    t0 = time.time()
+    part, sets, pairs, attached = audit_parts()
+    check = K.DeformCheck(arm, body, part, sets, pairs, attached)
+    print("parts:", {p: int((part == p).sum()) for p in sorted(set(part))})
+    print("rest crossings:", {f"{a} x {b}": n for (a, b), n in check.rest_overlap.items()})
+    check.measure(actions, CHECK_CLIPS)
+    if AUDIT:
+        AUDIT.mkdir(parents=True, exist_ok=True)
+    print(check.report("Rooster", AUDIT / "rooster_report.txt" if AUDIT else None, natural=NATURAL))
+    print(f"audit took {time.time() - t0:.0f} s; {len(check.flags)} flags")
+
+# ------------------------------------------------------------------ previews, sprite frames and checks
 if SHEET or FRAMES or CHECK:
     K.use_toon(True)
     K.ink(1.3)
@@ -356,9 +421,15 @@ if CHECK:
     scene.frame_set(0)
     for yaw in (0, 45, 90, 135, 180, 225, 270, 315):
         look(CHECK / f"rest_{yaw:03d}.png", (0, 0, 0.32), 0.8, yaw)
-    for clip, frames, loop, face, fn in A.CLIPS:
-        arm.animation_data.action = actions[clip]
-        for k, f in enumerate(sorted({0, frames // 4, frames // 2, (3 * frames) // 4, frames - 1})):
-            scene.frame_set(f)
-            look(CHECK / f"clip_{clip}_{k}.png", (0, 0, 0.32), 0.95, 65)
+    # every clip at six moments from the front, his left side, three-quarter and the back
+    scene.cycles.samples = 8
+    scene.render.resolution_x = scene.render.resolution_y = 300
+    if "--no-sheets" not in ARGS:
+        K.clip_sheets(arm, actions, CHECK_CLIPS, CHECK, (0, 0, 0.32), 0.9, res=300)
+    if check is not None and "--heat" in ARGS:
+        K.heat_sheets(check, actions, CHECK_CLIPS, CHECK, (0, 0, 0.32), 0.9, res=300)
+    if check is not None and "--no-flags" not in ARGS:
+        made = K.flag_closeups(check, actions, CHECK / "flags", limit=int(ARGS[ARGS.index("--flag-limit") + 1])
+                               if "--flag-limit" in ARGS else 40, min_size=0.08)
+        print("flag close-ups:", len(made))
     print("check renders", CHECK)

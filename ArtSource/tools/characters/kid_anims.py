@@ -26,8 +26,21 @@ def pose():
     return defaultdict(lambda: [0.0, 0.0, 0.0])
 
 
+ARM_MAX = 180.0                 # the most the upper arm turns from hanging (see arm)
+SHRUG = 0.0                     # the share of a big raise the shoulder takes (see arm)
+
+
 def arm(P, side, forward=0.0, out=0.0, elbow=0.0, hand=0.0):
+    """A raise past 70 degrees is shared with the shoulder (it shrugs up, as a real shoulder does, so the puffed sleeve
+    and the hair resting on it ride up with the arm instead of being crushed under it); the upper arm never turns past
+    ARM_MAX from hanging."""
     s = 1 if side == "Left" else -1
+    raise_ = max(forward, abs(out))
+    shrug = SHRUG * max(0.0, raise_ - 70.0)
+    if raise_ > 0:
+        k = min(1.0, max(0.0, (min(raise_, ARM_MAX) - shrug)) / raise_)
+        forward, out = forward * k if forward > 0 else forward, out * k
+    P[f"{side}Shoulder"] = [0.0, 0.0, shrug * s]
     P[f"{side}UpperArm"] = [forward, 0.0, out * s]
     P[f"{side}LowerArm"] = [elbow, 0.0, 0.0]
     P[f"{side}Hand"] = [hand, 0.0, 0.0]
@@ -89,6 +102,8 @@ RUN_SPEED = 6.0
 RUN_T = 12 / 30
 RUN_DUTY = 0.18                 # the part of a stride each foot is down
 SWING = 40.0                    # the arms swing in step with this (Kick Off's maxLegSwing)
+RUN_LIFT = 0.20                 # how high the swinging foot rises (lower than Kick Off's 0.24, so the knee and heel stay
+                                # under the skirt the model can flare without tearing it)
 
 
 def two_bone(x, y, a, b, bend=1.0):
@@ -119,7 +134,7 @@ def run_leg(u, T=None, speed=None):
         w = (u - RUN_DUTY) / (1 - RUN_DUTY)
         # the heel flicks up behind, the knee drives through high, the leg reaches out and comes down to land
         x = -half * math.cos(math.pi * w) - 0.07 * math.sin(math.pi * w) * (1 - w) ** 1.5
-        lift = 0.24 * max(0.0, math.sin(math.pi * w)) ** 0.9 * (1 - 0.35 * w)
+        lift = RUN_LIFT * max(0.0, math.sin(math.pi * w)) ** 0.9 * (1 - 0.45 * w)
     upper, lower = two_bone(x, hip_ankle - lift, a, b, 1.0)
     thigh = math.degrees(upper - LEGS["thigh_rest"])
     knee = math.degrees((lower - upper) - (LEGS["shank_rest"] - LEGS["thigh_rest"]))
@@ -138,14 +153,15 @@ def run_pose(t, lean=8.0):
     reach and rise a little in each flight."""
     P = pose()
     u = (t / RUN_T) % 1.0
-    thighs = {}
+    thighs, shins = {}, {}
     hip_ankle = None
     for side, uu in (("Left", u), ("Right", u + 0.5)):
         thigh, knee, foot, hip_ankle = run_leg(uu)
         leg(P, side, thigh, knee, foot)
         thighs[side] = thigh
+        shins[side] = -(thigh + knee)         # how far back the shin points (the heel flicked up behind)
     phi = 2 * math.pi * u                     # left foot strikes at phi = 0, right at phi = pi
-    arm_swing = 36.0 * SWING / 42.0
+    arm_swing = 32.0 * SWING / 42.0
     for side, p in (("Left", phi), ("Right", phi + math.pi)):
         c = math.cos(p)                       # its own leg forward at the strike (c = 1): this arm back
         arm(P, side, forward=-arm_swing * c - 6, out=9, elbow=70 + 25 * max(0.0, c), hand=-6)
@@ -156,9 +172,13 @@ def run_pose(t, lean=8.0):
     nod = 2.5 * math.cos(2 * phi - 0.7)
     P["Head"] = [-0.45 * lean + 2 + nod, -3 * math.cos(phi), 0]
     lag = math.cos(2 * phi - 0.95 * math.pi)
-    hair(P, back=-22 - 8 * lag, sides=-12 - 5 * lag, out=6 + 3 * lag)
-    skirt(P, front=6 + 0.55 * max(thighs["Left"], thighs["Right"], 0) + 3 * lag, back=14 + 6 * lag,
-          left=(0.35 * thighs["Left"], 6 + 3 * lag), right=(0.35 * thighs["Right"], 6 + 3 * lag))
+    hair(P, back=-10 - 4 * lag, sides=-5 - 2 * lag, out=2 + lag)
+    # The skirt flares only as far as the legs need: its front clears the knee driving up, its back the heel flicking
+    # up behind, and each side swings forward with its own thigh (never back, which would tear it from the front).
+    fwd = max(thighs["Left"], thighs["Right"], 0.0)
+    heel = max(0.0, max(shins.values()) - 55.0)
+    skirt(P, front=3 + 0.45 * fwd + 2 * lag, back=8 + 0.3 * heel + 2 * lag,
+          left=(0.25 * max(thighs["Left"], 0.0), 5 + 2 * lag), right=(0.25 * max(thighs["Right"], 0.0), 5 + 2 * lag))
     # each half stride: a stance (both hips at the planted leg's height), then a flight that rises and falls
     h = (u % 0.5) / 0.5
     flight = 0.0 if h < 2 * RUN_DUTY else math.sin(math.pi * (h - 2 * RUN_DUTY) / (1 - 2 * RUN_DUTY))
