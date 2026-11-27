@@ -1613,8 +1613,9 @@ def stall_high(K):
     n1 = collect(K)
     scallop_cloth(K, -a_ - 0.08, a_ + 0.12, yf, zr + 0.03, yf - 0.48, Z(76), stripes, hem=P.m(9), n_scallop=11,
                   drop=Z(76) - Z(88), sag=0.03, name="awning")
-    scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), stripes, hem=P.m(7), n_scallop=10,
-                  drop=Z(88) - Z(104), sag=0.02, name="awning_back")
+    # the back slope wears the awning's own stripes as a tile (projected through, its stripes ran askew)
+    scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), ktile(K, (150, 36, 230, 76), vary=0.04),
+                  hem=P.m(7), n_scallop=10, drop=Z(88) - Z(104), sag=0.02, name="awning_back")
     # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
     gable = ktile(K, (150, 36, 230, 76), vary=0.04)             # the awning's own stripes
     for x in (-a_ - 0.06, a_ + 0.06):
@@ -1730,8 +1731,9 @@ def stall_low(K):
     n1 = collect(K)
     scallop_cloth(K, -a_ - 0.06, a_ + 0.16, yf, zr + 0.03, yf - 0.42, Z(56), stripes, hem=P.m(6), n_scallop=10,
                   drop=Z(56) - Z(66), sag=0.02, name="awning")
-    scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), stripes, hem=P.m(5), n_scallop=8,
-                  drop=Z(60) - Z(70), sag=0.02, name="awning_back")
+    # the back slope wears the awning's own stripes as a tile (projected through, its stripes ran askew)
+    scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), ktile(K, (110, 22, 186, 62), vary=0.04),
+                  hem=P.m(5), n_scallop=8, drop=Z(60) - Z(70), sag=0.02, name="awning_back")
     # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
     gable = ktile(K, (110, 22, 186, 62), vary=0.04)             # the awning's own stripes
     for x in (-a_ - 0.05, a_ + 0.05):

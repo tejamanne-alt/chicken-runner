@@ -2066,7 +2066,9 @@ def field_tree_1(K):
 def _trace_field_tree_2(K):
     def rule(rgb):
         r, g, b, mx, mn = chan(rgb)
-        return (mx - mn < 45) & (mx < 170) & (mx > 25) & ~((g > r + 3) & (g > b + 12)) & (r >= b)
+        # (warm grey-brown: r above g; the shaded sage leaves are as grey and as dark, but g >= r)
+        return (mx - mn < 45) & (mx < 170) & (mx > 25) & ~((g > r + 3) & (g > b + 12)) & (r >= b) & \
+            ((r >= g + 2) | (mx < 60))
     mask = wood_mask(K, rule, boxes=[(0, 0, 525, 528)], exclude=[(160, 478, 208, 530), (312, 488, 352, 530),
                                                                  (150, 518, 400, 560)], close=1, hole=300, min_area=40)
     return mask, Wood(K, mask, root_px=(255, 525), spur=1.3, min_len=5)
@@ -2104,10 +2106,12 @@ def field_tree_2(K):
     def foot(bark):
         # the foot flares into roots all round, down onto the earth
         out = []
-        x0, r0 = P.x(258), P.m(48)
-        for k in range(7):
-            a = 2 * math.pi * (k + rng.uniform(-0.25, 0.25)) / 7
-            x1, y1 = x0 + math.cos(a) * r0 * 2.0, math.sin(a) * r0 * 2.0
+        # (towards the front and back only, within the painted foot's width seen from the front: ones to the sides
+        # spilled past it)
+        x0, r0 = P.x(260), P.m(40)
+        for k in range(6):
+            a = math.radians((60 + 60 * (k % 3) / 2 + rng.uniform(-8, 8)) * (1 if k < 3 else -1))
+            x1, y1 = x0 + math.cos(a) * r0 * 1.8, math.sin(a) * r0 * 1.8
             out.append(K.tube([(x0 + math.cos(a) * r0 * 0.2, math.sin(a) * r0 * 0.2, P.z(470)),
                                (x0 + math.cos(a) * r0 * 0.9, math.sin(a) * r0 * 0.9, P.z(505)),
                                (x1, y1, ground(x1, y1) + r0 * 0.05)],

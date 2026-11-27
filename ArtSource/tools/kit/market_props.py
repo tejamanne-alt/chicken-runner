@@ -1231,17 +1231,6 @@ def cloth_sheet(K, tl, tr, tip, mat, billow=0.012, twist=0.0, nu=6, nv=6, thickn
     return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=thickness)
 
 
-def grow_triangle(a, b, c, d):
-    """Triangle a, b, c (px) with each edge moved out by d px (scaled about its incentre)."""
-    A, B, C = (np.array(v, float) for v in (a, b, c))
-    la, lb, lc = np.linalg.norm(B - C), np.linalg.norm(C - A), np.linalg.norm(A - B)
-    inc = (la * A + lb * B + lc * C) / (la + lb + lc)
-    s_ = (la + lb + lc) / 2
-    r = math.sqrt(max(1e-9, s_ * (s_ - la) * (s_ - lb) * (s_ - lc))) / s_
-    k = (r + d) / r
-    return [tuple(inc + (V - inc) * k) for V in (A, B, C)]
-
-
 def ellipse_ring(K, c, rx, rz, tube_r, mat, n=18, name="loop"):
     """A closed tube round an ellipse in the xz plane (a bow's loop): centre c (x, y, z), radii rx, rz metres."""
     pts = [(c[0] + rx * math.cos(2 * math.pi * i / n), c[1], c[2] + rz * math.sin(2 * math.pi * i / n))
@@ -1280,10 +1269,9 @@ def bunting(K):
     for k, (tl, tr, tip) in enumerate(flags):
         xs, ys_ = [tl[0], tr[0], tip[0]], [tl[1], tr[1], tip[1]]
         cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 1, min(ys_) + 4, max(xs), max(ys_) - 1)], inset=2)
-        gtl, gtr, gtip = tl, tr, tip
         # the cloth folds over the rope: its top edge a little behind and above the rope's middle
         tw = K.rng.uniform(-0.03, 0.03)
-        cloth_sheet(K, P.pt(gtl[0], gtl[1], P.m(1.5)), P.pt(gtr[0], gtr[1], P.m(1.5)), P.pt(*gtip, 0.0), cloth,
+        cloth_sheet(K, P.pt(tl[0], tl[1], P.m(1.5)), P.pt(tr[0], tr[1], P.m(1.5)), P.pt(*tip, 0.0), cloth,
                     billow=-K.rng.uniform(0.006, 0.014), twist=tw, name="flag")
 
 
