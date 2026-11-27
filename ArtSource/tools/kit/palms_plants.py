@@ -1651,7 +1651,8 @@ def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, fo
     palm = Palm(K, heart, R=P.m(R_px), fit_mask=m, fit_lim=(0.35, 2.4, 16), owned=True)   # torn leaves: strips
     palm.crown(leaves, back=back, extra=extra, turn=(55, 175))
     stalk = masked_material(K, opaque & box_mask(opaque.shape, [stalk_box]) & not_ink(rgb, 60), inset=1)
-    palm.stalks(stalk, min(9.0, stem[-1][2] * 0.5), min(6.0, stem[-1][2] * 0.33), frac=0.25)
+    # (the leaves' own ribbons start at the stem's top: no separate stalk tubes, which showed beside the painted
+    # leaf-stalks from the front)
     # ---- the bunch
     yb = -P.m(stem[-1][2]) * 1.6
     pts = [P.pt(x, y_, yb * min(1.0, i / 1.5)) for i, (x, y_, _) in enumerate(ped)]
@@ -1721,10 +1722,10 @@ H52_LEAVES = [
 def h5_2(K):
     """A young banana plant: a slender pseudostem of sheathing leaf-bases, seven arching leaves torn into strips by the
     wind all round its top, a small bunch of bananas on its hooked stalk with the bud below, stones and grass."""
-    banana(K, [(227, 715, 26), (227, 650, 24), (226, 560, 23), (228, 470, 21), (230, 400, 19), (232, 360, 16)],
+    banana(K, [(227, 715, 26), (227, 650, 25), (226, 560, 24), (228, 470, 22.5), (231, 400, 22), (232, 360, 18)],
            H52_LEAVES, (234, 350), 250, (215, 300, 255, 420),
            ([(250, 372, 5.5), (268, 352, 5.5), (285, 362, 5), (300, 395, 5), (304, 440, 4.5), (310, 490, 4),
-             (318, 515, 3)], [(405, 32), (432, 35), (458, 33), (484, 24)], (36, 6.5), (262, 388, 346, 498),
+             (318, 515, 3)], [(414, 30), (438, 34), (462, 32), (486, 23)], (30, 6.5), (262, 388, 346, 498),
             (322, 525, 7, 18)),
            [(165, 718, 72, 34, -0.03, (128, 682, 202, 720)), (210, 716, 24, 14, -0.04, (198, 700, 222, 718)),
             (268, 716, 28, 16, -0.035, (253, 698, 283, 718)), (250, 716, 60, 30, 0.04, (128, 682, 202, 720))],

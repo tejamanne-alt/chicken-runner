@@ -2168,10 +2168,10 @@ def field_tree_3(K):
     rng = K.rng
     green = K.colour((250, 600, 258, 700), vary=0.12, scale=20)
     node = K.colour((0.03, 0.045, 0.02), vary=0.1)
-    base_py, cx = 768, 245
+    base_py, cx = 812, 245                          # (down into the knot of roots: ending at 768 they hung above it)
     alpha = P.rgba[..., 3]
     crown = Crown(K, (0, 0, 511, 640), P.m(480) * 0.34, (250, 300), core=0.2, dome=(300, 0, 640), dome_pow=0.6)
-    clear_sky(K, (0, 0, 511, 640))
+    clear_sky(K, (0, 0, 511, 800))                  # (and between the culms: white stripes on the ones behind)
     # the culms painted in front, fanning out from the clump, then more all through the clump behind them
     n = 13
     for layer, count, yr in (("front", n, (-0.32, -0.05)), ("mid", 10, (-0.1, 0.15)), ("back", 13, (0.05, 0.4))):
@@ -2188,13 +2188,13 @@ def field_tree_3(K):
                 xt = x5 + (xt - x5) * 0.93
             yt = y_base * 2.5 + rng.uniform(-0.5, 0.5)
             yt = float(np.clip(yt, -crown.extent(xt, top_py + 60) * 0.9, crown.extent(xt, top_py + 60) * 0.9))
-            pts_px = [(xb, base_py), (xb + (x5 - xb) * 0.5, 640), (x5, 520), (x5 + (xt - x5) * 0.45, 420),
+            pts_px = [(xb, base_py), (xb, 768), (xb + (x5 - xb) * 0.5, 640), (x5, 520), (x5 + (xt - x5) * 0.45, 420),
                       (x5 + (xt - x5) * 0.8, (420 + top_py) / 2), (xt, top_py)]
-            ys = [y_base, y_base + (yt - y_base) * 0.1, y_base + (yt - y_base) * 0.3, y_base + (yt - y_base) * 0.55,
-                  y_base + (yt - y_base) * 0.8, yt]
+            ys = [y_base * 0.6, y_base, y_base + (yt - y_base) * 0.1, y_base + (yt - y_base) * 0.3,
+                  y_base + (yt - y_base) * 0.55, y_base + (yt - y_base) * 0.8, yt]
             pts = [(P.x(px), y, P.z(py)) for (px, py), y in zip(pts_px, ys)]
             r0 = P.m(rng.uniform(4.5, 5.8))
-            culm(K, pts, [r0, r0 * 0.95, r0 * 0.88, r0 * 0.75, r0 * 0.55, r0 * 0.3], green, node, node_every=0.6)
+            culm(K, pts, [r0, r0, r0 * 0.95, r0 * 0.88, r0 * 0.75, r0 * 0.55, r0 * 0.3], green, node, node_every=0.6)
     # the knot of roots at the foot: a low mound of earth and root, and the fibrous roots on cards round it
     # (low, inside the painted knot of roots, and a tile of the painted root knot: a tall plain lump read as a sack)
     # (a low dome inside the knot: the fibrous roots round it are cards; a full lump showed as a block)
@@ -2206,13 +2206,14 @@ def field_tree_3(K):
     def roots_rule(rgb):
         r, g, b, mx, mn = chan(rgb)
         return (mx < 175) & (mx > 20) & (r >= g - 4)
-    K.leaves_only((100, 745, 420, 837), roots_rule)
+    # the fibrous roots: their painted tangle (below the culms' sheaths) on blob cards round the knot, and the
+    # painted tangle in front, exactly where it is painted
+    K.leaves_only((90, 780, 430, 837), roots_rule)
     for k in range(8):
-        a = rng.uniform(0, 360)
         px = rng.uniform(190, 300)
-        K.card_from_painting((px - 35, 770, px + 35, 837), (P.x(px), rng.uniform(-0.3, 0.3), P.z(803)),
-                             yaw=rng.uniform(-60, 60) + rng.choice([0, 180]), name="roots")
-    K.card_from_painting((95, 745, 425, 837), (P.x(260), -0.3, P.z(791)), name="roots_front")
+        blob_card(K, (px - 40, 784, px + 40, 837), (P.x(px), rng.uniform(-0.3, 0.3), P.z(810)),
+                  yaw=rng.uniform(-60, 60) + rng.choice([0, 180]), name="roots", rag=0.3)
+    K.card_from_painting((90, 784, 430, 837), (P.x(260), -0.3, P.z(810.5)), name="roots_front")
     K.leaves_only((0, 0, 511, 640), sage_inked)
     crown.cards(200, (70, 60), "volume", yaw=85, pitch=45)
     crown.cards(110, (80, 70), "front", yaw=30, pitch=20)
@@ -2779,7 +2780,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     crown.cards(int(nv * 1.25), cp, "volume", yaw=85, pitch=45)     # (the sides see only these: no gaps)
     crown.cards(nf, (cp[0] * 1.1, cp[1] * 1.1), "front", yaw=30, pitch=20)
     crown.cards(nb, cp, "back", yaw=30, pitch=20)
-    if nt:
+    if nt and not airy:          # (through an airy crown's painted gaps the flat top cards showed as pale slivers)
         crown.cards(nt, cp, "top", yaw=90, region=(crown_box[0], crown_box[1], crown_box[2],
                                                       (crown_box[1] + crown_box[3]) / 2))
     return wood, crown, bark, thin
@@ -3098,9 +3099,11 @@ def h2_3(K):
                                           card_px=(80, 70), trunk=(700, 440, 305, 660, 0.7))
     pm = pod_mask(K, (100, 60, 500, 460))
     mat = masked_material(K, pm, inset=1)
-    pm = pm & ~box_mask(pm.shape, [(398, 345, 478, 440)])          # the bunch of three, traced by hand
+    # the bunches painted touching (one skeleton between two pods made one fat pod), traced by hand off the grid
+    pm = pm & ~box_mask(pm.shape, [(398, 345, 478, 440), (160, 345, 225, 445)])
     bunch = [([(418, 362), (416, 385), (410, 405), (405, 422)], 7), ([(430, 356), (432, 380), (428, 405), (433, 432)], 7),
-             ([(446, 366), (450, 390), (456, 410), (462, 432)], 7)]
+             ([(446, 366), (450, 390), (456, 410), (462, 432)], 7),
+             ([(184, 358), (182, 385), (178, 410), (172, 434)], 10), ([(206, 356), (206, 385), (204, 410), (196, 434)], 10)]
     hang_pods(K, pm, crown, mat, copies=2, flatten=0.6, lump=0.12, segments=10, stalk=K.colour((0.12, 0.08, 0.03)),
               traced=bunch)
 
