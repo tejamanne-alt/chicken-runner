@@ -1086,31 +1086,29 @@ def palm_roof(K, x_eave, x_ridge, ye, yr, z_eave, z_ridge, weave, fringe_band, k
 def stall_h_2(K):
     """A wayside barber's pitch: a hipped roof of woven coconut-leaf mat on four bamboo posts, a bamboo ridge pole on
     king posts, a mirror in a wooden frame hung by a string from a back post, a wooden stool with a striped towel
-    over it, a brass basin of water and a cake of soap, all on a rise of packed red earth."""
+    over it, a brass basin of water and a cake of soap, all on a low plinth of packed red earth."""
     P = K.paint
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.12, 0.09, 0.04), vary=0.1)
-    bam = K.colour((165, 400, 180, 500), vary=0.08)
-    bank = Bank(-1.1, Z(730), 14.2, flat=0.25, back=0.45)
-    slope = math.degrees(math.atan2(bank.top, bank.y1 - bank.y0))
-    # ---------------------------------------------------------------- the earth
+    bam = pole_tile(K, line=((170, 560), (171, 700)), half=5)
+    # ---------------------------------------------------------------- a low, level plinth of packed red earth under the
+    # shelter (the painted red band is the ground seen from above; a rise sloping up to the back, as before, was a wedge
+    # of earth from the sides). The posts, the stool and the basin stand on it.
+    hp = 0.12
     earth = ktile(K, (40, 790, 140, 885), vary=0.08, soften=0.4)
-    xl, xr = P.x(4), P.x(1046)
-
-    def ground(x, y):
-        return bank.z(y) * _smooth(xl - 0.02, xl + 0.1, x) * _smooth(xr + 0.02, xr - 0.1, x)
-    K.grid_plane(xl - 0.05, xr + 0.05, bank.y0 - 0.04, bank.y3 + 0.02, 0.0, 34, 28, earth, height=ground, name="earth")
+    K.box(P.x(25), P.x(1025), -0.98, 0.82, 0.0, hp, earth, bevel=0.035, name="plinth")
+    # the back posts' feet are painted over the red band: from the front their lower parts wear their own bamboo
+    K.front_exclude += [(240, 735, 278, 780), (776, 735, 810, 770)]
+    yfp, ybp = -0.79, 0.59
     # ---------------------------------------------------------------- posts, frame and roof
-    yfp = bank.y(Z(880))
-    ybp = bank.y(Z(770))
     posts = [((165, 250), (170, 880), 15, yfp, [(150, 245, 185, 880)]),
              ((258, 252), (262, 770), 13, ybp, [(243, 250, 275, 770)]),
              ((793, 256), (792, 760), 13, ybp, [(778, 256, 808, 318), (778, 548, 808, 760)]),
              ((895, 250), (893, 880), 15, yfp, [(876, 245, 912, 880)])]
     zb = Z(236)
     for top, bot, rpx, y, keep in posts:
-        pole(K, top, bot, rpx, y, keep, z_top=zb + 0.06, z_bot=bank.z(y) - 0.05, nodes=0.45)
+        pole(K, top, bot, rpx, y, keep, z_top=zb + 0.06, z_bot=hp - 0.03, nodes=0.45)
     for (xf, xb_) in ((166, 258), (895, 793)):
         bamboo(K, (P.x(xf), yfp - 0.1, zb), (P.x(xb_), ybp + 0.1, zb), P.m(9), bam, node_at=[0.5], taper=1.0,
                name="tie")
@@ -1146,85 +1144,68 @@ def stall_h_2(K):
     for xa in (745, 835):
         K.tube([P.pt(xa, 332, ym - 0.01), P.pt(792, 294, ym + 0.01)], 0.003, rope, segments=4, name="mirror_string")
     K.tube([P.pt(792, 294, ym + 0.01), P.pt(792, 294, ybp)], 0.004, K.colour((0.2, 0.2, 0.2)), segments=4, name="nail")
-    # ---------------------------------------------------------------- the stool, standing on the rise, turned half
-    # towards the customer: each leg from its painted foot to its painted top, the seat through its painted corners
+    # ---------------------------------------------------------------- the stool: square and level, turned in plan as
+    # painted (its seat's painted corners L, F, R, B give a square 0.52 m a side, its diagonal turned 10 degrees), on
+    # the plinth; its painted seat top (seen from above) cannot show from the front
     wood = ktile(K, (382, 690, 420, 760), vary=0.08)
-    seat_w = ktile(K, (350, 640, 470, 655), vary=0.08)
-    legs = {  # foot px, top px
-        "L": ((355, 826), (352, 652)), "F": ((442, 860), (450, 676)), "R": ((557, 821), (553, 648)),
-        "B": ((474, 792), (470, 640))}
-    corners = {"L": (338, 634), "F": (476, 660), "R": (567, 628), "B": (434, 611)}
-    ys = {k: bank.y(P.z(f[1])) for k, (f, _) in legs.items()}
-    th = 0.05
-    slab(K, [(P.x(corners[k][0]), ys[k], P.z(corners[k][1])) for k in ("L", "F", "R", "B")], th, seat_w,
-         name="stool_seat")
-    tops = {}
-    for k, ((fx, fy), (tx, ty)) in legs.items():
-        a_ = (P.x(fx), ys[k], P.z(fy) - 0.03)
-        b_ = (P.x(tx), ys[k] + (0.0 if k != "F" else 0.03), P.z(corners[k][1]) - th)
-        beam(K, a_, b_, 0.055, 0.055, wood, name="stool_leg")
-        tops[k] = (Vector(a_), Vector(b_))
-    for k1, k2, t_ in (("L", "F", 0.38), ("F", "R", 0.42), ("R", "B", 0.38), ("B", "L", 0.42)):
-        p1 = tops[k1][0].lerp(tops[k1][1], t_)
-        p2 = tops[k2][0].lerp(tops[k2][1], t_)
-        beam(K, tuple(p1), tuple(p2), 0.045, 0.035, wood, name="stretcher")
-        q1 = tops[k1][0].lerp(tops[k1][1], 0.9)
-        q2 = tops[k2][0].lerp(tops[k2][1], 0.9)
-        beam(K, tuple(q1), tuple(q2), 0.03, 0.05, wood, name="apron")
-    # the towel thrown over the seat, hanging down over its front-right edge
+    seat_w = pole_tile(K, (350, 640, 470, 652), soften=0.2)
+    r_, al = 0.369, math.radians(10.4)
+    cx_, cy_ = P.x(338) + r_ * math.cos(al), -0.12
+    zs, th = Z(659), 0.05
+    u_ = Vector((math.cos(al), math.sin(al), 0))          # L -> R
+    v_ = Vector((math.sin(al), -math.cos(al), 0))         # B -> F
+    c_ = Vector((cx_, cy_, 0))
+    corners = {"L": c_ - u_ * r_, "F": c_ + v_ * r_, "R": c_ + u_ * r_, "B": c_ - v_ * r_}
+    slab(K, [tuple(corners[k] + Vector((0, 0, zs))) for k in ("L", "F", "R", "B")], th, seat_w, name="stool_seat")
+    feet = {}
+    for k, p_ in corners.items():
+        q = c_ + (p_ - c_) * 0.86
+        feet[k] = q
+        beam(K, (q.x, q.y, hp - 0.01), (q.x, q.y, zs - th), 0.055, 0.055, wood, name="stool_leg")
+    for k1, k2 in (("L", "F"), ("F", "R"), ("R", "B"), ("B", "L")):
+        for z_, w_, h_ in ((hp + 0.2, 0.045, 0.035), (zs - th - 0.03, 0.03, 0.05)):
+            beam(K, (feet[k1].x, feet[k1].y, z_), (feet[k2].x, feet[k2].y, z_), w_, h_, wood, name="stretcher")
+    # the towel thrown over the seat, hanging down over its front-right edge (F-R) as painted
     towel = K.projected(squeeze=1.0, keep=[(398, 604, 556, 738)], inset=2)
-    A = np.array([[P.x(corners[k][0]), P.z(corners[k][1]), 1.0] for k in corners])
-    coef = np.linalg.lstsq(A, np.array([ys[k] for k in corners]), rcond=None)[0]
+    towel_top = ktile(K, (470, 650, 530, 700), vary=0.04)
+    F_, R_ = corners["F"], corners["R"]
+    edge = lambda t_: F_.lerp(R_, t_)                     # noqa: E731
+    out = (v_ + u_).normalized() * 0.012
 
-    def seat_y(x, z):
-        return float(coef[0] * x + coef[1] * z + coef[2])
+    inward = (c_ - (F_ + R_) / 2).normalized()
 
-    def edge(px_):
-        t_ = max(0.0, min(1.0, (px_ - 476) / (567 - 476)))
-        return 660 + (628 - 660) * t_, ys["F"] + (ys["R"] - ys["F"]) * t_
+    def tw_top(u, v):
+        p_ = edge(0.08 + 0.84 * u) + inward * (0.3 * v)
+        return (p_.x, p_.y, zs + 0.008)
+    K.sheet(tw_top, 8, 6, towel_top, name="towel_top", thickness=0.006)
 
-    def tw(u, v):
-        px_ = 402 + (553 - 402) * u
-        ey, eyy = edge(px_)
-        top_py = 617 + 13 * max(0.0, (px_ - 490) / 65)
-        if px_ < 476:
-            ey = 634 + (660 - 634) * (px_ - 338) / (476 - 338)
-            eyy = ys["L"] + (ys["F"] - ys["L"]) * (px_ - 338) / (476 - 338)
-        if v < 0.45:
-            py_ = top_py + (ey - top_py) * v / 0.45
-            x, z = P.x(px_), P.z(py_)
-            return (x, seat_y(x, z) - 0.002, z + 0.008)
-        t_ = (v - 0.45) / 0.55
-        bot = 736 if px_ > 470 else ey + 4
-        py_ = ey + (bot - ey) * t_
-        return (P.x(px_), eyy - 0.012 - 0.015 * math.sin(math.pi * t_), P.z(py_))
-    K.sheet(tw, 10, 14, towel, name="towel", thickness=0.006)
-    # ---------------------------------------------------------------- the brass basin and the soap
+    def tw_hang(u, v):
+        p_ = edge(0.08 + 0.84 * u) + out
+        return (p_.x, p_.y - 0.01 * math.sin(math.pi * v), zs + 0.004 - (zs - Z(736)) * v)
+    K.sheet(tw_hang, 10, 8, towel, name="towel", thickness=0.006)
+    # ---------------------------------------------------------------- the brass basin and the soap, level on the plinth
     brass = K.projected(axis_x=P.x(752), squeeze=0.92, keep=[(645, 780, 860, 888)], inset=2)
-    water = K.projected(squeeze=1.0, keep=[(660, 790, 840, 830)], inset=2)
+    water = ktile(K, (700, 800, 800, 815), vary=0.04)
     R = P.m(104)
     hgt = P.m(66)
-    zc = P.z(886) + R * 0.55 * math.sin(math.radians(slope))
-    foot = Vector((P.x(752), bank.y(P.z(886)) + R * 0.55, zc))
+    foot = Vector((P.x(752), -0.62, hp))
     prof = [(0.0, 0.0), (R * 0.55, 0.0), (R * 0.85, hgt * 0.3), (R * 1.0, hgt * 0.7), (R * 0.98, hgt * 0.92),
             (R * 1.02, hgt)]
-    parts = [K.lathe(prof, brass, segments=36, centre=tuple(foot), cap=False, name="basin"),
-             K.lathe([(R * 0.98, hgt * 0.98), (R * 0.9, hgt * 0.4), (0.0, hgt * 0.3)], brass, segments=36,
-                     centre=tuple(foot), cap=False, name="basin_in"),
-             K.lathe([(0.0, hgt * 0.78), (R * 0.97, hgt * 0.78)], water, segments=36, centre=tuple(foot), cap=False,
-                     name="water")]
+    K.lathe(prof, brass, segments=36, centre=tuple(foot), cap=False, name="basin")
+    K.lathe([(R * 0.98, hgt * 0.98), (R * 0.9, hgt * 0.4), (0.0, hgt * 0.3)], brass, segments=36,
+            centre=tuple(foot), cap=False, name="basin_in")
+    K.lathe([(0.0, hgt * 0.78), (R * 0.97, hgt * 0.78)], water, segments=36, centre=tuple(foot), cap=False,
+            name="water")
     rim = [(foot.x + R * 1.02 * math.cos(2 * math.pi * i / 40), foot.y + R * 1.02 * math.sin(2 * math.pi * i / 40),
             foot.z + hgt) for i in range(41)]
-    parts.append(K.tube(rim, 0.01, brass, segments=6, name="basin_rim"))
-    for s in (-1, 1):
-        cx_ = foot.x + s * (R * 1.08)
-        pts = [(cx_ + s * 0.035 * math.sin(2 * math.pi * i / 16) + s * 0.03, foot.y,
+    K.tube(rim, 0.01, brass, segments=6, name="basin_rim")
+    for s_ in (-1, 1):
+        cx2 = foot.x + s_ * (R * 1.08)
+        pts = [(cx2 + s_ * 0.035 * math.sin(2 * math.pi * i / 16) + s_ * 0.03, foot.y,
                 foot.z + hgt - 0.005 + 0.035 * math.cos(2 * math.pi * i / 16)) for i in range(17)]
-        parts.append(K.tube(pts, 0.008, brass, segments=6, name="basin_handle"))
-    rot_x(parts, tuple(foot), slope)
+        K.tube(pts, 0.008, brass, segments=6, name="basin_handle")
     soap = K.projected(squeeze=1.0, keep=[(598, 852, 682, 900)], inset=2)
-    p = bank.at(P, 640, 880, 0.035)
-    K.block(p.x, p.y, p.z, P.m(80), 0.13, 0.06, soap, rot=(slope, 0, 2), bevel=0.012, name="soap")
+    K.block(P.x(640), -0.86, hp + 0.03, P.m(80), 0.11, 0.06, soap, rot=(0, 0, 4), bevel=0.012, name="soap")
 
 
 # ====================================================================== stall H3: the knife grinder
@@ -1932,7 +1913,7 @@ def stall_sweets(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.25, 0.15, 0.06), vary=0.1)
-    bam = K.colour((60, 300, 75, 400), vary=0.08)
+    bam = pole_tile(K, line=((75, 300), (85, 560)), half=4)
     yf, yb = -0.8, 0.85
     # ---------------------------------------------------------------- posts, stubs and the cloth
     posts = [((59, 122), (98, 632), 12, yf, [(46, 120, 112, 632)]),
@@ -2000,8 +1981,12 @@ def stall_sweets(K):
         m = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - 30, prof[-1][1] - 2, cx + 30, prof[0][1])], inset=1)
         turned(K, cx, prof, y, m, segs=24, name="vessel")
     # ---------------------------------------------------------------- the low stone platform he sits on
-    slab = K.colour((650, 505, 672, 522), vary=0.1, scale=6)
+    # stone blocks: a strip of the painted slab's front, squared, laid in courses (a plain grey block before)
+    slab = pole_tile(K, (440, 510, 900, 522), soften=0.35, vary=0.08)
     K.box(P.x(430), P.x(935), -0.25, 0.6, 0.0, Z(506), slab, bevel=0.02, name="platform")
+    joint_ = K.colour((0.18, 0.17, 0.16), vary=0.05)
+    for x_ in np.linspace(P.x(430), P.x(935), 5)[1:-1]:
+        K.box(x_ - 0.006, x_ + 0.006, -0.255, 0.605, 0.0, Z(506) - 0.01, joint_, name="slab_joint")
     # ---------------------------------------------------------------- jalebi, laddus
     plate = K.colour((0.6, 0.6, 0.62), vary=0.05)
     for cx, hw, peak, y in ((518, 92, 524, -0.6), (707, 92, 527, -0.6)):
@@ -2027,11 +2012,17 @@ def stall_sweets(K):
     on_heap(K, hl, P.x(880), yl, P.m(74) * 0.85, (808, 480, 955, 575), lad, dark=80, min_area=60, max_area=1200,
             rmax=16, flat=0.9)
     # ---------------------------------------------------------------- behind: his tin of batter, a sack of gram flour
-    burlap = K.colour((0.45, 0.33, 0.2), vary=0.1)
-    K.lathe([(0.2, 0.0), (0.24, 0.2), (0.23, 0.45), (0.2, 0.55), (0.0, 0.6)], burlap, segments=18,
-            centre=(P.x(560), 0.75, 0.0), wobble=0.05, name="flour_sack")
-    K.lathe([(0.16, 0.0), (0.16, 0.36), (0.15, 0.38)], K.colour((0.4, 0.4, 0.42), vary=0.05), segments=18,
-            centre=(P.x(760), 0.78, 0.0), name="batter_tin")
+    # a sack of gram flour tied at its neck, a steel tin of batter with a lid
+    burlap = ktile(K, (95, 540, 150, 575), vary=0.06, soften=0.3)       # the painted gunny of the hearth's sack
+    K.lathe([(0.2, 0.0), (0.24, 0.2), (0.23, 0.45), (0.17, 0.55), (0.06, 0.6), (0.05, 0.64), (0.08, 0.7),
+             (0.0, 0.72)], burlap, segments=18, centre=(P.x(560), 0.75, 0.0), wobble=0.05, name="flour_sack")
+    K.tube([(P.x(560) + 0.055 * math.cos(a_), 0.75 + 0.055 * math.sin(a_), 0.61) for a_ in np.linspace(0, 6.3, 14)],
+           0.012, rope, segments=5, name="sack_tie")
+    tin_m = ktile(K, (420, 455, 470, 470), vary=0.05)                   # the painted steel vessels
+    K.lathe([(0.16, 0.0), (0.16, 0.34), (0.15, 0.36)], tin_m, segments=18, centre=(P.x(760), 0.78, 0.0),
+            name="batter_tin")
+    K.lathe([(0.165, 0.34), (0.17, 0.37), (0.06, 0.39), (0.03, 0.42), (0.0, 0.43)], tin_m, segments=18,
+            centre=(P.x(760), 0.78, 0.0), name="tin_lid")
     # ---------------------------------------------------------------- the sweet maker
     K.figure([(560, 285), (590, 280), (605, 300), (603, 345), (640, 362), (650, 400), (648, 445), (660, 470),
               (655, 500), (620, 510), (560, 512), (500, 505), (478, 485), (485, 455), (500, 440), (508, 380),
@@ -2050,7 +2041,7 @@ def stall_veg(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.2, 0.12, 0.05), vary=0.1)
-    bam = K.colour((85, 400, 100, 460), vary=0.08)
+    bam = pole_tile(K, line=((92, 300), (107, 500)), half=4)
     yf, yb = -0.75, 0.85
     # ---------------------------------------------------------------- posts, stubs and the cloth
     posts = [((78, 130), (120, 700), 12, yf, [(64, 128, 100, 178), (70, 235, 128, 555)]),
@@ -2080,13 +2071,13 @@ def stall_veg(K):
 
     def board_y(z):
         return bF + (z - zF) * (bB - bF) / (zB - zF)
-    top = ktile(K, (440, 702, 560, 714), vary=0.08)
+    top = pole_tile(K, (300, 702, 600, 711), soften=0.2)       # the painted board edge, stacked square
     slab(K, [(P.x(92), bF, zF), (P.x(1000), bF, zF), (P.x(890), bB, zB), (P.x(222), bB, zB)], 0.04, top, name="board")
-    edge = K.colour((480, 700, 560, 712), vary=0.08)
+    edge = top
     beam(K, (P.x(90), bF - 0.02, zF - 0.01), (P.x(1002), bF - 0.02, zF - 0.01), 0.05, P.m(14), edge, name="board_edge")
     for xa, xb in ((92, 222), (1000, 890)):
         beam(K, (P.x(xa), bF, zF + 0.02), (P.x(xb), bB, zB + 0.02), 0.04, 0.06, edge, name="board_side")
-    wood = K.colour((0.4, 0.25, 0.12), vary=0.1)
+    wood = top
     for x_px in (262, 470, 690, 862):
         x = P.x(x_px)
         for y in (bF + 0.06, bB - 0.06):

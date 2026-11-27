@@ -2030,10 +2030,10 @@ def h6_4(K):
     bam = masked_material(K, bamboo_ok(rgb, opaque) & box_mask(opaque.shape, [(25, 30, 435, 548)]), inset=1)
     rope = masked_material(K, opaque & box_mask(opaque.shape, [(70, 80, 100, 115), (365, 85, 395, 115)])
                            & not_ink(rgb, 80), inset=0)
-    pr, br = 9.5, 9.0                           # as thick as painted
+    pr, br = 11.5, 11.0                         # as thick as painted, with its ink line
     yb = -P.m(pr + br) * 0.9
     pole(K, (86, 552), (86, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
-    pole(K, (375, 548), (382, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
+    pole(K, (380, 548), (382, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
     for a, b_ in (((28, 96), (428, 104)), ((28, 266), (412, 263)), ((38, 413), (422, 412))):
         pole(K, a, b_, br, bam, y=yb, nodes=(0.4,))
     for px, py in ((86, 97), (382, 103), (86, 265), (379, 263), (86, 412), (376, 412)):
@@ -2064,8 +2064,11 @@ def h6_4(K):
     flowers = ndimage.binary_opening(flowers, iterations=1)
     fb = (0, 0, P.w, 500)
     K.leaves_only(fb, mask_rule(flowers, fb))
-    scatter_cards(K, (10, 0, 480, 520), 160, (62, 56), (-0.075, -0.03), flowers, name="jasmine")
-    scatter_cards(K, (10, 0, 480, 520), 70, (56, 50), (-0.11, 0.06), flowers, yaw=75, pitch=40, name="jasmine")
+    # every painted flower and leaf covered from the front, in front of the trellis; more through its depth
+    exclude_front(K, ndimage.binary_dilation(flowers, iterations=2) & ~bam_px)
+    cover_cards(K, flowers & box_mask(opaque.shape, [(0, 0, P.w, 520)]), (50, 46),
+                lambda px, py: K.rng.uniform(-0.075, -0.03), name="jasmine", yaw=25, pitch=15)
+    scatter_cards(K, (10, 0, 480, 520), 60, (56, 50), (-0.11, 0.06), flowers, yaw=40, pitch=30, name="jasmine")
     scatter_cards(K, (60, 40, 420, 520), 90, (58, 52), (0.02, 0.07), flowers, name="jasmine_back",
                   normal=(0, 0.4, 1))
     # ---- grass at the posts' feet, the earth
@@ -2778,6 +2781,10 @@ def h5_6(K):
         pumpkin(K, nx_, ny_, rx * f, ry * f, 0.13 if ground else -y * 1.1, mat)
     # ---- the vine's leaves and tendrils on cards over both faces: every painted leaf covered from the front
     leaf = opaque & ~halo(rgb) & ~orange & ~bam_ok & ~((mn > 150) & (mx - mn < 60))
+    # inside a pumpkin's outline only the green of a leaf or stalk over it, not the pumpkin's own ribs and ink
+    in_pump = ellipse_mask(opaque.shape, [(x, y, rx, ry) for x, y, rx, ry, _ in H56_PUMPKINS], 4)
+    greenish = ndimage.binary_dilation((g > r) & (g > b + 5) & (mx > 60), iterations=2)
+    leaf &= ~(in_pump & ~greenish)
     leaf = ndimage.binary_opening(leaf, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(leaf, (0, 0, P.w, P.h)))
     exclude_front(K, ndimage.binary_dilation(leaf, iterations=2) & ~ndimage.binary_dilation(orange, iterations=2))

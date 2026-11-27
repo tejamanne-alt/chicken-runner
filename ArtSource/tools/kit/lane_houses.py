@@ -205,8 +205,8 @@ def house_pink(K):
     K.leaves_only((205, 300, 335, 432))
     for i in range(14):
         cx, cy = K.rng.uniform(222, 318), K.rng.uniform(318, 418)
-        K.card_from_painting((cx - 34, cy - 30, cx + 34, cy + 30), (P.x(cx), -0.35 + K.rng.uniform(-0.25, 0.25), P.z(cy)),
-                             yaw=K.rng.uniform(-70, 70), pitch=K.rng.uniform(-20, 20), name="hibiscus")
+        blob_card(K, (cx - 34, cy - 30, cx + 34, cy + 30), (P.x(cx), -0.35 + K.rng.uniform(-0.25, 0.25), P.z(cy)),
+                  yaw=K.rng.uniform(-70, 70), pitch=K.rng.uniform(-20, 20), name="hibiscus")
     K.card_from_painting((205, 300, 335, 432), (P.x(270), -0.6, P.z(366)), name="hibiscus_front")
     # the jasmine vine over the wall's top right, standing a little off it
     K.leaves_only((150, 40, 340, 300))
@@ -214,23 +214,11 @@ def house_pink(K):
         cx, cy = K.rng.uniform(165, 325), K.rng.uniform(55, 285)
         if cx < 220 and cy > 140:
             continue
-        K.card_from_painting((cx - 30, cy - 30, cx + 30, cy + 30), (P.x(cx), -K.rng.uniform(0.03, 0.18), P.z(cy)),
-                             yaw=K.rng.uniform(-50, 50), pitch=K.rng.uniform(-25, 25), name="vine")
+        blob_card(K, (cx - 30, cy - 30, cx + 30, cy + 30), (P.x(cx), -K.rng.uniform(0.03, 0.18), P.z(cy)),
+                  yaw=K.rng.uniform(-50, 50), pitch=K.rng.uniform(-25, 25), name="vine")
     # the vine comes round the corner onto the right side: thick at the corner, from the parapet down as far as it
-    # is painted, thinning out going back; and trailing back along the top of the cornice, draped over its edge
-    xs = P.x(312)
-    for i in range(16):
-        cy = 55 + 200 * K.rng.uniform() ** 1.6                    # more of it high up, as painted
-        reach = 0.12 + 0.55 * (1 - (cy - 55) / 200)               # how far back from the corner it has grown there
-        cx = K.rng.uniform(285, 325)
-        K.card_from_painting((cx - 26, cy - 26, cx + 26, cy + 26),
-                             (xs + K.rng.uniform(0.015, 0.05), K.rng.uniform(0.02, reach), P.z(cy)),
-                             yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-15, 15), name="vine_side")
-    for i in range(7):
-        cx, cy = K.rng.uniform(170, 320), K.rng.uniform(60, 120)
-        K.card_from_painting((cx - 26, cy - 22, cx + 26, cy + 22),
-                             (xs + 0.07 + K.rng.uniform(0.0, 0.04), 0.45 + i * 0.16 + K.rng.uniform(-0.05, 0.05),
-                              P.z(104)), yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 10), name="vine_ledge")
+    # is painted, thinning out going back; and trailing back along the top of the cornice (ragged blob cards)
+    corner_climber(K, (285, 55, 325, 255), 16, 52, P.x(312), 1, 55, 255, 0.67, ledge=(P.z(104), 0.07, 7, 0.45, 1.6))
 
 
 # ====================================================================== helpers for the rest of the lane
@@ -444,7 +432,7 @@ def house_limewash(K):
     # cream plaster: left of the door, right of the climber's last leaves, above the pot (right of the door the crop
     # takes the sunshade's shadow, rust drips and the cut-out's holes, which repeat in a grid down the side walls)
     wall = clean_tile(K, (62, 262, 92, 372), size=0.8, soften=0.2)   # its speckles taken out
-    upper = K.tile((132, 84, 198, 106), vary=0.05, soften=0.35)      # the parapet's plaster with its rust streaks
+    upper = K.tile((156, 84, 198, 106), size=0.5, vary=0.05, soften=0.35)   # the parapet's plaster, clear of leaves
     ledge = clean_tile(K, (160, 108, 254, 126), soften=0.35, strip=True)   # the cornice, its rust blots taken out
     red = K.tile((32, 474, 63, 510), size=0.5, vary=0.06, soften=0.45)   # red-oxide platform, clear of its steps
     teal = K.colour((95, 250, 105, 400), vary=0.05)
@@ -501,7 +489,8 @@ def house_limewash(K):
     scatter_cards(K, vine[0], 20, (60, 60), (-0.2, -0.02), yaw=45, pitch=25, name="vine", blob=True)
     scatter_cards(K, vine[1], 10, (50, 50), (-0.2, -0.02), yaw=45, pitch=25, name="vine", blob=True)
     corner_climber(K, (5, 20, 75, 300), 16, 58, X0, -1, 25, 300, 0.9, ledge=(P.z(117), 0.1, 6, 0.4, 1.6))
-    scatter_cards(K, (20, 0, 120, 60), 6, (50, 45), (0.1, 0.9), yaw=30, pitch=70, name="vine_roof", blob=True)
+    scatter_cards(K, (20, 0, 120, 60), 6, (50, 45), (0.08, 0.45), yaw=30, pitch=70, name="vine_roof", blob=True,
+                  x_range=(20, 85))                       # trailing over the parapet's corner, not out on the deck
     # the bush at the bottom right
     K.leaves_only((216, 395, 254, 512), bloom_pixels)
     scatter_cards(K, (216, 395, 254, 512), 10, (40, 45), (-0.45, -0.1), yaw=70, name="bush", blob=True)
@@ -856,13 +845,16 @@ def doorway_garland(K):
     # grass at its feet
     K.leaves_only((0, 335, 75, 437))
     K.leaves_only((275, 335, 353, 437))
-    for box in ((0, 335, 75, 437), (275, 335, 353, 437)):
+    # (tufts on the ground just outside the platform, never half inside its stone: there they looked stuck on its
+    # side; ragged blobs, those along the sides turned to face out)
+    for box, xs, side in (((0, 335, 75, 437), P.x(35) - 0.06, -1), ((275, 335, 353, 437), P.x(322) + 0.06, 1)):
         cx = (box[0] + box[2]) / 2
         for yaw in (0, 55, -55):
-            K.card_from_painting(box, (P.x(cx), K.rng.uniform(-0.5, -0.05), P.z(386)), yaw=yaw, name="grass")
-        for i in range(3):
-            K.card_from_painting(box, (P.x(cx) + K.rng.uniform(-0.05, 0.05), K.rng.uniform(0.2, 0.9), P.z(386)),
-                                 yaw=K.rng.uniform(-80, 80), name="grass_side")
+            blob_card(K, box, (P.x(cx), K.rng.uniform(-0.55, -0.4), P.z(386)), yaw=yaw, name="grass", rag=0.12)
+        for i in range(4):
+            sub = (box[0], 380, box[2], 437)
+            blob_card(K, sub, (xs + side * K.rng.uniform(0.0, 0.05), -0.3 + 1.25 * (i + K.rng.uniform(0.2, 0.8)) / 4,
+                               P.m(437 - 380) / 2), yaw=90 + K.rng.uniform(-25, 25), name="grass_side", rag=0.12)
 
 
 def hip_tin_roof(K, eave, ridge, ze, zr, mat, pitch=0.08, amp=0.018, cap=None, name="tin"):
@@ -1380,7 +1372,7 @@ def house_potter(K):
            (1850, 386), (1900, 413), (1950, 433), (2000, 458), (2050, 483), (2100, 508), (2150, 560)]
     bottom = [(2140, 578), (2100, 587), (2050, 582), (2000, 572), (1950, 558), (1880, 557), (1850, 552),
               (1800, 527), (1750, 517), (1700, 507), (1650, 497), (1600, 478), (1550, 497), (1500, 487), (1430, 487)]
-    lean = thatch_m
+    lean = K.tile((420, 250, 500, 440), size=1.1, vary=0.06, soften=0.4)   # (at 0.6 m its top showed a grid of tiles)
     yb = 3.0
     K.prism([(P.x(x), P.z(y)) for x, y in top + bottom], -0.5, -0.22, lean, name="lean_to_end")
     th = 0.24
@@ -1725,7 +1717,10 @@ def house_weaver(K):
         K.tube([hub, P.pt(ex, ey, yr - 0.45)], P.m(5), wheel, segments=6, name="spoke")
         K.tube([(hub[0], hub[1] + 0.14, hub[2]), P.pt(1132 + (ex - 1132) * 0.95, 827 + (ey - 827) * 0.95, yr - 0.31)],
                P.m(5), wheel, segments=6, name="spoke_back")
-    pts = [P.pt(1132 + 88 * math.cos(a), 827 + 88 * math.sin(a), yr - 0.38) for a in np.linspace(0, 2 * math.pi, 25)]
+    # the string laced from spoke tip to spoke tip, as painted (a full round rim is not painted)
+    tips = sorted(((1077, 767), (1135, 725), (1158, 733), (1227, 754), (1056, 851), (1103, 943), (1145, 956),
+                   (1227, 890)), key=lambda t: math.atan2(t[1] - 827, t[0] - 1132))
+    pts = [P.pt(1132 + (x - 1132) * 0.97, 827 + (y - 827) * 0.97, yr - 0.38) for x, y in tips + tips[:1]]
     K.tube(pts, 0.006, cord, segments=4, cap=False, name="drive_string")
     K.tube([P.pt(1053, 824, yr - 0.38), P.pt(1192, 824, yr - 0.38)], P.m(8), wheel, segments=8, name="axle_beam")
     for y in (yr - 0.5, yr - 0.26):
@@ -2502,6 +2497,9 @@ def cattle_shed(K):
     D = 3.0
     K.front_min = 0.1
     halo_exclude(K, [(0, 0, 1657, 894)])
+    # the hay heaps are their own hay and cards cut from the painting: the painted hay is kept off the back wall and
+    # the floor behind them (from the side it showed as flat hay painted on the wall)
+    K.front_exclude.append((880, 445, 1480, 880))
     K.figure(CALF_SHED, y=1.15, name="calf")
     # the thatch between its two battens, stacked square (the bare strip box-projected round the hip ends wove into
     # a basket-like diamond pattern)
@@ -2772,8 +2770,14 @@ def shop_tailor_cycle(K):
     lime = K.tile((130, 1010, 220, 1085), size=0.6, vary=0.04, soften=0.4)
     tin = K.tile((300, 80, 700, 260), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((236, 400, 250, 1000), vary=0.08)
-    inside = K.colour((860, 700, 950, 760), vary=0.06)
+    # the alcoves' back wall: the cycle-mender's brown plaster between the coil and the bench, its marks taken out
+    inside = clean_tile(K, (1050, 640, 1200, 760), size=0.8, soften=0.2)
     iron = K.colour((0.05, 0.045, 0.045), vary=0.05)
+    # the tyres, tubes and the pump hang in front of the back wall, and the sewing machine stands in front of the
+    # bolts: all modelled, so their paint is kept off what is behind them (from the side it showed ghost rings on
+    # the back wall and a dark machine painted across the bolts)
+    machine = (298, 686, 527, 808)
+    K.front_exclude += [(800, 395, 1235, 795), (800, 760, 935, 1055), machine]
     X0, X1 = P.x(125), P.x(1315)
     ze, zr = P.z(296), P.z(42)
     zg = P.z(1090)
@@ -2815,7 +2819,7 @@ def shop_tailor_cycle(K):
         for k in range(len(xs) - 1):
             x0, x1 = xs[k], xs[k + 1]
             lean = -6 if k >= len(xs) - 3 else K.rng.uniform(-2, 2)
-            m = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=1.0, keep=[(x0, t, x1, b)], inset=1)
+            m = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=1.0, keep=[(x0, t, x1, b)], exclude=[machine], inset=1)
             K.block(P.x((x0 + x1) / 2), 0.45, (P.z(b) + P.z(t)) / 2, P.m(x1 - x0) * 0.92, 0.55, P.z(t) - P.z(b), m,
                     rot=(0, lean, 0), bevel=0.01, name="bolt")
     for t, b in ((435, 530), (560, 648), (688, 768), (812, 886)):

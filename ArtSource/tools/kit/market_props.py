@@ -1131,10 +1131,12 @@ def bunting(K):
         K.lathe([(P.m(3.0), -P.m(2.8)), (P.m(3.4), 0.0), (P.m(3.0), P.m(2.8)), (0.0, P.m(3.0))], rope_m, segments=10,
                 centre=(P.x(kx), 0.0, P.z(22)), name="knot")
     # traced off the painting: the cloth's saturated colour, its top corners on the rope, its tip at its ink
-    flags = [((32, 26.9), (62, 42.0), (34.0, 79.5)), ((64, 42.7), (95, 52.4), (70.0, 95.5)),
-             ((97, 53.0), (127, 59.4), (106.5, 104.5)), ((131, 60.1), (159, 61.9), (142.0, 106.5)),
-             ((162, 62.0), (191, 60.4), (176.5, 107.5)), ((196, 59.8), (221, 54.1), (210.0, 98.5)),
-             ((226, 52.6), (251, 41.9), (241.5, 89.5)), ((254, 40.5), (279, 24.9), (271.5, 74.5))]
+    flags = [((32, 26.9), (62, 42.0), (34.0, 80)), ((64, 42.7), (95, 52.4), (71.0, 95)),
+             ((97, 53.0), (127, 59.4), (106.5, 105)), ((131, 60.1), (159, 61.9), (142.0, 109)),
+             ((162, 62.0), (191, 60.4), (176.5, 108)), ((196, 59.8), (221, 54.1), (210.5, 101)),
+             ((226, 52.6), (251, 41.9), (241.5, 90)), ((254, 40.5), (279, 24.9), (271.5, 74))]
+    # (the painted ink is thin on the lit left edges and thick on the shaded right ones: the cloth sits 1 px right)
+    flags = [tuple((x + 0.9, y) for x, y in f) for f in flags]
     for k, (tl, tr, tip) in enumerate(flags):
         xs, ys_ = [tl[0], tr[0], tip[0]], [tl[1], tr[1], tip[1]]
         cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 1, min(ys_) + 4, max(xs), max(ys_) - 1)], inset=2)

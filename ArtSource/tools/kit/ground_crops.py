@@ -839,8 +839,10 @@ def husk(K):
         if f.normal.y * c.y + f.normal.z * (c.z - z_axis) < 0:
             f.normal_flip()
     # its outside and its lining: quilts of the painted hull and lining, their fibres running along it as painted
-    outside = quilt_tile(K, colour_ok(P, (40, 135, 235, 190), tol=40, erode=2), patch=20, soften=0.2, turn=False)
-    inside = quilt_tile(K, colour_ok(P, (90, 55, 225, 125), tol=40, erode=2), patch=20, soften=0.15, turn=False)
+    outside = quilt_tile(K, colour_ok(P, (40, 135, 235, 190), tol=75, erode=1, extra=lum(P) > 60), patch=24,
+                         soften=0.0, turn=False)
+    inside = quilt_tile(K, colour_ok(P, (90, 55, 225, 125), tol=75, erode=1, extra=lum(P) > 45), patch=24,
+                        soften=0.0, turn=False)
     ob = _obj("shell", bm, outside, smooth=True)
     mod = ob.modifiers.new("solid", "SOLIDIFY")
     mod.thickness = 0.014
@@ -863,8 +865,9 @@ def husk(K):
         far = cy < near[k]
         y = half[k] * 0.85 if far else -half[k] - 0.004
         K.card_from_painting(box, P.pt(cx, cy, y), name="strand", normal=(0, 0.3 if far else -0.4, 0.9))
-        K.card_from_painting(box, P.pt(cx + K.rng.uniform(-4, 4), cy, y * 0.6),
-                             yaw=K.rng.uniform(35, 70) * K.rng.choice([-1, 1]), name="strand", normal=(0, 0.2, 1))
+        if cy < bot[k]:                     # strands off the rims turned too; those lying under the keel stay flat
+            K.card_from_painting(box, P.pt(cx + K.rng.uniform(-4, 4), cy, y * 0.6),
+                                 yaw=K.rng.uniform(35, 70) * K.rng.choice([-1, 1]), name="strand", normal=(0, 0.2, 1))
 
 
 # ====================================================================== twigs and leaves
