@@ -328,7 +328,7 @@ namespace ChickenRunner.EditorTools
             var camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = ArtAssets.Haze;
-            camera.fieldOfView = 30f;
+            camera.fieldOfView = 34f;     // Kick Off's lens: with ChaseCamera's close framing, about 10 m back and 2.5 m up
             camera.nearClipPlane = 0.3f;
             camera.farClipPlane = 260f;
             cameraObject.AddComponent<AudioListener>();

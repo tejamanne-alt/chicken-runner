@@ -39,8 +39,6 @@ namespace ChickenRunner
         /// <summary>How far along the course the rooster is, 0 to 1. At 1 he escapes.</summary>
         public float RoosterProgress => CourseLength > 0f && _rooster != null ? Mathf.Clamp01(_rooster.X / CourseLength) : 0f;
 
-        /// <summary>The gap the camera should keep in frame; beyond framingMaxGap the HUD shows an edge arrow.</summary>
-        public float FramedGap => _t != null ? Mathf.Clamp(Gap, 0f, _t.framingMaxGap) : 0f;
 
         /// <summary>
         /// 0 to 1 for the music: the doc's two extra layers come in under 5 m and under 2 m.

@@ -79,9 +79,6 @@ namespace ChickenRunner.Core
         public float boostSpeedBonus = 0.35f;
         public float boostDuration = 2.2f;
 
-        // Camera keeps the rooster in frame up to this gap; beyond it the HUD shows an edge arrow.
-        public float framingMaxGap = 14f;
-
         // Stars
         public float mangoStarFraction = 0.7f;
 

@@ -252,6 +252,8 @@ namespace ChickenRunner
 
             // Level 1 opens in the neighbour's yard: the first time, the basket intro; on a retry, the yard as it was
             // left (the basket flung aside, the neighbour awake) and the head start the lift earned.
+            // Before the chase the camera pulls back to show the rooster ahead too (not in the basket intro, which is close).
+            if (chaseCamera != null) chaseCamera.Establishing = true;
             var intro = BasketIntro.Active;
             if (intro != null && !_introDone) BeginIntro(intro);
             else if (intro != null)
@@ -266,6 +268,7 @@ namespace ChickenRunner
         void BeginIntro(BasketIntro intro)
         {
             Enter(FlowState.Intro);
+            if (chaseCamera != null) chaseCamera.Establishing = false;
             _introPhase = IntroPhase.Walk;
             _lift.Reset();
             _neighbourWoke = false;
@@ -364,6 +367,7 @@ namespace ChickenRunner
         void StartChase()
         {
             Enter(FlowState.Chase);
+            if (chaseCamera != null) chaseCamera.Establishing = false;   // eases in to the close framing
             rooster.StartChase();
         }
 
