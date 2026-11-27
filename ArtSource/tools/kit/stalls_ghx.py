@@ -13,10 +13,9 @@ import bmesh
 import numpy as np
 from mathutils import Matrix, Vector
 
-from kitlib import Mat, _image, _obj, model, plant_pixels
-from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, green_leaves, hanging_cloth,
-                         heap, heap_px, hip_thatch, joint, ktile, lashing, on_heap, pile, rib_umbrella, sack, slab,
-                         turned, unify_cards)
+from kitlib import Mat, _image, _obj, model
+from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, green_leaves, heap_px,
+                         hip_thatch, joint, ktile, lashing, on_heap, rib_umbrella, sack, slab, turned, unify_cards)
 from stalls_cdef import pod as pod_c
 
 
@@ -980,9 +979,7 @@ def stall_h_1(K):
     bamboo(K, tuple(base - ax * 0.12), tuple(Vector(tip) + ax * 0.05), P.m(15), poleshaft,
            node_at=[0.25, 0.45, 0.62], bend=0.0, taper=0.95, name="pole")
     rope = K.colour((0.3, 0.2, 0.1), vary=0.1)
-    c = Vector(tip) - ax * (Z(45) - Z(245) + 0.03) / ax.z * 0.0
     lashing(K, tuple(Vector(tip) - ax * ((Z(45) - Z(240)) / ax.z)), tuple(ax), P.m(16), rope, turns=4)
-    _ = c
     # ---------------------------------------------------------------- the sandals, propped in rows on sticks
     sole = K.colour((120, 925, 135, 940), vary=0.1)
     strap = K.colour((0.35, 0.12, 0.04), vary=0.12)
@@ -1148,7 +1145,6 @@ def stall_h_2(K):
     corners = {"L": (338, 634), "F": (476, 660), "R": (567, 628), "B": (434, 611)}
     ys = {k: bank.y(P.z(f[1])) for k, (f, _) in legs.items()}
     th = 0.05
-    from stalls_cdef import slab
     slab(K, [(P.x(corners[k][0]), ys[k], P.z(corners[k][1])) for k in ("L", "F", "R", "B")], th, seat_w,
          name="stool_seat")
     tops = {}
@@ -1382,7 +1378,6 @@ def stall_h_3(K):
         beam(K, (P.x(tx), y, P.z(ty)), (P.x(fx), yf_, zf - 0.02), 0.07, 0.06, legw, name="trestle_leg")
     stone = K.projected(axis_x=P.x(445), squeeze=1.0, keep=[(330, 460, 556, 692)], exclude=[(255, 585, 652, 625)],
                         inset=2)
-    side = ktile(K, (470, 480, 520, 520), vary=0.06, soften=0.3)
     R = P.m(113)
     ax_c = (P.x(445), 0.0, Z(573))
     wheel = K.lathe([(0.0, -0.05), (R * 0.98, -0.05), (R, -0.04), (R, 0.04), (R * 0.98, 0.05), (0.0, 0.05)], stone,
@@ -1394,7 +1389,6 @@ def stall_h_3(K):
     hub = K.lathe([(P.m(26), -0.07), (P.m(26), 0.07)], K.projected(squeeze=1.0, keep=[(420, 548, 470, 598)], inset=1),
                   segments=16, name="hub")
     frame_to(hub, ax_c, (0, 1, 0), (1, 0, 0))
-    _ = side
     for y in (yt0 - 0.045, yt1 + 0.045):
         K.tube([P.pt(395, 600, y), P.pt(420, 580, y), P.pt(470, 580, y), P.pt(495, 600, y)], 0.012, iron, segments=6,
                name="bearing_strap")
@@ -2520,15 +2514,54 @@ def stall_flowers(K):
     yb_ = 0.35
     tipped_basket(K, 470, 60, 50, 560, 570, 645, wv, goods=loose, ground=lambda z: yb_, dome=0.3, name="basket_loose")
     fibre = K.colour((0.6, 0.5, 0.3), vary=0.1)
-    coil = K.lathe([(0.0, 0.0), (0.1, 0.0), (0.1, 0.06), (0.0, 0.06)], fibre, segments=16,
-                   centre=(P.x(560), 0.45, bank.top), name="fibre_coil")
-    _ = coil
+    K.lathe([(0.0, 0.0), (0.1, 0.0), (0.1, 0.06), (0.0, 0.06)], fibre, segments=16,
+            centre=(P.x(560), 0.45, bank.top), name="fibre_coil")
     # ---------------------------------------------------------------- the flower seller
     K.figure([(468, 432), (492, 430), (500, 445), (500, 490), (520, 505), (535, 530), (542, 560), (545, 590),
               (560, 610), (578, 640), (580, 670), (560, 690), (530, 700), (450, 700), (390, 700), (362, 680),
               (362, 650), (385, 615), (398, 590), (402, 550), (410, 520), (438, 502), (437, 470), (440, 445),
               (455, 433)], y=bank.y(Z(700)) + 0.12, name="flower_seller")
     unify_cards(K)
+
+
+def bead_garland(K, box, y, strands=2, string_to=None, tassel=16, name="garland"):
+    """A doubled garland of strung flowers traced off the painting (box px, its tassel the bottom `tassel` px): each
+    strand a cord threaded with round, lumpy flower heads, every one wearing the painted flowers of its own strand
+    all round (projected about the strand's own axis), and the tassel at the bottom a cluster of the painted tassel
+    flowers with a ragged card of them across it, so it reads as a garland from every side."""
+    import market_props as MP
+    P = K.paint
+    x0, y0, x1, y1 = box
+    w = (x1 - x0) / strands
+    r = P.m(w) * 0.5
+    body_bot = y1 - tassel
+    for k in range(strands):
+        sx0, sx1 = x0 + w * k, x0 + w * (k + 1)
+        cx = (sx0 + sx1) / 2
+        mat = K.projected(axis_x=P.x(cx), squeeze=0.75, keep=[(sx0 + 1, y0, sx1 - 1, body_bot)], inset=1)
+        top, bot = P.z(y0) - r * 0.75, P.z(body_bot) + r * 0.2
+        K.tube([(P.x(cx), y, P.z(y0) + 0.004), (P.x(cx), y, bot)], r * 0.55, mat, segments=8, name=name + "_cord")
+        n = max(3, int((top - bot) / (r * 1.45)) + 1)
+        for i in range(n):
+            z = top - (top - bot) * i / (n - 1)
+            c = (P.x(cx) + K.rng.uniform(-0.12, 0.12) * r, y + K.rng.uniform(-0.12, 0.12) * r, z)
+            MP.ellipsoid(K, c, (r * 0.96, r * 0.96, r * 0.82), mat, seg=10, rings=6, lumps=0.14,
+                         rot=(0, 0, K.rng.uniform(0, 90)), name=name + "_head")
+    tbox = (x0 - 2, body_bot - 4, x1 + 2, y1 + 2)
+    tm = K.projected(axis_x=P.x((x0 + x1) / 2), squeeze=0.8, keep=[tbox], inset=3)
+    tw = P.m(x1 - x0)
+    MP.ellipsoid(K, (P.x((x0 + x1) / 2), y, P.z(y1 - tassel * 0.5)), (tw * 0.42, tw * 0.36, P.m(tassel) * 0.5), tm,
+                 seg=12, rings=7, lumps=0.22, name=name + "_tassel")
+    def petals_only(rgb):                    # red and yellow flowers, not the pale halo round the cut-out
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        return ((r > 170) & (g < 120)) | ((r > 200) & (g > 150) & (b < 110))
+    K.leaves_only(tbox, petals_only)
+    K.card_from_painting(tbox, (P.x((x0 + x1) / 2), y, P.z((tbox[1] + tbox[3]) / 2)), yaw=90, name="tassel",
+                         normal=(0, -1, 0.3))
+    if string_to is not None:
+        string = K.colour((0.3, 0.22, 0.12), vary=0.05)
+        K.tube([(P.x((x0 + x1) / 2), y, P.z(y0) - 0.01), (P.x((x0 + x1) / 2), y, string_to)], 0.004, string,
+               segments=4, name=name + "_string")
 
 
 @model("flower_stall", "market", kind="prop", atlas=2048)
@@ -2584,17 +2617,19 @@ def flower_stall(K):
            name="stretcher")
     T.apply(K.parts[n0:])
     # ---------------------------------------------------------------- the thatch
-    straw = ktile(K, (60, 26, 180, 44), vary=0.06)
-    front_th = K.projected(squeeze=1.0, keep=[(6, 18, 219, 52)], exclude=[(28, 5, 50, 30), (178, 10, 196, 32)], inset=1)
+    import market_props as MP
+    straw = MP.strip_tile(K, (40, 24, 190, 44), vary=0.06, soften=0.2)
     n1 = collect(K)
 
     def roof(u, v, drop=0.0):
         x = -a_ - 0.2 + (2 * a_ + 0.42) * u
         y = yf - 0.18 + (yb + 0.12 - yf + 0.18) * v
         z = Z(50) + (Z(22) - Z(50)) * v - 0.01 * math.sin(math.pi * u) - drop
+        z += 0.008 * math.sin(u * 37.0 + v * 5.0) * math.sin(v * 11.0 + 1.3)       # lumpy straw
+        if v < 0.04:
+            z -= 0.012 * abs(math.sin(u * 61.0))                                     # a ragged eave
         return (x, y, z)
-    K.sheet(roof, 24, 8, straw, name="thatch", thickness=0.05)
-    _ = front_th
+    K.sheet(roof, 40, 10, straw, name="thatch", thickness=0.05)
     K.sheet(lambda u, v: roof(u, v, 0.04), 24, 8, straw, name="thatch_under", thickness=0.01)
     T.apply(K.parts[n1:])
     # mango leaves tied at the front corners
@@ -2605,10 +2640,10 @@ def flower_stall(K):
             K.card_from_painting(box, tuple(p), yaw=yaw + math.degrees(T.t), name="mango_leaves")
     # ---------------------------------------------------------------- the garlands
     yg = yf + 0.04
-    for box in ((49, 57, 72, 156), (71, 57, 86, 147), (86, 57, 110, 160), (108, 57, 130, 150), (130, 58, 154, 156),
-                (154, 59, 179, 156)):
+    for box in ((49, 57, 72, 164), (71, 57, 86, 150), (86, 57, 110, 162), (108, 57, 130, 150), (130, 58, 154, 160),
+                (154, 59, 179, 160)):
         p = T.w((box[0] + box[2]) / 2, yg, 0.0)
-        garland(K, box, p.y, strands=2 if box[2] - box[0] > 18 else 1, string_to=Z(53))
+        bead_garland(K, box, p.y, strands=2 if box[2] - box[0] > 18 else 1, string_to=Z(53))
     # ---------------------------------------------------------------- the heaps on the counter
     for (x0, x1, top), yl in (((43, 110, 164), -0.02), ((91, 156, 164), 0.06), ((136, 206, 163), -0.02)):
         cx = (x0 + x1) / 2
@@ -2628,9 +2663,37 @@ def flower_stall(K):
     K.lathe([(P.m(22), 0.0), (P.m(24), Z(240)), (P.m(24), Z(214)), (P.m(22), Z(212))], tub, segments=24,
             centre=(p.x, p.y, 0.0), name="tub")
     weave = K.projected(axis_x=P.x(171), squeeze=0.93, keep=[(130, 218, 213, 258)], inset=1)
-    petals = K.projected(squeeze=1.0, keep=[(140, 209, 210, 228)], inset=1)
-    tipped_basket(K, 171, 41, 33, 219, 232, 258, weave, goods=petals, ground=lambda z: -0.6, dome=0.3,
-                  name="petal_basket")
+    petals = ktile(K, (148, 211, 200, 224), vary=0.08)
+    rc, ax, Rm, _ = tipped_basket(K, 171, 41, 33, 219, 232, 258, weave, goods=petals, ground=lambda z: -0.6,
+                                  dome=0.42, name="petal_basket")
+    # loose flower heads heaped on it: marigolds, roses, jasmine, each its painted colour
+    heads = [K.colour(b, vary=0.12, scale=40) for b in ((150, 217, 156, 222), (165, 212, 170, 217),
+                                                       (173, 217, 178, 222), (192, 217, 198, 222))]
+    ax = Vector(ax)
+    up_t = Vector((0, ax.z, -ax.y))
+    for i in range(26):
+        d = math.sqrt(K.rng.uniform(0, 1)) * Rm * 0.85
+        b = K.rng.uniform(0, 2 * math.pi)
+        base = Vector(rc) + Vector((1, 0, 0)) * (d * math.cos(b)) + up_t * (d * math.sin(b))
+        lift = Rm * 0.42 * max(0.0, 1 - (d / Rm) ** 2) * 0.95
+        rr = Rm * K.rng.uniform(0.13, 0.18)
+        MP.ellipsoid(K, tuple(base + ax * (lift + rr * 0.3)), (rr, rr, rr * 0.7), heads[i % 4], seg=8, rings=5,
+                     lumps=0.25, name="flower_head")
+    # and a few of the painted heads as cut-out cards lying on top, for their ragged petals
+    def bright_petals(rgb):
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        yellow = (r > 220) & (g > 195) & (b < 120)
+        red = (r > 170) & (g < 110)
+        white = np.minimum(np.minimum(r, g), b) > 200
+        return yellow | red | white
+    K.leaves_only((142, 204, 208, 216), bright_petals)
+    for i in range(5):
+        px_, py_ = K.rng.uniform(150, 196), K.rng.uniform(208, 212)
+        d = K.rng.uniform(0, Rm * 0.5)
+        b = K.rng.uniform(0, 2 * math.pi)
+        base = Vector(rc) + Vector((1, 0, 0)) * (d * math.cos(b)) + up_t * (d * math.sin(b)) + ax * (Rm * 0.4)
+        K.card_from_painting((px_ - 9, py_ - 6, px_ + 9, py_ + 6), tuple(base), yaw=K.rng.uniform(-60, 60),
+                             pitch=-K.rng.uniform(55, 80), name="petals", normal=(0, -0.3, 1))
     shadow = K.colour((20, 254, 120, 258), vary=0.05)
     K.lathe([(0.0, 0.0), (1.1, 0.0), (1.05, 0.005), (0.0, 0.007)], shadow, segments=32, centre=(T.cx, -0.05, -0.004),
             scale_y=0.55, cap=False, name="ground")
