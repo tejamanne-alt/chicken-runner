@@ -2289,10 +2289,13 @@ def blender_main():
     for r in plan_recs:
         if r.vis_kind == "decal" and r.mode in ("model", "card"):
             rw = r.real[0] if getattr(r, "real", None) else None
-            if not r.flat and r.h >= 0.25 and abs(r.z) < 1.3:
-                add("h", "high" if abs(r.z) < LANE_HALF else "medium", r.x, r.piece,
-                    f"litter standing {r.h:.2f} m tall ({r.w:.2f} m wide) at z {r.z:+.2f}, on or beside the running line: "
-                    "it reads as an obstacle that is not one", r)
+            on_line = abs(r.z) < LANE_HALF
+            in_front = -1.3 < r.z <= -LANE_HALF and r.h >= 0.35     # between the camera and her feet
+            if not r.flat and r.h >= 0.25 and (on_line or in_front):
+                add("h", "high" if on_line else "medium", r.x, r.piece,
+                    f"litter standing {r.h:.2f} m tall ({r.w:.2f} m wide) at z {r.z:+.2f}, "
+                    + ("on the running line: it reads as an obstacle that is not one" if on_line else
+                       "just in front of the running line: it covers her feet as she passes"), r)
             if rw and r.real[2] == "manifest" and r.w / rw > 1.75:
                 add("h", "medium", r.x, r.piece, f"drawn {r.w:.2f} m wide, {r.w / rw:.1f} times its real size "
                     f"({rw:.2f} m in the cut-out manifest)", r)
@@ -2311,6 +2314,37 @@ def blender_main():
             if abs(pv - val) > 0.01 or r.piece != piece or abs(r.z - 0.05) > 0.01:
                 add("h", "low", r.x, r.piece, f"the plan's {r.item_kind} ({r.piece} {dim}={pv} z={r.z}) differs from "
                     f"Kit's ({piece} {dim}={val} z=0.05)", r)
+    # overhead obstacles (a clothesline: slide under it): does the painting hang below the gap the trigger leaves?
+    hem_cache, hems = {}, {}
+    for ob in L.obstacles:
+        bottom = float(ob["item"].get("bottom", 0) or 0)
+        for r in ob["recs"]:
+            if bottom <= 0 or r.image is None or r.mode not in ("model", "card"):
+                continue
+            if r.image not in hem_cache:
+                import numpy as np_
+                from PIL import Image as Im
+                a_ = np_.asarray(Im.open(r.image).convert("RGBA"))[..., 3] > 127
+                hh_, ww_ = a_.shape
+                low = []
+                for col in range(int(0.15 * ww_), int(0.85 * ww_)):
+                    rows_ = np_.where(a_[:, col])[0]
+                    if not len(rows_):
+                        continue
+                    y_ = rows_.min()
+                    while y_ < hh_ and a_[y_, col]:
+                        y_ += 1                      # the first opaque run down from the top: the line and its cloth
+                    low.append((hh_ - y_) / hh_)
+                hem_cache[r.image] = min(low) if low else 1.0
+            hem = r.y + hem_cache[r.image] * r.h
+            if hem < bottom - 0.1:
+                hems.setdefault(r.piece, []).append((ob["x"], hem, bottom))
+    for piece, lst in hems.items():
+        add("h", "high", lst[0][0], piece, f"the painting hangs down to {min(h_ for _, h_, _ in lst):.2f} m but the "
+            f"obstacle's gap is {lst[0][2]:.2f} m high: the kid slides through the cloth, and pickups on the slide route "
+            f"sit at its hem ({len(lst)} of them, at x " + ", ".join(f"{x_:.0f}" for x_, _, _ in lst[:10]) + ")",
+            section="(every " + piece + ")")
+
     # standing decals the game turns away from the camera (Plans passes the item's 0..360 turn)
     for r in plan_recs:
         if r.vis_kind == "decal" and not r.flat and r.mode == "model":
