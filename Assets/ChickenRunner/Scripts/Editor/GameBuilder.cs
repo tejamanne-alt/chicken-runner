@@ -103,6 +103,10 @@ namespace ChickenRunner.EditorTools
                 var prims = PrimMaterial();
                 var water = GroundMaterial("Water", ArtAssets.Texture(ArtAssets.Cutout("canal_water"), true), 2.5f, null,
                     new Color(0.82f, 0.92f, 1f), 0.05f, 6f, 40f);
+                // The hand pump's puddle: the same water, lighter and bluer and in a smaller tile, so it reads as the shallow
+                // puddle painted under the pump rather than a dark patch of canal.
+                var puddle = GroundMaterial("Puddle", ArtAssets.Texture(ArtAssets.Cutout("canal_water"), true), 1.2f, null,
+                    new Color(0.95f, 1.05f, 1.25f), 0.03f, 6f, 40f);
                 var obstacles = CreateObstacles();
 
                 var tunings = new TuningConfig[StoryMap.ZoneCount + 1];
@@ -115,7 +119,7 @@ namespace ChickenRunner.EditorTools
                     tunings[zone] = CreateTuning(zone);
                     var ground = ZoneGround(zone);
                     arts[zone] = ZoneArtBuilder.Build(zone, s_layouts[zone - 1], ground, SceneryFolder);
-                    var kit = new ZoneKit { zone = zone, tuning = tunings[zone].Values, prims = prims, ground = ground, water = water, obstacles = obstacles };
+                    var kit = new ZoneKit { zone = zone, tuning = tunings[zone].Values, prims = prims, ground = ground, water = water, puddle = puddle, obstacles = obstacles };
                     kits[zone] = kit;
                     chunks[zone] = new Dictionary<string, Chunk>();
                     foreach (var design in ChunkDesigns(zone))

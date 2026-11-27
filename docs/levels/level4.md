@@ -36,19 +36,19 @@ three widths in a row, then the bund opens out.
 | 66 | 86 | Haystack | small haystack 74; 6 mangoes | A small haystack: hop onto it (mangoes along its top) or over it. |
 | 86 | 108 | WideCanal | 4.5 m canal 95; feather 1 at 97.25, 3.4 m up; 7 mangoes | The widest canal, 4.5 m: double jump (the mangoes show where), or wade. |
 | 108 | 124 | Breather | chilli 109; 10 mangoes | Room to breathe: a wave of mangoes and the first chilli. |
-| 124 | 146 | Cart | bullock cart 128; feather 2 at 132.4, 3.4 m up; cow dung 140.5; 12 mangoes | The bullock cart on the bund: onto its bed; a feather above it for a double jump. |
+| 124 | 146 | Cart | bullock cart 128; feather 2 at 132.4, 3.4 m up; cow dung 140.5; 11 mangoes | The bullock cart on the bund: onto its bed; a feather above it for a double jump. |
 | 146 | 166 | CanalDung | 2.5 m canal 151; cow dung 160.5; 10 mangoes | A canal, then dung: jump, land, tap. |
 | 166 | 192 | Haystacks | small haystack 170; small haystack 177.5; small haystack 185; feather 3 at 185.6, 3.2 m up; 9 mangoes | Three small haystacks: hop, hop, hop; a feather above the last. |
 | 192 | 214 | PlankThenJump | 3.5 m canal 195 with the plank; 2.5 m canal 205.5; 10 mangoes | The plank, then a canal with no plank: walk, then jump. |
 | 214 | 232 | ChilliStraight | chilli 215; 10 mangoes | A long straight and a chilli to win back ground. |
-| 232 | 254 | CartCanal | bullock cart 235; 2.5 m canal 245; 12 mangoes | Off the cart's bed and straight on over a canal. |
+| 232 | 254 | CartCanal | bullock cart 235; 2.5 m canal 245; 11 mangoes | Off the cart's bed and straight on over a canal. |
 | 254 | 274 | WideAgain | 4.5 m canal 261; 7 mangoes | The wide canal again: double jump. |
 | 274 | 292 | DungHaystack | cow dung 278.5; small haystack 285.5; 8 mangoes | Dung, then a small haystack. |
 | 292 | 318 | CanalTrio | 2.5 m canal 295; 2.5 m canal 303.5; 2.5 m canal 312; 15 mangoes | Three 2.5 m canals in a rhythm: jump, jump, jump. |
 | 318 | 342 | Mischief | cow dung 322; pot stack 330 (knocked in by the rooster); mischief 331; 2.5 m canal 336.5; 15 mangoes | Dung; then the rooster knocks the pots by the well into the lane; a canal after. |
 | 342 | 364 | PlankHaystack | 3.5 m canal 345 with the plank; small haystack 356; 8 mangoes | The plank, then a haystack. |
 | 364 | 382 | ChilliRun | chilli 365; 10 mangoes | A chilli and a run of mangoes. |
-| 382 | 410 | CanalCartCanal | 2.5 m canal 385; bullock cart 393; 2.5 m canal 403; 17 mangoes | Canal, cart, canal. |
+| 382 | 410 | CanalCartCanal | 2.5 m canal 385; bullock cart 393; 2.5 m canal 403; 16 mangoes | Canal, cart, canal. |
 | 410 | 432 | WideHaystack | 4.5 m canal 413; small haystack 425.5; 10 mangoes | The wide canal, then a haystack straight after it. |
 | 432 | 450 | DungPair | cow dung 436.5; cow dung 444; 10 mangoes | Two cow pats: tap, tap. |
 | 450 | 468 | FinalChilli | chilli 451; 10 mangoes | The last chilli. |

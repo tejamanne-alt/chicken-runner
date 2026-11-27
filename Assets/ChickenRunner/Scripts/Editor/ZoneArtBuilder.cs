@@ -23,6 +23,7 @@ namespace ChickenRunner.EditorTools
         const float StripWidth = 20f;
         const float LaneFront = -2.0f;
         const float LaneBack = 1.4f;
+        const float RunningLine = 0.9f;
         const float NearDepth = 11f;
         const float CameraDistance = 30f;
         const float ViewSpread = 0.6f;
@@ -70,8 +71,10 @@ namespace ChickenRunner.EditorTools
         static bool Keep(LayoutCard c, int zone)
         {
             if (c.layer == "Characters" || c.layer == "Ground") return false;
-            // Zone 2's canals cross the lane wherever the level puts them, so nothing may lie on the lane there.
-            if (c.flat) return zone != 2 || c.z < LaneFront || c.z > LaneBack;
+            // Zone 2's canals cross the lane wherever the level puts them, so nothing may lie on the lane there; and
+            // nowhere does a ground detail lie on the running line itself, where a husk or a tuft reads as an obstacle
+            // (the level plans lay their own, off it).
+            if (c.flat) return (zone != 2 || c.z < LaneFront || c.z > LaneBack) && Mathf.Abs(c.z) >= RunningLine;
             return c.z <= LaneFront || c.z >= LaneBack;
         }
 

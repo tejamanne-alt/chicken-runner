@@ -26,6 +26,7 @@ namespace ChickenRunner.EditorTools
             public Material prims;
             public Material ground;
             public Material water;
+            public Material puddle;
             public Obstacles obstacles;
         }
 
@@ -217,9 +218,10 @@ namespace ChickenRunner.EditorTools
                 water.transform.SetParent(obstacle.visual, false);
                 water.transform.localPosition = new Vector3(0f, 0.004f, 0f);
                 water.transform.localScale = new Vector3(width, 0.004f, 0.9f);
-                water.GetComponent<Renderer>().sharedMaterial = _z.water;
-                if (Art("hand_pump", x - width * 0.3f, 0.9f, height: 1.2f) == null)
-                    Prim(PrimitiveType.Cylinder, "HandPump", _root, new Vector3(x - width * 0.3f, 0.55f, 1.1f), new Vector3(0.16f, 0.55f, 0.16f), Palette.Iron);
+                water.GetComponent<Renderer>().sharedMaterial = _z.puddle != null ? _z.puddle : _z.water;
+                // Far enough back (its model is 1 m deep) that its bucket and spout stay off the running line.
+                if (Art("hand_pump", x - width * 0.3f, 1.35f, height: 1.2f) == null)
+                    Prim(PrimitiveType.Cylinder, "HandPump", _root, new Vector3(x - width * 0.3f, 0.55f, 1.35f), new Vector3(0.16f, 0.55f, 0.16f), Palette.Iron);
             }
 
             /// <summary>Sarees on a line across the lane, hanging from 1.6 m down to 0.7 m: slide under, or double jump over.</summary>

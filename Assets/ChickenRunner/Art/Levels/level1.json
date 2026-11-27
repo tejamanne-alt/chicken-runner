@@ -37,12 +37,12 @@
     },
     {
      "kind": "neighbour",
-     "x": -2.4,
+     "x": 2.6,
      "z": 1.3,
      "visuals": [
       {
        "piece": "neighbour_sleeping",
-       "x": -2.4,
+       "x": 2.6,
        "y": 0.0,
        "z": 1.3,
        "w": 1.786,
@@ -54,7 +54,7 @@
       },
       {
        "piece": "neighbour_awake",
-       "x": -2.4,
+       "x": 2.6,
        "y": 0.0,
        "z": 1.3,
        "w": 2.003,
@@ -92,30 +92,6 @@
     },
     {
      "kind": "prop",
-     "x": 2.6,
-     "piece": "chicken_basket",
-     "z": 1.6,
-     "h": 0.6,
-     "w": 0.0,
-     "mirror": true,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "chicken_basket",
-       "x": 2.6,
-       "y": 0.0,
-       "z": 1.6,
-       "w": 0.718,
-       "h": 0.6,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
      "x": -7.8,
      "piece": "water_pot_stand",
      "z": 1.7,
@@ -140,33 +116,9 @@
     },
     {
      "kind": "prop",
-     "x": 4.6,
-     "piece": "tulsi_planter",
-     "z": 1.7,
-     "h": 1.1,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "tulsi_planter",
-       "x": 4.6,
-       "y": 0.0,
-       "z": 1.7,
-       "w": 0.729,
-       "h": 1.1,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 1.6,
+     "x": -1.4,
      "piece": "hen_1",
-     "z": 1.15,
+     "z": 1.2,
      "h": 0.42,
      "w": 0.0,
      "mirror": false,
@@ -174,9 +126,9 @@
      "visuals": [
       {
        "piece": "hen_1",
-       "x": 1.6,
+       "x": -1.4,
        "y": 0.0,
-       "z": 1.15,
+       "z": 1.2,
        "w": 0.409,
        "h": 0.42,
        "mirror": false,
@@ -188,7 +140,7 @@
     },
     {
      "kind": "prop",
-     "x": 3.4,
+     "x": 4.7,
      "piece": "hen_2",
      "z": 1.35,
      "h": 0.42,
@@ -198,7 +150,7 @@
      "visuals": [
       {
        "piece": "hen_2",
-       "x": 3.4,
+       "x": 4.7,
        "y": 0.0,
        "z": 1.35,
        "w": 0.376,
@@ -212,7 +164,7 @@
     },
     {
      "kind": "prop",
-     "x": 6.2,
+     "x": 6.5,
      "piece": "hen_3",
      "z": 1.1,
      "h": 0.42,
@@ -222,7 +174,7 @@
      "visuals": [
       {
        "piece": "hen_3",
-       "x": 6.2,
+       "x": 6.5,
        "y": 0.0,
        "z": 1.1,
        "w": 0.35,
@@ -236,19 +188,19 @@
     },
     {
      "kind": "decal",
-     "x": 2.4,
+     "x": -0.8,
      "piece": "hen_prints",
-     "z": 0.85,
-     "w": 0.7,
-     "turn": 48.371,
+     "z": 0.95,
+     "w": 0.9,
+     "turn": 48.4,
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 2.4,
+       "x": -0.8,
        "y": 0.0,
-       "z": 0.85,
-       "w": 0.7,
-       "h": 0.175,
+       "z": 0.95,
+       "w": 0.9,
+       "h": 0.225,
        "mirror": false,
        "flat": true,
        "turn": 48.4,
@@ -262,7 +214,7 @@
      "piece": "kolam_2",
      "z": -1.2,
      "w": 1.1,
-     "turn": 305.076,
+     "turn": 305.1,
      "visuals": [
       {
        "piece": "kolam_2",
@@ -394,66 +346,66 @@
     },
     {
      "kind": "decal",
-     "x": 8.067,
-     "piece": "tuft_1",
-     "z": -0.637,
-     "w": 0.704,
-     "turn": 170.008,
+     "x": 8.641,
+     "piece": "leaf_1",
+     "z": -1.3,
+     "w": 0.14,
+     "turn": 140.3,
      "visuals": [
       {
-       "piece": "tuft_1",
-       "x": 8.067,
+       "piece": "leaf_1",
+       "x": 8.641,
        "y": 0.0,
-       "z": -0.637,
-       "w": 0.704,
-       "h": 0.805,
+       "z": -1.3,
+       "w": 0.14,
+       "h": 0.216,
        "mirror": false,
-       "flat": false,
-       "turn": -10.0,
+       "flat": true,
+       "turn": 140.3,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": -0.769,
-     "piece": "tuft_1",
-     "z": -0.754,
-     "w": 0.411,
-     "turn": 300.875,
+     "x": -3.374,
+     "piece": "tuft_3",
+     "z": 0.966,
+     "w": 0.236,
+     "turn": -15.5,
      "visuals": [
       {
-       "piece": "tuft_1",
-       "x": -0.769,
+       "piece": "tuft_3",
+       "x": -3.374,
        "y": 0.0,
-       "z": -0.754,
-       "w": 0.411,
-       "h": 0.47,
+       "z": 0.966,
+       "w": 0.236,
+       "h": 0.288,
        "mirror": false,
        "flat": false,
-       "turn": 0.9,
+       "turn": -15.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": -9.452,
-     "piece": "husk",
-     "z": -0.142,
-     "w": 0.636,
-     "turn": 36.802,
+     "x": -8.796,
+     "piece": "tuft_2",
+     "z": -1.519,
+     "w": 0.188,
+     "turn": 17.2,
      "visuals": [
       {
-       "piece": "husk",
-       "x": -9.452,
+       "piece": "tuft_2",
+       "x": -8.796,
        "y": 0.0,
-       "z": -0.142,
-       "w": 0.636,
-       "h": 0.454,
+       "z": -1.519,
+       "w": 0.188,
+       "h": 0.21,
        "mirror": false,
        "flat": false,
-       "turn": 16.8,
+       "turn": 17.2,
        "kind": "decal"
       }
      ]
@@ -526,7 +478,7 @@
     {
      "kind": "pots",
      "x": 23.0,
-     "mirror": true,
+     "mirror": false,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -539,7 +491,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": true,
+       "mirror": false,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -650,66 +602,66 @@
     },
     {
      "kind": "decal",
-     "x": 14.879,
+     "x": 27.436,
      "piece": "leaf_1",
-     "z": 0.389,
-     "w": 0.776,
-     "turn": 137.234,
+     "z": 1.447,
+     "w": 0.119,
+     "turn": 329.9,
      "visuals": [
       {
        "piece": "leaf_1",
-       "x": 14.879,
+       "x": 27.436,
        "y": 0.0,
-       "z": 0.389,
-       "w": 0.776,
-       "h": 1.202,
+       "z": 1.447,
+       "w": 0.119,
+       "h": 0.185,
        "mirror": false,
        "flat": true,
-       "turn": 137.2,
+       "turn": 329.9,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 18.182,
-     "piece": "leaf_1",
-     "z": -0.202,
-     "w": 0.611,
-     "turn": 274.932,
+     "x": 30.177,
+     "piece": "footprints",
+     "z": -1.28,
+     "w": 1.249,
+     "turn": 119.8,
      "visuals": [
       {
-       "piece": "leaf_1",
-       "x": 18.182,
+       "piece": "footprints",
+       "x": 30.177,
        "y": 0.0,
-       "z": -0.202,
-       "w": 0.611,
-       "h": 0.947,
+       "z": -1.28,
+       "w": 1.249,
+       "h": 0.248,
        "mirror": false,
        "flat": true,
-       "turn": 274.9,
+       "turn": 119.8,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 30.466,
-     "piece": "hen_prints",
-     "z": 0.137,
-     "w": 0.492,
-     "turn": 78.761,
+     "x": 23.131,
+     "piece": "husk",
+     "z": 1.313,
+     "w": 0.287,
+     "turn": -8.5,
      "visuals": [
       {
-       "piece": "hen_prints",
-       "x": 30.466,
+       "piece": "husk",
+       "x": 23.131,
        "y": 0.0,
-       "z": 0.137,
-       "w": 0.492,
-       "h": 0.123,
+       "z": 1.313,
+       "w": 0.287,
+       "h": 0.205,
        "mirror": false,
-       "flat": true,
-       "turn": 78.8,
+       "flat": false,
+       "turn": -8.5,
        "kind": "decal"
       }
      ]
@@ -725,7 +677,7 @@
     {
      "kind": "pots",
      "x": 38.0,
-     "mirror": true,
+     "mirror": false,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -738,7 +690,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": true,
+       "mirror": false,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -850,7 +802,7 @@
     {
      "kind": "pots",
      "x": 45.0,
-     "mirror": true,
+     "mirror": false,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -863,7 +815,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": true,
+       "mirror": false,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -974,66 +926,66 @@
     },
     {
      "kind": "decal",
-     "x": 32.865,
-     "piece": "tuft_2",
-     "z": 0.878,
-     "w": 0.769,
-     "turn": 36.0,
+     "x": 41.09,
+     "piece": "leaf_1",
+     "z": 0.285,
+     "w": 0.122,
+     "turn": 267.7,
      "visuals": [
       {
-       "piece": "tuft_2",
-       "x": 32.865,
+       "piece": "leaf_1",
+       "x": 41.09,
        "y": 0.0,
-       "z": 0.878,
-       "w": 0.769,
-       "h": 0.86,
-       "mirror": false,
-       "flat": false,
-       "turn": 16.0,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 43.199,
-     "piece": "footprints",
-     "z": 0.581,
-     "w": 0.448,
-     "turn": 119.77,
-     "visuals": [
-      {
-       "piece": "footprints",
-       "x": 43.199,
-       "y": 0.0,
-       "z": 0.581,
-       "w": 0.448,
-       "h": 0.089,
+       "z": 0.285,
+       "w": 0.122,
+       "h": 0.189,
        "mirror": false,
        "flat": true,
-       "turn": 119.8,
+       "turn": 267.7,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 48.419,
-     "piece": "husk",
-     "z": -0.203,
-     "w": 0.521,
-     "turn": 211.529,
+     "x": 41.83,
+     "piece": "hen_prints",
+     "z": 0.65,
+     "w": 0.792,
+     "turn": 239.0,
      "visuals": [
       {
-       "piece": "husk",
-       "x": 48.419,
+       "piece": "hen_prints",
+       "x": 41.83,
        "y": 0.0,
-       "z": -0.203,
-       "w": 0.521,
-       "h": 0.372,
+       "z": 0.65,
+       "w": 0.792,
+       "h": 0.198,
+       "mirror": false,
+       "flat": true,
+       "turn": 239.0,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 34.335,
+     "piece": "pebbles",
+     "z": -1.076,
+     "w": 0.588,
+     "turn": 3.8,
+     "visuals": [
+      {
+       "piece": "pebbles",
+       "x": 34.335,
+       "y": 0.0,
+       "z": -1.076,
+       "w": 0.588,
+       "h": 0.264,
        "mirror": false,
        "flat": false,
-       "turn": -8.5,
+       "turn": 3.8,
        "kind": "decal"
       }
      ]
@@ -1250,7 +1202,7 @@
      "piece": "hoof_prints",
      "z": 0.9,
      "w": 1.2,
-     "turn": 317.692,
+     "turn": 169.0,
      "visuals": [
       {
        "piece": "hoof_prints",
@@ -1261,51 +1213,51 @@
        "h": 0.338,
        "mirror": false,
        "flat": true,
-       "turn": 317.7,
+       "turn": 169.0,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 63.193,
+     "x": 55.128,
      "piece": "tuft_3",
-     "z": 0.014,
-     "w": 0.741,
-     "turn": 172.882,
+     "z": 1.115,
+     "w": 0.212,
+     "turn": 1.7,
      "visuals": [
       {
        "piece": "tuft_3",
-       "x": 63.193,
+       "x": 55.128,
        "y": 0.0,
-       "z": 0.014,
-       "w": 0.741,
-       "h": 0.904,
+       "z": 1.115,
+       "w": 0.212,
+       "h": 0.258,
        "mirror": false,
        "flat": false,
-       "turn": -7.1,
+       "turn": 1.7,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 61.656,
-     "piece": "twigs",
-     "z": -0.249,
-     "w": 0.547,
-     "turn": 317.784,
+     "x": 53.055,
+     "piece": "leaf_1",
+     "z": 0.007,
+     "w": 0.134,
+     "turn": 194.3,
      "visuals": [
       {
-       "piece": "twigs",
-       "x": 61.656,
+       "piece": "leaf_1",
+       "x": 53.055,
        "y": 0.0,
-       "z": -0.249,
-       "w": 0.547,
-       "h": 0.363,
+       "z": 0.007,
+       "w": 0.134,
+       "h": 0.208,
        "mirror": false,
        "flat": true,
-       "turn": 317.8,
+       "turn": 194.3,
        "kind": "decal"
       }
      ]
@@ -1519,66 +1471,66 @@
     },
     {
      "kind": "decal",
-     "x": 81.241,
-     "piece": "leaf_2",
-     "z": 0.619,
-     "w": 0.576,
-     "turn": 183.034,
+     "x": 73.033,
+     "piece": "hen_prints",
+     "z": 1.112,
+     "w": 0.91,
+     "turn": 96.9,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 81.241,
+       "piece": "hen_prints",
+       "x": 73.033,
        "y": 0.0,
-       "z": 0.619,
-       "w": 0.576,
-       "h": 1.463,
+       "z": 1.112,
+       "w": 0.91,
+       "h": 0.227,
        "mirror": false,
        "flat": true,
-       "turn": 183.0,
+       "turn": 96.9,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 81.29,
-     "piece": "pebbles",
-     "z": 0.054,
-     "w": 0.548,
-     "turn": 263.796,
+     "x": 76.912,
+     "piece": "leaf_1",
+     "z": 1.463,
+     "w": 0.118,
+     "turn": 308.5,
      "visuals": [
       {
-       "piece": "pebbles",
-       "x": 81.29,
+       "piece": "leaf_1",
+       "x": 76.912,
        "y": 0.0,
-       "z": 0.054,
-       "w": 0.548,
-       "h": 0.246,
+       "z": 1.463,
+       "w": 0.118,
+       "h": 0.183,
        "mirror": false,
-       "flat": false,
-       "turn": 3.8,
+       "flat": true,
+       "turn": 308.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 82.618,
-     "piece": "tuft_3",
-     "z": 0.299,
-     "w": 0.557,
-     "turn": 61.326,
+     "x": 84.638,
+     "piece": "tuft_2",
+     "z": 1.403,
+     "w": 0.249,
+     "turn": 6.7,
      "visuals": [
       {
-       "piece": "tuft_3",
-       "x": 82.618,
+       "piece": "tuft_2",
+       "x": 84.638,
        "y": 0.0,
-       "z": 0.299,
-       "w": 0.557,
-       "h": 0.68,
+       "z": 1.403,
+       "w": 0.249,
+       "h": 0.279,
        "mirror": false,
        "flat": false,
-       "turn": 1.3,
+       "turn": 6.7,
        "kind": "decal"
       }
      ]
@@ -1764,66 +1716,66 @@
     },
     {
      "kind": "decal",
-     "x": 94.034,
-     "piece": "husk",
-     "z": 1.253,
-     "w": 0.616,
-     "turn": 309.704,
-     "visuals": [
-      {
-       "piece": "husk",
-       "x": 94.034,
-       "y": 0.0,
-       "z": 1.253,
-       "w": 0.616,
-       "h": 0.439,
-       "mirror": false,
-       "flat": false,
-       "turn": 9.7,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 89.983,
-     "piece": "tuft_3",
-     "z": 0.036,
-     "w": 0.541,
-     "turn": 327.512,
-     "visuals": [
-      {
-       "piece": "tuft_3",
-       "x": 89.983,
-       "y": 0.0,
-       "z": 0.036,
-       "w": 0.541,
-       "h": 0.66,
-       "mirror": false,
-       "flat": false,
-       "turn": -12.5,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 96.388,
+     "x": 94.92,
      "piece": "leaf_1",
-     "z": 0.283,
-     "w": 0.553,
-     "turn": 308.502,
+     "z": -0.237,
+     "w": 0.122,
+     "turn": 131.3,
      "visuals": [
       {
        "piece": "leaf_1",
-       "x": 96.388,
+       "x": 94.92,
        "y": 0.0,
-       "z": 0.283,
-       "w": 0.553,
-       "h": 0.858,
+       "z": -0.237,
+       "w": 0.122,
+       "h": 0.189,
        "mirror": false,
        "flat": true,
-       "turn": 308.5,
+       "turn": 131.3,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 94.816,
+     "piece": "pebbles",
+     "z": 1.411,
+     "w": 0.612,
+     "turn": -11.6,
+     "visuals": [
+      {
+       "piece": "pebbles",
+       "x": 94.816,
+       "y": 0.0,
+       "z": 1.411,
+       "w": 0.612,
+       "h": 0.274,
+       "mirror": false,
+       "flat": false,
+       "turn": -11.6,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 86.92,
+     "piece": "twigs",
+     "z": -0.865,
+     "w": 0.469,
+     "turn": 65.1,
+     "visuals": [
+      {
+       "piece": "twigs",
+       "x": 86.92,
+       "y": 0.0,
+       "z": -0.865,
+       "w": 0.469,
+       "h": 0.312,
+       "mirror": false,
+       "flat": true,
+       "turn": 65.1,
        "kind": "decal"
       }
      ]
@@ -1860,7 +1812,7 @@
        "piece": "hand_pump",
        "x": 113.52,
        "y": 0.0,
-       "z": 0.9,
+       "z": 1.35,
        "w": 1.304,
        "h": 1.2,
        "mirror": false,
@@ -1974,44 +1926,44 @@
     },
     {
      "kind": "decal",
-     "x": 120.638,
-     "piece": "tuft_2",
-     "z": 1.14,
-     "w": 0.724,
-     "turn": 186.724,
+     "x": 104.24,
+     "piece": "footprints",
+     "z": 0.163,
+     "w": 1.206,
+     "turn": 339.7,
      "visuals": [
       {
-       "piece": "tuft_2",
-       "x": 120.638,
+       "piece": "footprints",
+       "x": 104.24,
        "y": 0.0,
-       "z": 1.14,
-       "w": 0.724,
-       "h": 0.809,
+       "z": 0.163,
+       "w": 1.206,
+       "h": 0.239,
        "mirror": false,
-       "flat": false,
-       "turn": 6.7,
+       "flat": true,
+       "turn": 339.7,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 103.566,
-     "piece": "tuft_3",
-     "z": 0.962,
-     "w": 0.622,
-     "turn": 338.765,
+     "x": 103.839,
+     "piece": "tuft_1",
+     "z": 1.178,
+     "w": 0.257,
+     "turn": 12.0,
      "visuals": [
       {
-       "piece": "tuft_3",
-       "x": 103.566,
+       "piece": "tuft_1",
+       "x": 103.839,
        "y": 0.0,
-       "z": 0.962,
-       "w": 0.622,
-       "h": 0.759,
+       "z": 1.178,
+       "w": 0.257,
+       "h": 0.293,
        "mirror": false,
        "flat": false,
-       "turn": -1.2,
+       "turn": 12.0,
        "kind": "decal"
       }
      ]
@@ -2053,13 +2005,13 @@
     },
     {
      "kind": "mango",
-     "x": 127.4,
-     "y": 1.5,
+     "x": 127.8,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 127.4,
-       "y": 1.5,
+       "x": 127.8,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -2072,13 +2024,13 @@
     },
     {
      "kind": "mango",
-     "x": 127.9,
-     "y": 1.5,
+     "x": 128.3,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 127.9,
-       "y": 1.5,
+       "x": 128.3,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -2091,32 +2043,13 @@
     },
     {
      "kind": "mango",
-     "x": 128.4,
-     "y": 1.5,
+     "x": 128.8,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 128.4,
-       "y": 1.5,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 128.9,
-     "y": 1.5,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 128.9,
-       "y": 1.5,
+       "x": 128.8,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -2206,44 +2139,44 @@
     },
     {
      "kind": "decal",
-     "x": 130.355,
-     "piece": "pebbles",
-     "z": 0.815,
-     "w": 0.538,
-     "turn": 193.852,
+     "x": 127.242,
+     "piece": "tuft_3",
+     "z": -1.25,
+     "w": 0.183,
+     "turn": 4.5,
      "visuals": [
       {
-       "piece": "pebbles",
-       "x": 130.355,
+       "piece": "tuft_3",
+       "x": 127.242,
        "y": 0.0,
-       "z": 0.815,
-       "w": 0.538,
-       "h": 0.241,
+       "z": -1.25,
+       "w": 0.183,
+       "h": 0.223,
        "mirror": false,
        "flat": false,
-       "turn": 13.9,
+       "turn": 4.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 134.346,
-     "piece": "tuft_1",
-     "z": 0.292,
-     "w": 0.64,
-     "turn": 289.645,
+     "x": 125.682,
+     "piece": "twigs",
+     "z": -0.783,
+     "w": 0.486,
+     "turn": 233.4,
      "visuals": [
       {
-       "piece": "tuft_1",
-       "x": 134.346,
+       "piece": "twigs",
+       "x": 125.682,
        "y": 0.0,
-       "z": 0.292,
-       "w": 0.64,
-       "h": 0.732,
+       "z": -0.783,
+       "w": 0.486,
+       "h": 0.323,
        "mirror": false,
-       "flat": false,
-       "turn": -10.4,
+       "flat": true,
+       "turn": 233.4,
        "kind": "decal"
       }
      ]
@@ -2259,7 +2192,7 @@
     {
      "kind": "pots",
      "x": 148.0,
-     "mirror": false,
+     "mirror": true,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -2272,7 +2205,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": false,
+       "mirror": true,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -2630,44 +2563,44 @@
     },
     {
      "kind": "decal",
-     "x": 146.296,
-     "piece": "tuft_2",
-     "z": -1.062,
-     "w": 0.719,
-     "turn": 293.917,
+     "x": 152.926,
+     "piece": "footprints",
+     "z": -1.235,
+     "w": 1.379,
+     "turn": 151.5,
      "visuals": [
       {
-       "piece": "tuft_2",
-       "x": 146.296,
+       "piece": "footprints",
+       "x": 152.926,
        "y": 0.0,
-       "z": -1.062,
-       "w": 0.719,
-       "h": 0.804,
+       "z": -1.235,
+       "w": 1.379,
+       "h": 0.274,
        "mirror": false,
-       "flat": false,
-       "turn": -6.1,
+       "flat": true,
+       "turn": 151.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 147.861,
-     "piece": "leaf_2",
-     "z": 0.889,
-     "w": 0.433,
-     "turn": 6.009,
+     "x": 146.449,
+     "piece": "tuft_2",
+     "z": -1.252,
+     "w": 0.262,
+     "turn": 7.6,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 147.861,
+       "piece": "tuft_2",
+       "x": 146.449,
        "y": 0.0,
-       "z": 0.889,
-       "w": 0.433,
-       "h": 1.101,
+       "z": -1.252,
+       "w": 0.262,
+       "h": 0.293,
        "mirror": false,
-       "flat": true,
-       "turn": 6.0,
+       "flat": false,
+       "turn": 7.6,
        "kind": "decal"
       }
      ]
@@ -2929,44 +2862,44 @@
     },
     {
      "kind": "decal",
-     "x": 166.58,
-     "piece": "hen_prints",
-     "z": 0.324,
-     "w": 0.516,
-     "turn": 60.289,
+     "x": 167.283,
+     "piece": "twigs",
+     "z": 0.7,
+     "w": 0.453,
+     "turn": 182.3,
      "visuals": [
       {
-       "piece": "hen_prints",
-       "x": 166.58,
+       "piece": "twigs",
+       "x": 167.283,
        "y": 0.0,
-       "z": 0.324,
-       "w": 0.516,
-       "h": 0.129,
+       "z": 0.7,
+       "w": 0.453,
+       "h": 0.301,
        "mirror": false,
        "flat": true,
-       "turn": 60.3,
+       "turn": 182.3,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 169.349,
-     "piece": "footprints",
-     "z": 1.175,
-     "w": 0.659,
-     "turn": 106.017,
+     "x": 172.607,
+     "piece": "tuft_2",
+     "z": 1.063,
+     "w": 0.222,
+     "turn": 8.6,
      "visuals": [
       {
-       "piece": "footprints",
-       "x": 169.349,
+       "piece": "tuft_2",
+       "x": 172.607,
        "y": 0.0,
-       "z": 1.175,
-       "w": 0.659,
-       "h": 0.131,
+       "z": 1.063,
+       "w": 0.222,
+       "h": 0.248,
        "mirror": false,
-       "flat": true,
-       "turn": 106.0,
+       "flat": false,
+       "turn": 8.6,
        "kind": "decal"
       }
      ]
@@ -3133,66 +3066,66 @@
     },
     {
      "kind": "decal",
-     "x": 193.634,
-     "piece": "leaf_2",
-     "z": -0.009,
-     "w": 0.409,
-     "turn": 139.161,
+     "x": 184.899,
+     "piece": "hen_prints",
+     "z": 0.56,
+     "w": 0.973,
+     "turn": 153.5,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 193.634,
+       "piece": "hen_prints",
+       "x": 184.899,
        "y": 0.0,
-       "z": -0.009,
-       "w": 0.409,
-       "h": 1.041,
+       "z": 0.56,
+       "w": 0.973,
+       "h": 0.243,
        "mirror": false,
        "flat": true,
-       "turn": 139.2,
+       "turn": 153.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 189.972,
-     "piece": "leaf_2",
-     "z": -0.811,
-     "w": 0.501,
-     "turn": 262.855,
+     "x": 194.087,
+     "piece": "husk",
+     "z": -1.198,
+     "w": 0.347,
+     "turn": 10.3,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 189.972,
+       "piece": "husk",
+       "x": 194.087,
        "y": 0.0,
-       "z": -0.811,
-       "w": 0.501,
-       "h": 1.274,
-       "mirror": false,
-       "flat": true,
-       "turn": 262.9,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 197.198,
-     "piece": "pebbles",
-     "z": 1.21,
-     "w": 0.727,
-     "turn": 7.495,
-     "visuals": [
-      {
-       "piece": "pebbles",
-       "x": 197.198,
-       "y": 0.0,
-       "z": 1.21,
-       "w": 0.727,
-       "h": 0.326,
+       "z": -1.198,
+       "w": 0.347,
+       "h": 0.247,
        "mirror": false,
        "flat": false,
-       "turn": -12.5,
+       "turn": 10.3,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 195.661,
+     "piece": "footprints",
+     "z": -0.607,
+     "w": 1.554,
+     "turn": 149.8,
+     "visuals": [
+      {
+       "piece": "footprints",
+       "x": 195.661,
+       "y": 0.0,
+       "z": -0.607,
+       "w": 1.554,
+       "h": 0.309,
+       "mirror": false,
+       "flat": true,
+       "turn": 149.8,
        "kind": "decal"
       }
      ]
@@ -3602,44 +3535,44 @@
     },
     {
      "kind": "decal",
-     "x": 201.865,
-     "piece": "pebbles",
-     "z": 0.532,
-     "w": 0.618,
-     "turn": 79.416,
+     "x": 199.296,
+     "piece": "tuft_3",
+     "z": 1.022,
+     "w": 0.202,
+     "turn": -2.0,
      "visuals": [
       {
-       "piece": "pebbles",
-       "x": 201.865,
+       "piece": "tuft_3",
+       "x": 199.296,
        "y": 0.0,
-       "z": 0.532,
-       "w": 0.618,
-       "h": 0.277,
+       "z": 1.022,
+       "w": 0.202,
+       "h": 0.247,
        "mirror": false,
        "flat": false,
-       "turn": 19.4,
+       "turn": -2.0,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 218.987,
-     "piece": "tuft_2",
-     "z": 0.774,
-     "w": 0.58,
-     "turn": 188.602,
+     "x": 198.88,
+     "piece": "hen_prints",
+     "z": -0.957,
+     "w": 1.021,
+     "turn": 202.8,
      "visuals": [
       {
-       "piece": "tuft_2",
-       "x": 218.987,
+       "piece": "hen_prints",
+       "x": 198.88,
        "y": 0.0,
-       "z": 0.774,
-       "w": 0.58,
-       "h": 0.649,
+       "z": -0.957,
+       "w": 1.021,
+       "h": 0.255,
        "mirror": false,
-       "flat": false,
-       "turn": 8.6,
+       "flat": true,
+       "turn": 202.8,
        "kind": "decal"
       }
      ]
@@ -3676,7 +3609,7 @@
        "piece": "hand_pump",
        "x": 226.02,
        "y": 0.0,
-       "z": 0.9,
+       "z": 1.35,
        "w": 1.304,
        "h": 1.2,
        "mirror": false,
@@ -3912,44 +3845,44 @@
     },
     {
      "kind": "decal",
-     "x": 221.083,
-     "piece": "hen_prints",
-     "z": 0.455,
-     "w": 0.664,
-     "turn": 153.468,
+     "x": 223.068,
+     "piece": "footprints",
+     "z": -0.226,
+     "w": 1.52,
+     "turn": 301.6,
      "visuals": [
       {
-       "piece": "hen_prints",
-       "x": 221.083,
+       "piece": "footprints",
+       "x": 223.068,
        "y": 0.0,
-       "z": 0.455,
-       "w": 0.664,
-       "h": 0.166,
+       "z": -0.226,
+       "w": 1.52,
+       "h": 0.302,
        "mirror": false,
        "flat": true,
-       "turn": 153.5,
+       "turn": 301.6,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 234.512,
+     "x": 229.705,
      "piece": "husk",
-     "z": -0.973,
-     "w": 0.75,
-     "turn": 110.299,
+     "z": 1.554,
+     "w": 0.262,
+     "turn": -5.5,
      "visuals": [
       {
        "piece": "husk",
-       "x": 234.512,
+       "x": 229.705,
        "y": 0.0,
-       "z": -0.973,
-       "w": 0.75,
-       "h": 0.535,
+       "z": 1.554,
+       "w": 0.262,
+       "h": 0.187,
        "mirror": false,
        "flat": false,
-       "turn": 10.3,
+       "turn": -5.5,
        "kind": "decal"
       }
      ]
@@ -3991,13 +3924,13 @@
     },
     {
      "kind": "mango",
-     "x": 244.4,
-     "y": 1.5,
+     "x": 244.8,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 244.4,
-       "y": 1.5,
+       "x": 244.8,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -4010,13 +3943,13 @@
     },
     {
      "kind": "mango",
-     "x": 244.9,
-     "y": 1.5,
+     "x": 245.3,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 244.9,
-       "y": 1.5,
+       "x": 245.3,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -4029,32 +3962,13 @@
     },
     {
      "kind": "mango",
-     "x": 245.4,
-     "y": 1.5,
+     "x": 245.8,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 245.4,
-       "y": 1.5,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 245.9,
-     "y": 1.5,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 245.9,
-       "y": 1.5,
+       "x": 245.8,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -4125,7 +4039,7 @@
     {
      "kind": "pots",
      "x": 253.0,
-     "mirror": false,
+     "mirror": true,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -4138,7 +4052,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": false,
+       "mirror": true,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -4249,44 +4163,44 @@
     },
     {
      "kind": "decal",
-     "x": 247.018,
-     "piece": "twigs",
-     "z": 1.142,
-     "w": 0.566,
-     "turn": 90.849,
+     "x": 256.441,
+     "piece": "footprints",
+     "z": 0.321,
+     "w": 1.37,
+     "turn": 122.5,
      "visuals": [
       {
-       "piece": "twigs",
-       "x": 247.018,
+       "piece": "footprints",
+       "x": 256.441,
        "y": 0.0,
-       "z": 1.142,
-       "w": 0.566,
-       "h": 0.376,
+       "z": 0.321,
+       "w": 1.37,
+       "h": 0.272,
        "mirror": false,
        "flat": true,
-       "turn": 90.8,
+       "turn": 122.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 240.678,
-     "piece": "leaf_1",
-     "z": 0.985,
-     "w": 0.636,
-     "turn": 78.333,
+     "x": 246.616,
+     "piece": "tuft_3",
+     "z": 1.176,
+     "w": 0.225,
+     "turn": -2.6,
      "visuals": [
       {
-       "piece": "leaf_1",
-       "x": 240.678,
+       "piece": "tuft_3",
+       "x": 246.616,
        "y": 0.0,
-       "z": 0.985,
-       "w": 0.636,
-       "h": 0.986,
+       "z": 1.176,
+       "w": 0.225,
+       "h": 0.274,
        "mirror": false,
-       "flat": true,
-       "turn": 78.3,
+       "flat": false,
+       "turn": -2.6,
        "kind": "decal"
       }
      ]
@@ -4510,66 +4424,66 @@
     },
     {
      "kind": "decal",
-     "x": 277.814,
-     "piece": "tuft_3",
-     "z": -0.102,
-     "w": 0.604,
-     "turn": 136.069,
+     "x": 270.809,
+     "piece": "leaf_2",
+     "z": 0.256,
+     "w": 0.115,
+     "turn": 146.4,
      "visuals": [
       {
-       "piece": "tuft_3",
-       "x": 277.814,
+       "piece": "leaf_2",
+       "x": 270.809,
        "y": 0.0,
-       "z": -0.102,
-       "w": 0.604,
-       "h": 0.736,
+       "z": 0.256,
+       "w": 0.115,
+       "h": 0.293,
        "mirror": false,
-       "flat": false,
-       "turn": -3.9,
+       "flat": true,
+       "turn": 146.4,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 268.398,
+     "x": 268.964,
+     "piece": "twigs",
+     "z": 1.572,
+     "w": 0.513,
+     "turn": 122.7,
+     "visuals": [
+      {
+       "piece": "twigs",
+       "x": 268.964,
+       "y": 0.0,
+       "z": 1.572,
+       "w": 0.513,
+       "h": 0.341,
+       "mirror": false,
+       "flat": true,
+       "turn": 122.7,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 272.958,
      "piece": "pebbles",
-     "z": -0.765,
-     "w": 0.637,
-     "turn": 177.246,
+     "z": 0.902,
+     "w": 0.526,
+     "turn": 18.1,
      "visuals": [
       {
        "piece": "pebbles",
-       "x": 268.398,
+       "x": 272.958,
        "y": 0.0,
-       "z": -0.765,
-       "w": 0.637,
-       "h": 0.285,
+       "z": 0.902,
+       "w": 0.526,
+       "h": 0.236,
        "mirror": false,
        "flat": false,
-       "turn": -2.8,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 278.445,
-     "piece": "tuft_2",
-     "z": -0.286,
-     "w": 0.6,
-     "turn": 117.124,
-     "visuals": [
-      {
-       "piece": "tuft_2",
-       "x": 278.445,
-       "y": 0.0,
-       "z": -0.286,
-       "w": 0.6,
-       "h": 0.671,
-       "mirror": false,
-       "flat": false,
-       "turn": 17.1,
+       "turn": 18.1,
        "kind": "decal"
       }
      ]
@@ -4828,44 +4742,44 @@
     },
     {
      "kind": "decal",
-     "x": 295.318,
-     "piece": "leaf_1",
-     "z": 1.039,
-     "w": 0.463,
-     "turn": 308.713,
+     "x": 290.121,
+     "piece": "hen_prints",
+     "z": 1.447,
+     "w": 1.046,
+     "turn": 203.2,
      "visuals": [
       {
-       "piece": "leaf_1",
-       "x": 295.318,
+       "piece": "hen_prints",
+       "x": 290.121,
        "y": 0.0,
-       "z": 1.039,
-       "w": 0.463,
-       "h": 0.717,
+       "z": 1.447,
+       "w": 1.046,
+       "h": 0.261,
        "mirror": false,
        "flat": true,
-       "turn": 308.7,
+       "turn": 203.2,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 294.289,
-     "piece": "twigs",
-     "z": 0.165,
-     "w": 0.536,
-     "turn": 76.691,
+     "x": 296.226,
+     "piece": "footprints",
+     "z": -0.135,
+     "w": 1.243,
+     "turn": 16.5,
      "visuals": [
       {
-       "piece": "twigs",
-       "x": 294.289,
+       "piece": "footprints",
+       "x": 296.226,
        "y": 0.0,
-       "z": 0.165,
-       "w": 0.536,
-       "h": 0.356,
+       "z": -0.135,
+       "w": 1.243,
+       "h": 0.247,
        "mirror": false,
        "flat": true,
-       "turn": 76.7,
+       "turn": 16.5,
        "kind": "decal"
       }
      ]
@@ -4902,7 +4816,7 @@
        "piece": "hand_pump",
        "x": 303.02,
        "y": 0.0,
-       "z": 0.9,
+       "z": 1.35,
        "w": 1.304,
        "h": 1.2,
        "mirror": false,
@@ -5041,7 +4955,7 @@
     {
      "kind": "pots",
      "x": 313.0,
-     "mirror": false,
+     "mirror": true,
      "hidden": true,
      "id": "knocked",
      "top": 0.6,
@@ -5054,7 +4968,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": false,
+       "mirror": true,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -5164,44 +5078,44 @@
     },
     {
      "kind": "decal",
-     "x": 316.092,
-     "piece": "hen_prints",
-     "z": 1.124,
-     "w": 0.766,
-     "turn": 301.569,
+     "x": 311.387,
+     "piece": "pebbles",
+     "z": -1.553,
+     "w": 0.534,
+     "turn": 18.6,
      "visuals": [
       {
-       "piece": "hen_prints",
-       "x": 316.092,
+       "piece": "pebbles",
+       "x": 311.387,
        "y": 0.0,
-       "z": 1.124,
-       "w": 0.766,
-       "h": 0.191,
+       "z": -1.553,
+       "w": 0.534,
+       "h": 0.239,
        "mirror": false,
-       "flat": true,
-       "turn": 301.6,
+       "flat": false,
+       "turn": 18.6,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 309.721,
-     "piece": "tuft_2",
-     "z": 0.697,
-     "w": 0.494,
-     "turn": 261.167,
+     "x": 307.341,
+     "piece": "twigs",
+     "z": -1.23,
+     "w": 0.49,
+     "turn": 57.2,
      "visuals": [
       {
-       "piece": "tuft_2",
-       "x": 309.721,
+       "piece": "twigs",
+       "x": 307.341,
        "y": 0.0,
-       "z": 0.697,
-       "w": 0.494,
-       "h": 0.552,
+       "z": -1.23,
+       "w": 0.49,
+       "h": 0.325,
        "mirror": false,
-       "flat": false,
-       "turn": 1.2,
+       "flat": true,
+       "turn": 57.2,
        "kind": "decal"
       }
      ]
@@ -5460,44 +5374,44 @@
     },
     {
      "kind": "decal",
-     "x": 322.109,
-     "piece": "tuft_2",
-     "z": -0.859,
-     "w": 0.485,
-     "turn": 273.282,
+     "x": 335.823,
+     "piece": "footprints",
+     "z": 0.137,
+     "w": 1.46,
+     "turn": 256.2,
      "visuals": [
       {
-       "piece": "tuft_2",
-       "x": 322.109,
+       "piece": "footprints",
+       "x": 335.823,
        "y": 0.0,
-       "z": -0.859,
-       "w": 0.485,
-       "h": 0.543,
+       "z": 0.137,
+       "w": 1.46,
+       "h": 0.29,
        "mirror": false,
-       "flat": false,
-       "turn": 13.3,
+       "flat": true,
+       "turn": 256.2,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 331.904,
+     "x": 326.475,
      "piece": "hen_prints",
-     "z": 0.887,
-     "w": 0.536,
-     "turn": 41.009,
+     "z": -0.936,
+     "w": 0.777,
+     "turn": 3.8,
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 331.904,
+       "x": 326.475,
        "y": 0.0,
-       "z": 0.887,
-       "w": 0.536,
-       "h": 0.134,
+       "z": -0.936,
+       "w": 0.777,
+       "h": 0.194,
        "mirror": false,
        "flat": true,
-       "turn": 41.0,
+       "turn": 3.8,
        "kind": "decal"
       }
      ]
@@ -5702,66 +5616,66 @@
     },
     {
      "kind": "decal",
-     "x": 344.969,
-     "piece": "tuft_1",
-     "z": 1.154,
-     "w": 0.454,
-     "turn": 198.421,
+     "x": 341.696,
+     "piece": "tuft_3",
+     "z": 1.323,
+     "w": 0.238,
+     "turn": -19.9,
      "visuals": [
       {
-       "piece": "tuft_1",
-       "x": 344.969,
+       "piece": "tuft_3",
+       "x": 341.696,
        "y": 0.0,
-       "z": 1.154,
-       "w": 0.454,
-       "h": 0.519,
+       "z": 1.323,
+       "w": 0.238,
+       "h": 0.29,
        "mirror": false,
        "flat": false,
-       "turn": 18.4,
+       "turn": -19.9,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 342.481,
-     "piece": "leaf_2",
-     "z": -1.198,
-     "w": 0.552,
-     "turn": 356.844,
+     "x": 356.985,
+     "piece": "hen_prints",
+     "z": -0.099,
+     "w": 0.847,
+     "turn": 195.0,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 342.481,
+       "piece": "hen_prints",
+       "x": 356.985,
        "y": 0.0,
-       "z": -1.198,
-       "w": 0.552,
-       "h": 1.403,
+       "z": -0.099,
+       "w": 0.847,
+       "h": 0.212,
        "mirror": false,
        "flat": true,
-       "turn": 356.8,
+       "turn": 195.0,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 343.299,
+     "x": 346.339,
      "piece": "leaf_2",
-     "z": -0.975,
-     "w": 0.646,
-     "turn": 281.485,
+     "z": -0.812,
+     "w": 0.136,
+     "turn": 32.2,
      "visuals": [
       {
        "piece": "leaf_2",
-       "x": 343.299,
+       "x": 346.339,
        "y": 0.0,
-       "z": -0.975,
-       "w": 0.646,
-       "h": 1.642,
+       "z": -0.812,
+       "w": 0.136,
+       "h": 0.347,
        "mirror": false,
        "flat": true,
-       "turn": 281.5,
+       "turn": 32.2,
        "kind": "decal"
       }
      ]
@@ -5777,7 +5691,7 @@
     {
      "kind": "pots",
      "x": 364.0,
-     "mirror": true,
+     "mirror": false,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -5790,7 +5704,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": true,
+       "mirror": false,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -5902,7 +5816,7 @@
     {
      "kind": "pots",
      "x": 370.5,
-     "mirror": false,
+     "mirror": true,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -5915,7 +5829,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": false,
+       "mirror": true,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -6027,7 +5941,7 @@
     {
      "kind": "pots",
      "x": 377.0,
-     "mirror": true,
+     "mirror": false,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -6040,7 +5954,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": true,
+       "mirror": false,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -6276,44 +6190,44 @@
     },
     {
      "kind": "decal",
-     "x": 367.168,
-     "piece": "tuft_3",
-     "z": 1.016,
-     "w": 0.614,
-     "turn": 41.154,
+     "x": 366.186,
+     "piece": "leaf_1",
+     "z": 1.493,
+     "w": 0.116,
+     "turn": 114.0,
      "visuals": [
       {
-       "piece": "tuft_3",
-       "x": 367.168,
+       "piece": "leaf_1",
+       "x": 366.186,
        "y": 0.0,
-       "z": 1.016,
-       "w": 0.614,
-       "h": 0.749,
+       "z": 1.493,
+       "w": 0.116,
+       "h": 0.179,
        "mirror": false,
-       "flat": false,
-       "turn": -18.8,
+       "flat": true,
+       "turn": 114.0,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 382.919,
-     "piece": "leaf_1",
-     "z": -1.02,
-     "w": 0.731,
-     "turn": 4.457,
+     "x": 381.678,
+     "piece": "footprints",
+     "z": 1.259,
+     "w": 1.31,
+     "turn": 36.3,
      "visuals": [
       {
-       "piece": "leaf_1",
-       "x": 382.919,
+       "piece": "footprints",
+       "x": 381.678,
        "y": 0.0,
-       "z": -1.02,
-       "w": 0.731,
-       "h": 1.133,
+       "z": 1.259,
+       "w": 1.31,
+       "h": 0.26,
        "mirror": false,
        "flat": true,
-       "turn": 4.5,
+       "turn": 36.3,
        "kind": "decal"
       }
      ]
@@ -6355,13 +6269,13 @@
     },
     {
      "kind": "mango",
-     "x": 390.4,
-     "y": 1.5,
+     "x": 390.8,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 390.4,
-       "y": 1.5,
+       "x": 390.8,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -6374,13 +6288,13 @@
     },
     {
      "kind": "mango",
-     "x": 390.9,
-     "y": 1.5,
+     "x": 391.3,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 390.9,
-       "y": 1.5,
+       "x": 391.3,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -6393,32 +6307,13 @@
     },
     {
      "kind": "mango",
-     "x": 391.4,
-     "y": 1.5,
+     "x": 391.8,
+     "y": 1.55,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 391.4,
-       "y": 1.5,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 391.9,
-     "y": 1.5,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 391.9,
-       "y": 1.5,
+       "x": 391.8,
+       "y": 1.55,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -6613,44 +6508,44 @@
     },
     {
      "kind": "decal",
-     "x": 388.425,
-     "piece": "leaf_1",
-     "z": -1.001,
-     "w": 0.475,
-     "turn": 282.784,
+     "x": 403.459,
+     "piece": "husk",
+     "z": -1.305,
+     "w": 0.257,
+     "turn": -12.2,
      "visuals": [
       {
-       "piece": "leaf_1",
-       "x": 388.425,
+       "piece": "husk",
+       "x": 403.459,
        "y": 0.0,
-       "z": -1.001,
-       "w": 0.475,
-       "h": 0.737,
+       "z": -1.305,
+       "w": 0.257,
+       "h": 0.183,
        "mirror": false,
-       "flat": true,
-       "turn": 282.8,
+       "flat": false,
+       "turn": -12.2,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 398.823,
-     "piece": "tuft_1",
-     "z": -0.879,
-     "w": 0.467,
-     "turn": 86.911,
+     "x": 388.019,
+     "piece": "leaf_2",
+     "z": 0.164,
+     "w": 0.133,
+     "turn": 7.7,
      "visuals": [
       {
-       "piece": "tuft_1",
-       "x": 398.823,
+       "piece": "leaf_2",
+       "x": 388.019,
        "y": 0.0,
-       "z": -0.879,
-       "w": 0.467,
-       "h": 0.534,
+       "z": 0.164,
+       "w": 0.133,
+       "h": 0.337,
        "mirror": false,
-       "flat": false,
-       "turn": -13.1,
+       "flat": true,
+       "turn": 7.7,
        "kind": "decal"
       }
      ]
@@ -6910,7 +6805,7 @@
     {
      "kind": "pots",
      "x": 427.0,
-     "mirror": false,
+     "mirror": true,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -6923,7 +6818,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": false,
+       "mirror": true,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -7034,44 +6929,44 @@
     },
     {
      "kind": "decal",
-     "x": 410.865,
-     "piece": "pebbles",
-     "z": 1.068,
-     "w": 0.723,
-     "turn": 195.453,
+     "x": 428.341,
+     "piece": "tuft_2",
+     "z": -1.107,
+     "w": 0.247,
+     "turn": 18.1,
      "visuals": [
       {
-       "piece": "pebbles",
-       "x": 410.865,
+       "piece": "tuft_2",
+       "x": 428.341,
        "y": 0.0,
-       "z": 1.068,
-       "w": 0.723,
-       "h": 0.324,
+       "z": -1.107,
+       "w": 0.247,
+       "h": 0.276,
        "mirror": false,
        "flat": false,
-       "turn": 15.5,
+       "turn": 18.1,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 424.867,
-     "piece": "husk",
-     "z": -0.482,
-     "w": 0.661,
-     "turn": 14.263,
+     "x": 426.353,
+     "piece": "hen_prints",
+     "z": 1.552,
+     "w": 0.861,
+     "turn": 255.4,
      "visuals": [
       {
-       "piece": "husk",
-       "x": 424.867,
+       "piece": "hen_prints",
+       "x": 426.353,
        "y": 0.0,
-       "z": -0.482,
-       "w": 0.661,
-       "h": 0.471,
+       "z": 1.552,
+       "w": 0.861,
+       "h": 0.215,
        "mirror": false,
-       "flat": false,
-       "turn": -5.7,
+       "flat": true,
+       "turn": 255.4,
        "kind": "decal"
       }
      ]
@@ -7276,66 +7171,66 @@
     },
     {
      "kind": "decal",
-     "x": 432.679,
-     "piece": "footprints",
-     "z": 1.255,
-     "w": 0.691,
-     "turn": 115.29,
+     "x": 446.69,
+     "piece": "twigs",
+     "z": 0.326,
+     "w": 0.523,
+     "turn": 51.0,
      "visuals": [
       {
-       "piece": "footprints",
-       "x": 432.679,
+       "piece": "twigs",
+       "x": 446.69,
        "y": 0.0,
-       "z": 1.255,
-       "w": 0.691,
-       "h": 0.137,
+       "z": 0.326,
+       "w": 0.523,
+       "h": 0.348,
        "mirror": false,
        "flat": true,
-       "turn": 115.3,
+       "turn": 51.0,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 439.152,
-     "piece": "leaf_2",
-     "z": -0.264,
-     "w": 0.765,
-     "turn": 349.133,
+     "x": 447.978,
+     "piece": "hen_prints",
+     "z": -1.498,
+     "w": 1.024,
+     "turn": 224.5,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 439.152,
+       "piece": "hen_prints",
+       "x": 447.978,
        "y": 0.0,
-       "z": -0.264,
-       "w": 0.765,
-       "h": 1.945,
+       "z": -1.498,
+       "w": 1.024,
+       "h": 0.256,
        "mirror": false,
        "flat": true,
-       "turn": 349.1,
+       "turn": 224.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 448.987,
-     "piece": "husk",
-     "z": -1.01,
-     "w": 0.714,
-     "turn": 280.051,
+     "x": 435.529,
+     "piece": "twigs",
+     "z": -0.216,
+     "w": 0.39,
+     "turn": 310.4,
      "visuals": [
       {
-       "piece": "husk",
-       "x": 448.987,
+       "piece": "twigs",
+       "x": 435.529,
        "y": 0.0,
-       "z": -1.01,
-       "w": 0.714,
-       "h": 0.509,
+       "z": -0.216,
+       "w": 0.39,
+       "h": 0.259,
        "mirror": false,
-       "flat": false,
-       "turn": -19.9,
+       "flat": true,
+       "turn": 310.4,
        "kind": "decal"
       }
      ]
@@ -7372,7 +7267,7 @@
        "piece": "hand_pump",
        "x": 455.52,
        "y": 0.0,
-       "z": 0.9,
+       "z": 1.35,
        "w": 1.304,
        "h": 1.2,
        "mirror": false,
@@ -7487,7 +7382,7 @@
     {
      "kind": "pots",
      "x": 463.5,
-     "mirror": false,
+     "mirror": true,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -7500,7 +7395,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": false,
+       "mirror": true,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -7736,44 +7631,44 @@
     },
     {
      "kind": "decal",
-     "x": 460.347,
-     "piece": "twigs",
-     "z": -0.375,
-     "w": 0.617,
-     "turn": 110.636,
+     "x": 460.02,
+     "piece": "hen_prints",
+     "z": -0.334,
+     "w": 0.819,
+     "turn": 174.9,
      "visuals": [
       {
-       "piece": "twigs",
-       "x": 460.347,
+       "piece": "hen_prints",
+       "x": 460.02,
        "y": 0.0,
-       "z": -0.375,
-       "w": 0.617,
-       "h": 0.41,
+       "z": -0.334,
+       "w": 0.819,
+       "h": 0.205,
        "mirror": false,
        "flat": true,
-       "turn": 110.6,
+       "turn": 174.9,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 455.674,
-     "piece": "footprints",
-     "z": -1.088,
-     "w": 0.436,
-     "turn": 271.183,
+     "x": 467.154,
+     "piece": "tuft_3",
+     "z": 1.384,
+     "w": 0.171,
+     "turn": -11.0,
      "visuals": [
       {
-       "piece": "footprints",
-       "x": 455.674,
+       "piece": "tuft_3",
+       "x": 467.154,
        "y": 0.0,
-       "z": -1.088,
-       "w": 0.436,
-       "h": 0.087,
+       "z": 1.384,
+       "w": 0.171,
+       "h": 0.209,
        "mirror": false,
-       "flat": true,
-       "turn": 271.2,
+       "flat": false,
+       "turn": -11.0,
        "kind": "decal"
       }
      ]
@@ -8016,88 +7911,88 @@
     },
     {
      "kind": "decal",
-     "x": 475.486,
+     "x": 491.642,
+     "piece": "twigs",
+     "z": 0.299,
+     "w": 0.423,
+     "turn": 298.4,
+     "visuals": [
+      {
+       "piece": "twigs",
+       "x": 491.642,
+       "y": 0.0,
+       "z": 0.299,
+       "w": 0.423,
+       "h": 0.281,
+       "mirror": false,
+       "flat": true,
+       "turn": 298.4,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 475.445,
+     "piece": "twigs",
+     "z": -0.045,
+     "w": 0.466,
+     "turn": 180.3,
+     "visuals": [
+      {
+       "piece": "twigs",
+       "x": 475.445,
+       "y": 0.0,
+       "z": -0.045,
+       "w": 0.466,
+       "h": 0.309,
+       "mirror": false,
+       "flat": true,
+       "turn": 180.3,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 504.066,
      "piece": "hen_prints",
-     "z": 0.193,
-     "w": 0.776,
-     "turn": 140.572,
+     "z": 0.681,
+     "w": 0.942,
+     "turn": 326.5,
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 475.486,
+       "x": 504.066,
        "y": 0.0,
-       "z": 0.193,
-       "w": 0.776,
-       "h": 0.194,
+       "z": 0.681,
+       "w": 0.942,
+       "h": 0.235,
        "mirror": false,
        "flat": true,
-       "turn": 140.6,
+       "turn": 326.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 482.624,
-     "piece": "hen_prints",
-     "z": -0.449,
-     "w": 0.717,
-     "turn": 208.442,
+     "x": 474.091,
+     "piece": "tuft_2",
+     "z": -1.371,
+     "w": 0.237,
+     "turn": -7.3,
      "visuals": [
       {
-       "piece": "hen_prints",
-       "x": 482.624,
+       "piece": "tuft_2",
+       "x": 474.091,
        "y": 0.0,
-       "z": -0.449,
-       "w": 0.717,
-       "h": 0.179,
+       "z": -1.371,
+       "w": 0.237,
+       "h": 0.265,
        "mirror": false,
-       "flat": true,
-       "turn": 208.4,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 502.905,
-     "piece": "leaf_2",
-     "z": -0.661,
-     "w": 0.618,
-     "turn": 208.435,
-     "visuals": [
-      {
-       "piece": "leaf_2",
-       "x": 502.905,
-       "y": 0.0,
-       "z": -0.661,
-       "w": 0.618,
-       "h": 1.57,
-       "mirror": false,
-       "flat": true,
-       "turn": 208.4,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 492.167,
-     "piece": "leaf_1",
-     "z": -0.663,
-     "w": 0.723,
-     "turn": 144.639,
-     "visuals": [
-      {
-       "piece": "leaf_1",
-       "x": 492.167,
-       "y": 0.0,
-       "z": -0.663,
-       "w": 0.723,
-       "h": 1.121,
-       "mirror": false,
-       "flat": true,
-       "turn": 144.6,
+       "flat": false,
+       "turn": -7.3,
        "kind": "decal"
       }
      ]

@@ -9,8 +9,8 @@ Zone 1: the kid runs at 6 m/s, the rooster at 5.5 m/s; a held jump is 3.70 m lon
 
 ## The opening: the neighbour's yard
 
-The neighbour naps on his rope cot behind the lane; his hens peck about. The kid tiptoes in from -4.4 m to the
-bamboo basket the rooster is sitting under (a tap hurries her). The player holds to lift it by its near rim; it turns
+The neighbour naps on his rope cot behind the lane, just past the basket; his hens peck about. The kid tiptoes in
+from -4.4 m to the bamboo basket the rooster is sitting under (a tap hurries her). The player holds to lift it by its near rim; it turns
 up on its far rim over 1.6 s of holding. Letting go part way drops it back with a clunk, and the neighbour stirs.
 Fully up, the rooster bursts out and sprints off, the kid flings the basket aside, and the neighbour wakes shouting.
 
@@ -29,27 +29,27 @@ Test (to 500 m): the rooster's mischief, trios, the last cart, then the lane ope
 
 | From | To | Section | What is there | Why |
 |---:|---:|---|---|---|
-| -10 | 14 | Yard | the basket 0.7; the neighbour -2.4; 6 mangoes | The neighbour naps on his cot; hens peck about; hold to lift the basket. |
+| -10 | 14 | Yard | the basket 0.7; the neighbour 2.6; 6 mangoes | The neighbour naps on his cot; hens peck about; hold to lift the basket. |
 | 14 | 32 | FirstPot | pot stack 23; 8 mangoes | One pot stack alone: the rooster hops it, mangoes trace the jump. |
 | 32 | 50 | TwoPots | pot stack 38; pot stack 45; 10 mangoes | Two pot stacks 7 m apart: jump, land, jump. |
 | 50 | 66 | Dung | cow dung 57; 9 mangoes | Cow dung: low, a tap clears it; miss it and she slips. |
 | 66 | 86 | SleepingDog | sleeping dog 74; feather 1 at 74.1, 2.8 m up; 8 mangoes | The sleeping dog: long, so hold the jump. A feather above for a double jump. |
 | 86 | 102 | Breather | chilli 95; 8 mangoes | Room to breathe: a wave of mangoes and the first chilli. |
 | 102 | 122 | HandPump | hand-pump puddle 114; 5 mangoes | The hand-pump puddle: wide and low, only a held jump clears it. |
-| 122 | 142 | Cart | bullock cart 127; feather 2 at 131.2, 3.4 m up; 7 mangoes | The bullock cart: jump onto its bed, run off the end. A feather for a double jump. |
+| 122 | 142 | Cart | bullock cart 127; feather 2 at 131.2, 3.4 m up; 6 mangoes | The bullock cart: jump onto its bed, run off the end. A feather for a double jump. |
 | 142 | 164 | PotsDungPots | pot stack 148; cow dung 154.5; pot stack 161; 15 mangoes | Pots, dung, pots: 6.5 m apart, the first rhythm. |
 | 164 | 184 | DogPots | sleeping dog 170.5; pot stack 177.5; 10 mangoes | The dog, then a pot stack. |
 | 184 | 198 | Lane | 8 mangoes | A short run of mangoes. |
 | 198 | 220 | PotTrio | pot stack 204; pot stack 210.5; feather 3 at 210.6, 2.8 m up; pot stack 217; 15 mangoes | Three pot stacks in rhythm; a feather at the top of a double jump over the middle. |
 | 220 | 240 | PuddleDog | hand-pump puddle 226.5; sleeping dog 234.5; 10 mangoes | The puddle, then the dog. |
-| 240 | 262 | CartPots | bullock cart 244; pot stack 253; 12 mangoes | The cart as a step: off its bed straight into a jump over pots. |
+| 240 | 262 | CartPots | bullock cart 244; pot stack 253; 11 mangoes | The cart as a step: off its bed straight into a jump over pots. |
 | 262 | 280 | ChilliStraight | chilli 263.5; 10 mangoes | A long straight and a chilli to win back ground. |
 | 280 | 298 | DungPair | cow dung 286; cow dung 292; 10 mangoes | Two cow pats: tap, tap. |
 | 298 | 320 | Mischief | hand-pump puddle 303.5; pot stack 313 (knocked in by the rooster); mischief 314; 10 mangoes | The puddle; then the rooster knocks a pot stack off its stand into the lane. |
 | 320 | 340 | DogDung | sleeping dog 326.5; cow dung 333.5; 10 mangoes | The dog and the dung. |
 | 340 | 360 | ChilliLane | chilli 341.5; 9 mangoes | A breather and a chilli. |
 | 360 | 386 | PotQuartet | pot stack 364; pot stack 370.5; pot stack 377; pot stack 383.5; 20 mangoes | Four pot stacks, 6.5 m apart. |
-| 386 | 408 | LastCart | bullock cart 390; pot stack 399; 12 mangoes | The last cart, and pots after it. |
+| 386 | 408 | LastCart | bullock cart 390; pot stack 399; 11 mangoes | The last cart, and pots after it. |
 | 408 | 432 | DogDungPots | sleeping dog 413.5; cow dung 420.5; pot stack 427; 15 mangoes | Dog, dung, pots. |
 | 432 | 450 | FinalChilli | chilli 433.5; 9 mangoes | The last chilli. |
 | 450 | 472 | PuddlePots | hand-pump puddle 456; pot stack 463.5; pot stack 470; 15 mangoes | The puddle and two pots: the last test. |

@@ -40,17 +40,18 @@ def design():
     # The neighbour's yard. The kid starts at 0 beside the basket; the runway behind her is the yard's back.
     s = p.section("Yard", -10.0, 24.0, "The neighbour naps on his cot; hens peck about; hold to lift the basket.")
     # the basket the rooster sits under (0.9 m across, so he fits): its near rim 0.25 m in front of her, its far rim,
-    # the hinge it lifts on, 1.15 m (kid_anims.BASKET_*); the kid tiptoes in from -4.4 m past the sleeping neighbour
+    # the hinge it lifts on, 1.15 m (kid_anims.BASKET_*); the kid tiptoes in from -4.4 m toward the sleeping neighbour
     p.add(s, "basket", 0.7, [visual("chicken_basket", 0.7, z=0.0, w=0.9)], diameter=0.9, hinge=1.15, walkFrom=-4.4)
-    p.add(s, "neighbour", -2.4, [visual("neighbour_sleeping", -2.4, z=1.3, h=1.0),
-                                 visual("neighbour_awake", -2.4, z=1.3, h=1.25, kind="hidden")], z=1.3)
+    # The neighbour asleep on his cot just past the basket, in front of his cattle shed (the zone set's, at 5.9): the kid
+    # sneaks toward him, and the rooster bursts out right past him. Clear of the set's shop, old man and passing
+    # milkman (-4.4 to -0.5), which stand behind the start; the set has its own chicken basket and tulsi planter.
+    p.add(s, "neighbour", 2.6, [visual("neighbour_sleeping", 2.6, z=1.3, h=1.0),
+                                visual("neighbour_awake", 2.6, z=1.3, h=1.25, kind="hidden")], z=1.3)
     p.prop(s, "hens_basket", -5.6, 1.2, h=0.55)
-    p.prop(s, "chicken_basket", 2.6, 1.6, h=0.6, mirror=True)
     p.prop(s, "water_pot_stand", -7.8, 1.7, h=1.1)
-    p.prop(s, "tulsi_planter", 4.6, 1.7, h=1.1)
-    for i, (hx, hz) in enumerate(((1.6, 1.15), (3.4, 1.35), (6.2, 1.1))):
+    for i, (hx, hz) in enumerate(((-1.4, 1.2), (4.7, 1.35), (6.5, 1.1))):
         p.prop(s, f"hen_{1 + i % 3}", hx, hz, h=0.42, mirror=i == 1)
-    p.decal(s, "hen_prints", 2.4, 0.85, 0.7)
+    p.decal(s, "hen_prints", -0.8, 0.95, 0.9)
     p.decal(s, "kolam_2", -5.2, -1.2, 1.1)
     p.mango_line(s, 5.0, 6, 1.2, 0.6)
     p.litter(s, 3, avoid=(0.7,))
@@ -192,8 +193,8 @@ def design():
 PROSE = [
     "## The opening: the neighbour's yard",
     "",
-    "The neighbour naps on his rope cot behind the lane; his hens peck about. The kid tiptoes in from -4.4 m to the",
-    "bamboo basket the rooster is sitting under (a tap hurries her). The player holds to lift it by its near rim; it turns",
+    "The neighbour naps on his rope cot behind the lane, just past the basket; his hens peck about. The kid tiptoes in",
+    "from -4.4 m to the bamboo basket the rooster is sitting under (a tap hurries her). The player holds to lift it by its near rim; it turns",
     "up on its far rim over 1.6 s of holding. Letting go part way drops it back with a clunk, and the neighbour stirs.",
     "Fully up, the rooster bursts out and sprints off, the kid flings the basket aside, and the neighbour wakes shouting.",
     "",

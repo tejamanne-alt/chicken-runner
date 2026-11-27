@@ -104,6 +104,12 @@ for name, make in (("Mango", mango), ("Chilli", chilli), ("Feather", feather)):
         ob.parent = root
     models[name] = (root, obs)
 
+# Every piece's faces outward: K.ellipsoid and K.tube can wind them inward, and in the game the toon shader culls back
+# faces and pushes its ink hull out along the normals, so an inward mesh shows as a dark blob (the level render's audit).
+for name, (root, obs) in models.items():
+    for ob in obs:
+        K.recalc_normals(ob)
+
 for name, (root, obs) in models.items():
     for other, (r2, o2) in models.items():
         for ob in o2:

@@ -136,6 +136,22 @@ def card_aspect(piece):
     return 1.0
 
 
+def real_width(piece):
+    """A piece's real width (m): its model's, else the manifest's."""
+    m = MODELS.get(piece)
+    if m:
+        return m["width"]
+    e = MANIFEST.get(piece)
+    return e.get("width_m", 0.4) if isinstance(e, dict) else 0.4
+
+
+def lies_flat(piece):
+    """Whether Kit.Decal lays the piece face up (a slab model, or a card with no model) or stands it up (a volume
+    model: a tuft, pebbles, a husk), as ArtModels.LiesFlat decides."""
+    m = MODELS.get(piece)
+    return m is None or m["kind"] == "slab"
+
+
 def visual(piece, x, y=0.0, z=0.0, h=0.0, w=0.0, mirror=False, flat=False, turn=0.0, kind="art"):
     a = aspect(piece)
     if h:
@@ -156,8 +172,6 @@ def box(piece, x, y, z, w, h, d, color):
 WOOD = (0.6, 0.38, 0.2)
 BAMBOO = (0.78, 0.66, 0.38)
 WALLS = [(0.93, 0.86, 0.6), (0.45, 0.6, 0.85), (0.92, 0.65, 0.7), (0.95, 0.95, 0.9)]
-FLAT = ("leaf_1", "leaf_2", "leaf_3", "twigs", "footprints", "hen_prints", "hoof_prints", "cart_rut", "cracked_mud",
-        "kolam_1", "kolam_2", "kolam_3", "kolam_4", "kolam_5", "kolam_6")
 LITTER = {
     1: ["leaf_1", "leaf_2", "twigs", "husk", "footprints", "hen_prints", "pebbles", "tuft_1", "tuft_2", "tuft_3"],
     2: ["tuft_1", "tuft_2", "tuft_3", "tuft_4", "weed_1", "weed_2", "hoof_prints", "pebbles", "husk", "leaf_3"],
@@ -209,7 +223,7 @@ class Plan:
     def puddle(self, s, x, width=1.6):
         self.add(s, "puddle", x, [{"piece": "_water", "x": x, "y": 0.004, "z": 0.0, "w": width, "h": 0.0, "d": 0.9,
                                    "mirror": False, "flat": True, "turn": 0, "kind": "water"},
-                                  visual("hand_pump", x - width * 0.3, z=0.9, h=1.2)],
+                                  visual("hand_pump", x - width * 0.3, z=1.35, h=1.2)],
                  width=width, top=0.15, span=width)
         self.hop_over(s, x, width, 0.15)
         self.jump_arc(s, x)
@@ -217,7 +231,7 @@ class Plan:
     def cart(self, s, x):
         self.add(s, "cart", x, [visual("bullock_cart", x + 1.8, z=0.05, w=3.6)], bed=0.95, span=3.6 * 0.62)
         self.hop(s, x - 0.8, 4.0, 1.6)
-        self.mango_line(s, x + 0.4, 4, 0.5, 1.5)
+        self.mango_line(s, x + 0.8, 3, 0.5, 1.55)      # on the bed, clear of the cart's front rail
         self.mango_line(s, x + 0.8, 3, 0.7, 2.9)
 
     def tank(self, s, x, y=ROOF):
@@ -347,10 +361,14 @@ class Plan:
                  y=y)
 
     def decal(self, s, piece, x, z, w):
+        """A ground detail: a flat one at any turn, a standing one (a tuft, a husk) turned at most 20 degrees from
+        facing the camera, so it never shows its back."""
         turn = self.rng.uniform(0, 360)
-        flat = piece in FLAT
-        self.add(s, "decal", x, [visual(piece, x, 0.0, z, w=w, flat=flat, turn=turn if flat else turn % 40 - 20,
-                                        kind="decal")], piece=piece, z=z, w=w, turn=turn)
+        flat = lies_flat(piece)
+        if not flat:
+            turn = turn % 40 - 20
+        self.add(s, "decal", x, [visual(piece, x, 0.0, z, w=w, flat=flat, turn=turn, kind="decal")], piece=piece, z=z,
+                 w=w, turn=round(turn, 1))
 
     def litter(self, s, count, avoid=(), holes=()):
         """Stray ground details along a section, never on the running line next to an obstacle (where a mark could
@@ -361,12 +379,16 @@ class Plan:
         while placed < count and tries < 500:
             tries += 1
             x = self.rng.uniform(x0 + 0.5, x1 - 0.5)
-            z = self.rng.uniform(-1.3, 1.3)
+            z = self.rng.uniform(-1.6, 1.6)
+            piece = self.rng.choice(pieces)
+            # A standing piece (a tuft, a husk) reads as an obstacle on the running line: keep it off it.
+            if not lies_flat(piece) and abs(z) < 0.9:
+                continue
             if abs(z) < 0.7 and any(abs(x - a) < 1.6 for a in avoid):
                 continue
             if any(a - 0.6 <= x <= b + 0.6 for a, b in holes):
                 continue
-            self.decal(s, self.rng.choice(pieces), x, z, self.rng.uniform(0.4, 0.8))
+            self.decal(s, piece, x, z, real_width(piece) * self.rng.uniform(0.85, 1.2))
             placed += 1
 
     # ---- what the plan makes of the ground
