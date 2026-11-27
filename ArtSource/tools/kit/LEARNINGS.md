@@ -121,6 +121,8 @@ every model against the audit checklist at the end.** Add to it whenever somethi
 - `K.tile`'s box projection maps a top face's depth with the crop's width, so a wide, short crop stretched 2-4 times
   front to back on every top (slab tops, decks and tables read as planks): it now repeats the seamless crop into a
   near-square image first. Modules' own squaring helpers (`sq_tile`, `strip_tile`, `squared`) still work.
+- Closed parts whose faces pointed inwards (stall_c_3's) render wrong or vanish in the game, which draws only a
+  solid's outer faces: the kit turns every inside-out closed part outward when it joins the parts (`_outward`).
 - `K.decal(image=...)` cached by `id(image)`, which Python reuses: keyed by content now.
 - Review renders ran out of transparent bounces (black shards in crowns): 128 bounces.
 - The review's ink outline scaled with model size: it now matches the game's (3-12 mm).

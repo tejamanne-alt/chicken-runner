@@ -874,7 +874,9 @@ def twigs(K):
         if run[-1] - run[0] < 3:
             return x, y, r0
         mid = (run[0] + run[-1]) / 2
-        return x + n[0] * mid, y + n[1] * mid, (run[-1] - run[0]) / 2
+        # the run's ends are the outermost samples on the twig (and the mask was opened by a pixel): add back the
+        # edge, or the twig is thinner than painted (the game draws no ink round a flat piece to cover it)
+        return x + n[0] * mid, y + n[1] * mid, (run[-1] - run[0]) / 2 + 0.85
     radius_of = {}
     branches = (1, 2, 4, 5, 7, 8, 10)                   # these start inside another twig: their first stretch is not
     for ti, pts in enumerate(TWIGS):                    # snapped (the painted fork there is wider than the branch)

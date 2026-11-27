@@ -914,7 +914,46 @@ def _join(objs, name):
     ob = bpy.context.view_layer.objects.active
     ob.name = name
     ob.data.name = name
+    _outward(ob)
     return ob
+
+
+def _outward(ob):
+    """Turns every closed part whose faces point inwards (negative volume) the right way out: the game draws only the
+    outer side of a solid's faces, so an inside-out part shows wrong or not at all (the audit's inside_out)."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bm.faces.ensure_lookup_table()
+    seen, flipped = set(), 0
+    for f0 in bm.faces:
+        if f0.index in seen:
+            continue
+        comp, stack = [], [f0]
+        seen.add(f0.index)
+        while stack:
+            f = stack.pop()
+            comp.append(f)
+            for e in f.edges:
+                for g in e.link_faces:
+                    if g.index not in seen:
+                        seen.add(g.index)
+                        stack.append(g)
+        edges = {e for f in comp for e in f.edges}
+        if any(len(e.link_faces) != 2 for e in edges):
+            continue                                   # an open sheet: no inside to speak of
+        vol = 0.0
+        for f in comp:
+            v = [l.vert.co for l in f.loops]
+            for i in range(1, len(v) - 1):
+                vol += v[0].dot(v[i].cross(v[i + 1])) / 6.0
+        if vol < -1e-9:
+            bmesh.ops.reverse_faces(bm, faces=comp)
+            flipped += 1
+    if flipped:
+        bm.to_mesh(ob.data)
+        ob.data.update()
+    bm.free()
+    return flipped
 
 
 def _smart_uv(ob, margin=0.004):
