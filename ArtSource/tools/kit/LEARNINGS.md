@@ -256,6 +256,33 @@ Cards
 - **Decal quads get an ink frame** in the game: lay patches (cracks, fallen plaster) as cut-out cards instead.
 - **Leaves texture 2048** for paintings wider than 1024 px.
 
+Paintings drawn from above (the last round: cot, cart, bicycle, mats, stones, fields, canal pieces, stalls, platform)
+- **Fit the painter's view first, then build true numbers.** Take the slope from things of known shape: a disc lying
+  flat (papad, plate, lid) is painted `oblique` times as high as it is wide; a top of known depth; two ground contacts
+  of one part (a cart's wheels). Fit slope, turn and sizes together against the painted outline and corners (hull
+  IoU, Nelder-Mead: `fields`); fit `converge` to straight edges running back. Re-measure the slope once the narrowing
+  is known (the back papads read tilted until it was). Front matches rose from 0.10-0.84 to 0.87-0.98.
+- **Every painted point goes back through the view before it is built**: depth = painted rise / k (plus its own
+  radius for a round foot), real height = painted height - k x that radius; with `converge`, y = 0 on the front-most
+  painted faces, sizes scaled by 1 + c y where they stand. Never let a point keep its painted x on every plane: a
+  cart's body became a parallelogram in plan.
+- **A view setting must hold for the whole painting**: check every far-side feature against it. Where a painter mixed
+  views (the cart: body side-on, far wheel drawn as if turned; the cot: back legs drawn longer), compare the true
+  candidates by their front match and write the rest down; never skew the model to follow both.
+- **Tops along the slope**: keep `front_min` about 0.1 (a level top faces the slope at sin(atan k)); a very shallow
+  top (k below about 0.2) takes little of the bake, so give it an un-foreshortened tile of its painted material.
+  Ridged tops draw an ink line behind every ridge: keep them smooth, the texture carries the weave.
+- **What the projection cannot reach** (ground hidden behind standing things, a mat under its front pole): give it
+  the painting along the slope from a source with the standing things inpainted, or reflected back into the painted
+  top without its goods (`ground_crops.slope_earth`, `market_props.mat_mirrored`). Exclusions along a slope stretch
+  their neighbours by 1/k: exclude with a 3 px margin.
+- **A part drawn steeper than the rest** (a tray in its own perspective) takes the painting by its own painted
+  corners (`fields.quad_mapped`), excluded from the front projection.
+- **Take the painted ink out of what is projected** where the model matches to a few px (`fields.deink`): an ink line
+  3 px off an edge reads as a dark stripe along a top seen from the side.
+- **Spoked wheels are spoked-disc cards** in the wheel's own plane showing the painting's spokes minus every solid's
+  painted stroke (`lane_props.spoke_disc`); tube radius is the painted half width less the ink line.
+
 The audit itself
 - **Its flags are hints**: `repeat` fires on a regular brick bond and on real symmetry, `streaks` on real wood grain.
   Judge each view by eye. A model with `oblique` is compared along its painted slope, and with `converge` drawn

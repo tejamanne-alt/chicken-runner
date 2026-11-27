@@ -116,3 +116,43 @@
 - **The painted foot is the earth's front edge, for every part.** The shrine body, threshold and trunk start there;
   the voxel remesh pushed the fused trunk's roots 7 cm below it (lift 0), so clamp fused wood to the foot. A
   mound's halo cleaning also clears a white wall standing on it from the projection (`mound(keep_boxes=)`).
+
+## Round 3 (h3_1: the katte painted from above)
+
+- **Fit the platform painted from above as a level box to its painted lines, not by eye.** A least-squares fit of a
+  level, square box (front corner, side corners, the side's depth, the slope k, the height, coping and lip) to the
+  alpha's bottom edges, the top's back edges and the coping's ink lines gave k = 0.226 and put every edge within
+  about 10 px, the perspective's back edges within 20-26 px. A single k cannot do better: the painter drew the front
+  edges twice as steep as the back ones (perspective), and the far walls 0.82 x the front one.
+- **An oblique model's front corner stands at y about 0, so a tree on the platform's middle stands half a metre
+  back and comes out k x 0.58 m (13 %) lower than painted.** Build such a tree in the painting's space (x, z as
+  painted, depth about the trunk), with a katte whose top is the painted slope (`ObliqueKatte.top`, `y_on_top`), then
+  set it where it really stands: y + y_T, z - k (y + y_T) (`ObliqueKatte.to_real`), and rewire every material's
+  Object coordinate back to (x, y - y_T, z + k y) so its projections and tiles land as painted. Along the slope it is
+  then exactly the painting; from the side its foot stands on the level top.
+- **That mapping tilts a crown built round its painted dome towards the camera** (front shell raised k x its depth,
+  back lowered: 13 degrees). Move every card in depth only (the front view stays exact) to the share of the crown's
+  depth the upright crown has there: the dome k x its depth higher for a card in front, lower behind (`upright_crown`),
+  less towards the painted outline (a card at the crown's lower edge took its fuller middle's depth and stood out as
+  a sliver), and all the cards together (moving only the shells opened see-through gaps between them and the cards
+  inside).
+- **Stand nothing at a depth where the painting would show it against sky.** Roots turned round the trunk to the
+  back lie on the back half of the top, which along the slope shows higher, over the sky painted beside the trunk
+  (a 15-20 px blue band). Turn copies about the trunk where they really stand and keep each point only while its
+  painted place (centre, sides and top, plus the fused surface's swell) is painted trunk, root or stone figure
+  (`katte_root_copies`); the same for turned limb copies: no sag that the hidden check does not see (`copy_sag=0`,
+  the slope lowers a copy going back anyway) and `seg_hide`, or a copy pokes a stub out under the crown.
+- **The painted things on a top seen from above stand at depth = painted rise / k from where their foot is painted**
+  (naga stones, lamps, flowers): a stone painted overlapping the trunk's foot needs the trunk set back far enough
+  (h3_1's trunk 780 px behind the front corner, 100 px behind the square's middle), or the stones stand inside it.
+- **A level top painted from above takes no painting from the front projection** (it faces the slope's light at
+  cos k / sqrt(1 + k^2), under `front_min`): give it its own material, the painting projected along the slope where it
+  shows the top's stone, and the stone from the opposite side of the square (turned half round) where roots, stones
+  and lamps stand on it and behind the trunk, so the back half has the same stone and border line; lit stone only
+  for that copy (the tree's painted shade turned onto the back read as a stain). Walls turned to the back take the
+  lit front wall turned half round or mirrored across the other diagonal, with its broken plaster (`katte_mat`).
+- **Hand-traced roots lying on a painted top are fitted against the stone, not only the sky** (`fit_limb` on the
+  painted solid minus the stone): traced by eye they missed their painted place by 10-20 px, which showed as yellow.
+- **`K.converge` does not suit a painting that draws the platform in perspective and the tree straight on**: the
+  scale is measured from the model's front, so the tree at the middle would have to be built 25 % larger than
+  painted (see kit request).

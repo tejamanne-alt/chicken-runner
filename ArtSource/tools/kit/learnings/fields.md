@@ -30,3 +30,37 @@
   translucency pinholes (`fields.water_pixels`), or the card shows red specks and holes.
 - **The audit's `repeat` and `streaks` metrics** read a regular brick bond and real wood grain as repeats/streaks; look
   at the view before acting on them.
+
+## Round 3 (paintings drawn from above, three-quarters on: canal_piece_2, canal_piece_3, field_shrine, granary)
+
+- **Fit the slope, the turn and the sizes together, not one by one.** Draw each part's box hull along the slope
+  (u = x, v = z + oblique * y) and maximise its IoU with the painted alpha plus a small weight on painted corners
+  (slab ends, pier and step feet) by Nelder-Mead: k, the turn, every length and the origin come out at once and
+  agree (canal_piece_2: k 0.281, turn 49.95, 18 corners within 5-10 px; canal_piece_3: k 0.292). Drop the painted
+  ground line from the mask first. Then build the fitted numbers level and square. Fronts went 0.28 -> 0.91 and
+  0.57 -> 0.96.
+- **A Blender object's matrix cannot hold a shear**: `o.matrix_world = shear @ o.matrix_world` silently drops it (the
+  audit's first oblique front did this: IoU 0.48 instead of 0.89). Shear the mesh data, and put it back after.
+- **Take the painted ink out of what is projected** when the model matches only to a few px (`fields.deink`: thin
+  lines darker than the paint round them, and the cut-out's rim, filled from the paint round them): an ink line
+  landing 3 px off an edge reads as a dark stripe along a top seen from the side. `lines=False` keeps a wall's
+  coursing and only drops the rim; `region=` limits it (a building's round posts).
+- **A part drawn steeper than the rest of the painting's slope** (canal_piece_3's tray, in its own perspective) cannot
+  take the front projection: map the painting onto it by its own painted corners (`fields.quad_mapped`: bilinear in
+  plan between its painted top and foot corners) and exclude it from the front projection; where the level part is
+  lower than the painted one, fill the strip with the painting just above it, reflected (`fields.strip_fill`), so
+  the stone behind runs on and no painted rim lands on the wall.
+- **A thing standing on the ground behind (a pot) goes back by its painted foot**: its foot ring's painted centre
+  height / k is its depth; trace its profile and lower it by k * depth.
+- **Three-quarters at eye level (no slope)**: turn about the front right corner with the 1/cos stretch, and give the
+  painted right side to the real side face with its shade taken off (`fields.relight`: channel by channel to the lit
+  material's median, at 0.8, the painted detail kept), not excluded: the side keeps its painted coursing, damp and
+  tiles, and the toon light shades it. Place round and square parts (staddles, finials, caps) after the turn at
+  their turned positions, or the stretch draws them out. Measure each tier's real half width from its painted
+  outline row by row: (right - left) / 2 / (cos + sin).
+- **Box projection smears a tile crop on a 45-degree roof slope** into orange mush. Lay a periodic patch of the
+  painted tiles (sheared upright, cut at its painted column lines and row arcs, here 3 x 2 tiles) by each slope's own
+  UVs, one texture column on each corrugation (`hip_roof(pattern=)`).
+- **Flag and cloth cards**: drop the painted pole from the card's rule (left of the pole's line) and every speck under
+  ~40 px (by component size), or a second pole and dots ride round with the card.
+- `K.converge` was tried in the canal_piece_2 fit: c 0.03/m and no gain; these paintings are parallel views.

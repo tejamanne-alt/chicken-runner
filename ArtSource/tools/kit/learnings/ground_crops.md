@@ -63,3 +63,39 @@
   bottom reaching below the painted foot sets the lift wrong (a 1 mm anchor under z = 0 gave lift 0 and left the
   tufts hovering 1-1.5 cm). Put the lowest part exactly at the painted foot (1 mm under it) and end every card's box
   at the lowest painted pixel; check the record's lift after the build.
+
+## Round 3: paintings drawn from above (crop_strip_2, pebbles, pebble_cluster, K.oblique)
+
+- **An object's matrix cannot hold a shear**: Blender keeps only location, rotation and scale, so a shear set on
+  `matrix_world` turns and stretches the model instead (k 0.58: (0, 1, 0) went to (0, 1.12, 0.30)). Shear the mesh
+  data (the lead fixed the audit's oblique front this way). Check any oblique comparison against a hand computation of
+  z + k y for one part before trusting it.
+- **Choose the slope from the painting's own geometry**: a field's top of known depth (painted depth / real depth:
+  crop_strip_2 0.35); loose stones: the slope that makes them about as deep as wide in plan (pebbles 0.58, the cluster
+  0.73). The stones' heights do not depend on the slope (only their plan depth does).
+- **A thing painted from above stands at depth = (its painted foot's rise) / k, plus its own radius** (the painted
+  foot is the front of its foot circle), and its real height is its painted height less k times that radius.
+- **Lying stones on an oblique painting** (`lying_stone`): build each column of the painted outline as a section:
+  foot on the ground at the painted bottom's depth, back mirrored about the line through the painted left and right
+  ends, height solved so its top, seen along the slope, is the painted top. Cap the depth only where the painted top
+  leaves no room (85 %), or round pebbles get flat, D-shaped backs; ellipse sections stand taller than boxier ones for
+  the same outline.
+- **Take a solid's outline from the whole painted alpha** (shared ink lines split to the nearest part), and pull it in
+  by the game's ink only where the game draws it (top and sides), not at a foot standing on the ground (red line under
+  every stone otherwise).
+- **On a low slope every standing thing hides a long strip of ground behind it** (k 0.35: a 0.18 m hill hides 0.5 m).
+  The kit's projection cannot reach it and it falls back to the own material: pale strips from every side. Give the
+  ground's own material the painting along the slope from an earth-only source (standing things inpainted,
+  `cv2.inpaint`), and paint the standing things with their own oblique materials (`slope_earth`, `wrapped(oblique=k)`).
+- **Excluding things from a projection along a slope stretches whatever lies just outside the exclusion** by 1/k
+  (a painted outline 1 px outside a stubble's box became a long dark line on the ground): exclude with a 3 px margin.
+- **Turned cards on an oblique model** (a fan of ears and its turned copies): move every vertex down by k times how
+  far back it is from the card's axis, so each copy lies on the painted fan along the slope.
+- **Mirrored front and back meet in chevrons** where the painted strokes slant (a stook's flanks): blend a squared,
+  unturned quilt from the thing's upright middle over the sides (50-75 degrees round) (`wrapped(side=)`).
+- **Wide paintings bend their ground** (curvilinear perspective): crop_strip_2's field top is painted 86 px deep in the
+  middle and 25 px at the ends. Follow the painted back edge (the field rounds off at its ends) and bulge it behind a
+  back stook only within that stook's painted width at the back edge's row, so the bulge stays hidden from the front.
+- **Measure each stook's bell row by row against the sky**: the painted bells are wider than a cone, five axes were
+  2-5 px off and three feet up to 13 px off. A painted thing whose foot is hidden behind a stook must stand behind that
+  stook; check every placed part for collisions with the others.

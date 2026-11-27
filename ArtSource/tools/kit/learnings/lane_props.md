@@ -43,3 +43,59 @@
 - **A quilt's keep rule must match the material's brightness**: a "plain" rule that drops bright pixels picks the
   shadows of a light sandstone pedestal and the dark gaps of a straw bed (both came out dark brown). Preview the quilt
   next to the painting before building.
+
+## Round 3 (bicycle, rope_cot, bullock_cart)
+
+- **Spokes as a spoked-disc card** (`lane_props.spoke_disc`): one card per wheel, a polygon on the painted rim's inner
+  ellipse (fitted to the alpha, grown by the rim band), every vertex at its painted x, z and at the depth of the
+  wheel's own plane, showing the painting's own spoke pixels. Its card rule is the alpha minus the painted stroke of
+  every part modelled as a solid (rasterise each tube's painted polyline at its radius + 0.5 px, `stroke_mask`, and
+  plates' outlines, `poly_mask`), so a fork blade or stay is never painted onto the spokes and a solid behind shows
+  through. The bicycle's front went from IoU 0.73 to 0.86 on this alone; from every side it is a spoked wheel.
+- **Tube radius = painted width / 2 - the ink line** (about 1.1 px on a 1.7 m piece): every bicycle tube had the
+  painted half width as its radius and showed a blue line down both sides.
+- **Pairs straddling a wheel**: where the painting shows the pair apart (the fork's blades, 12 px), put each on its
+  own painted line; where it shows one (the stays), keep both on the painted line, one behind the other.
+- **Which half of a handlebar is near** follows from the turn: a bike whose front is further back has its near grip
+  painted towards the front (left). The other way round the bar ran 0.6 m fore and aft from above.
+- **A steered wheel's tilted painted ellipse is the wheel leaning on its fork**: lean it about its forward axis by
+  atan(|n_x| tan(tilt)) (3.6 deg for a 6 deg tilt at a 37 deg turn); tyre, rim, spokes card and mudguard follow.
+- **A painted ground band** under a level painting: hang the earth's rim to the painted ground's lower edge all
+  round (`ground_edge`, `front_rim`; the back of the rim shows below the front too). Under an oblique painting, give
+  the patch the painted band in plan instead (`earth_band`: its front edge at the depth the painted edge gives along
+  the slope).
+- **Oblique and converge: put y = 0 on the front-most painted faces** (a block's front face, not the legs' middles):
+  converge scales everything in front of y = 0 up, so a block centred on y = 0 had its front face drawn 7 px wider
+  than painted. Map every painted point at depth y back through both (`Xs`, `Zs` in rope_cot), cards' size too.
+- **A painter's view from above is rarely one slope**: the cot's back feet rise 22 px, its far rail 38 px; the cart's
+  far wheel says 0.05, its far rails 0.17. Take k from the biggest tops (a bed, a far rail) or from two ground
+  contacts, and write the rest down; a level, square model cannot follow both.
+- **A shallow painted top (visibility 0.17 at k 0.17) takes only a fifth of the bake's painting at front_min 0.1.**
+  As its own material, the painting along the slope is exact from the front but stretched 1/k (six times) front to
+  back: streaks from above. Give it an un-foreshortened tile of its painted material (the cot's weave) instead.
+- **Ridged tops draw an ink line behind every ridge** from the camera (rope courses on the cot's bed came out as black
+  stripes): keep tops smooth and let the texture carry the weave.
+- **A `C(px, py, off)` that keeps the painted x on every plane makes a parallelogram in plan** (the cart's body: its
+  far side slid 0.4 m along it, slanted ends from above). Trace on the near plane and carry the point straight across
+  (`+ nrm * (off - ref)`): a true box.
+- **When the painting is not one consistent view** (the cart: body side-on, far wheel drawn as for a cart turned 18
+  degrees), compare the true candidates by their front IoU before choosing (side-on 0.81, 8 deg 0.79, 18 deg 0.75).
+- **Legs wrapped with the painting pick up the grass painted at their feet** (green stains on their backs from the
+  far side): `proj(mask=...)` without the grass pixels.
+- **Never name a builder's slope `k`** when the builder also loops `for k in range(...)`: closures read the loop's
+  last value (the cart's points came out metres off).
+- **A front-only render** of the exported FBX (the audit's toon look, ink and slope mapping) at 2x the painting's
+  size, plus painted-versus-model opaque runs per row and column and the largest red and blue blobs, turns a round in
+  20 s instead of the audit's 50 s and gives the px offsets to correct.
+
+## Round 4 (K.oblique_x on the bullock cart)
+
+- **Fit a side step from two things of known separation at the same size**: the cart's two wheels (same radius,
+  1.8 m apart on one axle). Fix the far wheel's radius to the near wheel's and fit only its centre to its visible
+  rim (the alpha's outer edge, rows clear of grass and rope): 115.5 px right, 13 px up gives oblique_x 0.29, oblique
+  0.033. Carry every traced point back along both (x - oblique_x y, z - oblique y) before carrying it across.
+- **A side step must hold for the whole painting, not one part**: the cart's far wheel is painted stepped, its body
+  is not (its far rails end with the near ones, nothing above the pole). With the step, the far wheel lands but the
+  far side of the body shows 79 px beyond the near end (IoU 0.81 -> 0.79; half the step 0.77). Before adopting a
+  view setting, check every far-side feature the painting shows against it; where they disagree the painting is
+  inconsistent and no true model takes both.

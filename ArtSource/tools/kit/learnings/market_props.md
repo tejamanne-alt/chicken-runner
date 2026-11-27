@@ -65,3 +65,61 @@
   and its fine detail can be scored over the whole painting in a second (`mp_audit/findclean.py` in the scratchpad):
   a clean, lit, fully opaque patch with some fine texture is the tile; a featureless one reads as flat, a stained one
   repeats.
+
+## Round 3: drying trays painted from above (chilli_mat, papad_mat), rebuilt level with K.oblique
+
+- **Measure the slope from round things lying flat.** A disc lying on the ground (a papad, a plate, a lid) is painted
+  as an ellipse exactly `oblique` times as high as it is wide; fit the ellipses to their painted rims (score each
+  candidate ellipse by the darkness along its best-matching half, so the parts hidden under its neighbours do not
+  count) and take the ones that lie flat (here 0.51-0.56, k = 0.55). One drawn taller is tilted up (sin t + k cos t =
+  ratio), one drawn flatter rests its front edge on another; which rim is drawn over which gives the stacking.
+  The depth of everything else then follows from where it is painted (depth = painted rise / k).
+- **K.oblique undoes the painter's "further back is higher", not "further back is smaller".** A painting in true
+  perspective also draws the back narrower (the trays' back pole 0.77 as long as the front): a square model's back
+  corners stand past the painted ones and the audit's front keeps blue wedges. Say so in the verdict; do not make the
+  model a trapezoid to hide it (kit request: a convergence term).
+- **Converging painted edges must be kept off a level top.** The painted side poles run on the slant across where the
+  level mat is; projected, they would draw a second pole on the mat beside the real one (seen from above). Exclude them
+  (front_exclude polygons along the painted pole) and let the top's own material show there.
+- **The own material of a top painted from above: the painting reflected back into itself, without the goods.** Where
+  the projection does not land (the strip the front pole hides, the corners past the painted ones, the excluded
+  poles), a tile of the weave reads as a different mat and the plain painting smears one row. Map the slope ray's
+  painted pixel and reflect it at the painted frame's inner edges (`market_props.mat_mirrored`); first replace the
+  goods (papads, chillies) in that source with the painted weave quilted from between them
+  (`market_props.weave_fill`), or half papads appear painted flat on the mat beside the real ones.
+- **A heap under a slope projection: build its height in painted coordinates and find the surface by a fixed point**
+  (z = z_mat + h(painted pixel the ray at that height reaches)), damped, with h sampled bilinearly: a nearest-pixel h
+  terraces the heap into steps the projection turns into stripes. Its back must fall more gently than the view's
+  slope (thin it out towards the back over the painted rows): a back that falls as steeply as the rays gets the few
+  painted rows of its crest smeared down it.
+- **`K.front_min` and the vis ramp**: a level top faces the slope at sin(atan k) (0.48 at k = 0.55); the projection's
+  weight is (vis - front_min) / 0.3, so front_min above about 0.15 already blends a level top with its own material
+  (washed out goods). Keep 0.1 and make the shapes face the slope instead.
+- **Bamboo poles: wrap the bamboo round the pole by angle about its own axis** (`market_props.bamboo_wrap`): a strip
+  along the painted pole's lit middle, its shading across evened out and blurred round, laid along the pole; box
+  projection lays the node marks along a pole that runs front to back. Add low node rings where the painting draws
+  them.
+- **3D goods on a painted heap carry the game's ink**: pods along the painted chillies' bright cores sat above the
+  painted bodies (the highlight is off-centre) and drew black arcs above them. Centre each pod across the painted body
+  (scan its red across the core) and make it as thick as the body inside its ink line.
+
+## Round 4: the same trays with K.converge
+
+- **Fit the convergence to straight painted edges that run back** (side poles, a bench's rails, a field's edges):
+  real straight lines at x0 seen as xc + (x0 - xc) / (1 + q * (v - z)), v the painted height, z the line's real
+  height; fit q, xc and each x0 to the cut-out's outline (not the centre line: the outline is what the audit compares),
+  with the game's ink (about 1.7 px here) inside it. Then c = q * k. Both trays: 0.9 px rms.
+- **Measure the slope again once the narrowing is known.** A round thing lying flat is painted k * f times as high as
+  wide (f = 1 + c * y where it lies): without f the back papads read as tilted (0.64-0.67) and k came out too high
+  (0.55); with it all seven read flat at 0.46-0.52 (k = 0.49). If the heights do not shrink with the widths, leave the
+  row term out (this painter shrinks only across).
+- **Where parts cross at the back corners, decide which is on top from the painting.** Side poles laid over the back
+  pole stood up past it as bumps in the front; the painting draws the back pole over them. A pole lifted onto others
+  also lifts whatever rides over it (the papads poked above the painting): here every pole lies on the ground, butted
+  and lashed.
+- **Goods painted over an edge drape over it.** A papad painted reaching over the back pole, lifted over it and kept
+  flat, ends higher than painted; draped down behind the pole it ends at the pole's top as painted. The draped part
+  faces away from the painter: give it a tile of the goods, and take the goods' own projected material from the goods'
+  pixels only (filled outwards), or it wears the pole painted under it.
+- **Size the goods with the narrowing where they lie** (R * f), or the back ones come out small; from above the
+  papads were then round.
