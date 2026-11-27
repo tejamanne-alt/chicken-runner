@@ -2912,7 +2912,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
         s_ /= s_[-1]
         pp = np.stack([np.interp(t, s_, a[:, 0]), np.interp(t, s_, a[:, 1])], 1)
         rr = r_px * np.clip(np.sin(np.pi * (0.02 + 0.96 * t)), 0.12, 1) ** 0.45      # rounded to both ends
-        pw.paths.append(dict(pts=pp, r=rr.astype(np.float32), a=None, b=None, ends=(1, 1)))
+        pw.paths.append(dict(pts=pp, r=rr.astype(np.float32), a=None, b=None, ends=(1, 1), hand=True))
     out = []
     for p in pw.paths:
         L = float(np.hypot(*np.diff(p["pts"], axis=0).T).sum())
@@ -2926,7 +2926,11 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
             else:
                 y = crown.y0 + rng.uniform(-0.5, 0.95) * crown.extent(cx, cy)
             p["y"] = np.full(len(p["pts"]), y)
-            pts, rs = pw.polyline(p)
+            if p.get("hand"):                         # traced by hand: as drawn (no smoothing of its rounded ends)
+                pts = [(P.x(a), y, P.z(b)) for a, b in p["pts"]]
+                rs = [P.m(v) for v in p["r"]]
+            else:
+                pts, rs = pw.polyline(p)
             if pts is None or len(pts) < 2:
                 continue
             ph = rng.uniform(0, 6.28)
@@ -3106,10 +3110,10 @@ def h2_3(K):
     pm = pod_mask(K, (100, 60, 500, 460))
     mat = masked_material(K, pm, inset=1)
     # the bunches painted touching (one skeleton between two pods made one fat pod), traced by hand off the grid
-    pm = pm & ~box_mask(pm.shape, [(398, 345, 478, 440), (160, 345, 225, 445)])
+    pm = pm & ~box_mask(pm.shape, [(398, 345, 478, 440), (155, 345, 228, 452)])
     bunch = [([(418, 362), (416, 385), (410, 405), (405, 422)], 7), ([(430, 356), (432, 380), (428, 405), (433, 432)], 7),
              ([(446, 366), (450, 390), (456, 410), (462, 432)], 7),
-             ([(184, 358), (182, 385), (178, 410), (172, 434)], 10), ([(206, 356), (206, 385), (204, 410), (196, 434)], 10)]
+             ([(183, 356), (181, 385), (178, 410), (174, 438)], 12), ([(206, 354), (206, 385), (203, 410), (197, 436)], 12)]
     hang_pods(K, pm, crown, mat, copies=2, flatten=0.6, lump=0.12, segments=10, stalk=K.colour((0.12, 0.08, 0.03)),
               traced=bunch)
 
