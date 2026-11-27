@@ -2797,7 +2797,7 @@ def h1_1(K):
     mask, _ = TRACE["h1_1"](K)
     traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_inked, spread=0.55,
                 root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
-                n_cards=(240, 100, 55, 25), trunk=(1150, 700, 600, 1000, 0.45), min_r_px=2.5)
+                n_cards=(240, 100, 55, 25), trunk=(1150, 700, 600, 1000, 0.25), min_r_px=2.5)
 
 
 TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 120, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200,

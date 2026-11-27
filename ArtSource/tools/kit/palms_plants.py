@@ -1768,8 +1768,8 @@ def h5_3(K):
     fruit_m = ellipse_mask(opaque.shape, H53_FRUIT, 1)
     tr_ok = opaque & not_ink(rgb, 70) & box_mask(opaque.shape, [(170, 440, 255, 880)]) & ~fruit_m
     bark = axis_material(K, tr_ok, lambda py: 212.0, squeeze=0.86, inset=2)
-    trunk(K, [(212, 905, 38), (213, 860, 36), (214, 800, 34), (214, 700, 29), (214, 600, 25.5), (213, 480, 22.5),
-              (212, 330, 19.5), (212, 228, 15)], bark, segments=18)          # as measured row by row
+    trunk(K, [(212, 905, 37), (213, 860, 35), (214, 800, 32.5), (214, 700, 27.5), (214, 600, 24.5), (213, 480, 22),
+              (212, 330, 19), (212, 228, 15)], bark, segments=18)            # as measured row by row
     # ---- the leaves on their stalks
     leaf_box = (0, 0, P.w, 320)
     lm = leaf & ~fruit_m & box_mask(opaque.shape, [leaf_box]) & ~box_mask(opaque.shape, [(195, 200, 232, 330)])
@@ -2189,13 +2189,14 @@ def h6_4(K):
     bam = masked_material(K, bamboo_ok(rgb, opaque) & box_mask(opaque.shape, [(25, 30, 435, 548)]), inset=1)
     rope = masked_material(K, opaque & box_mask(opaque.shape, [(70, 80, 100, 115), (365, 85, 395, 115)])
                            & not_ink(rgb, 80), inset=0)
-    pr, br = 8.4, 7.9                           # painted half-width (10 px with its ink) less the game's outline
+    pr, br = 9.5, 8.5                           # painted half-widths with their ink, less the game's outline
     yb = -P.m(pr + br) * 0.9
-    pole(K, (87.5, 552), (85, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
-    pole(K, (378, 548), (379, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
-    for a, b_ in (((28, 94), (428, 102)), ((28, 264), (412, 261)), ((38, 411), (422, 410))):
+    # (centres measured off the painted bamboo, row by row and column by column)
+    pole(K, (87.5, 552), (85.5, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
+    pole(K, (376, 548), (375.5, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
+    for a, b_ in (((28, 97.6), (428, 105.4)), ((28, 269), (412, 270)), ((38, 411.5), (422, 411))):
         pole(K, a, b_, br, bam, y=yb, nodes=(0.4,))
-    for px, py in ((86, 95), (379, 101), (86, 263), (378, 261), (87, 410), (378, 410)):
+    for px, py in ((86, 99), (376, 104), (87, 269), (376, 270), (87, 411.5), (376, 411)):
         lashing(K, (P.x(px), yb * 0.5, P.z(py)), P.m(pr + br) * 0.75, rope, P.m(2.2))
     # ---- the jasmine: woody stems from the ground up through the trellis, its leaves and flowers on cards
     for pts, y in (([(237, 548, 4), (230, 500, 3.5), (212, 450, 3), (190, 400, 2.6), (165, 340, 2.2), (150, 290, 2),
@@ -2399,10 +2400,10 @@ def h7_1(K):
     # where they are painted, more behind them all round
     rng = K.rng
     for k in range(13):
-        xb, xt = 302 + 92 * k / 12, 232 + 230 * k / 12           # a tight foot fanning out, as painted
+        xb, xt = 268 + 172 * k / 12, 226 + 238 * k / 12           # the foot fanning out, as painted
         yb = rng.uniform(-0.035, 0.035)
         yt = yb * 2.2 + rng.uniform(-0.04, 0.04)
-        K.tube([P.pt(xb, 520, yb), P.pt((xb + xt) / 2, 458, (yb + yt) / 2), P.pt(xt, 392, yt)],
+        K.tube([P.pt(xb, 518, yb), P.pt((xb + xt) / 2 + (xb - 354) * 0.08, 458, (yb + yt) / 2), P.pt(xt, 392, yt)],
                [P.m(7.5), P.m(7), P.m(6.5)], stalk, segments=8, name="stalk_base")
     for k in range(10):
         a = math.radians(rng.uniform(15, 165))               # behind the painted ones
@@ -3049,7 +3050,9 @@ def h6_3(K):
                             filled_crop(K, opaque & poly_mask(opaque.shape, [boulder]) & not_ink(rgb, 60),
                                         (430, 290, 580, 350)), P.m(150), squeeze=0.88, soften=0.2)
     poly_solid(K, boulder, -0.16, bstone, depth=0.55, segments=24, name="boulder")
-    for (cx, cy, rx, ry), yy in zip(stones, (-0.3, -0.36)):       # flat stones half sunk where painted
-        K.boulder(P.x(cx), yy, P.z(cy + ry) + P.m(ry) * 0.9, P.m(rx * 1.9), P.m(rx * 1.3), P.m(ry * 2.0), stone,
-                  name="stone")
+    # flat stones half sunk in the ground (the painting draws the bed's edge rising to the left in perspective; on
+    # level ground the left stone sits lower than painted)
+    zg = P.z(370)
+    for (cx, cy, rx, ry), yy in zip(stones, (-0.3, -0.36)):
+        K.boulder(P.x(cx), yy, zg + P.m(ry) * 0.7, P.m(rx * 1.9), P.m(rx * 1.3), P.m(ry * 2.0), stone, name="stone")
 

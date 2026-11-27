@@ -1320,12 +1320,14 @@ def straw_clean(rgb):
 
 
 def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch",
-               pull=0.0, end_fringe=None):
+               pull=0.0, end_fringe=None, corner=0.0):
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
     ragged fringe `fringe` m deep. The mat's thickness stands half outside the surface, so seen from the front the
     hip ends reach about half the thickness past the painted hip lines: pull (m) moves both hip ends in by that much,
-    or (eave left, eave right, ridge left, ridge right) to fit a painted roof whose two ends differ."""
+    or (eave left, eave right, ridge left, ridge right) to fit a painted roof whose two ends differ. end_fringe: the
+    hip ends' own fringe (default as the slopes'); corner: the share of the eave at each end over which the long
+    slopes' fringe tapers away (a roof whose painted ends sweep up)."""
     ex0, ex1, ey0, ey1 = eave
     rx0, rx1 = ridge
     pe0, pe1, pr0, pr1 = pull if isinstance(pull, (tuple, list)) else (pull,) * 4
@@ -1349,7 +1351,8 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
             iu, iv = int(round(u * nu)), int(round(v * nv))
             z = ze + (zr - ze) * v + shag * noise[iv, iu]
             if v < 0.09:
-                z -= fringe * (0.6 + 0.8 * abs(tips[iu]))
+                taper = min(1.0, u / corner, (1 - u) / corner) if corner else 1.0
+                z -= fringe * (0.6 + 0.8 * abs(tips[iu])) * taper
             return (x, y, z)
         return K.sheet(f, nu, nv, mat, name=name, smooth=True, thickness=thickness)
 
@@ -2462,7 +2465,7 @@ def house_being_built(K):
             y = yb - 0.28 + col * 2.05 * rp + (rp if row % 2 else 0.0)
             z = zg + 0.08 + rp * (1 + 1.9 * row)
             x0 = P.x(1905 + K.rng.uniform(-15, 15))
-            x1 = (2360 if row < 5 else 2190 - 60 * (row - 5)) + K.rng.uniform(-20, 10)   # shorter poles on top
+            x1 = 2385 - 14 * row + K.rng.uniform(-12, 8)    # the pile's end slanting back as it rises, as painted
             K.tube([(x0, y, z), (P.x(x1), y + K.rng.uniform(-0.03, 0.03), z)], rp, bamboo, segments=8, name="pile")
     for (ax, ay), (bx, by), y in (((1790, 690), (2390, 995), -1.4), ((1840, 720), (2350, 990), -1.25),
                                   ((1900, 760), (2300, 995), -1.15), ((1780, 680), (2200, 1000), -0.7)):
@@ -3172,7 +3175,7 @@ def shop_tea_stall(K):
     eave = (P.x(15) + 0.15, P.x(1450) - 0.15, -0.6, D + 0.6)
     ridge = (P.x(232) + 0.15, P.x(1228) - 0.15)
     # (the hip ends' fringe short: the painted roof's ends lift clear of the poles)
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12, end_fringe=0.0)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12, end_fringe=0.0, corner=0.12)
     K.box(P.x(228), P.x(1232), D / 2 - 0.12, D / 2 + 0.12, P.z(55), P.z(10), beam, bevel=0.01, name="ridge_beam")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
     # frond cards for the ragged eave, front and back, as ragged blobs inside the leaf rule's box (a card reaching
@@ -3188,6 +3191,11 @@ def shop_tea_stall(K):
         else:
             blob_card(K, box, (P.x(cx), D - fy(cx, cy) + 0.08, P.z(cy)), yaw=180 + K.rng.uniform(-15, 15),
                       pitch=-30 + K.rng.uniform(-10, 10), name="frond_back", rag=0.15)
+    # the frond tips painted sweeping out past the roof's two ends, on the hip ends where they are painted
+    for box in ((0, 60, 290, 270), (1175, 60, 1465, 270)):
+        for cx, cy in leafy_spots(K, box, straw_clean, 8, 100, thresh=0.25):
+            blob_card(K, (cx - 50, cy - 50, cx + 50, cy + 50), (P.x(cx), fy(cx, cy) - 0.05, P.z(cy)),
+                      yaw=K.rng.uniform(-15, 15), pitch=-30 + K.rng.uniform(-10, 10), name="frond_end", rag=0.15)
     # the poles
     for x0, x1 in ((105, 150), (1315, 1355)):
         cx = (x0 + x1) / 2
@@ -3255,13 +3263,16 @@ def shop_tea_stall(K):
     for a, b, c, d in ((-0.48, -0.4, zg, 2.02), (0.4, 0.48, zg, 2.02), (-0.48, 0.48, 1.95, 2.02)):
         K.box(a, b, D, D + 0.06, c, d, beam, bevel=0.005, name="back_door_frame")
     for side, x in ((-1, X0), (1, X1)):
-        # (thin: anything standing far off the side wall shows as a strip past the painted wall from the front)
-        K.box(min(x, x + side * 0.02), max(x, x + side * 0.02), D * 0.5 - 0.35, D * 0.5 + 0.35, 1.2, 1.8, wood,
-              bevel=0.004, name="side_shutter")
+        # (set into the wall, its frame barely proud: anything standing off the side wall shows as a dark strip
+        # past the painted wall from the front)
+        K.cut(body, min(x - side * 0.03, x + side * 0.05), max(x - side * 0.03, x + side * 0.05), D * 0.5 - 0.35,
+              D * 0.5 + 0.35, 1.2, 1.8)
+        K.box(min(x - side * 0.03, x - side * 0.01), max(x - side * 0.03, x - side * 0.01), D * 0.5 - 0.35,
+              D * 0.5 + 0.35, 1.2, 1.8, wood, name="side_shutter")
         for a, b, c, d in ((-0.41, -0.35, 1.14, 1.86), (0.35, 0.41, 1.14, 1.86), (-0.41, 0.41, 1.8, 1.86),
-                           (-0.41, 0.41, 1.14, 1.2)):     # its frame, standing out from the planks
-            K.box(min(x, x + side * 0.035), max(x, x + side * 0.035), D * 0.5 + a, D * 0.5 + b, c, d, beam,
-                  bevel=0.004, name="side_shutter_frame")
-        K.box(min(x + side * 0.02, x + side * 0.03), max(x + side * 0.02, x + side * 0.03), D * 0.5 - 0.012,
-              D * 0.5 + 0.012, 1.2, 1.8, beam, name="side_shutter_meet")
+                           (-0.41, 0.41, 1.14, 1.2)):     # its frame
+            K.box(min(x - side * 0.02, x + side * 0.008), max(x - side * 0.02, x + side * 0.008), D * 0.5 + a,
+                  D * 0.5 + b, c, d, beam, bevel=0.003, name="side_shutter_frame")
+        K.box(min(x - side * 0.012, x), max(x - side * 0.012, x), D * 0.5 - 0.012, D * 0.5 + 0.012, 1.2, 1.8, beam,
+              name="side_shutter_meet")
     drop_ground_faces(K)

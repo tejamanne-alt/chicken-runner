@@ -2329,8 +2329,8 @@ def field_shrine(K):
     K.box(P.x(124), P.x(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back")
     K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image")
     # blind niches in the other three walls of the cella, and in the first tier
-    niche_m = img_tile(K, quilt(P.crop((100, 336, 122, 470)), 3, seed=1, contrast=1.4), P.m(40), vary=0.06,
-                       mottle=0.15, mottle_size=0.3, key="niche")      # the painted niche's own shadowed stone
+    niche_m = img_tile(K, retint(P.crop((36, 340, 76, 470)), (150, 140, 146)), P.m(40), vary=0.05, mottle=0.1,
+                       mottle_size=0.3, key="niche")        # the same coursed stone, in the niche's shade
     for ang in (90, 180, 270):
         a = math.radians(ang)
         nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction
@@ -2348,10 +2348,12 @@ def field_shrine(K):
     pole = K.colour((186, 60, 196, 110), vary=0.08)
     by = cy + hd * 0.5
     K.tube([(P.x(186), by, P.z(140)), (P.x(205), by, P.z(10))], P.m(4), pole, segments=8, name="pole")
-    K.leaves_only((196, 4, 312, 126), everything)
+    K.leaves_only((196, 4, 312, 126), no_halo)
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by, P.z(64)), name="flag", normal=(0, -0.5, 0.5))
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by + 0.12, P.z(64)), yaw=-20, name="flag",
                          normal=(0, -0.5, 0.5))
+    K.card_from_painting((198, 4, 312, 124), (P.x(248), by + 0.22, P.z(64)), yaw=-55, scale=0.9, name="flag",
+                         normal=(0.5, -0.5, 0.5))           # the cloth curling back in the wind: full from the side
 
 
 def ladder(K, top_l, top_r, bot_l, bot_r, rungs, mat, r_rail=0.035, r_rung=0.025, name="ladder"):
@@ -2607,9 +2609,16 @@ def field_bldg_1(K):
     # a trodden track down its middle, weeds along its edges and foot
     top = interp([(452, 376), (555, 380), (630, 396), (1032, 593)])
     zt = lambda x: P.z(top(P.px(x)))
-    side = sq_tile(K, (690, 555, 790, 600), soften=0.4, vary=0.05)
-    trod = sq_tile(K, (700, 590, 780, 612), soften=0.45, vary=0.05)
-    earth = two_tiles(K, (690, 555, 790, 600), (700, 590, 780, 612), lo=0.6, hi=0.85, soften=0.4)
+    # the ramp's earth with the painted strokes (its ink hatching) filtered out, so the long slopes show no grid of
+    # marks: the shaded brown bank on its sides, the lit orange earth on its top; the trodden track a little darker
+    bank_px = delined(P.crop((612, 572, 690, 606)), 7)
+    top_px = delined(P.crop((752, 512, 842, 560)), 7)
+    earth = two_tiles(K, (0, 0, 78, 1), (0, 0, 90, 1), lo=0.6, hi=0.85, side_size=P.m(78), top_size=P.m(90),
+                      soften=0.0, vary=0.06, square=False, mottle=0.22, mottle_size=0.45,
+                      side_img=quilt(bank_px, 3, seed=2, contrast=1.5),
+                      top_img=quilt(top_px, 3, seed=3, contrast=1.3))
+    trod = img_tile(K, quilt(speckle(top_px, sigma=3.0, amount=1.4, base=img_median(top_px) * 0.86), 3, seed=4),
+                    P.m(90), vary=0.06, mottle=0.12, mottle_size=0.4, key="trod")
     yf, ys0, ys1, yb = -0.45, 0.04, D - 0.04, D + 0.45        # the front foot, the shoulders, the back foot
     ra, rb = P.x(452) - 0.02, P.x(1032)
     nx_ = 36

@@ -343,9 +343,12 @@ def strand_tile(K, a, b, offset_px, thick_px, vary=0.12, soften=0.15, rows=None)
     band = band - band.mean(axis=1, keepdims=True) + band.reshape(-1, 3).mean(axis=0)
     w = band.shape[1]
     n = rows or max(1, w // band.shape[0])
-    out = [np.roll(band[k % band.shape[0]][None, :, :], int(K.rng.integers(0, w)), axis=1) for k in range(n)]
+    out = [np.roll(band, int(K.rng.integers(0, w)), axis=1) for k in range(n)]
     sq = np.concatenate(out, axis=0)
-    sq = ndimage.gaussian_filter(sq, (0.8, 0, 0))
+    # soften only the seams between the stacked bands, not the straws
+    for k in range(1, n):
+        r = k * band.shape[0]
+        sq[r - 1:r + 1] = ndimage.gaussian_filter(sq[r - 2:r + 2], (1.0, 0, 0))[1:3]
     img = Image.fromarray(np.clip(sq, 0, 255).astype(np.uint8)).resize((w, w), Image.BILINEAR)
     return square_tile(K, box, vary=vary, soften=soften, image=img, size=P.m(w),
                        key=("strand", tuple(a), tuple(b), offset_px, thick_px))
@@ -2547,10 +2550,11 @@ def chariot_shed(K):
             y = -0.4 + (D + 0.8) * (k + 0.5) / 12
             K.card_from_painting(box, (X(ex), y, Z(ey) - 0.04), yaw=90 + K.rng.uniform(-10, 10), name="eave_tuft")
     # the gable walls of woven matting (the front open in its middle bay), the side walls
-    front = [(50, 485), (50, 232), (390, 40), (730, 232), (730, 485), (558, 485), (558, 205), (225, 205), (225, 485)]
+    front = [(53, 486), (53, 230), (390, 40), (728, 230), (728, 486), (558, 486), (558, 205), (225, 205), (225, 486)]
     K.prism([(X(x), Z(y)) for x, y in front], 0.0, 0.06, mat, name="gable_front")
     K.prism([(X(x), Z(y)) for x, y in front[:5]], D - 0.06, D, mat, name="gable_back")
-    for x0, x1 in ((50, 58), (722, 730)):
+    # (the walls a little inside the painted edges, 52..729, so the posts down the sides stand proud of them)
+    for x0, x1 in ((54, 58), (723, 727)):
         K.box(X(x0), X(x1), 0.0, D, 0.0, Z(232), mat, name="side_wall")
     # a small plank door in the back gable, in its timber frame
     for x0, x1 in ((345, 355), (425, 435)):
@@ -2562,7 +2566,7 @@ def chariot_shed(K):
     for py in (320, 440):
         K.box(X(357), X(423), D + 0.03, D + 0.05, Z(py - 4) - 0.0, Z(py - 12), timber, name="door_ledge")
     # the frame: posts, wall plate, tie beam, lintel, king post, barge boards, battens; and down the sides
-    for x0, x1, top in ((48, 62, 228), (718, 732, 228), (222, 235, 128), (548, 561, 128)):
+    for x0, x1, top in ((52, 64, 228), (717, 729, 228), (222, 235, 128), (548, 561, 128)):
         for y in (0.0, D - 0.12):
             K.box(X(x0), X(x1), y - 0.04, y + 0.16, 0.0, Z(top), timber, bevel=0.01, name="post")
     for t, b in ((228, 237), (128, 136), (200, 209)):
@@ -2579,11 +2583,11 @@ def chariot_shed(K):
             K.box(X(x0), X(x1), -0.035, 0.0, Z(py + 3), Z(py - 3), timber, name="batten")
     for k in range(1, 5):
         y = D * k / 5
-        for x0, x1 in ((46, 60), (720, 734)):
+        for x0, x1 in ((52, 62), (719, 729)):
             K.box(X(x0), X(x1), y - 0.08, y + 0.08, 0.0, Z(228), timber, bevel=0.01, name="side_post")
         K.tube([(X(60), y, Z(232)), (X(390), y, Z(34)), (X(720), y, Z(232))], P.m(4), timber, segments=6,
                name="rafter")
-    for x0, x1 in ((44, 62), (718, 736)):
+    for x0, x1 in ((48, 62), (718, 732)):
         K.box(X(x0), X(x1), 0.0, D, Z(237), Z(228), timber, name="side_plate")
     # inside: the earth floor, the posts carrying lamps
     K.box(X(58), X(722), 0.06, D - 0.06, 0.0, 0.02, earth, name="floor")
@@ -2616,3 +2620,4 @@ def chariot_shed(K):
             K.box(X(x0), X(x1), y, y + P.m(15), Z(380), Z(320), wood, bevel=0.008, name="chariot_hanging")
     sq_frustum(K, cx, cy, [(91, 320), (78, 300), (73, 300), (65, 255), (57, 255), (50, 230), (35, 230), (30, 210),
                            (25, 210), (18, 204), (0, 203)], wood, name="chariot_roof")
+    stand_on(K, Z(486))
