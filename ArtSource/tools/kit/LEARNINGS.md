@@ -66,6 +66,12 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   further back goes further back (depth = its painted rise / oblique), never up. Lower `K.front_min` (about 0.1) so
   the tops take the painting fully. From the game's near-level camera the model then shows what the real thing would,
   with its painted top on top.
+- **A painting drawn from above in perspective also draws the back smaller** (a tray's back pole 0.77 of its front
+  pole, papads at the back smaller): the square model's back corners stand out past the painted ones. Never build a
+  trapezoid; set `K.converge = (c, xc)` (or `(c, xc, yc)`): at depth y the painting is scaled 1 / (1 + c * y) about
+  the vanishing column xc (and row yc), px. A back edge at depth D painted s times the front's length gives
+  c = (1 / s - 1) / D; xc is where the front and back edges' middles meet. The kit projects and the audit compares
+  with it, like `oblique`.
 - **The base sits on the ground** (z = 0): no floating, no tilted ground patch to match a painted foot, no raised mound
   under a prop unless the painting has one. Most paintings stand the foot 2-5 cm above their bottom edge (the shadow is
   painted below it); the record's `lift` (the lowest point, up to 10 cm) sets the model down onto the ground in the
@@ -248,7 +254,8 @@ Cards
 
 The audit itself
 - **Its flags are hints**: `repeat` fires on a regular brick bond and on real symmetry, `streaks` on real wood grain.
-  Judge each view by eye. A model with `oblique` is compared along its painted slope (the sheet says so).
+  Judge each view by eye. A model with `oblique` is compared along its painted slope, and with `converge` drawn
+  smaller further back (the sheet says so); its `size` is its height along the slope.
 
 ## 10. The audit checklist (a model passes only if every answer is yes)
 

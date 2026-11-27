@@ -268,7 +268,9 @@ def audit_one(name, out):
     bm.free()
     nfaces = sum(len(o.data.polygons) for o in meshes)
     geometry = {
-        "width_ratio": float((bmax[0] - bmin[0]) / rec["width"]), "height_ratio": float(bmax[2] / rec["height"]),
+        # (a model painted from above is as tall in its painting as its top along the painted slope)
+        "width_ratio": float((bmax[0] - bmin[0]) / rec["width"]),
+        "height_ratio": float((P[:, 2] + float(rec.get("oblique", 0.0)) * P[:, 1]).max() / rec["height"]),
         "depth": float(bmax[1] - bmin[1]), "base_z": float(bmin[2]), "parts": len(parts), "loose_parts": loose,
         "inside_out": inside_out, "uv_stretch": float(stretch_area / max(total, 1e-9)),
         "uv_blur": float(blur_area / max(total, 1e-9)), "uv_squash": squash, "faces": nfaces,
@@ -335,23 +337,41 @@ def audit_one(name, out):
     cam.rotation_euler = (math.radians(90), 0, 0)
     # a painting drawn from above: compare along its slope (things further back drawn higher, z + oblique * y), as the
     # kit projected it; the model itself stays true and level, and the eight views below see it as it is
+    # (with `converge`, also drawn smaller further back, about its vanishing column and row)
     k = float(rec.get("oblique", 0.0))
+    conv = rec.get("converge")
     sheared = []
-    if k:
-        shear = Matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, k, 1, 0), (0, 0, 0, 1)))
+    if k or conv:
+        Pf = KL.Painting(name, folder)
         for o in scene.objects:
             if o.type == "MESH":
                 # an object's matrix cannot hold a shear (Blender keeps only its location, rotation and scale and
-                # drops the rest), so the mesh itself is sheared, in world space, and sheared back after the render
+                # drops the rest), so the mesh itself is mapped, vertex by vertex in world space, and put back after
                 if o.data.users > 1:
                     o.data = o.data.copy()
-                M = o.matrix_world.inverted() @ shear @ o.matrix_world
-                o.data.transform(M)
-                sheared.append((o, M.inverted()))
+                n = len(o.data.vertices)
+                co = np.empty(n * 3)
+                o.data.vertices.foreach_get("co", co)
+                mw = np.array(o.matrix_world)
+                R, t = mw[:3, :3], mw[:3, 3]
+                wpt = co.reshape(-1, 3) @ R.T + t
+                y = wpt[:, 1]
+                wpt[:, 2] += k * y
+                if conv:
+                    f = 1 + float(conv[0]) * y
+                    xc = Pf.x(float(conv[1]))
+                    wpt[:, 0] = xc + (wpt[:, 0] - xc) / f
+                    if len(conv) > 2 and conv[2] is not None:
+                        zc = Pf.z(float(conv[2]))
+                        wpt[:, 2] = zc + (wpt[:, 2] - zc) / f
+                o.data.vertices.foreach_set("co", ((wpt - t) @ np.linalg.inv(R).T).ravel())
+                o.data.update()
+                sheared.append((o, co))
         bpy.context.view_layer.update()
     front = render(tmpdir / f"{name}_front.png", rx, ry)
-    for o, back in sheared:
-        o.data.transform(back)
+    for o, co in sheared:
+        o.data.vertices.foreach_set("co", co)
+        o.data.update()
     if sheared:
         bpy.context.view_layer.update()
     paint = KL.Painting(name, folder).img.convert("RGBA").resize((rx, ry), Image.LANCZOS)
@@ -472,7 +492,8 @@ def audit_one(name, out):
              f"       colour median {frontm['colour_median']:.0f}  p90 {frontm['colour_p90']:.0f}  off {frontm['bad']:.2f}",
              f"size   w {geometry['width_ratio']:.2f}  h {geometry['height_ratio']:.2f}  depth {geometry['depth']:.2f} m",
              f"base   {geometry['base_z']:+.3f} m   parts {geometry['parts']}  loose {geometry['loose_parts']}"
-             + (f"   front along the painted slope {rec['oblique']:.2f}" if rec.get("oblique") else ""),
+             + (f"   front along the painted slope {rec['oblique']:.2f}" if rec.get("oblique") else "")
+             + (f", converging {rec['converge'][0]:.2f}/m" if rec.get("converge") else ""),
              f"inside-out {geometry['inside_out']}   faces {geometry['faces']}  cards {geometry['cards']}",
              f"uv     stretch {geometry['uv_stretch']:.2f}  blur {geometry['uv_blur']:.2f}  squash {geometry.get('uv_squash', 1.0):.2f}",
              f"paint  streaks {base['streaks']:.2f}  flat {base['flat']:.2f}  dark {base['dark']:.2f}", "",
