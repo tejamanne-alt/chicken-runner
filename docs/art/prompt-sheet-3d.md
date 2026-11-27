@@ -19,7 +19,7 @@ On screen all the time: the pickups spin as the kid collects them, and the roost
 
 ### The kid · `kid`
 
-No new images: her four views exist already. Use them in Meshy as front, left, right and back. (You are providing her model yourself.)
+Her four views for Meshy (front, left, right, back: the same scale, an A-pose, even light) have their own prompts in [kid-meshy-prompts.md](kid-meshy-prompts.md). The model sheet's views below also work, but their arms rest close to the body, which is harder to rig.
 
 Images: `A0_kid_pattu_frock_front.png`, `A0_kid_pattu_frock_left.png`, `A0_kid_pattu_frock_right.png`, `A0_kid_pattu_frock_back.png`
 
