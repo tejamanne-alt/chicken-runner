@@ -1550,12 +1550,17 @@ def tank_wall(K):
     gateway into the tank, and little clay lamps burning on brackets along the terraces."""
     P = K.paint
     X, Z = P.x, P.z
-    stone = K.tile((600, 140, 760, 196), vary=0.04, soften=0.62)
-    stone2 = K.tile((100, 255, 220, 298), vary=0.04, soften=0.62)
-    cap = strip_tile(K, (150, 116, 400, 132), vary=0.05, soften=0.35)
+    # the coursed stone, cropped above the lamps' painted glow (it repeated as orange smears along the treads)
+    stone = K.tile((600, 140, 760, 188), vary=0.04, soften=0.62)
+    stone2 = K.tile((240, 140, 420, 188), vary=0.04, soften=0.62)
+    cap = stone                    # the coping's top in the same stone (its painted front is projected)
+    # only faces turned squarely to the camera take the painting: the terraces' bevelled lips would otherwise
+    # wear the lamps' painted glow, an orange smear along every tread seen from above
+    K.front_min = 0.68
+    z0 = Z(326)                    # the painted foot: the record's lift sets it down
     yb = 2.35
     # the terraces and the wall, each set back from the one below
-    K.box(X(5), X(1025), 0.0, yb, 0.0, Z(300), stone2, bevel=0.015, name="terrace1")
+    K.box(X(5), X(1025), 0.0, yb, z0, Z(300), stone2, bevel=0.015, name="terrace1")
     K.box(X(12), X(1018), 0.55, yb, Z(300), Z(250), stone2, bevel=0.015, name="terrace2")
     K.box(X(25), X(1005), 1.1, yb, Z(250), Z(200), stone, bevel=0.015, name="terrace3")
     wall = K.box(X(40), X(993), 1.65, yb, Z(200), Z(133), stone, bevel=0.01, name="wall")
@@ -1585,7 +1590,7 @@ def tank_wall(K):
     t = 1.65 / len(tops)
     for k, top in enumerate(tops):
         L, R = 373 + 9.33 * k, 677 - 9.44 * k
-        K.box(X(L), X(R), -1.65 + k * t, 1.65, 0.0, Z(top), stone2, bevel=0.012, name="step")
+        K.box(X(L), X(R), -1.65 + k * t, 1.65, z0, Z(top), stone2, bevel=0.012, name="step")
     # the lamps, each on a little stone bracket
     for px, py, yface in ((172, 217, 1.1), (308, 217, 1.1), (433, 217, 1.1), (610, 217, 1.1), (722, 217, 1.1),
                           (862, 217, 1.1), (65, 272, 0.55), (230, 272, 0.55), (390, 272, 0.55), (660, 272, 0.55),

@@ -730,6 +730,8 @@ class Palm:
         self.R = R
         self.spines = []                  # 3D spines (for stalks): [(points metres, radius px)]
         P = self.P
+        if fit_mask is not None:           # (leaf colour tests see the transparent pixels' rgb too)
+            fit_mask = fit_mask & (P.rgba[..., 3] > 0.5)
         if ok_mask is None:                # where a copy round the back may show from the front: the painted leaves
             ok_mask = P.rgba[..., 3] > 0.5 if fit_mask is None else ndimage.binary_dilation(fit_mask, iterations=3)
         self.alpha = ok_mask
@@ -1548,7 +1550,7 @@ def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana"
             a = ph + 2 * math.pi * (i + rng.uniform(-0.2, 0.2)) / per_hand
             d = Vector((math.cos(a), math.sin(a) * 0.9, 0.0))
             base = Vector((P.x(rx), y, P.z(py))) + d * P.m(6)
-            out = P.m(max(reach * 0.5, reach - rad * 0.8)) * rng.uniform(0.88, 1.0)   # its width stays inside
+            out = P.m(max(reach * 0.5, reach - rad * 0.3)) * rng.uniform(0.92, 1.02)
             Lm = P.m(L) * rng.uniform(0.85, 1.1)
             pts = [base, base + d * out * 0.45 + Vector((0, 0, Lm * 0.15)),
                    base + d * out * 0.8 + Vector((0, 0, Lm * 0.45)), base + d * out * 0.95 + Vector((0, 0, Lm * 0.8))]
@@ -1636,8 +1638,7 @@ def h5_1(K):
            [(250, 888, 105, 55, -0.03, (192, 830, 300, 890)), (290, 890, 50, 26, -0.05, (245, 860, 300, 892)),
             (348, 885, 48, 22, -0.045, (322, 862, 375, 888)), (330, 885, 80, 40, 0.05, (192, 830, 300, 890))],
            [(205, 755, 270, 860), (330, 760, 400, 875), (175, 820, 215, 880)], 885, (262, 410, 345, 885),
-           (0, 0, 624, 500), sheaths=[[(256, 385, 8), (262, 420, 10), (269, 470, 11), (275, 520, 11), (279, 600, 9),
-                                      (281, 650, 6)]])
+           (0, 0, 624, 500))
 
 
 H52_LEAVES = [
@@ -1658,7 +1659,7 @@ def h5_2(K):
     banana(K, [(227, 715, 26), (227, 650, 24), (226, 560, 23), (228, 470, 21), (230, 400, 19), (232, 360, 16)],
            H52_LEAVES, (234, 350), 250, (215, 300, 255, 420),
            ([(250, 372, 5.5), (268, 352, 5.5), (285, 362, 5), (300, 395, 5), (304, 440, 4.5), (310, 490, 4),
-             (318, 515, 3)], [(410, 36), (440, 38), (470, 34)], (36, 6.5), (262, 388, 346, 498),
+             (318, 515, 3)], [(405, 32), (432, 35), (458, 33), (484, 24)], (36, 6.5), (262, 388, 346, 498),
             (322, 525, 7, 18)),
            [(165, 718, 72, 34, -0.03, (128, 682, 202, 720)), (210, 716, 24, 14, -0.04, (198, 700, 222, 718)),
             (268, 716, 28, 16, -0.035, (253, 698, 283, 718)), (250, 716, 60, 30, 0.04, (128, 682, 202, 720))],
@@ -2687,12 +2688,12 @@ def h7_3(K):
     opaque = P.rgba[..., 3] > 0.5
     st_ok = opaque & box_mask(opaque.shape, [(460, 560, 514, 717)]) & not_ink(rgb, 45)
     stem_mat = axis_material(K, st_ok, lambda py: 483.0, squeeze=0.8, inset=1)
-    trunk(K, [(483, 715, 18), (483, 600, 17.5), (482, 450, 16), (481, 330, 14), (480, 240, 11)], stem_mat,
+    trunk(K, [(481, 715, 18), (481, 600, 17.5), (480, 450, 16), (479, 330, 14), (478, 240, 11)], stem_mat,
           segments=16)
     keep = opaque & ~halo(rgb)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
-    palm = Palm(K, (490, 250), R=P.m(420) * 0.7, fit_mask=keep & ~st_ok, fit_lim=(0.35, 2.6, 16))
-    palm.crown(H73_LEAVES, back=1.0, extra=2, turn=(35, 70), need=0.9)
+    palm = Palm(K, (490, 250), R=P.m(420) * 0.7, fit_mask=keep & ~st_ok, fit_lim=(0.35, 2.2, 6))
+    palm.crown(H73_LEAVES, back=1.0, extra=2, turn=(35, 70), need=0.95)
     stalk = masked_material(K, st_ok, inset=1)
     palm.stalks(stalk, 7, 5, frac=0.2)
 
@@ -2953,7 +2954,7 @@ def h6_3(K):
     bush_cards(K, crown, 70, (80, 70), "top", yaw=90, region=(0, 20, 560, 180))
     # the croton: its long painted leaves on ribbons round its heart, leafy greens below them
     palm = Palm(K, (560, 165), R=P.m(140) * 0.8, fit_mask=keep & box_mask(opaque.shape, [(440, 0, P.w, 260)]))
-    palm.crown(H63_CROTON, back=1.0, extra=3, turn=(50, 160), need=0.85)
+    palm.crown(H63_CROTON, back=1.0, extra=3, turn=(50, 160), need=0.95)
     for ob in K.cards_parts:
         if ob.name.startswith("frond"):
             for v in ob.data.vertices:

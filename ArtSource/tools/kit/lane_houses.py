@@ -724,12 +724,12 @@ def house_indigo_veranda(K):
     K.front_exclude = [(0, 0, 10, 100), (532, 0, 546, 100)]
     # indigo plaster: below the window's sill, above the cot (right of the door the wall is painted with vertical
     # drips, and the sill's pale edge in the crop: both repeat as stripes down the side walls)
-    wall = K.tile((152, 328, 238, 353), size=0.9, vary=0.05, soften=0.3)
-    deck = strip_tile(K, (152, 328, 238, 353), soften=0.45)                  # the same, stacked square for the roof
-    upper = K.tile((120, 66, 230, 86), vary=0.05, soften=0.3)                 # the parapet's indigo, streaked
+    wall = clean_tile(K, (152, 328, 238, 353), size=0.9, soften=0.2, thresh=18)     # its specks taken out
+    deck = wall
+    upper = clean_tile(K, (120, 66, 230, 86), soften=0.25, thresh=22)         # the parapet's indigo, its rust specks out
     ledge = strip_tile(K, (120, 88, 400, 101), soften=0.4)                    # the cornice, stacked square
     # red-oxide plinth: the left stretch below its kolam border (the old crop was the steps, kolam and all)
-    red = strip_tile(K, (60, 470, 230, 503), soften=0.45)
+    red = strip_tile(K, (60, 470, 230, 503), soften=0.25)
     floor = K.tile((25, 410, 58, 434), size=0.6, vary=0.05, soften=0.5)      # the pillar bases' beige stone
     teal = K.colour((295, 260, 303, 400), vary=0.05)
     wood = K.tile((320, 300, 360, 400), P.m(30))
@@ -1354,6 +1354,23 @@ def round_pot(K, cx_px, top_py, bot_py, r_px, y, mat, segments=20, name="pot", r
                  (0.0, P.z(top_py) - 0.07)], inside, segments=segments, centre=(P.x(cx_px), y, 0.0), cap=False,
                 name=name + "_mouth")
     return ob
+
+
+def exclude_where(K, box, keep, cell=4, grow=2):
+    """Keeps the painted thing inside box (px) whose pixels keep(rgb) -> bool picks (a kettle, a jar, steam) off the
+    front projection, in small cells that follow its shape (a box round it leaves a dark square on the wall behind,
+    where the wall then shows its own material and the recess's shadow), so only what is right behind it changes."""
+    x0, y0, x1, y1 = [int(v) for v in box]
+    a = (K.paint.rgba[y0:y1, x0:x1] * 255).astype(np.uint8)
+    m = keep(a[..., :3]) & (a[..., 3] > 127)
+    m = ndimage.binary_dilation(m, iterations=grow)
+    h, w = m.shape
+    H, W = (h + cell - 1) // cell, (w + cell - 1) // cell
+    pad = np.zeros((H * cell, W * cell), bool)
+    pad[:h, :w] = m
+    cells = pad.reshape(H, cell, W, cell).any(axis=(1, 3))
+    for cy, cx in zip(*np.nonzero(cells)):
+        K.front_exclude.append((x0 + cx * cell, y0 + cy * cell, x0 + (cx + 1) * cell, y0 + (cy + 1) * cell))
 
 
 def halo_exclude(K, boxes, cell=6, near=12, white=205):
@@ -2904,7 +2921,7 @@ def shop_tailor_cycle(K):
     K.front_min = 0.05
     halo_exclude(K, [(0, 0, 1448, 1146)])
     # the mud between the two alcoves, below its stain and above its crack (both repeated on every side wall)
-    mud = K.tile((690, 615, 778, 705), size=0.8, vary=0.05, soften=0.3)
+    mud = K.tile((690, 615, 778, 705), size=0.8, vary=0.1, soften=0.0)     # (its own mottling, and more: it read flat)
     lime = K.tile((130, 1010, 220, 1085), size=0.6, vary=0.04, soften=0.4)
     tin = K.tile((300, 80, 700, 260), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((236, 400, 250, 1000), vary=0.08)
@@ -2915,7 +2932,7 @@ def shop_tailor_cycle(K):
     # bolts: all modelled, so their paint is kept off what is behind them (from the side it showed ghost rings on
     # the back wall and a dark machine painted across the bolts)
     machine = (298, 686, 527, 808)
-    K.front_exclude += [(800, 395, 1235, 795), (800, 760, 935, 1055), machine]
+    K.front_exclude += [(800, 395, 1235, 795), (800, 760, 935, 1030), machine]
     X0, X1 = P.x(125), P.x(1315)
     ze, zr = P.z(296), P.z(42)
     zg = P.z(1090)
@@ -3055,7 +3072,15 @@ def shop_tea_stall(K):
     halo_exclude(K, [(0, 0, 1465, 1145)], near=25)
     # the kettle, its steam, the glasses and the biscuit jar wear their own projections: kept off the hatch's back
     # wall behind them (from the side it showed a ghost kettle and wisps of steam painted on the planks)
-    K.front_exclude += [(330, 480, 560, 700), (485, 330, 590, 580), (572, 688, 800, 742), (808, 598, 925, 745)]
+    def brassy(rgb):                             # the kettle: golden brass and its dark ink, not the grey planks
+        r, g, b_ = [rgb[..., i].astype(np.int32) for i in range(3)]
+        return ((r - b_ > 45) & (r > 90)) | ((np.maximum(np.maximum(r, g), b_) < 45))
+    def pale(rgb):                               # the steam's wisps, the glass of the jar and the tumblers
+        return (rgb.astype(np.int32) @ np.array([0.3, 0.59, 0.11])) > 95
+    exclude_where(K, (336, 485, 556, 697), brassy)
+    exclude_where(K, (485, 330, 590, 575), pale)
+    exclude_where(K, (572, 688, 800, 750), pale)
+    exclude_where(K, (808, 598, 925, 748), lambda rgb: np.ones(rgb.shape[:2], bool), grow=0)
     planks = K.tile((262, 872, 545, 1065), size=0.8, vary=0.04, soften=0.15)   # clear of the board's and ground's lines
     inside = K.tile((620, 520, 760, 680), size=0.6, vary=0.04, soften=0.3)
     thatch_m = K.tile((560, 120, 860, 230), size=0.9, vary=0.05, soften=0.15)
@@ -3074,26 +3099,19 @@ def shop_tea_stall(K):
     hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12)
     K.box(P.x(228), P.x(1232), D / 2 - 0.12, D / 2 + 0.12, P.z(55), P.z(10), beam, bevel=0.01, name="ridge_beam")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
-    K.leaves_only((0, 55, 1465, 330), straw_clean)
-    for i in range(46):
-        cx, cy = K.rng.uniform(60, 1410), K.rng.uniform(150, 260)
-        side = i % 4
+    # frond cards for the ragged eave, front and back, as ragged blobs inside the leaf rule's box (a card reaching
+    # its edge was cut straight), and only along the long slopes: on the hip ends they hung below the pulled-in eave
+    # as a loose block. The hip ends are the frond thatch mat with its own ragged fringe.
+    K.leaves_only((0, 55, 1465, 345), straw_clean)
+    for i in range(36):
+        cx, cy = K.rng.uniform(280, 1180), K.rng.uniform(150, 260)
         box = (cx - 70, cy - 70, cx + 70, cy + 70)
-        if side < 2:
-            K.card_from_painting(box, (P.x(cx), fy(cx, cy) - 0.08, P.z(cy)), yaw=K.rng.uniform(-15, 15),
-                                 pitch=-30 + K.rng.uniform(-10, 10), name="frond")
-        elif side == 2:
-            K.card_from_painting(box, (P.x(cx), D - fy(cx, cy) + 0.08, P.z(cy)), yaw=180 + K.rng.uniform(-15, 15),
-                                 pitch=-30 + K.rng.uniform(-10, 10), name="frond_back")
+        if i % 3 < 2:
+            blob_card(K, box, (P.x(cx), fy(cx, cy) - 0.08, P.z(cy)), yaw=K.rng.uniform(-15, 15),
+                      pitch=-30 + K.rng.uniform(-10, 10), name="frond", rag=0.15)
         else:
-            left = cx < 730
-            v = K.rng.uniform(0.15, 0.65)                  # on the hip end, not hanging below its eave
-            xe = (eave[0] + (ridge[0] - eave[0]) * v) if left else (eave[1] + (ridge[1] - eave[1]) * v)
-            ya, yb2 = eave[2] + (D / 2 - eave[2]) * v, eave[3] + (D / 2 - eave[3]) * v
-            small = (cx - 50, cy - 50, cx + 50, cy + 50)
-            K.card_from_painting(small, (xe + (0.02 if left else -0.02), K.rng.uniform(ya + 0.1, yb2 - 0.1),
-                                         ze + (zr - ze) * v + 0.03), yaw=90 + K.rng.uniform(-10, 10),
-                                 pitch=(30 if left else -30) + K.rng.uniform(-10, 10), name="frond_side")
+            blob_card(K, box, (P.x(cx), D - fy(cx, cy) + 0.08, P.z(cy)), yaw=180 + K.rng.uniform(-15, 15),
+                      pitch=-30 + K.rng.uniform(-10, 10), name="frond_back", rag=0.15)
     # the poles
     for x0, x1 in ((105, 150), (1315, 1355)):
         cx = (x0 + x1) / 2
@@ -3161,12 +3179,13 @@ def shop_tea_stall(K):
     for a, b, c, d in ((-0.48, -0.4, zg, 2.02), (0.4, 0.48, zg, 2.02), (-0.48, 0.48, 1.95, 2.02)):
         K.box(a, b, D, D + 0.06, c, d, beam, bevel=0.005, name="back_door_frame")
     for side, x in ((-1, X0), (1, X1)):
-        K.box(min(x, x + side * 0.04), max(x, x + side * 0.04), D * 0.5 - 0.35, D * 0.5 + 0.35, 1.2, 1.8, wood,
-              bevel=0.005, name="side_shutter")
+        # (thin: anything standing far off the side wall shows as a strip past the painted wall from the front)
+        K.box(min(x, x + side * 0.02), max(x, x + side * 0.02), D * 0.5 - 0.35, D * 0.5 + 0.35, 1.2, 1.8, wood,
+              bevel=0.004, name="side_shutter")
         for a, b, c, d in ((-0.41, -0.35, 1.14, 1.86), (0.35, 0.41, 1.14, 1.86), (-0.41, 0.41, 1.8, 1.86),
                            (-0.41, 0.41, 1.14, 1.2)):     # its frame, standing out from the planks
-            K.box(min(x, x + side * 0.065), max(x, x + side * 0.065), D * 0.5 + a, D * 0.5 + b, c, d, beam,
+            K.box(min(x, x + side * 0.035), max(x, x + side * 0.035), D * 0.5 + a, D * 0.5 + b, c, d, beam,
                   bevel=0.004, name="side_shutter_frame")
-        K.box(min(x + side * 0.04, x + side * 0.055), max(x + side * 0.04, x + side * 0.055), D * 0.5 - 0.012,
+        K.box(min(x + side * 0.02, x + side * 0.03), max(x + side * 0.02, x + side * 0.03), D * 0.5 - 0.012,
               D * 0.5 + 0.012, 1.2, 1.8, beam, name="side_shutter_meet")
     drop_ground_faces(K)

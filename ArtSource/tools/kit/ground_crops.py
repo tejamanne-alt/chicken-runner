@@ -1565,7 +1565,8 @@ def ragged_card(K, box_px, centre, yaw=0.0, scale=1.0, normal=None, name="leaf",
     cx0, cy0, cx1, cy1 = max(0, x0), max(0, y0), min(P.w, x1), min(P.h, y1)
     if cx1 - cx0 < 3 or cy1 - cy0 < 3:
         return None
-    c = Vector(centre) + Vector((P.m((cx0 + cx1) / 2 - (x0 + x1) / 2), 0, -P.m((cy0 + cy1) / 2 - (y0 + y1) / 2))) * scale
+    c = Vector(centre) + Vector((P.m((cx0 + cx1) / 2 - (x0 + x1) / 2), 0,
+                                 -P.m((cy0 + cy1) / 2 - (y0 + y1) / 2))) * scale
     x0, y0, x1, y1 = cx0, cy0, cx1, cy1
     R = Matrix.Rotation(math.radians(yaw), 3, "Z")
     pts = [(-1.0, -1.0), (1.0, -1.0)]
@@ -1828,7 +1829,7 @@ def crop_strip_7(K):
     card_mask(K, haze_free(P) & ~stems & (yy < 396))
     rows = [-depth / 2 + 0.3, 0.05, depth / 2 - 0.3]
     bed_py = 393
-    field_bed(K, 28, 1198, bed_py, depth, top=bed_top(K, (40, 392, 1190, 415), tol=36), ridges=0.05, rows=rows)
+    field_bed(K, 28, 1198, bed_py, depth, top=bed_top(K, (40, 392, 1190, 415), tol=36), ridges=0.02, rows=rows)
     z0 = P.z(bed_py)
     src = filled_source(P, ndimage.binary_erosion(stems, iterations=2) & clean)
     # the painted plants, where they are painted: their stems turned, their crowns the painting (a card per plant,
@@ -1844,21 +1845,23 @@ def crop_strip_7(K):
                    K.rng.uniform(-4, 4), 1.0, name="banana")
     main = [bn for bn in BANANAS if bn[3] >= 15]
     for ax, foot, top, wf, wt in main:
-        plant_card(K, (ax - 150, 0, ax + 150, foot), (P.x(ax), rows[0] + 0.3, z0), 90 + K.rng.uniform(-1.5, 1.5),
+        plant_card(K, (ax - 150, 0, ax + 150, foot), (P.x(ax), rows[0] + 0.3, P.z(foot)), 90 + K.rng.uniform(-1.5, 1.5),
                    0.85, name="banana")
     # and the rows behind, planted on the same grid: behind every painted plant one like it (its own stem and its
     # crown turned a little, as tall as it, so from the front it stays behind the painted one and the painted gaps
     # stay open), crossed by a second turned square to the painting
     for k, y in enumerate(rows[1:]):
         for ax, foot, top, wf, wt in main:
-            s = K.rng.uniform(0.98, 1.0)
-            yaw = K.rng.uniform(-12, 12)
-            X, Y = P.x(ax) + K.rng.uniform(-0.02, 0.02), y + K.rng.uniform(-0.12, 0.12)
+            s = K.rng.uniform(0.99, 1.0)
+            yaw = K.rng.uniform(-10, 10)
+            X, Y = P.x(ax), y + K.rng.uniform(-0.12, 0.12)
             mat = wrapped(K, X, axis_y=Y, squeeze=0.9, src=src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
             pseudostem(K, ax, foot, top, wf, wt, X, Y, z0, mat, scale=s * 0.97)
             box = (ax - 150, 0, ax + 150, foot)
             for j in range(2):
-                plant_card(K, box, (X, Y, z0), yaw * (1 - j) + (90 + K.rng.uniform(-1.5, 1.5) if j else 0),
+                # the crown card's foot where the painted foot is (its box ends there), so from the front it lies
+                # behind the painted crown, not a few px lower
+                plant_card(K, box, (X, Y, P.z(foot)), yaw * (1 - j) + (90 + K.rng.uniform(-1.5, 1.5) if j else 0),
                            s * (0.9 if j else 1), name="banana")
 
 

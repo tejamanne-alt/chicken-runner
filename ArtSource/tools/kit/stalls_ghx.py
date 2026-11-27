@@ -960,7 +960,7 @@ def stall_h_1(K):
     K.front_min = 0.12
     bank = Bank(-0.95, Z(768), 19.0, flat=0.35, back=0.5)
     # ---------------------------------------------------------------- the bank of earth and the mats on it
-    earth = ktile(K, (935, 792, 1020, 860), vary=0.08, soften=0.3)
+    earth = ktile(K, (935, 792, 1020, 860), vary=0.1, soften=0.6)
     xl, xr = P.x(60), P.x(1026)
     straw = ktile(K, (292, 866, 345, 884), vary=0.06)
     # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)

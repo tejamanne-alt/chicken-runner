@@ -1141,7 +1141,7 @@ class Crown:
             free = None
             n_max = max(n * 4, 60)
         else:
-            n = int(round(n * (3.0 if layer == "top" else 1.3)))    # the top is where a crown is thinnest
+            n = int(round(n * 1.6))                     # blobs cover less than rectangles: more of them
             grow = max(2, int(min(size_px) * 0.2))
             near = ndimage.binary_dilation(lm, iterations=grow) & box_mask(lm.shape, [(x0, y0, x1, y1)])
             n_max = n
@@ -1579,8 +1579,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         return [(px, py, float(min(r, max(lo, dsolid[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))]
                                            + 1))))
                 for px, py, r in pts]
-    trunk = fit(trunk, lo=20.0)
-    limbs = [fit(pts) for pts in limbs]
+    limbs = [fit(pts) for pts in limbs]              # (not the trunk: behind the shrine it is hidden, not thin)
     wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
         n = len(pts)
@@ -1592,7 +1591,9 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     # up the crown all round
     for k, pts in enumerate(limbs):
         x0 = P.x(pts[0][0])
-        dirs = (35, 75, 110, 150, -160, -25) if k >= 4 else (rng.uniform(40, 140),)
+        # (all behind the painted plane: one turned towards the camera showed from the front as a pale stub poking
+        # out of the trunk)
+        dirs = (20, 55, 90, 125, 160) if k >= 4 else (rng.uniform(40, 140),)
         for phi in dirs:
             a = math.radians(phi + rng.uniform(-12, 12))
             q = []
@@ -1620,7 +1621,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         drop = q[-1][2] - (katte.top(q[-1][0], q[-1][1]) + rr[-1] * 0.4)
         if drop > 0:
             n = len(q)
-            q = [(x, y, z - drop * (i / (n - 1)) ** 1.5) for i, (x, y, z) in enumerate(q)]
+            q = [(x, y, z - drop * (i / (n - 1))) for i, (x, y, z) in enumerate(q)]
+            rr = [r * (1 - 0.3 * i / (n - 1)) for i, r in enumerate(rr)]
         wood.append(K.tube(q, rr, bark, segments=12, name="root"))
     xt = P.x(trunk[0][0])
     for k, pts in enumerate(roots):
@@ -2596,6 +2598,17 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     thin)."""
     P = K.paint
     rng = K.rng
+    if root_z_px is not None:
+        # bits of root painted apart from the tree at its foot (tips showing between the grass) would lie loose on
+        # the ground: only the wood joined to the trunk goes below root_z_px
+        lab, nl = ndimage.label(mask)
+        if nl > 1:
+            sizes = ndimage.sum(mask, lab, range(1, nl + 1))
+            main = 1 + int(np.argmax(sizes))
+            ys_ = ndimage.center_of_mass(mask, lab, range(1, nl + 1))
+            drop = [k + 1 for k, (cy_, cx_) in enumerate(ys_) if k + 1 != main and cy_ > root_z_px - 20]
+            if drop:
+                mask = mask & ~np.isin(lab, drop)
     wood = Wood(K, mask, root_px, spur=spur, min_len=5)
     wood.r_cap = r_cap_px                             # no limb thicker than this (clumped twigs traced as blobs)
     cw = crown_box[2] - crown_box[0]
@@ -2719,7 +2732,7 @@ def h1_1(K):
     mask, _ = TRACE["h1_1"](K)
     traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_inked, spread=0.55,
                 root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
-                n_cards=(240, 100, 55, 25), trunk=(1150, 700, 600, 960, 0.7), min_r_px=2.5)
+                n_cards=(240, 100, 55, 25), trunk=(1150, 700, 600, 1000, 0.45), min_r_px=2.5)
 
 
 TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 120, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200,
@@ -3124,7 +3137,7 @@ def h3_1(K):
     rng = K.rng
     katte = DiamondKatte(K, 208, 800, 1582, 1150, 1290)
     side = K.tile((1050, 1310, 1190, 1385), vary=0.06, soften=0.35)      # inside the wall: no edge lines
-    top = K.tile((420, 1200, 640, 1260), vary=0.08, soften=0.4)
+    top = strip_tile(K, (1334, 1252, 1514, 1292), soften=0.3, quilt=True)     # its clean pale stone
     coping = K.tile((560, 1262, 760, 1300), vary=0.06, soften=0.3)
     katte.build(side, top, coping, coping=P.m(45), lip=P.m(8))
     # ---- the tree

@@ -1148,9 +1148,9 @@ def stall_d_1(K):
     darkm = K.colour((470, 470, 540, 540), vary=0.15, scale=20)
 
     def all_round(h, cx, y, hw, fruit, r_px):
-        n = int(15 * (hw / 70) ** 2) + 4
-        pile(K, h, P.x(cx), y, P.m(hw) * 0.78, P.m(hw) * 0.78 * 0.85, n, P.m(r_px),
-             darkm if fruit is dark else fruit, over=P.m(3), segs=6)
+        n = int(9 * (hw / 70) ** 2) + 3
+        pile(K, h, P.x(cx), y, P.m(hw) * 0.78, P.m(hw) * 0.78 * 0.85, n, P.m(r_px) * 1.1,
+             darkm if fruit is dark else fruit, over=P.m(3), segs=5)
     for cx, hw, rim, prof, fruit, y in table:
         basket(K, P.x(cx), y, zc, [(P.m(hw * 0.7), 0.0), (P.m(hw * 0.95), (Z(rim) - zc) * 0.6), (P.m(hw), Z(rim) - zc)],
                weave, sy=0.85)

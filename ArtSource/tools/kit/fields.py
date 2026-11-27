@@ -19,15 +19,17 @@ from kitlib import Mat, _image, _obj, model, plant_pixels, seamless
 
 # ====================================================================== helpers
 def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, side_from=0.5, side_to=0.85,
-           tile_size=None, soften=0.2, side="x", axis_z=None, squeeze_z=1.0, name=None):
+           tile_size=None, soften=0.2, side="x", axis_z=None, squeeze_z=1.0, name=None, blur=0.0):
     """A material for a round thing (a stack, a pot, a post) that is the painting projected straight through it
     (projected()) where it faces the front or the back, and a tile of its own painted surface (tile_box) round its
     sides, where a straight projection would only stretch the painted outline into streaks; the two blend on how far
     the surface turns sideways (|normal.x| from side_from to side_to). side "z" for a thing lying along x (a
-    sleeve, a log): the tile on its top and underside, the projection squeezed towards axis_z by squeeze_z."""
+    sleeve, a log): the tile on its top and underside, the projection squeezed towards axis_z by squeeze_z. blur: the
+    projection's filled-in pixels (past keep, in exclude) blurred (filled_source), not copied out into streaks."""
     P = K.paint
     key = ("turned", round(axis_x, 4), tuple(tile_box), squeeze, tuple(tuple(b) for b in keep) if keep else None,
-           tuple(tuple(b) for b in exclude), inset, side_from, side_to, tile_size, soften, side, axis_z, squeeze_z)
+           tuple(tuple(b) for b in exclude), inset, side_from, side_to, tile_size, soften, side, axis_z, squeeze_z,
+           blur)
     if key in K._mats:
         return K._mats[key]
     m = Mat(name or f"{K.name}_turned{len(K._mats)}")
@@ -56,7 +58,8 @@ def turned(K, axis_x, tile_box, squeeze=0.92, keep=None, exclude=(), inset=4, si
         z = op("ADD", op("MULTIPLY", op("SUBTRACT", z, axis_z), squeeze_z), axis_z)
     nt.links.new(op("DIVIDE", z, P.H), vec.inputs[1])
     ptex = nt.nodes.new("ShaderNodeTexImage")
-    ptex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_proj")
+    ptex.image = _image(filled_source(K, keep, exclude, inset, blur) if blur else K.source(keep, exclude, inset),
+                        f"{m.mat.name}_proj")
     ptex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], ptex.inputs["Vector"])
     # the tile
@@ -663,7 +666,9 @@ def haystack(K):
     grass = [(8, 368, 102, 418), (128, 380, 202, 422), (403, 366, 480, 418)]
     rock_box = (74, 396, 142, 428)
     straw = turned(K, P.x(ax), (170, 160, 320, 340), squeeze=0.92, keep=[(0, 60, 483, 426)],
-                   exclude=grass + [rock_box, (30, 405, 483, 440)])
+                   exclude=grass + [rock_box, (30, 405, 483, 440)], blur=6.0, side="noty", side_from=0.45,
+                   side_to=0.8, soften=0.1)                 # (the painting front and back, its straw round the sides
+                                                            # and over the crown, not the painted crown dragged back)
     prof = [(P.m(rpx(py)) * 0.96, P.z(py)) for py in (ground_py, 410, 390, 370, 350, 330, 310, 290, 270, 250, 230, 210,
                                                      190, 170, 150, 130, 115, 105, 98)]
     prof.append((0.0, P.z(94)))
@@ -674,7 +679,7 @@ def haystack(K):
     K.tube([P.pt(246, 13, 0.04), P.pt(238, 78, 0.0), P.pt(232, 140, -0.04)], P.m(9), wood, segments=10, name="pole")
     for k, (px0, px1, py) in enumerate(((219, 251, 76), (217, 251, 83), (219, 250, 90))):
         r = P.m((px1 - px0) / 2)
-        rope = K.projected(squeeze=1.0, keep=[(215, 72, 254, 96)], inset=1)
+        rope = K.projected(axis_x=P.x((px0 + px1) / 2), squeeze=0.8, keep=[(215, 72, 254, 96)], inset=1)
         K.lathe([(r * 0.82, P.z(py) - P.m(3.5)), (r, P.z(py) - P.m(2)), (r * 1.02, P.z(py)), (r, P.z(py) + P.m(2)),
                  (r * 0.82, P.z(py) + P.m(3.5))], rope, segments=24, centre=(P.x((px0 + px1) / 2), 0.0, 0.0),
                 name="rope", cap=False)
@@ -686,10 +691,11 @@ def haystack(K):
                  z_floor=P.z(ground_py), sectors=[(-30, 0), (0, 180), (-180, -150)])
     straw_fringe(K, ax, 0.0, rpx, (96, 120), 22, size=(48, 30), inset=0.25, sources=(100, 130), up=0.8,
                  sectors=[(-180, 180)])
-    # the earth it stands on, its stones and weeds
-    earth = K.colour((150, 420, 330, 432), vary=0.18, scale=10)
-    earth_disc(K, ax, ground_py, P.m(250), P.m(250) * 0.95, earth)
-    rockm = K.projected(squeeze=1.0, keep=[rock_box], exclude=[(74, 396, 98, 428)], inset=2)
+    # its stones and weeds on the ground round it (the painting has no patch of earth under it: the game's ground)
+    rock_px = P.crop((100, 400, 128, 414))
+    rockm = proj_tiles(K, [rock_box], [(74, 396, 98, 428)], speckle(rock_px, sigma=3.0, amount=1.2),
+                       speckle(rock_px, sigma=3.0, amount=1.2), side_size=P.m(28), top_size=P.m(28), y_from=0.6,
+                       y_to=0.85, inset=2, soften=0.0, vary=0.08, blur=3.0)
     stone(K, P.x(108), before(108, 20), P.z(ground_py) + P.m(14), P.m(66), P.m(46), P.m(32), rockm, name="rock")
     stone(K, P.x(330), P.m(170), P.z(ground_py) + P.m(10), P.m(50), P.m(40), P.m(24), rockm, name="rock")
     small = K.colour((80, 400, 130, 420), vary=0.12)
@@ -728,7 +734,8 @@ def haystack_small(K):
     rpx = interp([(64, 12), (70, 21), (80, 42), (90, 54), (100, 65), (120, 83), (140, 96), (160, 110), (180, 118),
                   (200, 129), (220, 141), (240, 143), (260, 145), (280, 152), (300, 155), (320, 157), (340, 165),
                   (350, 168), (360, 170), (380, 172)])
-    straw = turned(K, P.x(ax), (90, 150, 270, 330), squeeze=0.92, keep=[(0, 62, 366, 392)])
+    straw = turned(K, P.x(ax), (90, 150, 270, 330), squeeze=0.92, keep=[(0, 62, 366, 392)], blur=6.0, side="noty",
+                   side_from=0.45, side_to=0.8, soften=0.1)  # its straw round the sides and over the crown
     prof = [(P.m(160), P.z(378)), (P.m(168), P.z(368))]
     prof += [(P.m(rpx(py)) * 0.97, P.z(py)) for py in (356, 345, 320, 300, 280, 260, 240, 220, 200, 180, 160, 140,
                                                       120, 100, 90, 80, 72)]
@@ -737,10 +744,10 @@ def haystack_small(K):
     stack = K.lathe(prof, straw, segments=seg, wobble=0.025, name="stack")
     jag(stack, seg, P.z(381), P.z(374))
     # the pole through the stack, and the wooden cap round it where it comes out
-    wood = K.projected(squeeze=1.0, keep=[(166, 4, 194, 60)], inset=2)
+    wood = K.projected(axis_x=P.x(179), squeeze=0.85, keep=[(166, 4, 194, 60)], inset=2)
     K.tube([P.pt(179, 14), P.pt(179, 60), P.pt(181, 200)], P.m(8), wood, segments=12, name="pole")
     K.box(P.x(170), P.x(188), -P.m(6), P.m(6), P.z(16), P.z(11), wood, name="pole_top")
-    cap = K.projected(squeeze=1.0, keep=[(160, 58, 200, 74)], inset=2)
+    cap = K.projected(axis_x=P.x(179), squeeze=0.75, keep=[(160, 58, 200, 74)], inset=2)
     K.lathe([(P.m(14), P.z(73)), (P.m(15), P.z(68)), (P.m(14), P.z(62)), (P.m(8), P.z(60))], cap, segments=24,
             centre=(P.x(179), 0, 0), name="cap")
     # the ragged straw round its sides, cut from its own painted outline, and the pointed skirt round the back
@@ -769,7 +776,7 @@ def scarecrow(K):
     prof = [(28, 106), (38, 99), (46, 90), (50, 78), (51, 64), (49, 50), (44, 40), (36, 31), (28, 26), (29, 22),
             (31, 16), (31, 11), (28, 8)]
     head = K.lathe([(P.m(r), P.z(y)) for r, y in prof], pot, segments=36, centre=(P.x(178), 0, 0), wobble=0.01,
-                   name="pot", cap=True)
+                   name="pot", cap=False)                   # open at the top: its dark mouth shows from above
     inside = K.colour((0.09, 0.035, 0.015), vary=0.1)
     mouth = K.lathe([(P.m(25), P.z(9)), (P.m(22), P.z(16)), (P.m(18), P.z(30)), (0.0, P.z(34))], inside, segments=36,
                     centre=(P.x(178), 0, 0), name="mouth", cap=False)
@@ -798,8 +805,18 @@ def scarecrow(K):
     K.tube([P.pt(222, 135), P.pt(250, 135), P.pt(277, 135)], [P.m(31), P.m(29), P.m(26)], sleeve, segments=16,
            name="sleeve")
     band = K.colour((78, 118, 86, 152), vary=0.1)
-    K.tube([P.pt(77, 138), P.pt(88, 138)], P.m(27), band, segments=16, name="cuff_tie")
-    K.tube([P.pt(273, 134), P.pt(284, 134)], P.m(27), band, segments=16, name="cuff_tie")
+    K.tube([P.pt(77, 138), P.pt(88, 138)], P.m(27), band, segments=16, name="cuff_tie", cap=False)
+    K.tube([P.pt(273, 134), P.pt(284, 134)], P.m(27), band, segments=16, name="cuff_tie", cap=False)
+    # the straw stuffed in each sleeve's open end: a blunt bundle of it, not a plain cap
+    bundle = turned(K, P.x(40), (8, 110, 70, 170), squeeze=1.0, keep=[(0, 84, 90, 192)], side="noty", side_from=0.0,
+                    side_to=0.01, soften=0.1)
+    for x0, sgn, cz in ((84, -1, 138), (277, 1, 136)):
+        ob = K.lathe([(P.m(25), 0.0), (P.m(22), P.m(10)), (P.m(14), P.m(18)), (0.0, P.m(21))], bundle, segments=14,
+                     name="straw_bundle")
+        rotate(ob, sgn * 90, "Y", (0, 0, 0))
+        for v in ob.data.vertices:
+            v.co.x += P.x(x0)
+            v.co.z += P.z(cz)
 
     def front_y(x, out=0.012):                              # the kurta's front surface at x, and a little before it
         a = min(1.0, abs(x - c) / P.m(59))
@@ -824,14 +841,14 @@ def scarecrow(K):
         return (P.x(px), -y if back else y, P.z(py))
     K.sheet(sash, 2, 14, red, name="scarf", thickness=0.012)
     K.sheet(lambda u, v: sash(u, v, True), 2, 14, red, name="scarf_back", thickness=0.012)
-    K.tube([(P.x(228), front_y(P.x(228), 0.0), P.z(108)), (P.x(228), 0.0, P.z(97)),
-            (P.x(228), -front_y(P.x(228), 0.0), P.z(108))], P.m(13), K.colour((200, 104, 232, 118), vary=0.08),
-           segments=10, name="scarf_shoulder")
+    K.tube([(P.x(226), front_y(P.x(226), 0.0), P.z(110)), (P.x(226), 0.0, P.z(104)),
+            (P.x(226), -front_y(P.x(226), 0.0), P.z(110))], P.m(9), K.colour((200, 104, 232, 118), vary=0.08),
+           segments=10, name="scarf_shoulder")              # over the shoulder, no higher than painted
     for back in (False, True):
-        def end(u, v, back=back):
-            x = P.x(119 + 50 * u)
+        def end(u, v, back=back):                           # hanging straight down, clear of the kurta's side
+            x = P.x(122 - 6 * v + (48 + 4 * v) * u)
             z = P.z(196 + 78 * v)
-            y = front_y(x, 0.02) - 0.02 * v - 0.012 * math.sin(math.pi * u)
+            y = front_y(P.x(150), 0.02) - 0.02 * v - 0.012 * math.sin(math.pi * u)
             return (x, -y if back else y, z)
         K.sheet(end, 6, 8, red, name="scarf_end", thickness=0.01)
     # the straw skirt round the pole below the hem
@@ -857,14 +874,14 @@ def scarecrow(K):
     K.leaves_only((270, 80, 366, 196), no_halo)
     for box, cz in (((0, 84, 90, 192), 138), ((272, 84, 364, 192), 136)):
         cx = (box[0] + box[2]) / 2
-        for pitch in (0, 50, -50, 90):
+        for pitch in (0, 30, 60, 90, 120, 150):                # a full fan round the arm, from every side
             K.card_from_painting(box, P.pt(cx, cz, 0.0), pitch=pitch + K.rng.uniform(-8, 8), name="hand",
                                  normal=(1 if cx > 180 else -1, -0.3, 0.6))
-    # the mound of stones it is stood in, its weeds, the earth
-    earth = K.colour((70, 425, 110, 436), vary=0.18, scale=10)
-    earth_disc(K, 178, 428, P.m(118), 0.42, earth)
-    stone = K.projected(squeeze=1.0, keep=[(110, 412, 250, 440)], exclude=[(98, 368, 168, 418), (188, 372, 268, 418)],
-                        inset=2)
+    # the stones it is stood in and its weeds, on the ground (the painting has no patch of earth: the game's ground)
+    grain = speckle(P.crop((200, 420, 236, 434)), sigma=3.0, amount=1.2)
+    stone = proj_tiles(K, [(110, 412, 250, 440)], [(98, 368, 168, 418), (188, 372, 268, 418)], grain, grain,
+                       side_size=P.m(36), top_size=P.m(36), y_from=0.6, y_to=0.85, inset=2, soften=0.0, vary=0.1,
+                       blur=3.0)
     for px, w, h, y in ((150, 44, 18, -0.10), (205, 52, 20, -0.09), (238, 30, 14, -0.06), (122, 26, 12, -0.04),
                         (175, 40, 16, 0.12), (140, 30, 14, 0.10), (215, 34, 14, 0.13)):
         K.boulder(P.x(px), y, P.z(430) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.7, P.m(h), stone, lumps=0.2, name="stone")
@@ -1286,14 +1303,14 @@ def canal_bridge(K):
         return interp([(0.0, 0.0), (0.05, sh - 0.06), (0.3, sh), (0.45, (sh + cr) / 2 + 0.02), (0.58, cr),
                        (0.7, cr - 0.05), (0.82, cr * 0.62), (0.92, cr * 0.25), (0.97, cr * 0.08), (1.0, 0.0)])(u)
     _, left = channel_bank(K, lambda y: xL, -1, lambda y: xL - P.x(22), y_front, y_end, prof, earth, rough=0.02,
-                           taper=0.3, name="bank")          # out to the painted banks' outer edges, no further
+                           taper=0.06, name="bank")         # out to the painted banks' outer edges, no further;
     _, right = channel_bank(K, xR, 1, lambda y: P.x(528) - xR(y), y_front, y_end, prof, earth, rough=0.02,
-                            taper=0.3, name="bank")
+                            taper=0.06, name="bank")        # cut at the back as at the front (a stretch of channel:
+    # its water stands as high at the back as the banks and walling round it, never above bare ground)
     # the dry-stone walling lining both sides of the channel, three courses up to the banks' shoulders
     courses = [(0.0, 0.36), (0.36, 0.69), (0.69, 1.0)]
-    lining(K, [(xL, y_front), (xL, y_end - 0.06)], -1, y_front, courses, stone_m, top=zl)
-    lining(K, [(xR(y_front), y_front), (xR(y_b0), y_b0), (xR(y_end), y_end - 0.06)], 1, y_front, courses, stone_m,
-           top=zl)
+    lining(K, [(xL, y_front), (xL, y_end)], -1, y_front, courses, stone_m, top=zl)
+    lining(K, [(xR(y_front), y_front), (xR(y_b0), y_b0), (xR(y_end), y_end)], 1, y_front, courses, stone_m, top=zl)
     # the water: flowing down the channel from the back of the piece, under the bridge, out to the front edge; its
     # surface is the painted water carried straight back through it
     wmat = K.projected(squeeze=1.0, keep=[(200, 98, 330, 290), (330, 170, 378, 290), (378, 228, 414, 290),
@@ -1307,6 +1324,8 @@ def canal_bridge(K):
         wob.data.flip_normals()
     for y, z in ((y_front, zw(y_front)), (y_end, zw(y_end))):           # its front and back sections
         K.quad([(xL, y, 0.0), (xR(y), y, 0.0), (xR(y), y, z), (xL, y, z)], wmat, name="water_end", double=True)
+    K.sheet(lambda u, v: (xL + (xR(y_front + (y_end - y_front) * v) - xL) * u, y_front + (y_end - y_front) * v, 0.0),
+            4, 12, stone_m, name="channel_floor", smooth=False)      # the channel's stone floor under it
     # the abutments: big dressed stones on the walling, carrying the slabs' ends
     zt = P.z(97)
     for x0, x1 in ((104, 198), (332, 452)):
@@ -1328,6 +1347,10 @@ def canal_bridge(K):
     for x0, y0, x1, y1 in painted:
         w, h = P.m(x1 - x0) * 0.9, P.m(y1 - y0) * 0.9
         stone(K, P.x((x0 + x1) / 2), y_front + 0.02, P.z(y1) + h * 0.5, w, min(0.4, w * 0.8), h, rock_m,
+              lumps=0.15, name="rock")
+    for x0, y0, x1, y1 in painted[::2]:                       # and the like at the banks' back ends
+        w, h = P.m(x1 - x0) * 0.8, P.m(y1 - y0) * 0.8
+        stone(K, P.x((x0 + x1) / 2), y_end - 0.04, P.z(y1) + h * 0.5, w, min(0.36, w * 0.8), h, rock_m,
               lumps=0.15, name="rock")
     for (x0, y0, x1, y1), (side, u, y) in zip(painted, ((-1, 0.72, -0.35), (1, 0.62, 0.45), (-1, 0.62, 0.55),
                                                        (1, 0.75, -0.5))):
