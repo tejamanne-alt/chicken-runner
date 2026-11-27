@@ -1116,11 +1116,11 @@ def bunting(K):
     bows wear the painted rope front and back."""
     P = K.paint
     pale_halo(K, near=3, cell=2)
-    path = [(22, 20), (30, 26), (45, 33), (62, 42), (80, 48), (97, 53), (114, 57), (130, 60), (147, 61.5), (163, 62),
-            (180, 61.5), (195, 60), (210, 57), (225, 53), (240, 47), (255, 40), (268, 32), (282, 23), (287, 20)]
+    path = [(22, 20), (30, 26), (45, 33), (62, 41.5), (80, 48), (97, 53), (114, 57), (130, 59.5), (147, 61), (163, 61.5),
+            (180, 61), (195, 59), (210, 55.5), (225, 51.5), (240, 45.5), (255, 38.5), (268, 31), (282, 22.5), (287, 20)]
     rope_m = K.projected(squeeze=1.0, keep=[(x - 7, y - 3, x + 7, y + 3) for x, y in path] +
                          [(6, 6, 34, 42), (276, 6, 305, 42)], inset=1)
-    K.tube([P.pt(x, y, 0.0) for x, y in path], P.m(2.6), rope_m, segments=8, name="rope")
+    K.tube([P.pt(x, y, 0.0) for x, y in path], P.m(3.3), rope_m, segments=8, name="rope")
     # the bows at the ends: an upright loop, a loop out sideways, the knot and a curled tail, as painted
     for s_, kx in ((1, 24), (-1, 286.5)):
         X = lambda dx: kx + s_ * dx
@@ -1130,14 +1130,16 @@ def bunting(K):
                 P.pt(X(-10.5), 37, 0.004)], P.m(1.4), rope_m, segments=6, name="bow_tail")
         K.lathe([(P.m(3.0), -P.m(2.8)), (P.m(3.4), 0.0), (P.m(3.0), P.m(2.8)), (0.0, P.m(3.0))], rope_m, segments=10,
                 centre=(P.x(kx), 0.0, P.z(22)), name="knot")
-    flags = [((32, 30), (61, 45), (34, 79)), ((64, 47), (95, 55), (70, 94)), ((97, 56), (127, 63), (106, 104)),
-             ((130, 64), (160, 64), (142, 108)), ((162, 64), (192, 62), (176, 107)), ((194, 62), (222, 56), (210, 100)),
-             ((224, 54), (251, 45), (242, 88)), ((253, 42), (279, 30), (271, 73))]
+    # traced off the painting: the cloth's saturated colour, its top corners on the rope, its tip at its ink
+    flags = [((32, 26.9), (62, 42.0), (34.0, 79.5)), ((64, 42.7), (95, 52.4), (70.0, 95.5)),
+             ((97, 53.0), (127, 59.4), (106.5, 104.5)), ((131, 60.1), (159, 61.9), (142.0, 106.5)),
+             ((162, 62.0), (191, 60.4), (176.5, 107.5)), ((196, 59.8), (221, 54.1), (210.0, 98.5)),
+             ((226, 52.6), (251, 41.9), (241.5, 89.5)), ((254, 40.5), (279, 24.9), (271.5, 74.5))]
     for k, (tl, tr, tip) in enumerate(flags):
         xs, ys_ = [tl[0], tr[0], tip[0]], [tl[1], tr[1], tip[1]]
-        cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 2, min(ys_) + 4, max(xs) - 1, max(ys_) - 2)], inset=2)
-        # the painted cloth reaches about 2 px past its traced edges (its outline): cover it
-        gtl, gtr, gtip = grow_triangle(tl, tr, tip, 2.2)
+        cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 1, min(ys_) + 4, max(xs), max(ys_) - 1)], inset=2)
+        # the painted cloth's ink outline reaches about 1 px past its colour: cover it
+        gtl, gtr, gtip = grow_triangle(tl, tr, tip, 1.0)
         # the cloth folds over the rope: its top edge a little behind and above the rope's middle
         tw = K.rng.uniform(-0.03, 0.03)
         cloth_sheet(K, P.pt(gtl[0], gtl[1], P.m(1.5)), P.pt(gtr[0], gtr[1], P.m(1.5)), P.pt(*gtip, 0.0), cloth,

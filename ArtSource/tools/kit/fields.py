@@ -236,7 +236,7 @@ def proj_tiles(K, keep, exclude, side, top, side_size=None, top_size=None, lo=0.
     def tile(src, size):
         if isinstance(src, tuple):
             return _tile_socket(K, m, coord, src, size, soften, vary)
-        return _tile_socket(K, m, coord, (0, 0, src.width, src.height), size, 0.0, vary, image=src)
+        return _tile_socket(K, m, coord, (0, 0, src.width, src.height), size, soften, vary, image=src)
     a, b = tile(side, side_size), tile(top, top_size)
     geo = nt.nodes.new("ShaderNodeNewGeometry")
     sn = nt.nodes.new("ShaderNodeSeparateXYZ")
@@ -932,9 +932,9 @@ def canal_bank(K):
     # the painted section on its front and back (the cut ends of the stretch); its grassy topsoil on the banks' tops
     # and slopes, its earth (the section's blotched soil, its cracks taken out) on the cut ends at either side
     earth = proj_tiles(K, [(0, 120, 1198, 373)], [(225, 0, 500, 250)],
-                       speckle(delined(P.crop((12, 215, 240, 350)), 7), sigma=4.0, amount=1.2),
-                       speckle(delined(P.crop((20, 158, 200, 176)), 3), sigma=3.0, amount=0.9),
-                       side_size=P.m(228), top_size=P.m(180), lo=0.35, hi=0.6, vary=0.14, blur=8.0)
+                       delined(P.crop((12, 215, 240, 350)), 5),
+                       speckle(delined(P.crop((20, 158, 200, 176)), 3), sigma=3.0, amount=1.3),
+                       side_size=P.m(228), top_size=P.m(180), lo=0.35, hi=0.6, soften=0.25, vary=0.14, blur=8.0)
     section(K, ground + [(1196, 364), (2, 364)], -d, d, earth, name="banks")
     # the water: its surface level with the banks' edges, its body down to the bed
     bed = [p for p in ground if 330 <= p[0] <= 1045]
@@ -942,7 +942,7 @@ def canal_bank(K):
     wtop = K.paint.colour((700, 244, 900, 262))
     still = speckle(P.crop((640, 250, 990, 262)), sigma=3.0, amount=0.8)
     water = proj_tiles(K, [(330, 241, 1040, 330)], [], still, still, side_size=P.m(350), top_size=P.m(350), lo=0.4,
-                       hi=0.7, vary=0.05, blur=4.0)
+                       hi=0.7, soften=0.0, vary=0.05, blur=4.0)
     section(K, [surface[0]] + bed[1:-1] + [surface[1]], -d + 0.01, d - 0.01, water, name="water")
     # the reeds and cattails along the left bank's slope, all the way back
     K.leaves_only((225, 0, 500, 246), no_white)
