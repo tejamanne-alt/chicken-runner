@@ -274,8 +274,9 @@ CHARACTERS = [
      "Four new images, one per view, made from her model sheet (A0) and given to Meshy as front, left, right and back. "
      "They change the sheet's leopard-print hairband for a simple plain one in peacock blue and add what the model "
      "needs beyond it: gold jhumka earrings, gold and glass bangles, and maruthani (henna) on her hands and legs. They are drawn the way Meshy and rigging need them: one square frame and scale for "
-     "all four (head and feet at the same heights), an A-pose with the arms clear of the body and the palms forward, "
-     "orthographic, evenly lit with no shadows, on plain light grey."),
+     "all four (head and feet at the same heights), standing as in the model sheet with the arms clear of the body, "
+     "orthographic, evenly lit with no shadows, on plain light grey. A Meshy texture prompt adds what the views cannot "
+     "show (her inner shorts, the henna on her palms)."),
     ("rooster", "The rooster", ["B11_rooster_front.png", "B13_rooster_left.png", "B14_rooster_right.png",
                                  "B12_rooster_back.png"],
      "No new images: his four views exist already (B11 front, B13 left, B14 right, B12 back). Use them in Meshy."),
@@ -293,27 +294,34 @@ KID_STEPS = [
     "Make the front view first, attaching `A0_kid_pattu_frock_sheet.png`. In the same chat, make the left, right and "
     "back views, one per message, attaching the sheet and the front view you made (`kid_meshy_front.png`): the front "
     "fixes her scale, pose, colours, jewellery and henna for the others.",
-    "Check each image: the hem border, hairband, earrings, bangles and anklets are the same in all four, and so is "
-    "the henna: the same design in the same places (a big dot ringed by eight dots on each palm, dyed fingertips and "
-    "toes, one leaf vine on the back of each hand, on the top of each foot and up each shin, dot rings round the "
-    "ankles, dyed sole edges); her "
-    "arms are clear of her body; in the left view she faces the left edge, in the right view the right edge; no "
-    "shadow, floor or text. If a side view faces the wrong way, reply: *Flip this image left to right and keep "
-    "everything else the same.* If something is missing or comes back from the sheet, ask for just that: *Add the "
-    "gold jhumka earrings and keep everything else the same.* or *Make the henna exactly the design in the front view "
-    "and keep everything else the same.* or *Make the hairband a plain peacock-blue band with no "
-    "pattern and keep everything else the same.* If the back view shows front details (palms, toes, henna on the "
-    "backs of the legs), reply: *Using the image you just made, show her hands from behind, with their backs, "
-    "knuckles and fingernails towards us and one leaf vine on each; turn her feet away from us so we see only her "
-    "heels; and make the backs of her legs plain skin. Keep everything else the same.*",
+    "Check each image: her arms hang relaxed a little away from her sides, palms towards her thighs, as in the model "
+    "sheet, with a gap of background between each arm and the skirt; each hand has a thumb and four separate fingers "
+    "with only their tips hennaed; the two jhumkas are an identical pair; the hem border, plain hairband, bangles, "
+    "anklets and henna (dyed fingertips and toe tips, one leaf vine on the back of each hand, on the top of each foot "
+    "and up each shin, dot rings round the ankles, dyed sole edges) are the same in all four; in the left view she "
+    "faces the left edge, in the right view the right edge; no shadow, floor or text.",
+    "Fix a view by asking for just the change, in the same chat. Facing the wrong way: *Flip this image left to right "
+    "and keep everything else the same.* Hands wrong: *Make her arms hang relaxed a little away from her sides with "
+    "her palms towards her thighs, exactly as in the model sheet, each hand with a thumb and four separate fingers, "
+    "and keep everything else the same.* Earrings: *Make both earrings the same small gold jhumka and keep everything "
+    "else the same.* Henna: *Make the henna exactly the design in the front view and keep everything else the same.* "
+    "Hairband: *Make the hairband a plain peacock-blue band with no pattern and keep everything else the same.* A back "
+    "view with front details (palms, toes, henna on the backs of the legs): *Using the image you just made, show her "
+    "hands and feet from behind: the backs of her hands, her heels with her toes hidden, and the backs of her legs "
+    "plain skin. Keep everything else the same.*",
     "Save them as `kid_meshy_front.png`, `kid_meshy_left.png`, `kid_meshy_right.png` and `kid_meshy_back.png` in "
     "`ArtSource/references/`.",
-    "In Meshy, **Image to 3D** with several images: upload the four as front, left, right and back. If it offers them, "
-    "choose the newest model, symmetry on, an A-pose (or T-pose) for a character, texture on, and a target of about "
-    "15,000 triangles (the game's budget for the kid).",
+    "In Meshy, **Image to 3D** with several images: upload the four as front, left, right and back. Turn **symmetry "
+    "on**: it makes the two earrings, hands and feet match. Choose the newest model, texture on, and if it asks for a "
+    "pose, the A-pose (her relaxed stance is close to one). Paste the **Meshy texture prompt** below where Meshy takes a texture "
+    "prompt. Keep the triangle count low: a target of about 30,000, or **Remesh** to about 30,000 triangles after "
+    "(the first try came out at 1.5 million; the game's budget for the kid is 15,000, and I reduce it from 30,000).",
+    "If the texture still has a mismatched earring, blotchy fingers or bare thighs under the skirt, run Meshy's "
+    "**Retexture** on the model with the same texture prompt (and `kid_meshy_front.png` as its reference image).",
     "Download it as GLB with the texture inside and save it as `ArtSource/models_meshy/characters/kid.glb` (or upload "
-    "it in the chat). It is then fitted to the game: 1.05 m tall, rigged for Unity's Humanoid, with the hand socket "
-    "for the rooster.",
+    "it in the chat). I then fit it to the game (1.05 m tall), check it all round, put right what is left (the same "
+    "jhumka on both ears, the inner shorts as real cloth if they are only painted, the triangle budget), and rig it "
+    "for Unity's Humanoid, with the hand socket for the rooster.",
 ]
 KID_LOOKS = ("a South Indian girl of about three, with chubby toddler proportions (a big head about a quarter of her "
              "height, short arms and legs), warm brown skin, a round face with big dark eyes, a small red bindi and a "
@@ -323,42 +331,54 @@ KID_LOOKS = ("a South Indian girl of about three, with chubby toddler proportion
              "slit at the front, short puffed sleeves edged in gold, a blue sash at the waist, and a gathered, flared "
              "skirt with a wide magenta and gold border at the hem woven with small temple towers. Bare feet with "
              "silver anklets with tiny bells.")
-KID_JEWELS = ("Her jewellery: small gold jhumka earrings, little bell-shaped gold drops hanging from her earlobes, her "
-              "ears showing through her hair; and on each wrist a few thin gold bangles with red and green glass "
-              "bangles between them, sitting loosely at the wrist.")
-# One fixed henna design, word for word in every view's prompt, so the four images agree.
+KID_JEWELS = ("Her jewellery: a matching pair of small gold jhumka earrings, identical in size and shape, one bell-shaped "
+              "gold drop hanging from each earlobe, both ears showing through her hair; and on each wrist the same set "
+              "of a few thin gold bangles with red and green glass bangles between them, sitting loosely at the wrist.")
+# One fixed henna design, word for word in every view's prompt, so the four images agree. Only what the views can
+# show: her palms face her thighs, so a palm design would be hidden (and naming it tempts the image model to turn the
+# palms out); the Meshy texture prompt carries it instead.
 KID_HENNA = ("Her maruthani (henna) is one fixed design, the same in every view, identical on both hands (mirror images) "
-             "and on both legs, in one flat deep orange-red with no other colour: on each palm, one large solid round "
-             "dot in the middle, ringed by eight small dots; every fingertip dyed solid up to the first knuckle; on the "
-             "back of each hand, one vine of small paired leaves running from the base of the middle finger to the "
-             "wrist, ending in a row of small dots just below the bangles; every toe dyed solid; a solid dyed band a "
-             "finger wide round the edge of each sole; on the top of each foot, one vine of small paired leaves from "
-             "the big toe to the ankle; a ring of small dots round each ankle, just below the anklet; and on the front "
-             "of each shin, one vine of small paired leaves rising halfway to the knee, ending in a small dot. Nothing "
-             "else is hennaed: not her arms above the wrists, not her legs above that dot.")
+             "and on both legs, in one flat deep orange-red with no other colour: the tip of every finger dyed up to "
+             "the first knuckle, the rest of each finger skin-coloured, so the fingers stay slender and separate; on "
+             "the back of each hand, one vine of small paired leaves running from the base of the middle finger to the "
+             "wrist, ending in a row of small dots just below the bangles; the tip of every toe dyed; a thin dyed band "
+             "round the edge of each sole; on the top of each foot, one vine of small paired leaves from the big toe "
+             "to the ankle; a ring of small dots round each ankle, just below the anklet; and on the front of each "
+             "shin, one vine of small paired leaves rising halfway to the knee, ending in a small dot. Nothing else is "
+             "hennaed: not her arms above the wrists, not her legs above that dot.")
 KID_HENNA_SEEN = {
-    "front": "From the front we see both palms with their big dot ringed by eight dots, the dyed fingertips, the dyed "
-             "toes, the leaf vines on the tops of both feet, the rings of dots round the ankles and the leaf vines up "
-             "the fronts of the shins.",
-    "side": "From the side we see, on her near hand and leg, exactly the design of the front view: the dyed "
-            "fingertips, the edge of the palm's dot design, part of the leaf vine on the back of the hand and the row "
-            "of dots below the bangles, the dyed toes, the dyed band along the edge of the sole, the leaf vine on the "
-            "top of the foot from the side, the ring of dots round the ankle and the leaf vine up the front of the shin.",
+    "front": "From the front we see the backs of her hands, turned a little towards us, with their leaf vines and the "
+             "dots below the bangles, the dyed fingertips, the dyed toe tips, the leaf vines on the tops of both feet, "
+             "the rings of dots round the ankles and the leaf vines up the fronts of the shins.",
+    "side": "From the side we see, on her near hand and leg, exactly the design of the front view: the back of the "
+            "hand with its leaf vine and the row of dots below the bangles, the dyed fingertips, the dyed toe tips, "
+            "the dyed band along the edge of the sole, the leaf vine on the top of the foot from the side, the ring of "
+            "dots round the ankle and the leaf vine up the front of the shin.",
 }
-KID_POSE = ("She faces the viewer squarely and stands in a neutral A-pose for rigging: upright and symmetrical, her "
-            "weight on both feet, her feet flat, toes forward and a hand's width apart; her arms straight and held out "
-            "about 45 degrees from her sides, with clear space between her arms, her body and her skirt; her hands "
-            "open and relaxed, fingers together, palms turned forward so the henna on them shows; her head level, "
-            "looking straight ahead; her hair resting on her shoulders, clear of her arms and earrings. A calm, "
-            "pleasant face with the mouth closed.")
+KID_POSE = ("She faces the viewer squarely and stands exactly as in the model sheet: upright and symmetrical, her "
+            "weight on both feet, her feet flat, toes forward and a hand's width apart; her arms hanging relaxed and "
+            "straight, held a little away from her sides (about 20 degrees), so a clear gap of background shows "
+            "between each arm and her body and skirt; her hands relaxed beside her skirt, palms facing in towards her "
+            "thighs, the backs of her hands turned a little towards us, each hand with a thumb and four separate, "
+            "slender toddler fingers, gently curled; her head level, looking straight ahead; her hair resting on her "
+            "shoulders, clear of her arms and earrings. A calm, pleasant face with the mouth closed.")
+# For Meshy's texture prompt (Image to 3D, or Retexture on the model): what the images cannot show and what Meshy
+# got wrong the first time (a mismatched earring, blotchy fingers, bare thighs under the skirt).
+KID_MESHY = ("South Indian toddler girl, hand-painted storybook style, even light, no baked shadows. Peacock-blue silk "
+             "pattu frock, gold zari neckline and sleeve edges, magenta and gold temple-tower hem border; short "
+             "peacock-blue cotton bloomers on her upper thighs under the skirt. Plain peacock-blue hairband. Identical "
+             "pair of small gold jhumka earrings. Gold and red-green glass bangles, silver anklets. Skin-toned hands, "
+             "five separate fingers, only fingertips dyed orange-red henna; henna dot ring on each palm; henna leaf "
+             "vine on the back of each hand, top of each foot and each shin; dyed toe tips.")
 
 
 def kid_side(side):
     return (f"The same toddler in the same peacock-blue pattu frock, seen exactly from her {side} side: a true "
             f"90-degree profile, so we see her {side} side and she faces the {side} edge of the image. She stands in "
-            "the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, "
-            "and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the "
-            "small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the "
+            "the same pose as in the front view, seen from the side: her arms hanging relaxed a little away from her "
+            "sides, her near hand beside her skirt with its palm towards her thigh, a thumb and four separate fingers "
+            "gently curled, and her feet a hand's width apart. Show her profile clearly: the round cheek, the "
+            "small nose and the closed-mouth smile, her ear with its small gold jhumka hanging below it, the "
             "plain peacock-blue hairband over the top of her head, her wavy hair falling to her shoulder at the back, the "
             "puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the sash at the waist with the end "
             "of the bow at the back, the flared skirt with the magenta and gold temple-tower border running round it, "
@@ -369,17 +389,17 @@ def kid_side(side):
 # whole henna design (palms, tops of the feet, shins) put palms, toes and shin vines into the back view.
 KID_BACK = ("The same toddler in the same peacock-blue pattu frock, seen exactly from behind: we look at her back, "
             "and she faces away from us, into the picture, so her face and the fronts of her legs are turned away."
-            " She stands in the same A-pose as in the front view, seen from the back: her arms "
-            "straight and held out about 45 degrees from her sides, with clear space between her arms, her body and "
-            "her skirt, and her feet flat and a hand's width apart.\n\n"
+            " She stands in the same pose as in the front view, seen from the back: her arms hanging relaxed a "
+            "little away from her sides (about 20 degrees), with a clear gap between each arm and her body and skirt, "
+            "and her feet flat and a hand's width apart.\n\n"
             "Show her back clearly: the back of her head, all shoulder-length wavy black hair; a thin arc of the plain "
             "peacock-blue hairband showing across the top of her head; the gold jhumka earrings just peeping out below "
             "her hair on each side; the plain back of the bodice with a fine seam down the middle; the puffed sleeves "
             "with their gold edges; the blue sash tied in a neat bow at the back of the waist; the gathered skirt with "
             "the magenta and gold temple-tower border continuing all the way round; the backs of her knees and calves, "
             "plain bare skin; the silver anklets; and her two round heels, the soles' edges just showing beneath them.\n\n"
-            "Her hands, seen from behind, show their backs: knuckles and fingernails towards us, fingers pointing down "
-            "and a little outwards, thumbs on the outer side, the gold and glass bangles at the wrists. Her feet point "
+            "Her hands hang beside her skirt with their palms towards her thighs, so from behind we see the outer edges "
+            "and backs of her hands, fingers gently curled, the gold and glass bangles at the wrists. Her feet point "
             "away from us, so we see her heels and the backs of her ankles, with her toes hidden in front of her feet.\n\n"
             "Her maruthani (henna) from the front view, as it looks from behind, is only this, in the same flat deep "
             "orange-red: on the back of each hand, one vine of small paired leaves from the base of the middle finger "
@@ -649,6 +669,7 @@ def records():
         if name == "kid":
             rec["view_prompts"] = kid_prompts()
             rec["steps"] = KID_STEPS
+            rec["meshy"] = KID_MESHY
         out.append(rec)
     if not ALL:
         position = {n: i for i, n in enumerate(n for _, _, _, names in MODEL_ORDER for n in names)}
@@ -710,6 +731,9 @@ def markdown(recs):
                               f"Square 1:1 · Attach: {', '.join(f'`{a}`' for a in vp['attach'].split(', '))}", "",
                               "ChatGPT:", "", "```text", vp["chatgpt"], "```", "",
                               "Gemini:", "", "```text", vp["gemini"], "```", ""]
+                lines += ["#### Meshy texture prompt", "",
+                          "For Meshy's texture prompt in Image to 3D, or for Retexture on the finished model:", "",
+                          "```text", r["meshy"], "```", ""]
                 continue
             if r["kind"] == "character":
                 lines += [r["note"], "", "Images: " + ", ".join(f"`{f}`" for f in r["existing"]), ""]
