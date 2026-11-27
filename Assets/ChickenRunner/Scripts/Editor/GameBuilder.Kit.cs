@@ -45,6 +45,7 @@ namespace ChickenRunner.EditorTools
             const float GroundFront = -40f;
             const float GroundBack = 4.5f;
             const float CanalBed = -0.28f;
+            const float PlankBridgeLength = 3.9f;   // plank_model.LENGTH
 
             readonly ZoneKit _z;
             readonly Transform _root;
@@ -387,6 +388,17 @@ namespace ChickenRunner.EditorTools
                     return;
                 }
                 var plank = Box("Plank", _root, new Vector3(x + width * 0.5f, -0.05f, 0f), new Vector3(width + 0.4f, 0.1f, 0.9f), _z.prims, true);
+                // The hand-built plank bridge (ArtSource/tools/models/plank_model.py, 3.9 m for a 3.5 m canal), stood on
+                // the walkway's top and stretched along the lane for another width; the box stays as what she walks on.
+                var top = new Vector3(x + width * 0.5f, 0f, 0f);
+                var bridgeModel = ArtModels.Stand(_root, "fields", "plank_bridge", top, top + Vector3.up);
+                if (bridgeModel != null)
+                {
+                    bridgeModel.transform.localScale = new Vector3((width + 0.4f) / PlankBridgeLength, 1f, 1f);
+                    foreach (var renderer in bridgeModel.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder;
+                    plank.GetComponent<Renderer>().enabled = false;
+                    return;
+                }
                 plank.AddComponent<GreyboxColor>().SetColor(Palette.Wood);
                 foreach (float z in new[] { -0.45f, 0.45f })
                     Prim(PrimitiveType.Cube, "Rail", _root, new Vector3(x + width * 0.5f, 0.55f, z), new Vector3(width + 0.4f, 0.05f, 0.05f), Palette.Bamboo);

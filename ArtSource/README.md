@@ -345,3 +345,28 @@ paints the ladder off the house's cut-out; `cutouts.py` runs it after cutting th
 ```bash
 python ArtSource/tools/models/ladder_model.py --picture
 ```
+
+### The plank bridge
+
+Level 4's 3.5 m canals have a plank bridge to walk across. `tools/models/plank_model.py` builds it to go with the
+ladder: three weathered planks (the grain along them) on two log sleepers resting on the banks, a bamboo handrail each
+side lashed with coir to four posts driven into the banks, 3.9 m long and 0.9 m across, as
+`Assets/ChickenRunner/Art/Models/fields/plank_bridge.fbx`. `Kit.Canal` stands it over a canal with a bridge (stretched
+along the lane for another width); the box the kid walks on stays underneath it, hidden. `--sheet OUT.png` renders it
+side-on, end-on and from above for checking.
+
+```bash
+python ArtSource/tools/models/plank_model.py --sheet plank.png
+```
+
+### Level plans
+
+Levels 1, 4 and 7 are designed in `tools/levels/levelN.py` on the shared `tools/levels/levelkit.py`: each places every
+obstacle, pickup, hop and prop as `GameBuilder.Kit` will, audits the course with the zone's tuning and the kid's body
+read from the C#, and writes `Assets/ChickenRunner/Art/Levels/levelN.json` (and with `--report` its beat sheet in
+`docs/levels`). Build Game lays one chunk per section. `tools/levels/cut_neighbour.py` cuts level 1's neighbour, asleep
+and awake, from the B5 sheet.
+
+```bash
+python ArtSource/tools/levels/level4.py --report
+```
