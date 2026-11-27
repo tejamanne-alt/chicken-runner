@@ -2139,11 +2139,12 @@ def stall_veg(K):
 
     def board_y(z):
         return bF + (z - zF) * (bB - bF) / (zB - zF)
-    top = pole_tile(K, (300, 702, 600, 711), soften=0.2)       # the painted board edge, stacked square
-    slab(K, [(P.x(92), bF, zF), (P.x(1000), bF, zF), (P.x(890), bB, zB), (P.x(222), bB, zB)], 0.04, top, name="board")
+    top = pole_tile(K, (445, 707, 600, 714), soften=0.25)      # the painted board edge, stacked square
+    # square in plan (the painting narrows its back in perspective; a tapered board looked wrong from above)
+    slab(K, [(P.x(92), bF, zF), (P.x(1000), bF, zF), (P.x(1000), bB, zB), (P.x(92), bB, zB)], 0.04, top, name="board")
     edge = top
     beam(K, (P.x(90), bF - 0.02, zF - 0.01), (P.x(1002), bF - 0.02, zF - 0.01), 0.05, P.m(14), edge, name="board_edge")
-    for xa, xb in ((92, 222), (1000, 890)):
+    for xa, xb in ((92, 92), (1000, 1000)):
         beam(K, (P.x(xa), bF, zF + 0.02), (P.x(xb), bB, zB + 0.02), 0.04, 0.06, edge, name="board_side")
     wood = top
     for x_px in (262, 470, 690, 862):
@@ -2182,8 +2183,13 @@ def stall_veg(K):
         # (a tile of the region's own produce: projected through, its back edge and underside were dragged stripes)
         bw, bh = box[2] - box[0], box[3] - box[1]
         bed_m = ktile(K, (box[0] + bw * 0.25, box[1] + bh * 0.3, box[2] - bw * 0.25, box[3] - bh * 0.2), vary=0.05)
-        quad_sheet(K, [(P.x(box[0] + 6), y0_ - 0.03, Z(b1) + 0.02), (P.x(box[2] - 6), y0_ - 0.03, Z(b1) + 0.02),
-                       (P.x(box[2] - 6), y1_ - 0.03, Z(b0) + 0.02), (P.x(box[0] + 6), y1_ - 0.03, Z(b0) + 0.02)], bed_m,
+        # (kept inside the board's painted outline at its back as at its front)
+        xl_ = lambda py: 92 + 8        # noqa: E731
+        xr_ = lambda py: 1000 - 8      # noqa: E731
+        fa, fb = max(box[0] + 6, xl_(b1)), min(box[2] - 6, xr_(b1))
+        ba, bb = max(box[0] + 6, xl_(b0)), min(box[2] - 6, xr_(b0))
+        quad_sheet(K, [(P.x(fa), y0_ - 0.03, Z(b1) + 0.02), (P.x(fb), y0_ - 0.03, Z(b1) + 0.02),
+                       (P.x(bb), y1_ - 0.03, Z(b0) + 0.02), (P.x(ba), y1_ - 0.03, Z(b0) + 0.02)], bed_m,
                    nu=4, nv=3, thick=0.03, name="bed")
         on_board(box, m, dark, mn, long, rmax)
     # the greens at the right end of the board

@@ -630,11 +630,11 @@ def ink_px(K, k=1.5):
     return k * min(0.012, max(0.003, 0.0025 * max(P.W, P.H))) * P.ppm
 
 
-def trunk(K, pts, mat, segments=16, ys=None, name="trunk"):
+def trunk(K, pts, mat, segments=16, ys=None, name="trunk", ink=1.5):
     """A tapering tube along painted points [(px, py, r_px)] (from its foot up), at depth ys (number or list); the
     painted half-width (ink line included) less the game's outline."""
     P = K.paint
-    ik = ink_px(K)
+    ik = ink_px(K, ink)
     pts = [(x, y, max(r * 0.6, r - ik)) for x, y, r in pts]
     sp = spline([(x, y) for x, y, _ in pts], max(8, len(pts) * 6))
     t_in = np.linspace(0, 1, len(pts))
@@ -1073,8 +1073,8 @@ def h4_3(K):
                 out.append(float(np.interp(py, ys, [p[0] for p in pts][::-1])))
         return out or [300.0]
     bark = axis_material(K, tr_mask, centres, squeeze=0.84, inset=2)
-    a = trunk(K, H43_TRUNK_A, bark, segments=16, ys=yA)
-    b = trunk(K, H43_TRUNK_B, bark, segments=12, ys=yB)
+    a = trunk(K, H43_TRUNK_A, bark, segments=16, ys=yA, ink=0.4)       # (the fuse below shrinks them a little)
+    b = trunk(K, H43_TRUNK_B, bark, segments=12, ys=yB, ink=0.4)
     K.fuse([a, b], voxel=P.m(3.2), faces=7000)
     crown_m = leaf & ~ndimage.binary_dilation(tr_mask, iterations=2)
     K.leaves_only((0, 0, P.w, 600), mask_rule(crown_m, (0, 0, P.w, 600)))

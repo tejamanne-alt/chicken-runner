@@ -105,10 +105,10 @@ def quilt(K, ok, out=256, patch=32, overlap=8, soften=0.25, turn=True, rgb=None)
     okf = ok.astype(np.int32)
     ii = np.pad(okf.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
     p = patch
-    while p > 3:
+    while True:
         S = ii[p:, p:] - ii[:-p, p:] - ii[p:, :-p] + ii[:-p, :-p]
         vy, vx = np.nonzero(S == p * p)
-        if len(vy) >= 12:
+        if len(vy) >= 12 or p - 2 < 4:
             break
         p -= 2
     if len(vy) == 0:
@@ -396,7 +396,7 @@ def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="ston
         for X, Z in pts:
             j = 1 + K.rng.uniform(-jitter, jitter)
             x = c[0] + (X - c[0]) * s * j
-            k = s if Z > c[1] else 1 - (1 - s) * 0.25        # the foot stays broad on the ground
+            k = s if Z > c[1] else s ** 0.45                  # the foot stays broader, rounding in to the ends
             z = max(0.0, c[1] + (Z - c[1]) * k * j)
             out.append(bm.verts.new((x, y_c + side * depth / 2 * f * (1 + K.rng.uniform(-jitter, jitter)), z)))
         return out
@@ -449,7 +449,9 @@ def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
         med = np.median(rgb[inner_m], axis=0) if inner_m.any() else np.array((128.0, 128.0, 128.0))
         mid = inner_m & (np.linalg.norm(rgb - med, axis=-1) < 26)
         try:
-            side = quilt(K, mid, out=96, patch=10, overlap=4, soften=0.45)
+            pil, size = quilt(K, mid, out=96, patch=10, overlap=4, soften=0.5)
+            sm = ndimage.gaussian_filter(np.asarray(pil).astype(np.float32), (1.6, 1.6, 0), mode="wrap")
+            side = (Image.fromarray(sm.clip(0, 255).astype(np.uint8), "RGB"), size)    # no patch seams
         except RuntimeError:                                  # too small a stone for a patch: its painted face only
             side = None
         mat = proj_material(K, filled_source(P, inner), name="stone", dz=lift, side=side)

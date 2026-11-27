@@ -1904,8 +1904,11 @@ def pump_house(K):
     # the walls' brick: ten painted courses (a joint along its bottom edge), sampled once so the courses never
     # ghost, lined up with the painted courses so they run on round the corners; the plinth's stone without the
     # grass painted at its foot
-    brick = pattern_tile(K, seamless(P.crop((158, 108, 238, 308)), 0.15), P.m(80), z0=P.z(308), vary=0.04,
-                         key="brick")
+    wall = P.crop((158, 109, 238, 309)).convert("RGB")       # (laid with its mirror image: twice the run, no seam)
+    run = Image.new("RGB", (wall.width * 2, wall.height))
+    run.paste(wall, (0, 0))
+    run.paste(wall.transpose(Image.FLIP_LEFT_RIGHT), (wall.width, 0))
+    brick = pattern_tile(K, run, P.m(160), z0=P.z(309), vary=0.06, key="brick")
     plinth = K.tile((150, 320, 250, 343), soften=0.2, vary=0.04)
     coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
     body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")

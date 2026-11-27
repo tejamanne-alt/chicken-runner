@@ -1588,14 +1588,15 @@ def stall_e_1(K):
     wood = ktile(K, (840, 515, 960, 570), vary=0.08)
     # the board itself is planks (its underside and edges seen from behind); the produce spread on it is a thin layer
     # on top wearing the painting
-    slab(K, [(P.x(100), bF, zF - 0.012), (P.x(1400), bF, zF - 0.012), (P.x(1335), bB, zB - 0.012),
-             (P.x(212), bB, zB - 0.012)], 0.035, wood, name="board")
-    slab(K, [(P.x(104), bF + 0.005, zF), (P.x(1396), bF + 0.005, zF), (P.x(1332), bB - 0.005, zB),
-             (P.x(215), bB - 0.005, zB)], 0.012, top, name="board_goods")
+    # (square in plan: the painting narrows its back in perspective; a tapered board looked wrong from above)
+    slab(K, [(P.x(100), bF, zF - 0.012), (P.x(1400), bF, zF - 0.012), (P.x(1400), bB, zB - 0.012),
+             (P.x(100), bB, zB - 0.012)], 0.035, wood, name="board")
+    slab(K, [(P.x(104), bF + 0.005, zF), (P.x(1396), bF + 0.005, zF), (P.x(1396), bB - 0.005, zB),
+             (P.x(104), bB - 0.005, zB)], 0.012, top, name="board_goods")
     edge = K.colour((600, 652, 700, 664), vary=0.08)
     bamboo(K, (P.x(100), bF - 0.02, zF + 0.005), (P.x(1402), bF - 0.02, zF + 0.005), P.m(8), edge,
            node_at=[0.25, 0.5, 0.75], taper=1.0, name="edge_front")
-    for xa, xb in ((100, 212), (1400, 1335)):
+    for xa, xb in ((100, 100), (1400, 1400)):
         K.tube([(P.x(xa), bF, zF + 0.01), (P.x(xb), bB, zB + 0.01)], P.m(7), edge, segments=8, name="edge_side")
     for x_px in (130, 500, 900, 1300):
         x = P.x(x_px)

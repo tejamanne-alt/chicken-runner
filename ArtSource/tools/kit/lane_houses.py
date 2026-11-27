@@ -521,7 +521,8 @@ def house_limewash(K):
     depth = 4.0
     # cream plaster: left of the door, right of the climber's last leaves, above the pot (right of the door the crop
     # takes the sunshade's shadow, rust drips and the cut-out's holes, which repeat in a grid down the side walls)
-    wall = clean_tile(K, (62, 262, 92, 372), size=0.8, soften=0.2)   # its speckles taken out
+    # its sharp specks taken out, its soft mottling kept (cleaned harder it read as flat paint)
+    wall = clean_tile(K, (62, 262, 92, 372), size=0.8, vary=0.08, soften=0.0, thresh=30)
     upper = K.tile((156, 84, 198, 106), size=0.5, vary=0.05, soften=0.35)   # the parapet's plaster, clear of leaves
     ledge = clean_tile(K, (160, 108, 254, 126), soften=0.35, strip=True)   # the cornice, its rust blots taken out
     red = K.tile((32, 474, 63, 510), size=0.5, vary=0.06, soften=0.45)   # red-oxide platform, clear of its steps

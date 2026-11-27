@@ -76,20 +76,18 @@ def tree_mango_2(K):
     # rocks and the low plants at the foot
     # (the rocks a tile of their own painted stone: projected, the leaves painted in front of them streaked them)
     stone = K.tile((470, 655, 540, 688), vary=0.08, soften=0.25)
-    rock(K, 180, 690, 80, 55, -0.5, stone)
-    rock(K, 525, 690, 120, 65, -0.35, stone)
-    rock(K, 300, 700, 70, 40, 1.1, stone)
+    ground = mound(K, 365, 300, P.m(300) * 0.7, 719, 702, (565, 702, 640, 712), rise=0.5)
+    for px, w, h, y in ((130, 70, 55, -0.5), (522, 115, 65, -0.35), (300, 70, 40, 1.1)):     # traced off the grid
+        x = P.x(px)
+        K.boulder(x, y, ground(x, y) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.75, P.m(h) * 1.1, stone, name="rock")
     # the low plants at the foot: cards covering every painted leaf there (exactly the painting from the front), a
     # layer in front of the trunk's foot and one behind it
     K.leaves_only((90, 550, 640, 712))
     low = leaf_mask_of(K, (90, 550, 640, 712), plant_pixels)
     rng = K.rng
-    cover_cards(K, low, (70, 60), lambda px, py: -rng.uniform(0.5, 1.3), slope=(0.8, 0.2), name="undergrowth",
-                normal=(0, -0.3, 1))
-    cover_cards(K, low, (70, 60), lambda px, py: rng.uniform(0.5, 1.3), slope=(0.8, 0.2), name="undergrowth_back",
-                normal=(0, 0.3, 1))
-    # the patch of earth
-    earth(K, 365, 270, P.m(270) * 0.7, (150, 706, 280, 713), h=0.04)
+    cover_cards(K, low, (70, 60), clumps(K, -0.9, 0.4), slope=(0.6, 0.15), name="undergrowth", normal=(0, -0.3, 1))
+    cover_cards(K, low, (70, 60), clumps(K, 0.9, 0.4), slope=(0.6, 0.15), name="undergrowth_back", normal=(0, 0.3, 1))
+
 
 
 # ====================================================================== the tracing kit for the other trees
@@ -1046,6 +1044,18 @@ def cover_cards(K, target, size_px, depth, slope=(0.6, 0.3), cover=0.995, n_max=
     return placed
 
 
+def clumps(K, y_mid, swing, wave_px=70.0):
+    """A depth for low plants painted at (px, py): y_mid swinging +-swing with a slow wave along x, so neighbouring
+    cards share a depth and read as clumps from the side (independent random depths scattered them into patches
+    hanging at every depth)."""
+    ph = K.rng.uniform(0, 2 * math.pi, 2)
+
+    def y(px, py):
+        w = 0.65 * math.sin(px / wave_px + ph[0]) + 0.35 * math.sin(px / (wave_px * 0.43) + ph[1])
+        return y_mid + swing * w + K.rng.uniform(-0.06, 0.06)
+    return y
+
+
 class Crown:
     """A crown of leaf cards cut from the painting, shaped in depth like the painted outline blown up into a cushion:
     a card at painted spot (px, py) may lie as far forward or back as the crown is deep there (half_depth at its
@@ -1118,7 +1128,7 @@ class Crown:
         return lm
 
     def cards(self, n, size_px, layer="volume", yaw=40.0, pitch=25.0, region=None, mask=None, name="leaf",
-              squash=1.0, max_slope=1.3, cover=0.996, rag=0.22):
+              squash=1.0, max_slope=1.0, cover=0.996, rag=0.22):
         """Cards cut from the painting, every vertex at its painted (x, z) and only its depth varying (sheared_card):
         however deep or turned, from the front each shows exactly the painting where it is, so the crown is the
         painting from the front however many layers it has. layer "front": the shell facing the camera, placed until
@@ -1133,6 +1143,12 @@ class Crown:
         H, W = lm.shape
         if layer == "top":
             return self.top_cards(int(round(n * 3.0)), size_px, region=(x0, y0, x1, y1), name=name)
+        if layer == "volume":
+            # the cards inside the crown, hidden from the front by the shell: turned truly (rotated about their
+            # centres), so from every side their leaves are at their own size (sheared ones dragged them out into
+            # horizontal streaks from the side and above)
+            return self.cards_rotated(int(round(n * 1.6 / 1.3)), size_px, "volume", yaw=yaw, pitch=pitch,
+                                      region=region, mask=mask, name=name, squash=squash)
         shell = layer in ("front", "back")
         if shell:
             # every painted leaf pixel, the thin wisps too (an opened mask left the fine needles at the crown's edge
@@ -1173,10 +1189,10 @@ class Crown:
             # less and it is a sliver from the side, much more and its leaves are dragged out into streaks
             if layer == "front":
                 yy = self.y0 - ext * rng.uniform(0.8, 1.0)
-                a, b = -gx * 0.7 + rng.uniform(-0.5, 0.5), -gz * 0.7 + rng.uniform(-0.4, 0.4)
+                a, b = -gx * 0.6 + rng.uniform(-0.3, 0.3), -gz * 0.6 + rng.uniform(-0.25, 0.25)
             elif layer == "back":
                 yy = self.y0 + ext * rng.uniform(0.8, 1.0)
-                a, b = gx * 0.7 + rng.uniform(-0.5, 0.5), gz * 0.7 + rng.uniform(-0.4, 0.4)
+                a, b = gx * 0.6 + rng.uniform(-0.3, 0.3), gz * 0.6 + rng.uniform(-0.25, 0.25)
             elif layer == "top":
                 yy = self.y0 + rng.uniform(-1, 1) * ext * 0.9
                 a = rng.uniform(-0.4, 0.4)
@@ -1358,9 +1374,8 @@ def tree_mango_1(K):
     # trunk's foot and behind it
     low = leaf_mask_of(K, (0, 470, 560, 712), foliage_pixels)
     rng = K.rng
-    cover_cards(K, low, (75, 65), lambda px, py: -rng.uniform(0.4, 1.5), slope=(0.8, 0.2), name="undergrowth",
-                normal=(0, -0.3, 1))
-    cover_cards(K, low, (75, 65), lambda px, py: rng.uniform(0.5, 1.6), slope=(0.8, 0.2), name="undergrowth_back",
+    cover_cards(K, low, (75, 65), clumps(K, -1.0, 0.45), slope=(0.6, 0.15), name="undergrowth", normal=(0, -0.3, 1))
+    cover_cards(K, low, (75, 65), clumps(K, 1.1, 0.45), slope=(0.6, 0.15), name="undergrowth_back",
                 normal=(0, 0.3, 1))
     earth(K, 270, 250, 1.7, (300, 700, 420, 712), h=0.035)
 

@@ -1821,11 +1821,11 @@ def roof_house_b_1(K):
     X, Z = P.x, P.z
     D = 5.0
     # tiles from clean, fully opaque patches (the cut-out's plaster is speckled with transparent holes)
-    blue = ftile(K, (160, 350, 250, 460), vary=0.05, soften=0.35)
-    white = ftile(K, (160, 525, 230, 585), vary=0.05, soften=0.35)
-    pier = ftile(K, (130, 60, 215, 150), vary=0.05, soften=0.5)
-    red = ftile(K, (420, 635, 500, 695), vary=0.06, soften=0.35)
-    ledge = pier
+    blue = ftile(K, (160, 350, 250, 460), vary=0.12, soften=0.0)
+    white = ftile(K, (220, 495, 310, 555), vary=0.1, soften=0.15)
+    pier = ftile(K, (135, 60, 198, 140), vary=0.1, soften=0.45)
+    red = ftile(K, (420, 635, 500, 695), vary=0.1, soften=0.2)
+    ledge = ftile(K, (135, 60, 198, 140), vary=0.1, soften=0.6, size=2.2)      # the roof deck, wide
     tiles = K.tile((300, 205, 560, 285), vary=0.05)
     wood = K.tile((95, 380, 112, 520), P.m(17), vary=0.06)
     green = K.colour((290, 380, 320, 470), vary=0.06)
