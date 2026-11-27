@@ -37,8 +37,9 @@ namespace ChickenRunner.EditorTools
         // feather again, which counts once.
         static readonly LevelDesign[] s_levels =
         {
-            // Level 1 is laid piece by piece from its audited plan (ArtSource/tools/levels/level1.py): the neighbour's yard
-            // and the basket, then 25 sections that teach, practise and test the jump. The chunk list is its fallback.
+            // Levels 1, 4 and 7 (each zone's first) are laid piece by piece from their audited plans
+            // (ArtSource/tools/levels/levelN.py, docs/levels): level 1 the neighbour's yard and the basket, then the
+            // jump; level 4 the canals; level 7 the long rooftop runs. Their chunk lists are the fallback.
             new LevelDesign { title = "Pots and the sleeping dog", subtitle = "Tap to jump. Hold for higher.", zone = 1, seed = 11,
                 chunks = new[] { "Pots", "DungAndDog", "Puddle", "Cart" }, plan = "level1" },
             new LevelDesign { title = "Washing day", subtitle = "Swipe down to slide. Bounce on the cot.", zone = 1, seed = 12,
@@ -46,13 +47,13 @@ namespace ChickenRunner.EditorTools
             new LevelDesign { title = "Up on the roofs", subtitle = "Ladders, roofs and the jump between them.", zone = 1, seed = 13,
                 chunks = new[] { "Houses", "Clotheslines", "CotBounce", "RoofHop", "Cart", "Mischief", "DungAndDog" } },
             new LevelDesign { title = "The canal", subtitle = "Jump it, wade it, or take the plank.", zone = 2, seed = 21,
-                chunks = new[] { "Canal", "BridgeCanal", "FieldDung", "WideCanal", "FieldCart", "SmallHaystacks" } },
+                chunks = new[] { "Canal", "BridgeCanal", "FieldDung", "WideCanal", "FieldCart", "SmallHaystacks" }, plan = "level4" },
             new LevelDesign { title = "Mango trees", subtitle = "Jump at a branch to climb up for mangoes.", zone = 2, seed = 22,
                 chunks = new[] { "MangoBranch", "SmallHaystacks", "Canal", "BridgeCanal", "FieldDung", "FieldCart" } },
             new LevelDesign { title = "Buffalo and haystacks", subtitle = "Bounce off a buffalo's back.", zone = 2, seed = 23,
                 chunks = new[] { "Buffalo", "HaystackChain", "FieldMischief", "WideCanal", "MangoBranch" } },
             new LevelDesign { title = "Rooftop run", subtitle = "Mind the gaps and the water tanks.", zone = 3, seed = 31,
-                chunks = new[] { "RoofRun", "MarketPots", "RoofTanks", "MarketClotheslines" } },
+                chunks = new[] { "RoofRun", "MarketPots", "RoofTanks", "MarketClotheslines" }, plan = "level7" },
             new LevelDesign { title = "Market day", subtitle = "Bounce across the awnings.", zone = 3, seed = 32,
                 chunks = new[] { "Awnings", "Hens", "AwningsLong", "HensBaskets", "MarketMischief" } },
             new LevelDesign { title = "The temple steps", subtitle = "Everything at once. Catch him for good!", zone = 3, seed = 33, courseLength = 800f,

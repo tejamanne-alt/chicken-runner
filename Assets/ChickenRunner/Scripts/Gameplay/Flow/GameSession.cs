@@ -33,6 +33,12 @@ namespace ChickenRunner
         [SerializeField] internal int storyPages = 5;
         [Tooltip("Editor testing: open every level and skip the title.")]
         [SerializeField] internal bool unlockAll;
+        [Tooltip("Levels (zero-based) open from the start whatever the stars: the ones laid from audited plans, one per "
+            + "zone, so each zone can be played straight away. The other levels keep the doc's star gates.")]
+        [SerializeField] internal int[] openFromStart = new int[0];
+
+        /// <summary>Set by the editor's Chicken Runner > Play Level menu: the level to start in, skipping the title.</summary>
+        public const string PlayLevelKey = "ChickenRunner.PlayLevel";
 
         Progress _progress;
 
@@ -52,7 +58,21 @@ namespace ChickenRunner
         public LevelDefinition LevelAt(int index) => index >= 0 && index < levels.Length ? levels[index] : null;
 
         public bool IsLevelOpen(int index) =>
-            LevelAt(index) != null && (unlockAll || (index < StoryMap.LevelCount && _progress.IsLevelOpen(index)));
+            LevelAt(index) != null && (unlockAll || IsOpenFromStart(index)
+                || (index < StoryMap.LevelCount && _progress.IsLevelOpen(index)));
+
+        public bool IsOpenFromStart(int index) => openFromStart != null && Array.IndexOf(openFromStart, index) >= 0;
+
+        /// <summary>Whether any level of <paramref name="zone"/> is open whatever the stars.</summary>
+        public bool ZoneHasOpenLevel(int zone)
+        {
+            int first = StoryMap.FirstLevelOf(zone);
+            for (int i = 0; i < StoryMap.LevelsPerZone; i++)
+            {
+                if (IsOpenFromStart(first + i)) return true;
+            }
+            return false;
+        }
 
         void Awake()
         {
@@ -69,6 +89,17 @@ namespace ChickenRunner
             }
             flow.TapToRetry = false;
             flow.Finished += OnChaseFinished;
+            // Chicken Runner > Play Level in the editor: straight into that level.
+            int direct = Application.isEditor ? PlayerPrefs.GetInt(PlayLevelKey, -1) : -1;
+            if (direct >= 0)
+            {
+                PlayerPrefs.DeleteKey(PlayLevelKey);
+                if (LevelAt(direct) != null)
+                {
+                    StartLevel(direct, true);
+                    return;
+                }
+            }
             if (unlockAll) ShowMap();
             else ShowTitle();
         }
@@ -117,10 +148,12 @@ namespace ChickenRunner
 
         public void ShowMap() => Go(GameScreen.Map);
 
-        public void StartLevel(int index)
+        public void StartLevel(int index) => StartLevel(index, false);
+
+        void StartLevel(int index, bool evenIfLocked)
         {
             var level = LevelAt(index);
-            if (level == null || !IsLevelOpen(index)) return;
+            if (level == null || (!evenIfLocked && !IsLevelOpen(index))) return;
             LevelIndex = index;
             if (backdrop != null && level.Art != null) backdrop.Show(level.Art);
             Go(GameScreen.Chase);

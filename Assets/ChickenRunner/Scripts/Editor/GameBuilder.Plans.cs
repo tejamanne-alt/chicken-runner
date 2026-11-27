@@ -7,7 +7,7 @@ namespace ChickenRunner.EditorTools
 {
     /// <summary>
     /// Levels laid out piece by piece from a level plan (Art/Levels/levelN.json, written and audited by
-    /// ArtSource/tools/levels/levelN.py) instead of shuffled from a zone's chunk pool. Each section of the plan becomes
+    /// ArtSource/tools/levels/levelN.py with levelkit.py) instead of shuffled from a zone's chunk pool: levels 1, 4 and 7. Each section of the plan becomes
     /// one chunk, laid in order; the first is the level's own opening. Every item is placed with the same Kit calls as
     /// the hand-written chunks, so a plan's pots, dung and hops behave exactly like theirs; the plan only says where.
     /// </summary>
@@ -57,6 +57,12 @@ namespace ChickenRunner.EditorTools
             public float diameter;
             public float hinge;
             public float walkFrom;
+            // canals, roof rows, haystacks
+            public bool bridge;
+            public string[] fronts;
+            public bool ladder;
+            public bool big;
+            public float end;
         }
 #pragma warning restore 0649
 
@@ -107,8 +113,34 @@ namespace ChickenRunner.EditorTools
                 {
                     case "pots":
                     {
-                        var pots = kit.PotStack(x, item.hidden, 0f, item.mirror);
+                        var pots = kit.PotStack(x, item.hidden, item.y, item.mirror);
                         if (!string.IsNullOrEmpty(item.id)) named[item.id] = pots;
+                        break;
+                    }
+                    case "hensbasket":
+                    {
+                        var basket = kit.HensBasket(x, item.hidden);
+                        if (!string.IsNullOrEmpty(item.id)) named[item.id] = basket;
+                        break;
+                    }
+                    case "tank": kit.Tank(x, item.y); break;
+                    case "clothesline": kit.Clothesline(x, item.mirror); break;
+                    case "canal": kit.Canal(x, item.width, item.bridge); break;
+                    case "roofs":
+                    {
+                        // The plan placed what follows the row from the same card sizes; a mismatch means the art changed.
+                        float end = kit.RoofRow(x, item.fronts ?? new string[0], item.ladder);
+                        if (Mathf.Abs(end - (item.end - section.x)) > 0.05f)
+                            Debug.LogError($"Level plan section {section.name}: the roof row at {item.x} ends at {end + section.x:0.00}, "
+                                + $"not {item.end:0.00} as planned. Re-run the level's plan script (the house pictures changed?).");
+                        break;
+                    }
+                    case "haystack":
+                    {
+                        float end = kit.Haystack(x, item.big);
+                        if (Mathf.Abs(end - (x + item.width)) > 0.05f)
+                            Debug.LogError($"Level plan section {section.name}: the haystack at {item.x} is {end - x:0.00} m wide, "
+                                + $"not {item.width:0.00} as planned. Re-run the level's plan script.");
                         break;
                     }
                     case "dung": kit.Dung(x); break;

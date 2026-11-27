@@ -321,7 +321,9 @@ namespace ChickenRunner.EditorTools
                     if (withLadder) StandLadder(wall, x, width, cardHeight);
                     x += width;
                 }
-                Hop(start - 1.5f, 1.7f, 0.6f);
+                // His flutter up onto the roof: still rising as it passes the wall's top edge (2.41 m there), so he never
+                // clips the parapet, and landing 0.4 m onto the roof.
+                Hop(start - 1.6f, 2.0f, 0.9f);
                 return x;
             }
 

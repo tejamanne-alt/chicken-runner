@@ -161,6 +161,7 @@ namespace ChickenRunner
         {
             var progress = session.Progress;
             bool open = session.UnlockAll || progress.IsZoneOpen(zone);
+            bool someOpen = open || session.ZoneHasOpenLevel(zone);
             var art = zones != null && zone - 1 < zones.Length ? zones[zone - 1] : null;
             Picture(panel, art, ScaleMode.ScaleAndCrop, new Color(0.4f, 0.55f, 0.3f));
             Fill(new Rect(panel.x, panel.y, panel.width, 64f), s_shade);
@@ -200,8 +201,10 @@ namespace ChickenRunner
             {
                 Fill(new Rect(panel.x, panel.yMax - 92f, panel.width, 92f), s_panel);
                 int need = StoryMap.StarsToOpen(zone) - progress.StarsBefore(zone);
+                // A zone whose first level is open from the start says its other levels open with the stars.
                 Shadowed(new Rect(panel.x + 10f, panel.yMax - 92f, panel.width - 20f, 92f),
-                    "Opens with " + StoryMap.StarsToOpen(zone) + " stars from the earlier zones (" + need + " more)", _small);
+                    (someOpen ? "Its other levels open with " : "Opens with ") + StoryMap.StarsToOpen(zone)
+                    + " stars from the earlier zones (" + need + " more)", _small);
             }
         }
 

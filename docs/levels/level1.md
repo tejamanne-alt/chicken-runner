@@ -1,23 +1,31 @@
 # Level 1: Pots and the sleeping dog
 
-The beat sheet for zone 1's first level. It is written by `ArtSource/tools/levels/level1.py --report` from the
-same plan the game is built from (`Assets/ChickenRunner/Art/Levels/level1.json`), so it cannot drift from it.
-Edit the plan script, not this page, and run it again; it audits the course with the game's own jump maths and
-tuning, and fails on a violation. `GameBuilder` (Chicken Runner > Build Game) then lays one chunk per section.
+The beat sheet for level 1 (zone 1). It is written by `ArtSource/tools/levels/level1.py --report` from
+the same plan the game is built from (`Assets/ChickenRunner/Art/Levels/level1.json`), so it cannot drift from
+it. Edit the plan script, not this page, and run it again; it audits the course with the game's own jump maths
+and tuning, and fails on a violation. `GameBuilder` (Chicken Runner > Build Game) then lays one chunk per section.
+
+Zone 1: the kid runs at 6 m/s, the rooster at 5.5 m/s; a held jump is 3.70 m long and 1.4 m high; the course is 500 m.
 
 ## The opening: the neighbour's yard
 
-The neighbour naps on his rope cot behind the lane; his hens peck about. The kid tiptoes in from -4.4 m to the bamboo basket the rooster is sitting under (a tap hurries her). The player holds to lift it by its near rim; it turns up on its far rim over 1.6 s of holding. Letting go part way drops it back with a clunk, and the neighbour stirs. Fully up, the rooster bursts out and sprints off, the kid flings the basket aside, and the neighbour wakes shouting.
+The neighbour naps on his rope cot behind the lane; his hens peck about. The kid tiptoes in from -4.4 m to the
+bamboo basket the rooster is sitting under (a tap hurries her). The player holds to lift it by its near rim; it turns
+up on its far rim over 1.6 s of holding. Letting go part way drops it back with a clunk, and the neighbour stirs.
+Fully up, the rooster bursts out and sprints off, the kid flings the basket aside, and the neighbour wakes shouting.
 
 * A lift with no drop gives the rooster a **10 m** head start; any drop gives him **14 m**.
 * A retry skips the opening and keeps the head start it earned; loading the level again plays it again.
-* The rules are `Core/BasketLift.cs` (tested in `BasketLiftTests`); the flow is `GameFlow`'s Intro state; the basket, its hinge and the neighbour's two cut-outs are `BasketIntro`.
+* The rules are `Core/BasketLift.cs` (tested in `BasketLiftTests`); the flow is `GameFlow`'s Intro state; the
+  basket, its hinge and the neighbour's two cut-outs are `BasketIntro`.
 
-## The course
+## The shape of it
 
 Teach (to about 140 m): one new thing at a time, each first on its own with room around it, the rooster hopping
 it first to show the way and mangoes tracing the jump. Practise (to 300 m): the same things in pairs and rhythms.
 Test (to 500 m): the rooster's mischief, trios, the last cart, then the lane opens out.
+
+## The course
 
 | From | To | Section | What is there | Why |
 |---:|---:|---|---|---|
@@ -53,42 +61,46 @@ Test (to 500 m): the rooster's mischief, trios, the last cart, then the lane ope
 * a clean run from a 14 m start catches him after about 26 s, at about 158 m (without chillies)
 * first of each: pots 23 m, dung 57 m, dog 74 m, puddle 113 m, cart 127 m
 
-Take-off windows (how long the player has to start a jump that clears each obstacle):
+How each challenge is cleared, and the take-off windows (how long the player has to start the move):
 
 ```
-pots     22.8 m (FirstPot): held window 321 ms, tap 108 ms
-pots     37.8 m (TwoPots): held window 321 ms, tap 108 ms
-pots     44.8 m (TwoPots): held window 321 ms, tap 108 ms
-dung     56.7 m (Dung): held window 412 ms, tap 233 ms
-dog      73.5 m (SleepingDog): held window 312 ms, tap 125 ms
-puddle  113.2 m (HandPump): held window 246 ms, tap 71 ms
-pots    147.8 m (PotsDungPots): held window 321 ms, tap 108 ms
-dung    154.2 m (PotsDungPots): held window 412 ms, tap 233 ms
-pots    160.8 m (PotsDungPots): held window 321 ms, tap 108 ms
-dog     170.1 m (DogPots): held window 313 ms, tap 125 ms
-pots    177.3 m (DogPots): held window 321 ms, tap 108 ms
-pots    203.8 m (PotTrio): held window 321 ms, tap 108 ms
-pots    210.3 m (PotTrio): held window 321 ms, tap 108 ms
-pots    216.8 m (PotTrio): held window 321 ms, tap 108 ms
-puddle  225.7 m (PuddleDog): held window 246 ms, tap 71 ms
-dog     234.1 m (PuddleDog): held window 313 ms, tap 125 ms
-pots    252.8 m (CartPots): held window 321 ms, tap 108 ms
-dung    285.7 m (DungPair): held window 413 ms, tap 233 ms
-dung    291.7 m (DungPair): held window 413 ms, tap 233 ms
-puddle  302.7 m (Mischief): held window 246 ms, tap 71 ms
-dog     326.1 m (DogDung): held window 313 ms, tap 125 ms
-dung    333.2 m (DogDung): held window 413 ms, tap 233 ms
-pots    363.8 m (PotQuartet): held window 321 ms, tap 108 ms
-pots    370.3 m (PotQuartet): held window 321 ms, tap 108 ms
-pots    376.8 m (PotQuartet): held window 321 ms, tap 108 ms
-pots    383.3 m (PotQuartet): held window 321 ms, tap 108 ms
-pots    398.8 m (LastCart): held window 321 ms, tap 108 ms
-dog     413.1 m (DogDungPots): held window 313 ms, tap 125 ms
-dung    420.2 m (DogDungPots): held window 413 ms, tap 233 ms
-pots    426.8 m (DogDungPots): held window 321 ms, tap 108 ms
-puddle  455.2 m (PuddlePots): held window 246 ms, tap 71 ms
-pots    463.3 m (PuddlePots): held window 321 ms, tap 108 ms
-pots    469.8 m (PuddlePots): held window 321 ms, tap 108 ms
+pots          22.8 m (FirstPot): held window 321 ms, tap 108 ms
+pots          37.8 m (TwoPots): held window 321 ms, tap 108 ms
+pots          44.8 m (TwoPots): held window 321 ms, tap 108 ms
+dung          56.7 m (Dung): held window 412 ms, tap 233 ms
+dog           73.5 m (SleepingDog): held window 312 ms, tap 125 ms
+puddle       113.2 m (HandPump): held window 246 ms, tap 71 ms
+cart         127.0 m (Cart): jump onto the bed and run off the end
+pots         147.8 m (PotsDungPots): held window 321 ms, tap 108 ms
+dung         154.2 m (PotsDungPots): held window 412 ms, tap 233 ms
+pots         160.8 m (PotsDungPots): held window 321 ms, tap 108 ms
+dog          170.1 m (DogPots): held window 313 ms, tap 125 ms
+pots         177.3 m (DogPots): held window 321 ms, tap 108 ms
+pots         203.8 m (PotTrio): held window 321 ms, tap 108 ms
+pots         210.3 m (PotTrio): held window 321 ms, tap 108 ms
+pots         216.8 m (PotTrio): held window 321 ms, tap 108 ms
+puddle       225.7 m (PuddleDog): held window 246 ms, tap 71 ms
+dog          234.1 m (PuddleDog): held window 313 ms, tap 125 ms
+cart         244.0 m (CartPots): jump onto the bed and run off the end
+pots         252.8 m (CartPots): held window 321 ms, tap 108 ms
+dung         285.7 m (DungPair): held window 413 ms, tap 233 ms
+dung         291.7 m (DungPair): held window 413 ms, tap 233 ms
+puddle       302.7 m (Mischief): held window 246 ms, tap 71 ms
+pots         312.8 m (Mischief): held window 321 ms, tap 108 ms
+dog          326.1 m (DogDung): held window 313 ms, tap 125 ms
+dung         333.2 m (DogDung): held window 413 ms, tap 233 ms
+pots         363.8 m (PotQuartet): held window 321 ms, tap 108 ms
+pots         370.3 m (PotQuartet): held window 321 ms, tap 108 ms
+pots         376.8 m (PotQuartet): held window 321 ms, tap 108 ms
+pots         383.3 m (PotQuartet): held window 321 ms, tap 108 ms
+cart         390.0 m (LastCart): jump onto the bed and run off the end
+pots         398.8 m (LastCart): held window 321 ms, tap 108 ms
+dog          413.1 m (DogDungPots): held window 313 ms, tap 125 ms
+dung         420.2 m (DogDungPots): held window 413 ms, tap 233 ms
+pots         426.8 m (DogDungPots): held window 321 ms, tap 108 ms
+puddle       455.2 m (PuddlePots): held window 246 ms, tap 71 ms
+pots         463.3 m (PuddlePots): held window 321 ms, tap 108 ms
+pots         469.8 m (PuddlePots): held window 321 ms, tap 108 ms
 ```
 
 Problems: none.
