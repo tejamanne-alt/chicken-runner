@@ -1200,8 +1200,9 @@ def kite(K):
     """A paper fighter kite: a pink-and-yellow diamond sail bowed back over its bamboo spine and arched cross-spar,
     paper tassels tied at its three lower corners, and a tail of coloured paper strips knotted along a string."""
     P = K.paint
-    L, T_, R, B = (25, 55), (98, 7), (143, 78), (70, 123)
-    sail = K.projected(squeeze=1.0, keep=[(24, 6, 145, 124)], inset=1)
+    pale_halo(K)
+    L, T_, R, B = (24.5, 55), (98, 6.5), (144.5, 78), (70, 123.5)
+    sail = wrapped(K, 0.0, squeeze=1.0, front_deg=179.9, keep=[(24, 6, 146, 125)], inset=1, halo=3)
     bow = 0.07                          # how far the wing tips sweep back
 
     def spine_x(py):
@@ -1227,8 +1228,9 @@ def kite(K):
         ellipsoid(K, P.pt(x, y, depth(x, y) - 0.002), (P.m(3.5), P.m(3), P.m(3)), knot, seg=8, rings=6, name="knot")
     # the paper tassels at the corners, and the tail on its string
     def strip(pts, w, box, ys):
-        m = K.projected(squeeze=1.0, keep=[box], inset=2)
-        ribbon(K, pts, w, m, ys=ys)
+        # the painted strips carry a dark outline and halo about 1.5 px each side: the paper is that much wider
+        m = wrapped(K, 0.0, squeeze=1.0, front_deg=179.9, keep=[box], inset=1, halo=3)
+        ribbon(K, pts, w + 3.5, m, ys=ys)
     yl, yr = depth(19, 55), depth(145, 79)
     strip([(19, 56), (14, 68), (9, 80)], 6, (6, 58, 20, 86), [yl, yl + 0.01, yl + 0.02])
     strip([(21, 57), (23, 72), (25, 88)], 7, (19, 60, 30, 88), [yl, yl - 0.008, yl - 0.012])

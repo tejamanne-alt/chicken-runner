@@ -374,6 +374,22 @@ def water_pixels(rgba):
     return (a > 220) & ((b > r + 15) | ((r > 200) & (g > 200) & (b > 190)))
 
 
+def wood_pixels(rgba):
+    """Painted wood: opaque orange-brown (not the blue paint, not the golden hay, not the ink line)."""
+    import numpy as np
+    r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
+    return (a > 220) & (r > 90) & (r - b > 55) & (r > g) & (g < 175) & ~((g > 150) & (b < 80) & (r > 210))
+
+
+def blue_pixels(rgba):
+    """Blue-painted boards (and the orange flecks of wear on them that are surrounded by blue)."""
+    import numpy as np
+    from scipy import ndimage
+    r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
+    blue = (a > 220) & (b > r + 8) & (b > 50)
+    return blue | (ndimage.binary_closing(blue, iterations=3) & (a > 220) & ~(np.minimum(np.minimum(r, g), b) > 180))
+
+
 def plain_pixels(rgba):
     """A plain material's own pixels (stone, wood, earth): opaque, not the ink line, not a bright highlight and not
     the vivid paint of flowers, garlands or marks painted on it."""
@@ -1856,9 +1872,12 @@ def bullock_cart(K):
         x = X(px)
         s_ = (x - O.x - nrm.x * off) / ax.x
         return (x, O.y + ax.y * s_ + nrm.y * off, Z(py))
-    wood = K.tile((150, 95, 230, 108), vary=0.08, soften=0.2)
-    beam_m = K.tile((60, 205, 120, 232), vary=0.08, soften=0.2)
-    blue = K.colour((0.07, 0.11, 0.21), vary=0.12, scale=6)
+    # the cart's own painted wood and blue boards, quilted into square tiles (a strip of one rail laid on a stake
+    # or a beam runs into bands)
+    wood = quilt_tile(K, (0, 40, 500, 240), keep=wood_pixels, patch_px=14, size_px=84, soften=0.2,
+                      exclude=[(100, 90, 390, 372)])
+    beam_m = wood
+    blue = quilt_tile(K, (90, 100, 480, 200), keep=blue_pixels, patch_px=12, size_px=72, soften=0.15)
     iron = K.colour((0.05, 0.05, 0.06), vary=0.08)
     straw_m = K.tile((200, 40, 260, 70), vary=0.12, soften=0.1)
     W = 0.62                                         # the body's half width
@@ -1930,7 +1949,7 @@ def bullock_cart(K):
     # the wheels: iron tyre, felloe, twelve spokes, the heavy hub with its iron cap; the axle between them
     wheel_m = K.projected(axis_x=X(243), squeeze=0.95, keep=[(100, 90, 386, 372)], exclude=[(380, 60, 500, 240)],
                           inset=2)
-    for off, cx_px in ((-0.9, 243), (0.9, 365)):
+    for off, cx_px, phase in ((-0.9, 243, 0.25), (0.9, 365, 0.75)):
         cen = Vector(C(304, 228, 0.0)) + nrm * off
         cen.x = X(cx_px) if off < 0 else cen.x
         mat = wheel_m if off < 0 else K.projected(axis_x=cen.x, squeeze=0.95, dx=X(243) - cen.x,
@@ -1949,7 +1968,7 @@ def bullock_cart(K):
                    segments=14, name="axle_cap")
         up = Vector((0, 0, 1))
         for k in range(12):
-            a_ = 2 * math.pi * (k + 0.25) / 12
+            a_ = 2 * math.pi * (k + phase) / 12          # each wheel's spokes where they are painted
             d = ax * math.cos(a_) + up * math.sin(a_)
             K.tube([tuple(cen + d * rh * 0.9), tuple(cen + d * (ri + 0.01))], [P.m(8), P.m(6)], mat, segments=6,
                    name="spoke")
@@ -1979,4 +1998,5 @@ def bullock_cart(K):
         K.tube(pts, P.m(3.5), rope, segments=6, name="hung_rope", cap=False)
     earth(K, 420, 352, 362, 410, 0.9, (0.45, 0.22, 0.1),
           grass=[(98, 318, 148, 358), (300, 336, 352, 372), (444, 322, 522, 352), (735, 318, 832, 355)],
-          pebbles=[(180, 362, 12), (560, 352, 10)], pebble_box=(170, 355, 190, 366))
+          pebbles=[(180, 362, 12), (560, 352, 10)], pebble_box=(170, 355, 190, 366),
+          dirt_box=(0, 345, 839, 381), dirt_exclude=[(100, 330, 500, 381)])
