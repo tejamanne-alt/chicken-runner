@@ -1644,94 +1644,7 @@ def h4_5(K):
     tufts(K, [(203, 1043, 282, 1150), (368, 1052, 432, 1112)], [0.045, 0.045])
 
 
-# ====================================================================== bananas
-def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana", mask=None):
-    """A bunch of bananas round its hanging stalk: hands [(py, reach px)] down the rachis (px, from the painting), each
-    a ring of curved fingers springing from the stalk and curving up, reaching `reach` px out (the painted bunch's
-    half-width there); finger_px (length, radius)."""
-    P = K.paint
-    rng = K.rng
-    L, rad = finger_px
-    # the hanging part of the stalk, from the top of its hook down (np.interp needs its py increasing)
-    top = int(np.argmin([p[1] for p in rachis_px]))
-    hang = rachis_px[top:]
-    for k, (py, reach) in enumerate(hands):
-        rx = float(np.interp(py, [p[1] for p in hang], [p[0] for p in hang]))
-        if mask is not None:                  # the hand round the painted bunch's own middle at its row
-            band = mask[max(0, int(py) - 6):int(py) + 7].any(axis=0)
-            xs = np.nonzero(band)[0]
-            if len(xs) > 4:
-                rx, reach = (xs.min() + xs.max()) / 2.0, (xs.max() - xs.min()) / 2.0
-        ph = rng.uniform(0, 6.28)
-        for i in range(per_hand):
-            a = ph + 2 * math.pi * (i + rng.uniform(-0.2, 0.2)) / per_hand
-            d = Vector((math.cos(a), math.sin(a) * 0.9, 0.0))
-            base = Vector((P.x(rx), y, P.z(py))) + d * P.m(6)
-            out = P.m(max(reach * 0.5, reach - rad * 0.3)) * rng.uniform(0.92, 1.02)
-            Lm = P.m(L) * rng.uniform(0.85, 1.1)
-            pts = [base, base + d * out * 0.45 + Vector((0, 0, Lm * 0.15)),
-                   base + d * out * 0.8 + Vector((0, 0, Lm * 0.45)), base + d * out * 0.95 + Vector((0, 0, Lm * 0.8))]
-            K.tube([tuple(p) for p in pts], [P.m(rad) * f for f in (0.55, 1.0, 0.85, 0.35)], mat, segments=7,
-                   name=name)
-
-
-def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, foot_py, stem_box, leaf_box,
-           back=1.0, extra=5, sheaths=()):
-    """A banana plant: its pseudostem of sheathing leaf-bases (turned, wearing the painted sheaths all round), great
-    arching leaves on stalks rising from its top all round (the painted ones where they are painted), its bunch of
-    bananas on a hooked stalk with the bell at its end, boulders and grass at its foot."""
-    P = K.paint
-    K.front_min = 0.55            # round parts take the painting only where they face the front (no ink smear)
-    rgb = painted_rgb(K)
-    r, g, b, mx, mn = chan(rgb)
-    opaque = P.rgba[..., 3] > 0.5
-    leaf = leafy(rgb)
-    ped, hands, finger, bunch_box, bell = bunch_spec
-    bunch_ok = opaque & box_mask(opaque.shape, [bunch_box]) & not_ink(rgb, 50)
-    st_ok = opaque & not_ink(rgb, 45) & box_mask(opaque.shape, [stem_box]) & ~box_mask(opaque.shape, [bunch_box])
-    cx = stem[0][0]
-    mat = axis_material(K, st_ok, lambda py: float(np.interp(py, [p[1] for p in stem][::-1],
-                                                             [p[0] for p in stem][::-1])), squeeze=0.86, inset=2)
-    trunk(K, stem, mat, segments=18, name="pseudostem")
-    for sh in sheaths:                  # a leaf-base sheathing the stem, curving away from it as painted
-        trunk(K, sh, mat, segments=10, ys=-P.m(stem[0][2]) * 0.35, name="sheath")
-    # ---- the leaves
-    m = (leaf | (opaque & (g > r) & (mx > 70))) & ~halo(rgb) & box_mask(opaque.shape, [leaf_box])
-    bx0, by0, bx1, by1 = bunch_box
-    m &= ~ellipse_mask(opaque.shape, [((bx0 + bx1) / 2, (by0 + by1) / 2, (bx1 - bx0) / 2, (by1 - by0) / 2)], 2)
-    K.leaves_only(leaf_box, mask_rule(m, leaf_box))
-    palm = Palm(K, heart, R=P.m(R_px), fit_mask=m, fit_lim=(0.35, 2.4, 16), owned=True)   # torn leaves: strips
-    palm.crown(leaves, back=back, extra=extra, turn=(55, 175))
-    stalk = masked_material(K, opaque & box_mask(opaque.shape, [stalk_box]) & not_ink(rgb, 60), inset=1)
-    # (the leaves' own ribbons start at the stem's top: no separate stalk tubes, which showed beside the painted
-    # leaf-stalks from the front)
-    # ---- the bunch
-    yb = -P.m(stem[-1][2]) * 1.6
-    pts = [P.pt(x, y_, yb * min(1.0, i / 1.5)) for i, (x, y_, _) in enumerate(ped)]
-    K.tube(pts, [P.m(rr) for _, _, rr in ped], stalk, segments=8, name="peduncle")
-    fmat = masked_material(K, bunch_ok, inset=1)
-    rach = [(x, y_) for x, y_, _ in ped]
-    yellow = ndimage.binary_closing(bunch_ok & (g > 120) & (r > 0.82 * g) & (b < 0.62 * g), iterations=3)
-    bunch(K, rach, hands, finger, fmat, y=yb, mask=yellow)          # the painted bananas, not the stem behind
-    bx, by, brx, bry = bell
-    bell_ok = opaque & ellipse_mask(opaque.shape, [bell]) & not_ink(rgb, 50)
-    bm_ = masked_material(K, bell_ok, inset=1)
-    K.lathe([(P.m(brx) * f, P.m(bry) * z) for f, z in ((0.0, -1.0), (0.45, -0.85), (0.85, -0.4), (1.0, 0.1),
-                                                          (0.75, 0.6), (0.3, 0.95), (0.0, 1.0))],
-            bm_, segments=14, centre=(P.x(bx), yb, P.z(by)), name="bell")
-    # ---- the foot
-    stone_ok = opaque & not_ink(rgb) & box_mask(opaque.shape, [b_ for *_, b_ in rocks]) & ~leaf
-    stone = masked_material(K, stone_ok, inset=1)
-    for px, py, w, h, yy, _ in rocks:
-        rock(K, px, py, w, h, yy, stone)
-    gm = leafy(rgb) & ~halo(rgb)
-    for bx_ in grass:
-        K.leaves_only(bx_, mask_rule(gm, bx_))
-    tufts(K, grass, [-P.m(stem[0][2]) * 1.3] * len(grass))
-    tufts(K, grass, [P.m(stem[0][2]) * 1.3] * len(grass), yaws=(20, -50))
-
-
-# ====================================================================== torn leaves: strip cards
+# ====================================================================== bananas (torn leaves: strip cards)
 def fringe(K, m, allow=None, grow=2, ink=75, gap=0):
     """The cut-out's fringe round a card mask m: the opaque pixels within `grow` px of m that m leaves out (the pale
     halo outside the painted ink line, the grey between ink and halo). They are painted over in the painting (P.img,
@@ -1959,7 +1872,11 @@ class StripCard:
         lab, n = ndimage.label(kept)
         tc = (self.T[:-1, :-1] + self.T[1:, 1:]) / 2
         base = np.unique(lab[kept & (tc < base_t)])
-        keep = np.isin(lab, base[base > 0])
+        base = base[base > 0]
+        if len(base) > 1:                    # one piece only: scraps left between trimmed cells float from the side
+            size = ndimage.sum(np.ones_like(lab), lab, base)
+            base = base[[int(np.argmax(size))]]
+        keep = np.isin(lab, base)
         self.fine &= keep
         self.coarse &= keep.reshape(self.coarse.shape[0], f, self.coarse.shape[1], f).any(axis=(1, 3))
         left = self._fine_kept()[fi, fj] & ~bad
@@ -2165,12 +2082,18 @@ def back_fingers(K, rows, hands, y_c, mat, per=8, L=26, rad=5.0, arc=(28, 152), 
 
 
 def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, back_hands, rocks, rock_polys,
-                grass, leaf_box, cut, cut_lines, stem_box, bunch_box, copies=10):
+                grass, leaf_box, cut, cut_lines, stem_box, bunch_box, copies=10, yb=None, bell=None, petioles=(),
+                bunch_cut="ellipse", stalk_boxes=((245, 355, 310, 400), (300, 488, 335, 550)), turn_need=0.4,
+                back_finger=(26, 5.0), cells=((6, 3), (8, 4)), cut_polys=(), tip_px=0.0):
     """A young banana plant whose leaves the wind has torn into many narrow strips: its pseudostem of sheathing
     leaf-bases (stacked from the painted rows, so the sheath tips stand out as painted, wearing the painted sheaths
     all round), each torn leaf a strip card cut by its own painted pixels and bent in depth along its midrib (copies
     round the back trimmed to where the painting hides them: torn_crown), its bunch a body of the painted bananas
-    with more round its back on the hooked stalk, the bud below, stones and grass at its foot."""
+    with more round its back on the hooked stalk, the bud below, stones and grass at its foot. Options: yb the
+    bunch's depth; bell the bud's painted rows (a solid of them); petioles [(points (px, py, r px), depth)]: leaf
+    stalks hanging down the stem as tubes (cut from the leaf cards); bunch_cut "shape": the leaf cards keep off the
+    bunch's own outline (its rows and bananas), not an ellipse round it; cut_polys: more of the painting kept off
+    the leaf cards (what is not leaf there would ride on the nearest leaf, floating at its depth)."""
     P = K.paint
     K.front_min = 0.55            # round parts take the painting only where they face the front (no ink smear)
     rgb = painted_rgb(K)
@@ -2181,22 +2104,35 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
     sx = [(r_[1] + r_[2] + 1) / 2 for r_ in stem_rows]
     mat = wrap_material(K, st_ok, float(np.median(sx)), squeeze=0.9, inset=2)    # the sheaths wrapped round it
     row_solid(K, stem_rows, mat, segments=18, name="pseudostem")
+    ik = ink_px(K, 1.0)
+    for pts, ys_ in petioles:               # a leaf stalk hanging down the stem into it
+        K.tube([P.pt(x, y_, ys_) for x, y_, _ in pts], [P.m(max(1.5, rr - ik)) for _, _, rr in pts], mat,
+               segments=10, name="petiole")
     # ---- the leaves
     lines = Image.new("L", (P.w, P.h), 0)
     for pts, wd in cut_lines:                      # (the bunch's stalk: its own tube)
         ImageDraw.Draw(lines).line([tuple(p) for p in pts], fill=255, width=int(wd), joint="curve")
     bx0, by0, bx1, by1 = bunch_box
     bunch_el = ellipse_mask(opaque.shape, [((bx0 + bx1) / 2, (by0 + by1) / 2, (bx1 - bx0) / 2, (by1 - by0) / 2)], 2)
+    if bunch_cut == "shape":                 # the bunch's own outline: its rows, its bananas
+        sh = Image.new("L", (P.w, P.h), 0)
+        d_ = ImageDraw.Draw(sh)
+        br = sorted(bunch_rows)
+        d_.polygon([(l_, py) for py, l_, r_ in br] + [(r_ + 1, py) for py, l_, r_ in br[::-1]], fill=255)
+        for (tx, ty), (bx_, by2), hw in fingers:
+            d_.line([(bx_, by2), (tx, ty)], fill=255, width=int(2 * hw + 6))
+        bunch_el = ndimage.binary_dilation(np.asarray(sh) > 127, iterations=2)
     allow = box_mask(opaque.shape, [leaf_box]) & ~bunch_el & ~box_mask(opaque.shape, cut) & ~(np.asarray(lines) > 127)
+    if cut_polys:
+        allow &= ~poly_mask(opaque.shape, cut_polys)
     m = torn_mask(rgb, opaque) & allow
     m |= fringe(K, m, allow)
     K.leaves_only(leaf_box, mask_rule(m, leaf_box))
-    torn_crown(K, leaves, heart, R_px, m, copies=copies)
+    torn_crown(K, leaves, heart, R_px, m, copies=copies, need_share=turn_need, cell=cells[0], copy_cell=cells[1])
     # ---- the bunch on its hooked stalk
-    yb = -P.m(stem_rows[-1][2] - stem_rows[-1][1]) * 0.8
-    stalk = masked_material(K, opaque & box_mask(opaque.shape, [(245, 355, 310, 400), (300, 488, 335, 550)])
-                            & not_ink(rgb, 60) & (g > r), inset=1)
-    ik = ink_px(K, 1.0)
+    yb = -P.m(stem_rows[-1][2] - stem_rows[-1][1]) * 0.8 if yb is None else yb
+    stalk = masked_material(K, opaque & box_mask(opaque.shape, list(stalk_boxes)) & not_ink(rgb, 60) & (g > r),
+                            inset=1)
     for k, seg in enumerate(ped):            # the stalk from the stem over its hook into the bunch; below it the bud
         n = len(seg)
         ys = [yb * min(1.0, i / 2.0) for i in range(n)] if k == 0 else [yb] * n
@@ -2217,6 +2153,8 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
         cx_, hw_ = float(np.interp(py, by_s, bx_s)), float(np.interp(py, by_s, bhw))
         return yb - P.m(core_d * math.sqrt(max(0.0, hw_ * hw_ - (px - cx_) ** 2)))
     for (tx, ty), (bx_, by2), hw in fingers:   # each painted banana, lying on the front of the body
+        ln = max(1e-6, math.hypot(tx - bx_, ty - by2))
+        tx, ty = tx + (tx - bx_) / ln * tip_px, ty + (ty - by2) / ln * tip_px     # (to its inked tip)
         rr = max(1.5, hw - ik)
         pts, rad = [], []
         for t_, fr in ((0.0, 0.6), (0.3, 1.0), (0.65, 0.9), (1.0, 0.4)):
@@ -2224,10 +2162,17 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
             pts.append(P.pt(px_, py_, surface_y(px_, py_) - P.m(rr) * 0.25))
             rad.append(P.m(rr) * fr)
         K.tube(pts, rad, fmat, segments=8, name="banana")
-    back_fingers(K, bunch_rows, back_hands, yb, fmat, per=10, arc=(10, 170))
+    back_fingers(K, bunch_rows, back_hands, yb, fmat, per=10, L=back_finger[0], rad=back_finger[1], arc=(10, 170))
+    if bell is not None:                     # the bud at the end of the stalk, its painted outline row by row
+        bell_ok = opaque & poly_mask(opaque.shape, [[(l_, py) for py, l_, r_ in sorted(bell)]
+                                                    + [(r_ + 1, py) for py, l_, r_ in sorted(bell)[::-1]]])
+        row_solid(K, bell, axis_material(K, bell_ok & not_ink(rgb, 50), lambda py: float(np.median(
+            [(r_[1] + r_[2] + 1) / 2 for r_ in bell])), squeeze=0.86, inset=1), y=yb, segments=14, name="bell")
     # ---- the foot
     leafm = torn_mask(rgb, opaque)
-    stone_ok = opaque & not_ink(rgb) & box_mask(opaque.shape, [b_ for *_, b_ in rocks]) & ~leafm
+    stone_boxes = [b_ for *_, b_ in rocks] + [(min(q[0] for q in pl), min(q[1] for q in pl), max(q[0] for q in pl) + 1,
+                                               max(q[1] for q in pl) + 1) for pl, *_ in rock_polys]
+    stone_ok = opaque & not_ink(rgb) & box_mask(opaque.shape, stone_boxes) & ~leafm
     stone = masked_material(K, stone_ok, inset=1)
     for poly, yy, dep in rock_polys:            # traced on the painted ink's outer edge: in by the game's outline
         c_ = np.mean(np.array(poly, float), axis=0)
@@ -2238,14 +2183,14 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
         poly_solid(K, inset, yy, stone, depth=dep, segments=16, name="rock")
     for px, py, w, h, yy, _ in rocks:
         rock(K, px, py, w, h, yy, stone)
-    allow = box_mask(opaque.shape, grass) & ~box_mask(opaque.shape, [b_ for *_, b_ in rocks])
+    allow = box_mask(opaque.shape, grass) & ~box_mask(opaque.shape, stone_boxes)
     # the blades only: greener than red (the beige stone tops and the olive stem in the boxes are not grass)
     blade = opaque & ~halo(rgb) & (g > r) & (g > b + 8)
     srows = sorted(stem_rows)
     stem_m = poly_mask(opaque.shape, [[(l_ + 1, py) for py, l_, r_ in srows]
                                       + [(r_, py) for py, l_, r_ in srows[::-1]]])
     tips = opaque & (mx < 100) & ndimage.binary_dilation(blade, iterations=12) & ~stem_m   # their long inked tips
-    tips[min(b_[1] for *_, b_ in rocks):] = False                    # (not the stones' outline)
+    tips[min(b_[1] for b_ in stone_boxes):] = False                  # (not the stones' outline)
     blade |= tips | (opaque & (mx < 90) & ndimage.binary_dilation(blade, iterations=2))
     gm = blade & box_mask(opaque.shape, grass)
     gm |= fringe(K, gm, allow)                 # the blades to their thin tips, their pale fringe inked
@@ -2256,44 +2201,85 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
     tufts(K, grass, [r0 * 1.3] * len(grass))
 
 
-H51_LEAVES = [
-    ([(292, 285), (262, 209), (226, 147), (188, 76), (140, 20)], 52, 0.3, "leaf"),
-    ([(321, 285), (352, 232), (397, 169), (446, 89), (504, 27)], 50, 0.3, "leaf"),
-    ([(305, 290), (308, 200), (310, 150)], 22, 0.15, "leaf"),
-    ([(290, 334), (240, 292), (172, 248), (92, 220), (20, 200)], 42, -0.1, "leaf"),
-    ([(330, 339), (379, 285), (446, 241), (526, 214), (606, 203)], 35, -0.1, "leaf"),
-    ([(285, 368), (209, 340), (134, 333), (71, 355), (27, 400)], 34, -0.45, "leaf"),
-    ([(290, 374), (236, 365), (178, 379), (125, 419), (96, 481)], 34, -0.8, "leaf"),
-    ([(339, 379), (401, 348), (468, 348), (521, 383), (548, 439)], 35, -0.65, "leaf"),
+# h5_1's leaves (spines traced on their painted midribs, base -> tip), each (spine, d, fold, roll) as H52_TORN
+H51_TORN = [
+    ([(302, 330), (300, 293), (290, 250), (273, 200), (250, 150), (227, 110), (200, 77), (167, 43), (140, 18)],
+     0.3, 0.7, 0.25),
+    ([(318, 335), (325, 310), (340, 250), (360, 190), (380, 140), (410, 95), (450, 55), (500, 25)],
+     -0.25, -0.65, -0.25),
+    ([(305, 290), (308, 200), (310, 150)], 0.4, 0.3, 0.0),
+    ([(300, 335), (290, 312), (275, 295), (262, 280), (232, 245), (200, 216), (160, 200), (110, 190), (60, 186),
+      (12, 196)], -0.05, 0.5, 0.0),
+    ([(322, 335), (335, 315), (360, 285), (390, 265), (450, 225), (525, 200), (600, 205)], 0.05, -0.5, 0.0),
+    ([(290, 350), (270, 332), (200, 312), (150, 311), (100, 323), (55, 355), (25, 400)], -0.45, 0.45, 0.0),
+    ([(295, 375), (262, 356), (215, 346), (175, 353), (145, 375), (123, 405), (106, 438), (96, 470), (94, 488)],
+     -0.75, 0.4, 0.0),
+    ([(335, 360), (355, 330), (400, 313), (450, 313), (495, 337), (522, 372), (540, 412), (548, 442)],
+     -0.65, -0.45, 0.0),
 ]
+# the pseudostem's painted outline row by row (py, left, right), from its foot up; at 436-520 its left edge is the
+# leaf stalk hanging down it, above that the stalk is its own tube (petioles)
+H51_STEM = [(888, 268, 338), (876, 268, 338), (860, 268, 338), (844, 268, 338), (828, 268, 337), (812, 265, 339),
+            (800, 265, 340), (790, 266, 339), (784, 272, 338), (780, 273, 338), (764, 274, 337), (740, 274, 335),
+            (716, 275, 335), (700, 274, 333), (684, 272, 333), (676, 273, 333), (670, 276, 332), (660, 277, 332),
+            (640, 277, 332), (620, 277, 333), (616, 277, 335), (610, 277, 337), (604, 277, 339), (598, 277, 339),
+            (592, 278, 341), (586, 278, 339), (582, 278, 331), (580, 278, 330), (568, 277, 330), (556, 275, 330),
+            (550, 274, 330), (544, 272, 330), (538, 270, 330), (532, 269, 330), (528, 275, 330), (520, 281, 330),
+            (508, 282, 331), (490, 280, 331), (472, 279, 331), (460, 277, 331), (448, 273, 331), (442, 271, 331),
+            (436, 268, 331), (430, 287, 335), (418, 285, 335), (406, 281, 331), (394, 275, 334), (382, 266, 338)]
+# the bunch's body row by row (its top hand's tips stand above it), its bananas traced from their painted yellow
+# (tip, base, half-width), and the bud's rows
+H51_BUNCH = [(428, 338, 439), (436, 334, 442), (444, 334, 442), (452, 334, 440), (460, 334, 442), (468, 334, 445),
+             (476, 334, 445), (484, 334, 443), (492, 334, 441), (500, 334, 440), (508, 336, 446), (516, 339, 446),
+             (524, 336, 451), (532, 334, 450), (540, 335, 447), (548, 340, 445), (556, 339, 448), (564, 340, 448),
+             (572, 343, 447), (580, 345, 443), (588, 348, 436), (594, 360, 420), (598, 385, 409)]
+H51_FINGERS = [((397, 402), (393, 457), 7.1), ((416, 407), (407, 454), 6.5), ((432, 412), (420, 454), 6.0),
+               ((363, 415), (382, 464), 6.9), ((341, 421), (367, 469), 7.2), ((330, 434), (350, 472), 5.9),
+               ((439, 433), (430, 458), 4.7), ((424, 454), (417, 492), 6.0), ((405, 459), (403, 500), 6.5),
+               ((441, 467), (426, 498), 6.4), ((332, 472), (340, 478), 2.4), ((381, 475), (396, 519), 6.4),
+               ((344, 478), (363, 511), 6.0), ((361, 477), (378, 508), 6.6), ((331, 484), (351, 516), 6.0),
+               ((432, 497), (421, 528), 6.0), ((416, 498), (406, 532), 6.0), ((441, 508), (434, 538), 4.1),
+               ((359, 510), (376, 538), 5.5), ((379, 511), (392, 551), 6.6), ((344, 518), (349, 528), 2.9),
+               ((448, 524), (440, 544), 3.3), ((428, 525), (413, 554), 5.9), ((355, 527), (370, 553), 5.8),
+               ((335, 527), (356, 553), 5.8), ((402, 539), (403, 576), 6.2), ((375, 545), (393, 580), 6.3),
+               ((437, 546), (411, 581), 6.5), ((343, 555), (355, 570), 5.0), ((357, 560), (385, 586), 6.6),
+               ((447, 564), (412, 593), 7.3), ((345, 574), (374, 597), 7.3)]
+H51_BELL = [(612, 400, 411), (615, 400, 414), (618, 396, 419), (621, 393, 421), (624, 391, 423), (627, 390, 425),
+            (630, 390, 426), (633, 389, 425), (636, 389, 427), (639, 390, 427), (642, 390, 425), (645, 390, 425),
+            (648, 392, 424), (651, 393, 420), (654, 395, 420), (657, 398, 420), (660, 400, 414), (663, 408, 413)]
 
 
 @model("h5_1", "plants", kind="prop", atlas=2048, leaves=1024)
 def h5_1(K):
-    """A banana plant: a stout green pseudostem of sheathing leaf-bases, eight great arching leaves with torn edges
-    all round its top, a heavy bunch of yellow-green bananas hanging from a hooked stalk with its bell below, stones
-    and grass at its foot."""
-    banana(K, [(305, 885, 32), (304, 820, 30), (304, 700, 30), (304, 580, 27), (303, 510, 26), (300, 465, 22),
-               (298, 420, 18), (296, 380, 15)],
-           H51_LEAVES, (302, 468), 300, (285, 300, 330, 470),
-           ([(326, 410, 7), (345, 378, 7), (368, 385, 6.5), (383, 420, 6), (388, 500, 6), (395, 585, 5),
-             (404, 612, 4)], [(440, 58), (478, 60), (515, 58), (552, 54), (588, 46)], (48, 8), (318, 395, 455, 610),
-            (406, 638, 17, 23)),
-           [(250, 888, 105, 55, -0.03, (192, 830, 300, 890)), (290, 890, 50, 26, -0.05, (245, 860, 300, 892)),
-            (348, 885, 48, 22, -0.045, (322, 862, 375, 888)), (330, 885, 80, 40, 0.05, (192, 830, 300, 890))],
-           [(205, 755, 270, 860), (330, 760, 400, 875), (175, 820, 215, 880)], 885, (262, 410, 345, 885),
-           (0, 0, 624, 500))
-
-
-H52_LEAVES = [
-    ([(228, 320), (205, 220), (180, 140), (155, 70), (138, 20)], 46, 0.3, "leaf"),
-    ([(240, 320), (262, 220), (295, 130), (340, 60), (380, 12)], 48, 0.3, "leaf"),
-    ([(238, 300), (240, 230), (245, 165)], 24, 0.5, "leaf"),
-    ([(224, 315), (188, 272), (140, 224), (80, 188), (12, 164)], 42, -0.05, "leaf"),
-    ([(264, 325), (304, 272), (352, 232), (420, 192), (492, 172)], 44, -0.05, "leaf"),
-    ([(212, 355), (168, 334), (124, 350), (88, 386), (66, 436)], 37, -0.55, "leaf"),
-    ([(255, 365), (320, 318), (385, 310), (435, 335), (472, 380)], 38, -0.6, "leaf"),
-]
+    """A banana plant: a stout green pseudostem of sheathing leaf-bases with a leaf stalk hanging down it, eight great
+    arching leaves with torn edges all round its top, a heavy bunch of yellow-green bananas hanging from a hooked
+    stalk with its bud below, stones and grass at its foot."""
+    P = K.paint
+    K.front_exclude.append((300, 874, 330, 892))     # the pale haze under the painted foot, between the stones: the
+    banana_torn(                                     # stem runs on down to the ground there in its own colours
+        K, H51_STEM, H51_TORN, (305, 360), 300,
+        [[(321, 412, 9.5), (323, 400, 10), (326, 390, 10.5), (331, 380, 10.5), (338, 372, 11), (346, 368, 11),
+          (354, 369, 11), (361, 375, 11), (366, 384, 11.5), (370, 395, 12), (373, 406, 12.5), (376, 417, 12.5)],
+         [(400, 586, 5), (402, 598, 5), (404, 612, 4.5)]],
+        H51_BUNCH, H51_FINGERS, (445, 475, 505, 535, 565),
+        [(312, 886, 60, 18, 0.05, (300, 862, 330, 892))],
+        [([(192, 873), (197, 862), (210, 848), (227, 837), (243, 834), (260, 841), (273, 850), (283, 860), (288, 872),
+           (270, 880), (240, 882), (215, 882), (198, 879)], -0.03, 0.75),
+         ([(248, 886), (251, 873), (260, 866), (277, 863), (290, 868), (298, 879), (296, 888), (272, 892)], -0.06,
+          0.7),
+         ([(328, 882), (333, 873), (347, 868), (360, 870), (370, 878), (367, 884), (347, 886)], -0.05, 0.7)],
+        [(198, 752, 272, 864), (172, 822, 203, 874), (316, 760, 402, 882)], (0, 0, 624, 500), [(255, 385, 345, 500)],
+        [([(323, 400), (326, 390), (331, 380), (338, 372), (346, 368), (354, 369), (361, 375), (366, 384), (370, 395),
+           (373, 406)], 24),
+         ([(252, 390), (266, 412), (276, 432), (281, 452)], 24)],
+        (240, 360, 345, 890), (332, 395, 455, 610), copies=14, yb=-P.m(30), bell=H51_BELL,
+        petioles=[([(252, 390, 9.5), (259, 401, 9.5), (266, 412, 10), (272, 424, 10.5), (276, 432, 10.5),
+                    (279, 442, 10), (281, 452, 9)], -P.m(8))],
+        bunch_cut="shape", stalk_boxes=((315, 355, 395, 412), (395, 585, 410, 615)), back_finger=(40, 6.5),
+        cells=((8, 4), (10, 5)), tip_px=2.5,
+        # below the lower right leaf: inside the stalk's hook, the top hand's tips, the stalk between them
+        cut_polys=[[(331, 430), (331, 382), (345, 380), (355, 367), (370, 359), (380, 369), (400, 377), (420, 388),
+                    (440, 400), (455, 403), (465, 420), (465, 430)]])
 
 
 # the torn leaves (spines traced on their painted midribs, base -> tip), each (spine, d, fold, roll): the midrib's
