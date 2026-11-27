@@ -1485,6 +1485,35 @@ def strand_rims(ob):
                 uvl.data[i].uv = (u.x, u.y + (z - zc))
 
 
+def eaves_over(x0, x1, lift=-0.3, ramp=0.25):
+    """A hip_thatch fringe_at: the full fringe over the walls (x0..x1 m), `lift` (negative: the eave's edge swept up)
+    over the overhangs beyond them, blended over `ramp` m inside each wall's end."""
+    def f(x):
+        d = min(x - x0, x1 - x)
+        t = min(1.0, max(0.0, d / ramp))
+        return lift + (1.0 - lift) * t * t * (3 - 2 * t)
+    return f
+
+
+def brighten(m, k):
+    """Multiplies a kit material's colour by k (once: a cached material is not brightened twice)."""
+    if getattr(m, "_lh_bright", None) == k:
+        return m
+    nt = m.nt
+    link = m.emit.inputs["Color"].links[0]
+    src = link.from_socket
+    nt.links.remove(link)
+    mul = nt.nodes.new("ShaderNodeMix")
+    mul.data_type = "RGBA"
+    mul.blend_type = "MULTIPLY"
+    mul.inputs["Factor"].default_value = 1.0
+    nt.links.new(src, mul.inputs["A"])
+    mul.inputs["B"].default_value = (k, k, k, 1.0)
+    nt.links.new(mul.outputs["Result"], m.emit.inputs["Color"])
+    m._lh_bright = k
+    return m
+
+
 def uv_metres(ob, nu, nv, st):
     """Gives a K.sheet part (fn(u, v) on an nu x nv grid) 'decal' UVs st(u, v) -> (s, t), in metres (strand_mat)."""
     me = ob.data
@@ -1495,7 +1524,7 @@ def uv_metres(ob, nu, nv, st):
 
 
 def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch",
-               pull=0.0, end_fringe=None, corner=0.0, strands=False, lump=None):
+               pull=0.0, end_fringe=None, corner=0.0, strands=False, lump=None, fringe_at=None):
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
     ragged fringe `fringe` m deep. The mat's thickness stands half outside the surface, so seen from the front the
@@ -1506,7 +1535,8 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
     slope, end and fringe gets UVs in metres down its slope, so the straws run down it. lump = (along the slope,
     across, scale): the lumps' noise smoothed that many grid cells each way and scaled to that standard deviation
     (default round lumps, 1.2 cells: seen from behind they shade into a blotchy pattern; long, low ridges down the
-    slope read as bundles of straw)."""
+    slope read as bundles of straw). fringe_at(x) -> factor: the long slopes' fringe scaled along the eave (negative
+    lifts the eave's edge: overhangs whose painted corners sweep up, eaves_over)."""
     ex0, ex1, ey0, ey1 = eave
     rx0, rx1 = ridge
     pe0, pe1, pr0, pr1 = pull if isinstance(pull, (tuple, list)) else (pull,) * 4
@@ -1536,6 +1566,8 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
             z = ze + (zr - ze) * v + shag * noise[iv, iu]
             if v < 0.09:
                 taper = min(1.0, u / corner, (1 - u) / corner) if corner else 1.0
+                if fringe_at is not None:
+                    taper *= fringe_at(x)
                 z -= fringe * (0.6 + 0.8 * abs(tips[iu])) * taper
             return (x, y, z)
         ob = K.sheet(f, nu, nv, mat, name=name, smooth=True, thickness=thickness)
@@ -1631,12 +1663,16 @@ def house_potter(K):
     D = 4.5
     K.front_min = 0.15
     halo_exclude(K, [(300, 0, 1520, 540), (1430, 200, 2195, 1010)])
-    halo_exclude(K, [(320, 400, 470, 540), (1400, 380, 1530, 540)], near=26)    # (between the eave corners' tips)
+    halo_exclude(K, [(320, 400, 470, 540), (1400, 380, 1530, 540)], near=45, white=195)   # (between the eave
+    # corners' straw tips the white reaches far in, and showed as white specks on the mat's corners)
     # inside the wheel's frame the cut-out is painted solid white: not the frame's back rails
     K.front_exclude += [(1570, 822, 1672, 876), (1709, 822, 1814, 876), (1570, 924, 1673, 955), (1707, 924, 1814, 955)]
     mud = K.tile((480, 640, 660, 900), size=1.2, vary=0.06, soften=0.25)
     lime = K.tile((500, 930, 970, 980), size=1.0, vary=0.04, soften=0.4)
-    thatch_m = K.tile((420, 250, 500, 440), size=0.6, vary=0.06, soften=0.3)   # clean golden straw, left of the fronds
+    # straws running down every slope, hip end and fringe (UVs down the slopes), from the painted front slope between
+    # and below the fronds where they run straight down (a tile of the leaning straw by the left hip, box-projected,
+    # laid the straws across the hip ends)
+    thatch_m = strand_mat(K, [(920, 170, 1000, 340), (700, 330, 820, 440)], size=1.0, vary=0.05, gain=1.2, even=0.5)
     # the earth: its painted strip stacked square (box-projected as it is, an 18 px strip streaks across the top)
     earth = clean_tile(K, (300, 1110, 1300, 1128), vary=0.1, soften=0.0, thresh=40, strip=True)
     wood = K.tile((1010, 660, 1220, 900), size=0.6, vary=0.04)
@@ -1650,12 +1686,12 @@ def house_potter(K):
     # the hut's thatch, its ridge pole, palm fronds weighting it front (painted) and back (cards)
     eave, ridge = (P.x(334), P.x(1500), -0.55, D + 0.55), (P.x(506), P.x(1414))
     ze, zr = P.z(474), P.z(40)
-    pull = (0.13, 0.05, 0.12, 0.05)
+    pull = (0.13, 0.05, 0.12, 0.1)        # (right ridge 0.1: at 0.05 its top stood out past the painted ridge end)
     n0 = len(K.parts)
-    # (the long slopes' fringe tapering away over the overhangs: the painted eave corners sweep up, and the full
-    # fringe hung below them as a blue lump)
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.25, shag=0.05, fringe=0.1, pull=pull, end_fringe=0.05,
-               corner=0.1)
+    # (the long slopes' fringe tapering away over the overhangs and none on the hip ends: the painted eave corners
+    # sweep up, and the full fringe hung below them as a blue lump; the fringe cards below give the hip ends theirs)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.25, shag=0.05, fringe=0.1, pull=pull, end_fringe=0.0,
+               fringe_at=eaves_over(X0, X1, lift=-0.35), strands=True)
     back = K.parts[n0 + 1]
     K.tube([P.pt(506, 28, D / 2), P.pt(1414, 28, D / 2)], P.m(17), K.colour((560, 15, 1300, 40), vary=0.06),
            segments=10, name="ridge_pole")
@@ -1673,14 +1709,14 @@ def house_potter(K):
     right_zone = lambda h, w, x0, y0: (np.arange(w)[None, :] + x0) > np.array([hip_r(y0 + j) + 18 for j in range(h)])[:, None]
     # (straw to its very tips: straw_clean keeps 4 px clear of the halo, which took the painted tips off)
     tips = lambda rgb: straw_pixels(rgb) & (rgb.min(axis=2) < 185)
-    K.leaves_only((330, 25, 985, 480), lambda rgb: frond_whole(rgb) | (tips(rgb) & left_zone(*rgb.shape[:2], 330, 25)))
+    K.leaves_only((330, 25, 985, 515), lambda rgb: frond_whole(rgb) | (tips(rgb) & left_zone(*rgb.shape[:2], 330, 25)))
     K.leaves_only((985, 25, 1360, 340), frond_whole)
     K.leaves_only((1360, 25, 1525, 222), lambda rgb: tips(rgb) & right_zone(*rgb.shape[:2], 1360, 25))
     # the ragged straw tips along the hip ends: cards in the front slope's plane, carried past the hip lines, each
     # corner at its painted place (exactly the painting from the front; a thin fringe along the hip corner from the
     # side), overlapping by half so their cut edges fall inside their neighbours
     nrm_f = (0.0, -sin_s, math.cos(math.asin(sin_s)))
-    for side, (p0, p1) in ((-1, (45, 465)), (1, (40, 215))):
+    for side, (p0, p1) in ((-1, (45, 500)), (1, (40, 215))):
         for py in range(p0, p1, 24):
             q0, q1 = py - 24, py + 24
             if side < 0:
@@ -1697,13 +1733,17 @@ def house_potter(K):
     O = Vector((0.0, eave[3], ze))
     dvec = Vector((0.0, ym - eave[3], zr - ze)).normalized()
     nvec = Vector((0.0, zr - ze, eave[3] - ym)).normalized()
-    vs = np.array([tuple(v.co) for v in back.data.vertices])
+    # (the front slope's mat too: near the ridge it rises over the back's, and hid all but a pale leaflet of a frond)
+    vs = np.array([tuple(v.co) for ob in (back, K.parts[n0]) for v in ob.data.vertices])
     va, vb, vh = vs[:, 0], (vs - np.array(O)) @ np.array(dvec), (vs - np.array(O)) @ np.array(nvec)
+    half = 0.125 if any(m.type == "SOLIDIFY" for m in back.modifiers) else 0.0   # (strands: solidified already)
 
     def top(a, b):
         m = (va - a) ** 2 + (vb - b) ** 2 < 0.3 ** 2
-        return (vh[m].max() if m.any() else 0.0) + 0.125
-    for (x0, y0, x1, y1) in ((490, 40, 975, 445), (990, 40, 1345, 335)):
+        return (vh[m].max() if m.any() else 0.0) + half
+    # (the left group's box clear of the straw tips the hip's leaf rule keeps left of the hip line: at 490 a painted
+    # tip showed on the back slope as a pale streak by the ridge)
+    for (x0, y0, x1, y1) in ((520, 40, 975, 445), (990, 40, 1345, 335)):
         pcx, pcy = (x0 + x1) / 2, (y0 + y1) / 2
         a_c, b_c = P.x(pcx), (P.z(pcy) - ze) / sin_s
         ni, nj = 6, 5
@@ -1721,8 +1761,8 @@ def house_potter(K):
     # straw fringe cards round the sides and back, cut from the painted fringe right of the fronds, hanging from
     # inside the mat (their top edges out in the air read as pale rectangles on the hip ends)
     K.leaves_only((985, 400, 1330, 520), straw_clean)
-    for i in range(16):
-        side = i % 4
+    for i in range(28):
+        side = (0, 2, 1, 3, 2, 0, 1)[i % 7]                 # (more on the hip ends, which have no fringe of their own)
         cx = K.rng.uniform(1050, 1265)
         box = (cx - 60, 448, cx + 60, 518)
         if side in (0, 1):
@@ -1765,7 +1805,11 @@ def house_potter(K):
         px = 1430 + (2130 - 1430) * u
         # (the mat's top face, half its thickness above this, on the painted top line)
         return (P.x(px), -0.22 + (yb + 0.22) * v, lean_top(px) - th / 2 - 0.01 + 0.02 * noise[int(v * 12), int(u * 30)])
-    K.sheet(lean_surf, 30, 12, lean, name="lean_to", thickness=th)
+    # (its top the hut's straw running down the slope, by UVs: box-projected, the tile's straws lay across it)
+    lean_ob = K.sheet(lean_surf, 30, 12, thatch_m, name="lean_to", thickness=th)
+    cos_l = math.cos(math.atan2(P.m(560 - 225), P.m(2150 - 1430)))
+    uv_metres(lean_ob, 30, 12, lambda u, v: (lean_surf(u, v)[1], (P.x(2130) - lean_surf(u, v)[0]) / cos_l))
+    strand_rims(lean_ob)
     bamboo = K.projected(axis_x=P.x(2010), squeeze=0.9, keep=[(1985, 600, 2034, 1030)], inset=2)
     bamboo2 = K.projected(axis_x=P.x(1918), squeeze=0.9, keep=[(1903, 600, 1932, 965)], inset=2)
     for y in (-0.1, 0.9, 1.9, 2.8):
@@ -1778,7 +1822,37 @@ def house_potter(K):
     K.tube([P.pt(1891, 563, 0.35), P.pt(2042, 563, -0.3)], P.m(11), bamboo, segments=8, name="beam")
     K.tube([P.pt(1891, 575, yb - 0.25), P.pt(2042, 575, yb - 0.25)], P.m(11), bamboo, segments=8, name="beam")
     K.tube([P.pt(2010, 560, -0.3), P.pt(2010, 560, yb - 0.25)], P.m(11), bamboo, segments=8, name="plate")
-    K.tube([P.pt(1972, 562, -0.25), P.pt(2008, 654, -0.28)], P.m(7), bamboo, segments=6, name="brace")
+    # the knee braces, traced on the painted ones: from under the slab down into each front post
+    K.tube([P.pt(1956, 563, -0.28), P.pt(2003, 636, -0.3)], P.m(9), bamboo, segments=6, name="brace")
+    K.tube([P.pt(1850, 536, 0.35), P.pt(1904, 628, 0.35)], P.m(10), bamboo2, segments=6, name="brace")
+    # the slab's ragged straw tips above its top line and below its bottom line: cards on its cut end's face, each
+    # where it is painted (exactly the painting from the front; edge-on from the sides)
+    def edge_y(pts, x):
+        for (xa, ya), (xb, yb_) in zip(pts, pts[1:]):
+            if min(xa, xb) <= x <= max(xa, xb):
+                return ya + (yb_ - ya) * (x - xa) / ((xb - xa) or 1)
+        return pts[-1][1]
+    lean_bot = sorted(bottom)                     # (not "bot": the pots' loop below reuses that name)
+    no_post = lambda X: ~(((X > 1980) & (X < 2040)) | ((X > 1895) & (X < 1940)))
+
+    def lean_tips(rgb, x0=1425, y0=190):
+        h, w = rgb.shape[:2]
+        X = np.arange(w)[None, :] + x0
+        Y = np.arange(h)[:, None] + y0
+        t = np.array([edge_y(top, x) for x in range(x0, x0 + w)])[None, :]
+        b = np.array([edge_y(lean_bot, x) for x in range(x0, x0 + w)])[None, :]
+        return tips(rgb) & ((Y < t + 4) | ((Y > b - 4) & no_post(X)))
+    K.leaves_only((1425, 190, 2195, 640), lean_tips)
+    nrm = (0.0, -1.0, 0.3)
+    for x in range(1430, 2160, 30):
+        for y0, y1 in ((min(edge_y(top, x), edge_y(top, x + 60)) - 38, max(edge_y(top, x), edge_y(top, x + 60)) + 6),
+                       (min(edge_y(lean_bot, x), edge_y(lean_bot, x + 60)) - 6,
+                        max(edge_y(lean_bot, x), edge_y(lean_bot, x + 60)) + 48)):
+            x1 = min(x + 60, 2190)
+            K.card([(P.x(x), -0.505, P.z(y1)), (P.x(x1), -0.505, P.z(y1)), (P.x(x1), -0.505, P.z(y0)),
+                    (P.x(x), -0.505, P.z(y0))], [(x / P.w, 1 - y1 / P.h), (x1 / P.w, 1 - y1 / P.h),
+                                                 (x1 / P.w, 1 - y0 / P.h), (x / P.w, 1 - y0 / P.h)],
+                   name="lean_tips", normal=nrm)
     # the potter's wheel: a frame of posts and rails, the stone flywheel, spindle, head and a lump of clay
     yw = 0.55
     tw = K.colour((1540, 820, 1565, 950), vary=0.08)
@@ -2075,7 +2149,17 @@ def house_weaver(K):
         lime = (mn > 165) & (mx - mn < 60)
         indigo = (b_ > r + 10) & (b_ > g)
         return ~(lime | indigo)
-    exclude_where(K, (1035, 590, 1345, 1080), not_wall, grow=1)
+    n_ex = len(K.front_exclude)
+    # (above the skirting the yarn's blue too: kept, it painted the blue hanks on the wall beside them)
+    exclude_where(K, (1035, 590, 1345, 922), lambda rgb: not_wall(rgb) | (rgb[..., 2] > rgb[..., 0].astype(int) + 10),
+                  grow=1)
+    # (below it the skirting's own indigo only: red over 92 and blue 20 over green, measured; the darker blue and teal
+    # yarn painted over it otherwise stayed on the skirting as a dark teal sliver by the wall's end)
+    skirting = lambda rgb: ((rgb[..., 2].astype(int) > rgb[..., 0].astype(int) + 10) & (rgb[..., 2] > rgb[..., 1])
+                            & (rgb[..., 0] > 92) & (rgb[..., 2].astype(int) - rgb[..., 1] > 20))
+    exclude_where(K, (1035, 922, 1345, 1080), lambda rgb: not_wall(rgb) & ~skirting(rgb) | (
+        (rgb[..., 2].astype(int) > rgb[..., 0].astype(int) + 10) & ~skirting(rgb)), grow=1)
+    cells = K.front_exclude[n_ex:]
     white = K.tile((200, 560, 440, 900), size=1.0, vary=0.05, soften=0.2)
     indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
     # straws running down every slope from the painted front slope's middle, where they run straight down (a tile of
@@ -2084,17 +2168,26 @@ def house_weaver(K):
     earth = clean_tile(K, (200, 1092, 1300, 1130), vary=0.1, soften=0.0, thresh=40, strip=True)          # the earth strip, stacked square
     brown = K.colour((495, 560, 520, 700), vary=0.06)
     timber = K.colour((560, 600, 568, 750), vary=0.08)
-    X0, X1 = P.x(152), P.x(1345)
+    X0, X1 = P.x(156), P.x(1345)                 # (the painted wall's left edge: at 152 a blue line ran down it)
     body = K.box(X0, X1, 0.0, D, 0.0, P.z(452), white, name="walls")
     skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(925), indigo, name="skirting")
     K.cut(skirt, P.x(491), P.x(1001), -0.05, 0.1, P.z(989), P.z(920))     # (not across the alcove's floor)
     K.box(P.x(150), P.x(1665), -0.9, D + 0.25, 0.0, P.z(1090), earth, bevel=0.04, name="ground")
     eave = (P.x(5), P.x(1495), -0.62, D + 0.62)
     ridge = (P.x(375), P.x(1125))
+    # (over the overhangs the eave's edge sweeps up as painted: the full fringe hung there as a blue band)
     hip_thatch(K, eave, ridge, P.z(436), P.z(30), thatch_m, thickness=0.26, shag=0.05, fringe=0.09, pull=0.14,
-               strands=True, lump=(3.0, 1.2, 0.15))
+               strands=True, lump=(3.0, 1.2, 0.15), fringe_at=eaves_over(X0, X1, lift=-0.3), end_fringe=0.04)
     K.tube([P.pt(375, 26, D / 2), P.pt(1125, 26, D / 2)], P.m(16), K.colour((600, 15, 900, 38), vary=0.06),
            segments=10, name="ridge_pole")
+    # the wall behind the wheel and the rack: a 4 mm skin of the painted lime (and of the indigo skirting below it)
+    # with the wheel's and rack's pixels filled from the wall round them, brightened by the bake's occlusion there:
+    # the texels the wheel and rack hide from the front take the part's own material darkened by the baked occlusion
+    # (about 0.91 there), the painted ones round them are not, so the wall's tile showed a grey ghost of the wheel
+    for keep_box, y1, zb, zt in (((1008, 452, 1345, 922), -0.003, P.z(925), P.z(470)),
+                                 ((1008, 928, 1345, 1090), -0.018, P.z(1090), P.z(925))):
+        fill = brighten(K.projected(squeeze=1.0, keep=[keep_box], exclude=cells, inset=0), 1.1)
+        K.box(P.x(1004), X1 - 0.002, y1 - 0.002, y1, zb, zt, fill, name="wall_skin")
     # the workshop alcove, lined with its dark mud plaster, and its floor
     ad = 1.7
     zt = P.z(452)
@@ -3268,8 +3361,38 @@ def cattle_shed(K):
     ze, zr = P.z(285), P.z(16)
     eave = (P.x(12), P.x(1648), -0.55, D + 0.55)
     ridge = (P.x(175), P.x(1510))
+    # (over the overhangs the eave's edge lifted as painted: the full fringe hung below the corners as blue lumps)
     hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.22, shag=0.04, fringe=0.12, pull=0.12, strands=True,
-               lump=(3.0, 1.2, 0.15))
+               lump=(3.0, 1.2, 0.15), fringe_at=eaves_over(P.x(165), P.x(1510), lift=-0.2), end_fringe=0.04)
+    # the painted hip ends are stepped, each tier's straw tips flaring past the hip line: cards in the front slope's
+    # plane along both hips, each corner at its painted place, showing the straw outside the hip as built
+    sin_h = (zr - ze) / math.hypot(zr - ze, D / 2 + 0.55)
+    hip_x = lambda py, k: P.px(eave[k] + (0.12 if k == 0 else -0.12) + ((ridge[k] + (0.12 if k == 0 else -0.12))
+                                                                       - (eave[k] + (0.12 if k == 0 else -0.12)))
+                               * (ze - P.z(min(py, 285))) / (ze - zr))
+    y_hip = lambda z: eave[2] + (D / 2 + 0.55) * (z - ze) / (zr - ze) - 0.11 / sin_h - 0.035
+    tips = lambda rgb: straw_pixels(rgb) & (rgb.min(axis=2) < 185)
+
+    def outside(k, x0, y0):
+        def rule(rgb):
+            h, w = rgb.shape[:2]
+            X = np.arange(w)[None, :] + x0
+            line = np.array([hip_x(y0 + j, k) for j in range(h)])[:, None]
+            return tips(rgb) & ((X < line - 12) if k == 0 else (X > line + 12))
+        return rule
+    K.leaves_only((0, 10, 330, 300), outside(0, 0, 10))
+    K.leaves_only((1330, 10, 1657, 300), outside(1, 1330, 10))
+    for k in (0, 1):
+        for py in range(22, 290, 22):
+            q0, q1 = py - 22, min(py + 22, 300)
+            xa, xb = hip_x(q0, k), hip_x(q1, k)
+            x0, x1 = (min(xa, xb) - 75, max(xa, xb) - 4) if k == 0 else (min(xa, xb) + 4, max(xa, xb) + 75)
+            x0, x1 = max(0, x0), min(P.w, x1)
+            # (no card stands out in front of the eave: the lowest ones at the corners showed as a dotted line)
+            corners = [(P.x(x), max(y_hip(P.z(min(y, 285))), eave[2] - 0.05), P.z(y))
+                       for x, y in ((x0, q1), (x1, q1), (x1, q0), (x0, q0))]
+            uvs = [(x / P.w, 1 - y / P.h) for x, y in ((x0, q1), (x1, q1), (x1, q0), (x0, q0))]
+            K.card(corners, uvs, name="hip_straw", normal=(0.0, -sin_h, math.cos(math.asin(sin_h))))
     K.tube([P.pt(175, 16, D / 2), P.pt(1510, 16, D / 2)], P.m(10), bamboo, segments=8, name="ridge_pole")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
     # the battens lie on the mat's top face (half its thickness out from the surface: at the surface line they were

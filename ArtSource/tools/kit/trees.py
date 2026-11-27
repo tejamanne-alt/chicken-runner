@@ -2283,14 +2283,17 @@ def shrine_tree(K):
     K.box(P.x(862), P.x(978), yb0 + 0.38, yb0 + 0.66, P.z(1356), P.z(1255), stone, bevel=0.01, name="deity_pedestal")
     brass = K.colour((880, 1010, 910, 1060), vary=0.08)
     by = yb0 + 0.12
-    K.lathe([(P.m(r), P.z(py)) for r, py in ((58, 1095), (57, 1085), (50, 1070), (38, 1030), (33, 1000), (30, 975),
-                                             (18, 962), (6, 957), (0.5, 956))], brass, segments=24,
-            centre=(P.x(918), by, 0.0), name="bell", cap=False)
-    K.lathe([(P.m(r), P.z(py)) for r, py in ((50, 1093), (36, 1040), (28, 990), (0.5, 980))], dark, segments=24,
-            centre=(P.x(918), by, 0.0), name="bell_inside", cap=True)
-    K.tube([(P.x(922), by, P.z(905)), (P.x(922), by, P.z(958))], P.m(6), brass, segments=6, name="bell_hanger")
-    K.lathe([(P.m(r), P.z(py)) for r, py in ((8, 1112), (9, 1102), (5, 1095))], brass, segments=10,
-            centre=(P.x(918), by, 0.0), name="clapper")
+    # (its profile traced off the painting: a domed crown, a waisted body, the flared lip; a loop on top on its bar)
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((58, 1080), (60, 1075), (56, 1066), (50, 1055), (44, 1040), (40, 1020),
+                                             (38, 1000), (34, 992), (22, 986), (10, 983), (0.5, 982))], brass,
+            segments=24, centre=(P.x(922), by, 0.0), name="bell", cap=False)
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((54, 1079), (40, 1040), (30, 1000), (0.5, 990))], dark, segments=24,
+            centre=(P.x(922), by, 0.0), name="bell_inside", cap=True)
+    K.tube([(P.x(920), by, P.z(905)), (P.x(920), by, P.z(960))], P.m(6), brass, segments=6, name="bell_hanger")
+    K.tube([(P.x(922) + P.m(15) * math.sin(math.pi * i / 8), by, P.z(972) + P.m(13) * math.cos(math.pi * i / 8))
+            for i in range(17)], P.m(4.5), brass, segments=6, name="bell_loop", cap=False)
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((7, 1100), (8, 1092), (4, 1082))], brass, segments=10,
+            centre=(P.x(924), by, 0.0), name="clapper")
     # the wooden door frame round the opening and its threshold
     frame = K.colour((790, 1000, 808, 1200), vary=0.06)
     for x0, x1 in ((785, 815), (1025, 1055)):
@@ -2544,7 +2547,7 @@ def shrine_tree(K):
         dark = rgb.max(-1) < 90
         return green | (dark & ndimage.binary_dilation(green, iterations=2))
     K.leaves_only((1210, 1275, 1310, 1322), mango)
-    for s in (0.9, -0.9):                         # (two copies sheared opposite ways: a spray, from the front the painting)
+    for s in (0.9, -0.9):                         # (two sheared opposite ways: a spray; from the front, the painting)
         sheared_card(K, (1205, 1270, 1315, 1327), yk, (s, 0.0), name="mango_leaves", n=16, rag=0.0,
                      normal=(0.0, -0.3, 1.0))
 
