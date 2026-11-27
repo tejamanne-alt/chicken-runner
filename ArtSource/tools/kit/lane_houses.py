@@ -1011,9 +1011,10 @@ def house_plank_sheet(K):
     P = K.paint
     D = 3.4
     K.front_min = 0.05
-    orange = K.tile((110, 290, 370, 640), size=0.9, vary=0.04)
+    # (below the eave's scalloped shadow and clear of the doorway's edge: either repeats as dark smears on the sides)
+    orange = K.tile((110, 370, 370, 535), size=0.9, vary=0.04)
     grey = K.tile((110, 670, 370, 990), size=0.9, vary=0.04)
-    blue = K.tile((770, 290, 950, 990), size=0.6, vary=0.04)
+    blue = K.tile((775, 370, 945, 985), size=0.6, vary=0.04)
     rust = K.tile((1262, 700, 1428, 990), size=0.6, vary=0.04)
     brown = K.tile((965, 755, 1240, 990), size=0.9, vary=0.04)
     post = K.colour((84, 300, 100, 600), vary=0.08)

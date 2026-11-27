@@ -1993,8 +1993,9 @@ def h6_5(K):
         cm = ndimage.binary_fill_holes(ndimage.binary_closing(cm, iterations=5))
         crown = Crown(K, region, hd, centre, mask=cm, core=0.25, y0=y0, dome=(centre[1], region[1], region[3]),
                       dome_pow=0.6)
-        bush_cards(K, crown, 150, (85, 75), "volume", yaw=85, pitch=45)
+        bush_cards(K, crown, 150, (85, 75), "volume", yaw=60, pitch=40)
         bush_cards(K, crown, 45, (95, 85), "front", yaw=25, pitch=15)
+        side_cards(K, crown, 70, (85, 75), ndimage.binary_erosion(leaves & cm, iterations=2))
         bush_cards(K, crown, 50, (85, 75), "back", yaw=30, pitch=20)
         bush_cards(K, crown, 25, (85, 75), "top", yaw=90, region=(region[0], region[1], region[2],
                                                                  (region[1] + region[3]) / 2))
@@ -2666,8 +2667,9 @@ def h6_3(K):
     cm = ndimage.binary_fill_holes(ndimage.binary_closing(keep & box_mask(opaque.shape, [(0, 20, 560, 340)]),
                                                          iterations=6))
     crown = Crown(K, (0, 20, 560, 340), 0.42, (270, 200), mask=cm, core=0.35, dome=(190, 20, 345), dome_pow=0.6)
-    bush_cards(K, crown, 420, (80, 70), "volume", yaw=85, pitch=45)
+    bush_cards(K, crown, 380, (80, 70), "volume", yaw=60, pitch=40)
     bush_cards(K, crown, 140, (85, 75), "front", yaw=25, pitch=15)
+    side_cards(K, crown, 160, (80, 70), ndimage.binary_erosion(keep & cm, iterations=2))
     bush_cards(K, crown, 110, (80, 70), "back", yaw=30, pitch=20)
     bush_cards(K, crown, 70, (80, 70), "top", yaw=90, region=(0, 20, 560, 180))
     # the croton: its long painted leaves on ribbons round its heart, leafy greens below them
