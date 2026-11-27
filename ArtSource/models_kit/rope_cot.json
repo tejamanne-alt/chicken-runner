@@ -8,5 +8,9 @@
  "lift": 0.034,
  "faces": 4892,
  "source": "blender",
- "oblique": 0.1729
+ "oblique": 0.1729,
+ "converge": [
+  0.3214,
+  290.0
+ ]
 }

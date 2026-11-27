@@ -1394,102 +1394,63 @@ def cushion(K, corners, thick, mat, n=14, name="cushion"):
     return ob
 
 
-def slope_proj(K, k, keep=None, exclude_polys=(), inset=2, name=None):
-    """The painting projected along the slope of a painting drawn from above (object x, z + k * y -> painting u, v),
-    as a part's own material: a top the painting shows from above (a cot's woven bed) wears its own painted
-    picture, whatever the bake's front weight. keep: boxes of the painting it may use; exclude_polys: polygons it
-    may not (a cushion lying on the bed); the gaps are filled from the nearest kept pixel."""
-    import numpy as np
-    from PIL import Image, ImageDraw
-    from scipy import ndimage
-    from kitlib import Mat, _image
-    key = ("slope", round(k, 4), tuple(tuple(b) for b in keep) if keep else None,
-           tuple(tuple(map(tuple, q)) for q in exclude_polys), inset)
-    if key in K._mats:
-        return K._mats[key]
-    P = K.paint
-    a = np.asarray(P.img).astype(np.float32)
-    m = Image.new("L", P.img.size, 0 if keep else 255)
-    d = ImageDraw.Draw(m)
-    for x0, y0, x1, y1 in keep or ():
-        d.rectangle((x0, y0, x1, y1), fill=255)
-    for q in exclude_polys:
-        d.polygon([tuple(map(float, v)) for v in q], fill=0)
-    ok = (a[..., 3] > 127) & (np.asarray(m) > 127)
-    if inset:
-        ok = ndimage.binary_erosion(ok, iterations=inset)
-    _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
-    a = a[iy, ix]
-    a[..., 3] = 255
-    mat = Mat(name or f"{K.name}_slope{len(K._mats)}")
-    nt = mat.nt
-    coord = nt.nodes.new("ShaderNodeTexCoord")
-    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
-    nt.links.new(coord.outputs["Object"], sep.inputs[0])
-
-    def op(kind, x, y):
-        n = nt.nodes.new("ShaderNodeMath")
-        n.operation = kind
-        for i, v in enumerate((x, y)):
-            if isinstance(v, (int, float)):
-                n.inputs[i].default_value = float(v)
-            else:
-                nt.links.new(v, n.inputs[i])
-        return n.outputs[0]
-    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
-    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], k)), P.H)
-    vec = nt.nodes.new("ShaderNodeCombineXYZ")
-    nt.links.new(u, vec.inputs[0])
-    nt.links.new(v, vec.inputs[1])
-    tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA"), f"{mat.mat.name}_img")
-    tex.extension = "EXTEND"
-    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
-    mat.set_colour(tex.outputs["Color"])
-    K._mats[key] = mat
-    return mat
-
-
 @model("rope_cot", "lane", kind="prop", atlas=2048)
 def rope_cot(K):
     """A charpai: four turned wooden legs with knobbed finials, joined at the square blocks on their tops by the
     frame's four rails, the coir rope woven across between them as the bed and wrapped round the rails, sagging a
     little; a patchwork cushion is propped at its head. True, level and square on level ground. The painting draws
     it from a little above (its far rail and back legs painted higher, the woven bed's top showing between the
-    rails): K.oblique carries that slope, so the painted bed lands on the real bed and the far rail on the far
-    rail, and everything that is painted higher because it stands further back stands further back, not up."""
+    rails) and in perspective (its back drawn 0.79 times as wide): K.oblique and K.converge carry that, so the
+    painted bed lands on the real bed, the far rail on the far rail and the back legs on the painted back legs, and
+    everything painted higher or further in because it stands further back stands further back."""
     P = K.paint
     X, Z = P.x, P.z
-    # the slope: the far rail's top is painted 36 px above the near rail's (and the back finial 30, the back feet 22
-    # px above the front ones: a painter's perspective), the cot is 0.82 m deep from leg to leg
+    # the slope: the far rail's top is painted 38 px above the near rail's (the back finial 30, the back feet 22 px
+    # above the front ones: the painter's perspective; the bed and the far rail, the biggest tops, set it); the cot is
+    # 0.82 m deep from leg to leg. The convergence: the back legs are painted at x 104 and 436, the front ones at 54
+    # and 473.5, so the back is drawn 332 / 419.5 times as wide, about column 290
     D = 0.82
     k = P.m(38.5) / D
     K.oblique = k
+    cv, xcv = (419.5 / 332 - 1) / D, 290.0
+    K.converge = (cv, xcv)
     K.front_min = 0.1
+
+    def Xs(px, y):
+        """The x of a point painted at px that stands y metres back (painted nearer the middle by 1 / (1 + cv y))."""
+        return X(xcv) + (X(px) - X(xcv)) * (1 + cv * y)
     K.front_exclude.append((345, 50, 400, 112))          # the painted sparkle on the rope: light, not a thing
-    yF, yB = 0.0, D                                       # the front legs on the painting's own plane
+    # the front blocks' and legs' faces on the painting's own plane (y = 0, where the painting is drawn at its own
+    # size and height): the legs' middles a block's half width behind it
+    hwb = P.m(26)
+    yF, yB = hwb, hwb + D
     foot = 264
 
     def Zs(py, y):
         """The height of a point painted at py that stands y metres back (painted higher by k y)."""
         return Z(py) - k * y
+    def Xf(px):
+        return Xs(px, yF)
+    dz0 = -k * yF                                         # the frame, painted at its legs' middles, set down by this
+    z_foot = Z(foot) + dz0
     # the earth first (a square tile: the atlas packer follows the first material). The painted ground runs from
-    # the front legs' feet (264) to some 7 px in front of them and back to 236: a patch from 0.16 m in front of the
-    # front legs to 0.58 m behind them, its top level at the feet
+    # the front legs' feet (264; 262 between them) back to 243: a patch from just behind the legs' front faces to
+    # 0.45 m behind them, its top level at the feet
     n0 = len(K.parts)
-    earth(K, 263, foot, 266, 255, 0.25, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
+    earth(K, 263, P.py(z_foot), P.py(z_foot) + 2, 262, 0.21, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
           dirt_exclude=[(20, 200, 510, 262)])
     for ob in K.parts[n0:]:
         for v in ob.data.vertices:
-            v.co.y += 0.23
+            v.co.y += 0.24
     # its grass, each tuft standing at the depth its painted foot gives
     for box in ((8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
                 (420, 240, 462, 262), (490, 248, 510, 262)):
         K.leaves_only(box, grass_pixels)
         gx, gy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        yy = max(-0.1, (foot - box[3]) / (k * P.ppm))
+        yy = max(0.0, (foot - box[3]) / (k * P.ppm))
         for yaw in (0, 90):
-            K.card_from_painting(box, (X(gx), yy, Zs(gy, yy)), yaw=yaw, name="grass", normal=(0, -0.4, 1))
+            K.card_from_painting(box, (Xs(gx, yy), yy, Zs(gy, yy)), yaw=yaw, scale=1 + cv * yy, name="grass",
+                                 normal=(0, -0.4, 1))
     # the legs as painted at the front: (centre px, keep box, lathe profile (r px, py) from the foot up, block (x0,
     # x1, top, bottom), finial profile); the back legs are the same turned legs, straight behind them
     legs = [
@@ -1510,19 +1471,20 @@ def rope_cot(K):
     blockm = K.tile((36, 104, 72, 150), vary=0.06, soften=0.3)
     for cx, keep, low, blk, top in legs:
         for yy in (yF, yB):
-            wood_y = proj(K, X(cx), 0.92, keep=[keep], inset=2, wrap=62, axis_y=yy)
-            K.lathe(prof(P, low), wood_y, segments=24, centre=(X(cx), yy, 0), name="leg")
+            wood_y = proj(K, Xf(cx), 0.92, keep=[keep], inset=2, wrap=62, axis_y=yy, dz=-dz0)
+            K.lathe(prof(P, low), wood_y, segments=24, centre=(Xf(cx), yy, dz0), name="leg")
             x0, x1, t_py, b_py = blk
             hw = P.m(x1 - x0) / 2
-            K.box(X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py), Z(t_py), blockm, bevel=0.008, name="block")
-            decal_faces(K, (32, 102, 77, 152), X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py), Z(t_py),
-                        faces=("back", "left", "right") if yy == yF else ("back", "left", "right"))
-            K.lathe(prof(P, top), wood_y, segments=24, centre=(X(cx), yy, 0), name="finial")
+            K.box(Xf(cx) - hw, Xf(cx) + hw, yy - hw, yy + hw, Z(b_py) + dz0, Z(t_py) + dz0, blockm, bevel=0.008,
+                  name="block")
+            decal_faces(K, (32, 102, 77, 152), Xf(cx) - hw, Xf(cx) + hw, yy - hw, yy + hw, Z(b_py) + dz0,
+                        Z(t_py) + dz0, faces=("back", "left", "right"))
+            K.lathe(prof(P, top), wood_y, segments=24, centre=(Xf(cx), yy, dz0), name="finial")
     # the frame's rails, wrapped in rope, all four level at the blocks' middle
     wrap = K.tile((150, 120, 250, 146), vary=0.06, soften=0.15)
-    zr = Z(132.5)
+    zr = Z(132.5) + dz0
     rr = P.m(14.2)
-    corners = {"FL": (X(54), yF, zr), "FR": (X(473.5), yF, zr), "BL": (X(54), yB, zr), "BR": (X(473.5), yB, zr)}
+    corners = {"FL": (Xf(54), yF, zr), "FR": (Xf(473.5), yF, zr), "BL": (Xf(54), yB, zr), "BR": (Xf(473.5), yB, zr)}
     for a, b in (("FL", "FR"), ("BL", "BR"), ("FL", "BL"), ("FR", "BR")):
         K.tube([corners[a], corners[b]], rr, wrap, segments=14, name="rail")
     # the woven bed between the rails, at their middle, sagging a little; it wears the painted weave itself,
@@ -1532,20 +1494,20 @@ def rope_cot(K):
     weave_src = P.crop((240, 97, 340, 113)).convert("RGB")
     weave_img = weave_src.resize((weave_src.width, weave_src.height * 3), Image.BICUBIC)
     weave = image_tile(K, weave_img, P.m(100) * 0.55, ("weave",), vary=0.06)
-    x0b, x1b = X(54) + P.m(18), X(473.5) - P.m(18)
+    x0b, x1b = Xf(54) + P.m(18), Xf(473.5) - P.m(18)
 
     def bed(u, v):
         x = x0b + (x1b - x0b) * u
-        y = rr * 0.6 + (D - rr * 1.2) * v
+        y = yF + rr * 0.6 + (D - rr * 1.2) * v
         sag = 0.025 * math.sin(math.pi * u) * math.sin(math.pi * v) ** 0.8
         return (x, y, zr + P.m(2) - sag)
     K.sheet(bed, 36, 14, weave, name="bed", thickness=0.014)
     # the patchwork cushion at the head: its lower edge on the bed, leaning back towards the head's far corner
     cushion_px = [(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]
     pil = proj(K, X(150), 1.0, polys=[cushion_px], inset=3)
-    yb, yt = 0.15, 0.6
-    cushion(K, [(X(100), yb, Zs(115, yb)), (X(237), yb, Zs(100, yb)), (X(177), yt, Zs(5, yt)),
-                (X(62), yt, Zs(8, yt))], 0.09, pil, name="cushion")
+    yb, yt = yF + 0.12, yF + 0.55
+    cushion(K, [(Xs(102, yb), yb, Zs(114, yb)), (Xs(236, yb), yb, Zs(101, yb)), (Xs(175, yt), yt, Zs(10, yt)),
+                (Xs(66, yt), yt, Zs(13, yt))], 0.09, pil, name="cushion")
 
 
 def octagon(K, prof_hw, cx_px, cy, mat, name="octagon"):

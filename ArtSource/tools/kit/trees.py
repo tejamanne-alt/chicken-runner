@@ -4090,8 +4090,7 @@ def h3_1(K):
     roots = [fit_limb(pts, solid & ~stone_px, every=8.0, ink=3.0, lo=3.0) for pts in H31_ROOTS]
     limbs = list(H31_LIMBS)
     limbs[3] = fit_limb(H31_LIMBS[3], solid, every=8.0, ink=3.0, lo=4.0)
-    # (each ends in a tip inside the leaves, not a sawn-off end: a turned copy of one stood out under the crown as a
-    # blunt stub from the front-right)
+    # (each ends in a tip inside the leaves, not a sawn-off end)
     limbs = [list(pts[:-1]) + [(pts[-1][0], pts[-1][1], pts[-1][2] * 0.35)] for pts in limbs]
     crown, trunk_ob = _peepal_tree(
         K, (0, 0, 1743, 830), trunk, limbs, roots, katte, (420, 480, 1420, 1200),

@@ -1055,34 +1055,41 @@ class Tray:
 
 
 # ---------------------------------------------------------------- drying trays painted from above, built level
-# chilli_mat and papad_mat paint one drying tray from above, in perspective: its back pole drawn higher up (and
-# shorter), the mat's top seen from above. They are built true, level and square on the ground, every part at its real
-# depth, and the painting is projected along its slope (K.oblique: painted v = z + k * y), so the painted top lands on
-# the real top and the audit compares the front along that slope.
-# The slope, measured on papad_mat, whose papads are round: lying flat, each is painted as an ellipse k times as high as
-# it is wide. The two drawn whole and flat: 0.56 (the top one, 112, 72) and 0.51 (front left, 71, 93); the back one,
-# propped on the back pole, 0.65 (tilted 6 degrees). k = 0.55. The tray's depth then follows from how high its back
-# pole is painted (centre at row 17, the front pole's at 123.5): 0.35 m deep by 0.38 m between its side poles, a
-# near-square drying tray, as they are made. chilli_mat is the same tray painted from the same place (its poles within a
-# pixel of papad_mat's), so it takes the same k. Neither painting shows legs, stones or bricks: it lies on the ground.
-# What the slope cannot undo: the painting's perspective also draws the back pole shorter (178 px against the front's
-# 232), so the true, square tray's back corners stand past the painted ones (blue wedges in the audit's front) until
-# the kit projects with that convergence too (kit_requests/market_props_round3.md).
-TRAY_K = 0.55
+# chilli_mat and papad_mat paint one drying tray from above, in perspective: further back is drawn higher up and
+# smaller (the back pole shorter, the side poles converging). They are built true, level and square on the ground,
+# every part at its real depth and size, and the painting is projected along the painter's view: up the slope
+# (K.oblique: painted v = z + k * y) and narrowing with depth (K.converge: scaled 1 / (1 + c * y) about column xc), so
+# the painted top lands on the real top and the audit compares the front the same way.
+# Measured (both paintings, which show the same tray from the same place, their poles within a pixel or two):
+# - convergence, from the painted side poles' centre lines (14 rows each, rows 28-106, both trays): straight real poles
+#   at x = 11.2 and 235.1 px seen narrowing as 1 / (1 + q * k * y) about column 111.2 fit them to 1 px rms, with
+#   q = c / k = 1.865 (the side poles' painted depth k * y is their painted rise above their own height);
+# - the slope, from papad_mat's papads (round, lying flat: painted k * f times as high as wide, f = 1 + c * y the
+#   narrowing where each lies): 0.46-0.51 for the seven drawn whole or nearly, with no trend front to back once f is
+#   taken out; k = 0.49, so c = 0.91 per metre. (Without the convergence the back papads read as tilted, 0.64-0.67.)
+# - the depth then follows from how high the back pole is painted (centre at row 17, the front pole's at 123.5):
+#   0.39 m, and the side poles stand 0.39 m apart: a square drying tray, as they are made; its back pole, painted 0.74
+#   as long as the front one, is as long.
+# Neither painting shows legs, stones or bricks: the tray lies on the ground.
+TRAY_K = 0.49
+TRAY_CONVERGE = (0.914, 111.2)
 
 
 class LevelTray:
     """A drying tray painted from above (see above), true and level on the ground: the front pole (painted thicker)
-    and the back pole on the ground, as long as each other; the two side poles laid across them at the painted front
-    corners (let into the front pole, resting on the back one), their cut ends showing at the front as painted; the
-    woven mat on the ground between. on(px, py, z): the point at height z that the painting's (px, py) lands on."""
+    and the back pole on the ground; the two side poles laid across them (let into the front pole, resting on the back
+    one), their cut ends showing at the front as painted; the woven mat on the ground between.
+    on(px, py, z): the point at height z that the painting's (px, py) lands on; px_at(x, y): the painted column a plan
+    point shows; f(y): how much smaller the painting draws things at depth y."""
 
-    def __init__(self, K, k=TRAY_K, front_py=123.5, back_py=17.0, rf_px=7.0, r_px=4.3, ends=(8.0, 239.0),
-                 sides=(15.5, 231.5)):
+    def __init__(self, K, k=TRAY_K, converge=TRAY_CONVERGE, front_py=123.5, back_py=17.0, rf_px=7.0, r_px=4.3,
+                 ends=(8.0, 239.0), sides=(11.2, 235.1)):
         P = K.paint
         K.oblique = k
+        K.converge = converge
         K.front_min = 0.1                      # the level tops (and a heap's gentle back) take the painting fully
         self.K, self.P, self.k = K, P, k
+        self.c, self.xcm = converge[0], P.x(converge[1])
         self.rf, self.r = P.m(rf_px), P.m(r_px)
         self.zg = P.z(front_py) - self.rf      # the ground: the front pole's centre on its painted one (record's lift)
         self.yb = (P.z(back_py) - self.zg - self.r) / k      # the back pole's centre, at its real depth
@@ -1091,20 +1098,38 @@ class LevelTray:
         self.x0, self.x1 = P.x(ends[0]), P.x(ends[1])
         self.xl, self.xr = P.x(sides[0]), P.x(sides[1])
 
+    def f(self, y):
+        return 1.0 + self.c * y
+
     def on(self, px, py, z):
-        return Vector((self.P.x(px), (self.P.z(py) - z) / self.k, z))
+        y = (self.P.z(py) - z) / self.k
+        return Vector((self.xcm + (self.P.x(px) - self.xcm) * self.f(y), y, z))
+
+    def px_at(self, x, y):
+        return self.P.px(self.xcm + (x - self.xcm) / self.f(y))
 
     def row(self, y, z):
         return self.P.py(z + self.k * y)
 
 
+def _painted_x(K, nt, sep, op):
+    """Shader: the object x the painting's column comes from, along K.converge (the painted column narrows with
+    depth about its vanishing column)."""
+    if not K.converge:
+        return sep.outputs["X"]
+    c, xc = float(K.converge[0]), K.paint.x(K.converge[1])
+    f = op("ADD", op("MULTIPLY", sep.outputs["Y"], c), 1.0)
+    return op("ADD", op("DIVIDE", op("SUBTRACT", sep.outputs["X"], xc), f), xc)
+
+
 def slope_projected(K, keep=None, exclude=(), inset=2, halo=3, name=None):
-    """K.projected along the painted slope K.oblique (object x, z + oblique * y -> painting u, v), from the painting
-    without its pale halo: the own material of goods lying on a tray painted from above (papads, chillies), so their
-    sides and undersides carry the colours the bake's front projection lands on their tops."""
+    """K.projected along the painted slope K.oblique (object x, z + oblique * y -> painting u, v; narrowing with depth
+    along K.converge), from the painting without its pale halo: the own material of goods lying on a tray painted from
+    above (papads, chillies), so their sides and undersides carry the colours the bake's projection lands on their
+    tops."""
     k = float(K.oblique)
-    key = ("slope", round(k, 4), tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude),
-           inset, halo)
+    key = ("slope", round(k, 4), tuple(K.converge or ()), tuple(tuple(b) for b in keep) if keep else None,
+           tuple(tuple(b) for b in exclude), inset, halo)
     if key in K._mats:
         return K._mats[key]
     P = K.paint
@@ -1123,7 +1148,7 @@ def slope_projected(K, keep=None, exclude=(), inset=2, halo=3, name=None):
             else:
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
-    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    u = op("ADD", op("DIVIDE", _painted_x(K, nt, sep, op), P.W), 0.5)
     v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], k)), P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
@@ -1256,7 +1281,8 @@ def mat_mirrored(K, left, right, front_row, back_row, goods, weave_box, heap=Non
     heap of the goods, hidden behind the ones on top of it) the painting itself, goods and all."""
     from PIL import Image
     k = float(K.oblique)
-    key = ("matmirror", tuple(left), tuple(right), front_row, back_row, round(k, 4), tuple(weave_box), heap)
+    key = ("matmirror", tuple(left), tuple(right), front_row, back_row, round(k, 4), tuple(K.converge or ()),
+           tuple(weave_box), heap)
     if key in K._mats:
         return K._mats[key]
     P = K.paint
@@ -1276,7 +1302,7 @@ def mat_mirrored(K, left, right, front_row, back_row, goods, weave_box, heap=Non
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
     # painted pixel column and row the slope ray lands on
-    u = op("MULTIPLY", op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5), P.w)
+    u = op("MULTIPLY", op("ADD", op("DIVIDE", _painted_x(K, nt, sep, op), P.W), 0.5), P.w)
     row = op("MULTIPLY", op("SUBTRACT", 1.0, op("DIVIDE", op("ADD", sep.outputs["Z"],
                                                             op("MULTIPLY", sep.outputs["Y"], k)), P.H)), P.h)
     row = op("SUBTRACT", front_row, op("ABSOLUTE", op("SUBTRACT", row, front_row)))      # reflect at the front
@@ -1384,13 +1410,6 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
     surf_z(x, y): the height of the mat's top at a plan point."""
     P, k = K.paint, T.k
     pale_halo(K)
-    # the painted side poles converge (the perspective the slope does not undo) and so do the corners where they
-    # cross the back pole: projected, they would lie on the level mat beside the real poles, a second pole drawn on
-    # it. Kept off the projection where they leave the real poles; the painted mat (reflected) and the poles' bamboo
-    # show there.
-    K.front_exclude += [
-        ("poly", [(0, 96), (26, 96), (41, 30), (43, 27), (49, 27), (49, 0), (0, 0)]),
-        ("poly", [(247, 96), (219.5, 96), (201, 30), (199, 27), (196, 27), (196, 0), (247, 0)])]
     # the poles
     zf, zb = T.zg + T.rf, T.zg + T.r
     K.tube([(T.x0, 0.0, zf), (T.x1, 0.0, zf)], T.rf, bamboo_wrap(K, "x", 0.0, zf, T.rf, P.x(30)), segments=16,
@@ -1407,8 +1426,8 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
         ring(K, P.x(px), 0.0, zf, T.rf * 1.0, T.rf * 0.11, bamboo_wrap(K, "x", 0.0, zf, T.rf, P.x(30)), axis="x", n=14,
              name="node")
     for px in nodes_back:
-        ring(K, P.x(px), T.yb, zb, T.r, T.r * 0.13, bamboo_wrap(K, "x", T.yb, zb, T.r, P.x(30)), axis="x", n=12,
-             name="node")
+        ring(K, T.xcm + (P.x(px) - T.xcm) * T.f(T.yb), T.yb, zb, T.r, T.r * 0.13,
+             bamboo_wrap(K, "x", T.yb, zb, T.r, P.x(30)), axis="x", n=12, name="node")
     for xs in (T.xl, T.xr):
         for row in node_rows:
             ring(K, xs, (P.z(row) - T.zs) / k, T.zs, T.r, T.r * 0.13, bamboo_wrap(K, "y", xs, T.zs, T.r, -T.rf),
@@ -1435,9 +1454,8 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
     Z = np.full((nv + 1, nu + 1), zm)
     if height is not None:
         for i, x in enumerate(xs):
-            px = P.px(x)
             for j, y in enumerate(ys):
-                z = zm
+                px, z = T.px_at(x, y), zm
                 for _ in range(14):
                     z = 0.5 * z + 0.5 * (zm + hmax * height(px, T.row(y, z)))
                 Z[j, i] = z
@@ -1460,18 +1478,22 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
 
 
 def lying_papad(K, T, cx, mid_py, R_px, ratio, roll, z_rest, mat, wobble=0.0025, name="papad"):
-    """A papad drying on the level tray T: a thin, slightly wavy disc R_px across, painted as an ellipse centred on
-    (cx, mid_py) and `ratio` times as high as wide. Lying flat it would be k as high; more means it is tilted up at the
-    back, less down, by t (sin t + k cos t = ratio, where it rests on the edge of one under it); roll (degrees) raises
-    its right side (the painted ellipse turned). Its lowest edge rests at z_rest (on the mat, or on the papads under
-    it), and where it reaches the back pole it rides up over it, as a stiff papad would."""
+    """A papad drying on the level tray T: a thin, slightly wavy disc, painted as an ellipse R_px wide (half) centred
+    on (cx, mid_py) and `ratio` times as high as wide. The painting draws it f = T.f(y) times smaller across where it
+    lies, so it is R_px * f across, and lying flat it would be painted k * f as high; more means it is tilted up at the
+    back, less down, by t (sin t + k cos t = ratio / f, where it rests on the edge of one under it); roll (degrees)
+    raises its right side (the painted ellipse turned). Its lowest edge rests at z_rest (on the mat, or on the papads
+    under it), and where it reaches the back pole it rides up over it, as a stiff papad would."""
     P, k = K.paint, T.k
-    R = P.m(R_px)
     A = math.hypot(1.0, k)
-    t = math.asin(max(-1.0, min(1.0, ratio / A))) - math.atan2(k, 1.0)
+    zc = z_rest
+    for _ in range(3):
+        f = T.f(T.on(cx, mid_py, zc).y)
+        R = P.m(R_px) * f
+        t = math.asin(max(-1.0, min(1.0, ratio / f / A))) - math.atan2(k, 1.0)
+        zc = z_rest + R * (abs(math.sin(t)) + abs(math.sin(math.radians(roll))))
     M = Matrix.Rotation(-math.radians(roll), 3, "Y") @ Matrix.Rotation(t, 3, "X")
     ex, ey, ez = M @ Vector((1, 0, 0)), M @ Vector((0, 1, 0)), M @ Vector((0, 0, 1))
-    zc = z_rest + R * (abs(math.sin(t)) + abs(math.sin(math.radians(roll))))
     c = T.on(cx, mid_py, zc)
     ph = K.rng.uniform(0, 6.28, 3)
     n, nr = 32, 4
@@ -1553,9 +1575,11 @@ def chilli_mat(K):
 
     def lying_at(px, py, lift):
         # the point on the slope ray through (px, py) that lies `lift` above the heap under it
-        z = surf_z(P.x(px), T.on(px, py, T.zm).y) + lift
+        q = T.on(px, py, T.zm)
+        z = surf_z(q.x, q.y) + lift
         for _ in range(10):
-            z = 0.5 * z + 0.5 * (surf_z(P.x(px), T.on(px, py, z).y) + lift)
+            q = T.on(px, py, z)
+            z = 0.5 * z + 0.5 * (surf_z(q.x, q.y) + lift)
         return T.on(px, py, z)
     body = chillies & (P.rgba[..., 3] > 0.5)
 
@@ -1583,8 +1607,9 @@ def chilli_mat(K):
         return tuple(a_ + n_ * o), tuple(b_ + n_ * o), float(np.median(wids))
     for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
         (ax, ay), (bx, by), width = fit_body((ax, ay), (bx, by))
-        # as thick as the painted chilli inside its own ink line (the game draws its outline outside it)
-        r = P.m(min(3.6, max(2.4, width / 2 - 0.8)))
+        # as thick as the painted chilli inside its own ink line (the game draws its outline outside it), at the size
+        # the painting draws it where it lies
+        r = P.m(min(3.6, max(2.4, width / 2 - 0.8))) * T.f(T.on(ax, ay, T.zm).y)
         A = lying_at(ax, ay, r * 0.5)
         B = lying_at(bx, by, r * 0.3)
         pod(K, tuple(A), tuple(B), r, r * 0.45, chilli, bend=(0.0, 0.0, r * 0.3), n=6, seg=6, name="chilli")

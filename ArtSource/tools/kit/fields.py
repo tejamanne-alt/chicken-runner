@@ -2214,13 +2214,30 @@ def pump_house(K):
             K.card_from_painting(box, (P.x(x), y, P.z(350)), yaw=yaw, name="grass", normal=(0, -0.3, 1))
 
 
-def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, tile_r=0.035, name="roof", under=None):
+def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, tile_r=0.035, name="roof", under=None,
+             pattern=None):
     """A hipped roof of country tiles over the eave rectangle x0..x1, y0..y1: front and back slopes up to a ridge
-    `ridge` metres long (along x) and the two ends sloping up to it (hips), with half-round ridge and hip tiles."""
+    `ridge` metres long (along x) and the two ends sloping up to it (hips), with half-round ridge and hip tiles.
+    pattern: (image, columns, rows, row length m), a periodic image of the painted tiles (columns upright) laid on
+    every slope by its own UVs, a column of it on each corrugation and its rows up the slope from the eave, sampled
+    once (no box projection, which smears a slope's tiles into mush); the ridge and hips keep `mat`."""
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     hw, hd = (x1 - x0) / 2, (y1 - y0) / 2
     parts = []
     under = under or K.colour((0.2, 0.1, 0.05), vary=0.1)
+    smat = mat
+    if pattern is not None:
+        img, n_cols, n_rows, row_len = pattern
+        pm = Mat(f"{K.name}_rooftiles")
+        uvn = pm.nt.nodes.new("ShaderNodeUVMap")
+        uvn.uv_map = "decal"
+        tex = pm.nt.nodes.new("ShaderNodeTexImage")
+        tex.image = _image(img.convert("RGB"), f"{K.name}_rooftiles_img")
+        tex.extension = "REPEAT"
+        pm.nt.links.new(uvn.outputs[0], tex.inputs["Vector"])
+        pm.set_colour(tex.outputs["Color"])
+        K._mats[("rooftiles", len(K._mats))] = pm
+        smat = pm
 
     def slope(w_eave, w_ridge, depth, length_dir, name):
         def surf(u, v):
@@ -2233,7 +2250,21 @@ def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, ti
             x, y, z = surf(u, v)
             ripple = tile_r * abs(math.sin(math.pi * u * n)) * (w_eave + (w_ridge - w_eave) * v) / w_eave
             return (x, y, z + ripple)
-        ob = K.sheet(tiled, n * 4, nr, mat, name=name, smooth=False)
+        ob = K.sheet(tiled, n * 4, nr, smat, name=name, smooth=False)
+        if pattern is not None:                             # its UVs: corrugations across, rows up from the eave
+            bm = bmesh.new()
+            bm.from_mesh(ob.data)
+            layer = bm.loops.layers.uv.new("decal")
+            L = math.hypot(depth, z_ridge - z_eave)
+            for f in bm.faces:
+                for lp in f.loops:
+                    x, y = lp.vert.co.x, lp.vert.co.y
+                    v = 1 + y / depth
+                    w = w_eave + (w_ridge - w_eave) * v
+                    u = 0.5 + x / (2 * max(w, 1e-6))
+                    lp[layer].uv = (u * n / n_cols, v * L / (n_rows * row_len))
+            bm.to_mesh(ob.data)
+            bm.free()
         # its underside: a plain board under the tiles (the soffit seen under the eaves)
         K.sheet(lambda u, v: (lambda p: (p[0], p[1], p[2] - 0.02))(surf(1 - u, v)), 2, 2, under, name=name + "_soffit",
                 smooth=False)
@@ -2258,6 +2289,23 @@ def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, ti
             parts.append(K.tube([(cx + sx * hw, cy + sy * hd, z_eave + 0.05),
                                  (cx + sx * ridge / 2, cy, z_ridge + 0.04)], 0.065, mat, segments=8, name="hip"))
     return parts
+
+
+def roof_pattern(K):
+    """The granary's painted front slope made a periodic tile of three columns by two rows of its half-round tiles:
+    the painted columns lean towards the apex (0.45 px across per px down), so the patch is sheared upright first,
+    then cut from one column line to the next and from one row's arc to the next (22.7 by 24.75 px each)."""
+    a = np.asarray(K.paint.img.convert("RGB")).astype(np.float32)
+    y0, y1, x0 = 116.5, 166.0, 223.3
+    out = np.zeros((50, 68, 3), np.float32)
+    ys = np.linspace(y0, y1, 50, endpoint=False)
+    xs = np.linspace(x0, x0 + 68.0, 68, endpoint=False)
+    for i, y in enumerate(ys):
+        sx = xs - 0.45 * (y - 140.0)                        # sheared upright about row 140
+        for ch in range(3):
+            out[i, :, ch] = ndimage.map_coordinates(a[..., ch], [np.full_like(sx, y), sx], order=1)
+    img = Image.fromarray(out.clip(0, 255).astype(np.uint8))
+    return seamless(img, 0.12)
 
 
 @fmodel("granary", "fields", kind="building", atlas=2048)
@@ -2325,7 +2373,8 @@ def granary(K):
     ov = 0.316                                              # the eaves' overhang front and back
     xa = P.x(10) + ov * s_
     xb = P.x(400) + ov * s_
-    hip_roof(K, xa, xb, -ov, D + ov, P.z(198), P.z(22), tiles, ridge=(xb - xa) - c * (D + 2 * ov))
+    hip_roof(K, xa, xb, -ov, D + ov, P.z(198), P.z(22), tiles, ridge=(xb - xa) - c * (D + 2 * ov),
+             tile_w=0.186, pattern=(roof_pattern(K), 3, 2, 0.28))
     rafter = K.colour((0.3, 0.14, 0.06), vary=0.1)
     for x in (130, 226, 322):
         for y0, y1 in ((0.2, -ov + 0.08), (D - 0.2, D + ov - 0.08)):

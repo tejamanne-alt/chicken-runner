@@ -323,14 +323,135 @@ def earth_patch(K, cx, cy, rx, ry, mat, z=0.0, h=0.025, name="ground"):
 # metre of depth; y = 0 where the painting's bottom meets the ground). The model stays true and level: a part painted
 # at height py that stands at depth y is really at z = P.z(py) - k * y, and a thing painted higher because it stands
 # further back goes further back (y = its painted rise / k), never up.
+# Drawn in perspective it also draws the back smaller: K.converge = (c, xc, yc) scales the painting by 1 / (1 + c * y)
+# about column xc and row yc (px) at depth y (a true perspective, its horizon at row yc + k / c). Every part is then
+# square and level, at its real place, and as much bigger than painted as it stands further back.
+# zo / yo: the slope alone (to build an object round its own anchor, in the painting's scale); zk / yk / xk: the real
+# place; place(): an object built with zo / yo set at its real place and size.
+def _pc(K):
+    """(k, c, xc, zc) in metres; zc None without a vanishing row."""
+    P = K.paint
+    if not K.converge:
+        return K.oblique, 0.0, 0.0, None
+    cv = K.converge
+    return K.oblique, float(cv[0]), P.x(cv[1]), (P.z(cv[2]) if len(cv) > 2 and cv[2] is not None else None)
+
+
+def fk(K, y):
+    """How much bigger than painted a thing at depth y is (1 + c * y)."""
+    return 1.0 + _pc(K)[1] * y
+
+
+def zo(K, py, y):
+    """The slope alone: the height of a point painted at py at depth y (to build an object round its anchor)."""
+    return K.paint.z(py) - K.oblique * y
+
+
+def yo(K, py, z=0.0):
+    """The slope alone: how far back a point at height z painted at py stands."""
+    return (K.paint.z(py) - z) / K.oblique
+
+
 def zk(K, py, y):
     """The real height of a point painted at py that stands at depth y."""
-    return K.paint.z(py) - K.oblique * y
+    k, c, xc, zc = _pc(K)
+    zp = K.paint.z(py)
+    if zc is not None:
+        zp = zc + (zp - zc) * (1 + c * y)
+    return zp - k * y
 
 
 def yk(K, py, z=0.0):
     """How far back a point at height z stands when it is painted at py."""
-    return (K.paint.z(py) - z) / K.oblique
+    k, c, xc, zc = _pc(K)
+    zp = K.paint.z(py)
+    if zc is not None:
+        return (zp - z) / (k - c * (zp - zc))
+    return (zp - z) / k
+
+
+def xk(K, px, y):
+    """The real x of a point painted at column px that stands at depth y."""
+    k, c, xc, zc = _pc(K)
+    return xc + (K.paint.x(px) - xc) * (1 + c * y)
+
+
+def painted(K, X, Y, Z):
+    """Where the painting draws the real point (X, Y, Z): (x, z) in the painting's metres."""
+    k, c, xc, zc = _pc(K)
+    f = 1 + c * Y
+    xp = xc + (X - xc) / f
+    zp = Z + k * Y
+    if zc is not None:
+        zp = zc + (zp - zc) / f
+    return xp, zp
+
+
+def place(K, objs, anchor, Z=None, Y=None):
+    """Sets an object built round `anchor` with the slope alone (zo / yo, the painting's scale: anchor (x, y, z) drawn
+    at x, z + k * y) at its real place: the anchor at height Z (it stands there: its depth follows) or at depth Y, the
+    object as much bigger as it is further back. objs: parts and cards."""
+    k, c, xc, zc = _pc(K)
+    ax, ay, az = anchor
+    zp = az + k * ay
+    if Y is None:
+        Y = ((zp - Z) / (k - c * (zp - zc)) if zc is not None else (zp - Z) / k) if k else ay
+    f = 1 + c * Y
+    X = xc + (ax - xc) * f
+    if Z is None:
+        Z = (zc + (zp - zc) * f if zc is not None else zp) - k * Y
+    M = Matrix.Translation((X, Y, Z)) @ Matrix.Scale(f, 4) @ Matrix.Translation((-ax, -ay, -az))
+    for ob in objs:
+        ob.data.transform(M)
+    return Vector((X, Y, Z)), f
+
+
+def proj_at(K, Y, axis_px=None, squeeze=1.0, keep=None, exclude=(), inset=2, name=None):
+    """K.projected for an object at depth Y, in its real place: object (x, z) -> the painting (through the slope and
+    the convergence at Y), squeezed towards the painted column axis_px (round things). So a pot, a cloth or a post
+    set at its real place by place() still wears its own painted colours round its sides."""
+    from kitlib import Mat, _image
+    k, c, xc, zc = _pc(K)
+    key = ("proj_at", round(Y, 4), axis_px, squeeze, tuple(tuple(b) for b in keep) if keep else None,
+           tuple(tuple(b) for b in exclude), inset)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    f = 1 + c * Y
+    m = Mat(name or f"{K.name}_pat{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    xp = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["X"], xc), 1.0 / f), xc)
+    if axis_px is not None and squeeze != 1.0:
+        ax = P.x(axis_px)
+        xp = op("ADD", op("MULTIPLY", op("SUBTRACT", xp, ax), squeeze), ax)
+    zz = op("ADD", sep.outputs["Z"], k * Y)
+    if zc is not None:
+        zz = op("ADD", op("MULTIPLY", op("SUBTRACT", zz, zc), 1.0 / f), zc)
+    u = op("ADD", op("DIVIDE", xp, P.W), 0.5)
+    v = op("DIVIDE", zz, P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
 
 
 def slope_cards(K, cards=None):
@@ -427,8 +548,14 @@ def slope_proj(K, fill=(), boxes=(), keep=None, inset=2, fill_tile=None, name=No
             else:
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
-    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
-    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], float(K.oblique))), P.H)
+    k, c, xc, zc = _pc(K)
+    f = op("ADD", op("MULTIPLY", sep.outputs["Y"], c), 1.0)
+    xp = op("ADD", op("DIVIDE", op("SUBTRACT", sep.outputs["X"], xc), f), xc)
+    zp = op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], float(k)))
+    if zc is not None:
+        zp = op("ADD", op("DIVIDE", op("SUBTRACT", zp, zc), f), zc)
+    u = op("ADD", op("DIVIDE", xp, P.W), 0.5)
+    v = op("DIVIDE", zp, P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
@@ -476,8 +603,15 @@ def dome_wrap(K, centre, tilt, keep, inset=2, name=None):
     ly = op("MULTIPLY", op("ABSOLUTE", ly), -1.0)                              # the back half from the front
     dy2 = op("ADD", op("MULTIPLY", ly, ct), op("MULTIPLY", lz, st))
     dz2 = op("SUBTRACT", op("MULTIPLY", lz, ct), op("MULTIPLY", ly, st))
-    v = op("DIVIDE", op("ADD", op("ADD", dz2, cz), op("MULTIPLY", op("ADD", dy2, cy), float(K.oblique))), P.H)
-    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    k, c, xc, zc = _pc(K)
+    Y2 = op("ADD", dy2, cy)
+    f = op("ADD", op("MULTIPLY", Y2, c), 1.0)
+    zp = op("ADD", op("ADD", dz2, cz), op("MULTIPLY", Y2, float(k)))
+    if zc is not None:
+        zp = op("ADD", op("DIVIDE", op("SUBTRACT", zp, zc), f), zc)
+    v = op("DIVIDE", zp, P.H)
+    xp = op("ADD", op("DIVIDE", op("SUBTRACT", sep.outputs["X"], xc), f), xc)
+    u = op("ADD", op("DIVIDE", xp, P.W), 0.5)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
