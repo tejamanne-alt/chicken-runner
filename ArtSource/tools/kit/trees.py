@@ -1651,7 +1651,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         dirs = (20, 55, 90, 125, 160) if k >= 4 else (rng.uniform(40, 140),)
         for phi in dirs:
             a = math.radians(phi + rng.uniform(-12, 12))
-            q = []
+            q, rq = [], []
             for i, (px, py, r) in enumerate(pts):
                 dist = abs(P.x(px) - x0)
                 ok = False
@@ -1667,9 +1667,12 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                 lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
                 y = y0 + float(np.clip(y, -lim, lim))
                 q.append((x, y, P.z(py) - 0.05 * math.sin(math.pi * i / max(1, len(pts) - 1))))
+                # no thicker than the painting is solid round where it shows from the front (a thick copy ending
+                # below a painted gap poked its rounded end up into the sky)
+                rq.append(min(r * 0.9, max(3.0, dsolid[int(np.clip(py, 0, P.h - 1)),
+                                                        int(np.clip(P.px(x), 0, P.w - 1))] - 1)))
             if len(q) >= 2:
-                wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts[:len(q)]], bark, segments=12,
-                                   name="limb_turned"))
+                wood.append(K.tube(q, [P.m(v) for v in rq[:len(q)]], bark, segments=12, name="limb_turned"))
     # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
     for pts in roots:
         q, rr = [], []
@@ -2002,11 +2005,18 @@ def shrine_tree(K):
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
+    rgb_ = (P.rgba[..., :3] * 255).astype(np.int32)
+    _, _, _, mx_, mn_ = chan(rgb_)
+    dsol = ndimage.distance_transform_edt((P.rgba[..., 3] > 0.5) & ~((mn_ > 175) & (mx_ - mn_ < 45)))
     for limb_pts, segs in ((SHRINE_LIMBS[4], [(1, 2), (3, 4)]), (SHRINE_LIMBS[5], [(2, 3)])):
         for i0, i1 in segs:
             a, b = limb_pts[i0], limb_pts[i1]
+            # (round the limb as modelled: no wider than the painting is solid there, or the loops showed as
+            # zigzags in the sky painted above the limb)
+            rr = min((a[2] + b[2]) / 2, min(dsol[int(a[1]), int(a[0])], dsol[int(b[1]), int(b[0])],
+                                            dsol[int((a[1] + b[1]) / 2), int((a[0] + b[0]) / 2)]) - 2)
             for mat in (red, orange):
-                wrap_limb(K, (P.x(a[0]), yt, P.z(a[1])), (P.x(b[0]), yt, P.z(b[1])), P.m((a[2] + b[2]) / 2), mat,
+                wrap_limb(K, (P.x(a[0]), yt, P.z(a[1])), (P.x(b[0]), yt, P.z(b[1])), P.m(max(6.0, rr)), mat,
                           5, P.m(2.5))
     for py in range(600, 770, 18):
         ring_tube(K, P.x(905), yt, P.z(py), P.m(212), P.m(212), rng.choice([red, orange]), P.m(2.5),
