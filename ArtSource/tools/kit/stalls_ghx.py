@@ -1161,7 +1161,7 @@ def stall_h_2(K):
     ye0, ye1 = yfp - o, ybp + o
     yr = (ye0 + ye1) / 2
     z_e = zk(K, 232, ye0)
-    z_r = zk(K, 48, yr)
+    z_r = zk(K, 48, yr) - 0.03                            # (the mat's thickness and shag stand above it)
     xe0, xe1 = xk(K, 44, ye0), xk(K, 1010, ye0)
     xr0, xr1 = xk(K, 205, yr), xk(K, 848, yr)
     xmid = (xe0 + xe1) / 2
@@ -1219,60 +1219,62 @@ def stall_h_2(K):
     K.tube([(P.x(792), ym + 0.01, Zm(294)), (P.x(792), ym + 0.05, Zm(294))], 0.004, K.colour((0.2, 0.2, 0.2)),
            segments=4, name="nail")
     place(K, K.parts[n1:], (P.x(792), ym, Zm(294)), Y=ybp - rb - 0.02)
-    # ---------------------------------------------------------------- the stool: a square seat, turned as painted
-    # (its diagonal 8 degrees), level at 0.60 m; its legs splay out to their painted feet (built in the painting's
-    # scale round its front foot, set where that foot stands)
-    n2 = len(K.parts)
-    # its legs and rails wear the painted legs' own wood (lit and shaded faces mixed); they are as thick as painted,
-    # so the painted legs land on them, not on the earth behind
+    # ---------------------------------------------------------------- the stool, solved in its real place: its
+    # seat's painted corners L, F, R at the seat's height (0.55 m) give a square 0.74 m a side (95 degrees), turned
+    # 38 degrees; its legs run from under the seat's corners to their painted feet
     wood = pole_tile(K, (343, 705, 362, 815), soften=0.15, half=8)
     seat_w = pole_tile(K, (350, 640, 470, 652), soften=0.2)
     towel_top = ktile(K, (470, 650, 530, 700), vary=0.04)
-    with built_at(K, 858, hp) as kb:
-        r_, al = 0.368, math.radians(8.1)
-        zs, th = 0.60, 0.05
-        c_ = Vector((P.x(452.5), (Z(633) - zs) / kb, 0))
-        u_ = Vector((math.cos(al), math.sin(al), 0))      # L -> R
-        v_ = Vector((math.sin(al), -math.cos(al), 0))     # B -> F
-        corners = {"L": c_ - u_ * r_, "F": c_ + v_ * r_, "R": c_ + u_ * r_, "B": c_ - v_ * r_}
-        slab(K, [tuple(corners[q] + Vector((0, 0, zs))) for q in ("L", "F", "R", "B")], th, seat_w, name="stool_seat")
-        feet = {"L": (347, 822), "F": (445, 858), "R": (556, 815), "B": (470, 782)}
-        legs = {}
-        for q, p_ in corners.items():
-            a = c_ + (p_ - c_) * 0.76
-            top_ = Vector((a.x, a.y, zs - th))
-            fx, fpy = feet[q]
-            bot_ = Vector((P.x(fx), yo(K, fpy, hp), hp - 0.01))
-            legs[q] = (top_, bot_)
-            beam(K, tuple(bot_), tuple(top_), 0.1, 0.1, wood, name="stool_leg")
+    zs, th = 0.55, 0.05
 
-        def on_leg(q, z):
-            a, b = legs[q]
-            tt = (z - b.z) / (a.z - b.z)
-            return tuple(b.lerp(a, tt))
-        for q1, q2 in (("L", "F"), ("F", "R"), ("R", "B"), ("B", "L")):
-            for z_, w_, h_ in ((hp + 0.2, 0.05, 0.06), (zs - th - 0.05, 0.035, 0.1)):
-                beam(K, on_leg(q1, z_), on_leg(q2, z_), w_, h_, wood, name="stretcher")
-        s_anchor = (P.x(445), yo(K, 858, hp), hp)
-        Ys = anchor_y(K, s_anchor, hp, k_build=kb)
-        # the towel thrown over the seat, hanging down over its front-right edge (F-R) as painted
-        F_, R_ = corners["F"], corners["R"]
-        y_tw = (F_.y + R_.y) / 2
-        towel = proj_at(K, Ys + (y_tw - s_anchor[1]) * fk(K, Ys), keep=[(398, 604, 556, 738)], inset=2)
-        edge = lambda t_: F_.lerp(R_, t_)                 # noqa: E731
-        out = (v_ + u_).normalized() * 0.012
-        inward = (c_ - (F_ + R_) / 2).normalized()
+    def real(px, py, z):
+        y = yk(K, py, z)
+        return Vector((xk(K, px, y), y, z))
+    Lc, Fc, Rc = real(337, 637, zs), real(470, 667, zs), real(568, 629, zs)
+    e1, e2 = (Fc - Lc), (Rc - Fc)
+    side_ = (e1.length + e2.length) / 2
+    ang = math.atan2(e1.y, e1.x) + 0.5 * (math.atan2(e2.y, e2.x) - math.pi / 2 - math.atan2(e1.y, e1.x))
+    u1 = Vector((math.cos(ang), math.sin(ang), 0)) * side_            # L -> F, square
+    u2 = Vector((-u1.y, u1.x, 0))                                     # F -> R
+    c_ = (Lc + Rc) / 2
+    Lq, Fq = c_ - (u1 + u2) / 2, c_ + (u1 - u2) / 2
+    Rq, Bq = c_ + (u1 + u2) / 2, c_ - (u1 - u2) / 2
+    corners = {"L": Lq, "F": Fq, "R": Rq, "B": Bq}
+    slab(K, [tuple(corners[q] + Vector((0, 0, 0))) for q in ("L", "F", "R", "B")], th, seat_w, name="stool_seat")
+    feet = {"L": (347, 822), "F": (445, 858), "R": (556, 815), "B": (470, 782)}
+    legs = {}
+    for q, p_ in corners.items():
+        a = c_ + (p_ - c_) * 0.8
+        top_ = Vector((a.x, a.y, zs - th))
+        bot_ = real(*feet[q], hp)
+        bot_.z = hp - 0.01
+        legs[q] = (top_, bot_)
+        beam(K, tuple(bot_), tuple(top_), 0.11, 0.11, wood, name="stool_leg")
 
-        def tw_top(u, v):
-            p_ = edge(0.08 + 0.84 * u) + inward * (0.3 * v)
-            return (p_.x, p_.y, zs + 0.008)
-        K.sheet(tw_top, 8, 6, towel_top, name="towel_top", thickness=0.006)
+    def on_leg(q, z):
+        a, b = legs[q]
+        tt = (z - b.z) / (a.z - b.z)
+        return tuple(b.lerp(a, tt))
+    for q1, q2 in (("L", "F"), ("F", "R"), ("R", "B"), ("B", "L")):
+        for z_, w_, h_ in ((hp + 0.18, 0.06, 0.07), (zs - th - 0.05, 0.04, 0.1)):
+            beam(K, on_leg(q1, z_), on_leg(q2, z_), w_, h_, wood, name="stretcher")
+    # the towel thrown over the seat, hanging down over its front-right edge (F-R) as painted
+    F_, R_ = corners["F"], corners["R"]
+    y_tw = (F_.y + R_.y) / 2
+    towel = proj_at(K, y_tw, keep=[(398, 604, 556, 738)], inset=2)
+    edge = lambda t_: F_.lerp(R_, t_)                     # noqa: E731
+    out = (F_ - c_ + R_ - c_).normalized() * 0.012
+    inward = (c_ - (F_ + R_) / 2).normalized()
 
-        def tw_hang(u, v):
-            p_ = edge(0.08 + 0.84 * u) + out
-            return (p_.x, p_.y - 0.01 * math.sin(math.pi * v), zs + 0.004 - (zs + kb * p_.y - Z(736)) * v)
-        K.sheet(tw_hang, 10, 8, towel, name="towel", thickness=0.006)
-    place(K, K.parts[n2:], s_anchor, Z=hp, k_build=kb)
+    def tw_top(u, v):
+        p_ = edge(0.08 + 0.84 * u) + inward * (0.3 * v)
+        return (p_.x, p_.y, zs + 0.008)
+    K.sheet(tw_top, 8, 6, towel_top, name="towel_top", thickness=0.006)
+
+    def tw_hang(u, v):
+        p_ = edge(0.08 + 0.84 * u) + out
+        return (p_.x, p_.y - 0.01 * math.sin(math.pi * v), zs + 0.004 - (zs - zk(K, 736, p_.y)) * v)
+    K.sheet(tw_hang, 10, 8, towel, name="towel", thickness=0.006)
     # ---------------------------------------------------------------- the brass basin, level on the earth
     n3 = len(K.parts)
     water = ktile(K, (700, 800, 800, 815), vary=0.04)

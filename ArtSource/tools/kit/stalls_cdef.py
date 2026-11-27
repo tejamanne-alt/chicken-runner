@@ -680,6 +680,32 @@ def clean_source(K, keep, inset=4, dark=0.72):
     return Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA")
 
 
+def outline_boxes(K, region, width=6, step=3):
+    """Small boxes (px) covering the painted outline's inner band (`width` px in from the cut-out's edge) inside
+    region: for K.front_exclude, where the parts behind a painted silhouette (a canopy's top seen from above along
+    the slope) would otherwise catch the outline's ink and pale halo as rings and streaks."""
+    from scipy import ndimage
+    a = np.asarray(K.paint.img)[..., 3] > 127
+    band = a & ~ndimage.binary_erosion(a, iterations=width)
+    band = ndimage.binary_dilation(band, iterations=2)
+    x0, y0, x1, y1 = region
+    out = []
+    for r in range(y0, y1, step):
+        row = band[r:r + step, x0:x1].any(0)
+        xs = np.nonzero(row)[0]
+        if len(xs) == 0:
+            continue
+        start = prev = xs[0]
+        for x in list(xs[1:]) + [None]:
+            if x is None or x != prev + 1:
+                out.append((x0 + start, r, x0 + prev + 1, r + step))
+                if x is not None:
+                    start = x
+            if x is not None:
+                prev = x
+    return out
+
+
 def topped(K, outline, z0, z1, side, top, name="mat", drop_bottom=True, grid=12):
     """A level slab over a plan outline [(x, y), ...] (counter-clockwise from above), from z0 to z1: its sides wear
     `side` (a tile), its top `top` (the painted top along the slope, slope_proj). The bottom face is left off when it
@@ -2603,7 +2629,7 @@ def stall_e_3(K):
     # ---------------------------------------------------------------- the astrologer, sitting on the mat
     c2 = len(K.cards_parts)
     y_man = yo(K, 653, zm)
-    MP.figures(K, [(man, y_man, "astrologer")], exact=True)
+    MP.figures(K, [(man, y_man, "astrologer", 25.0)], exact=True)
     slope_cards(K, K.cards_parts[c2:])
     (_, Y_man, _), _ = place(K, K.cards_parts[c2:], (P.x(383), y_man, zm), Z=zm)
     # ---------------------------------------------------------------- the umbrella, leaning back over him
@@ -2655,7 +2681,7 @@ def stall_e_3(K):
     under_boxes = [(0, 172, 100, 330), (100, 140, 180, 330), (180, 120, 366, 300), (391, 120, 560, 300),
                    (560, 138, 650, 330), (650, 182, 758, 330)]
     under = slope_proj(K, keep=under_boxes, inset=2)
-    K.front_exclude += under_boxes
+    K.front_exclude += under_boxes + outline_boxes(K, (0, 0, 758, 330))
     rib = K.colour((370, 140, 382, 160), vary=0.08)
     tip, axis = rib_umbrella(K, Xr, y_rim, z_rim, R, H, math.degrees(t), top_cloth, under, rib, ribs=10,
                              phase=0.0, runner=hub, shape=pw, scallop=0.0, edge=edge, tears=0.0)
