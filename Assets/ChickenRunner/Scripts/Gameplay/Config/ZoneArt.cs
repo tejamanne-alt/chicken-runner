@@ -22,6 +22,9 @@ namespace ChickenRunner
             public float contentMax = 100f;
             [Tooltip("How far either side of the camera this track must be filled; deeper tracks need more.")]
             [Min(10f)] public float reach = 80f;
+            [Tooltip("Laid for every other copy: the same scenery in the reverse order along the lane (the pictures not "
+                + "flipped), so the street repeats only every two periods. Empty: every copy the same.")]
+            public GameObject alternate;
         }
 
         [SerializeField, Range(1, 3)] internal int zone = 1;

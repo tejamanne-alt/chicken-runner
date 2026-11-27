@@ -142,10 +142,40 @@ namespace ChickenRunner.EditorTools
             float start = near.Min(c => c.x) - 2f;
             float period = near.Max(c => c.x) - start + 2f;
             var inside = cards.Where(c => c.x >= start && c.x < start + period).ToList();
-            return Save(inside, prefabPath, period);
+            var track = Save(inside, prefabPath, period);
+            if (track == null) return null;
+            // The alternate copy: the same set in the reverse order along the lane, mirrored about the middle of its
+            // stretch (positions only: no painting is flipped, so no signboard reads backwards). Laid for every other
+            // copy, so the same houses come round only every two stretches.
+            float axis = start * 2f + period;
+            var reversed = inside.Select(c => Mirrored(c, axis)).ToList();
+            track.alternate = SavePrefab(reversed, prefabPath.Replace(".prefab", "_Reversed.prefab"));
+            return track;
         }
 
+        static LayoutCard Mirrored(LayoutCard c, float axis) => new LayoutCard
+        {
+            name = c.name, image = c.image, layer = c.layer, x = axis - c.x, y = c.y, z = c.z, w = c.w, h = c.h,
+            turn = c.turn, haze = c.haze, fade_bottom = c.fade_bottom, fade_sides = c.fade_sides, mirror = c.mirror,
+            flat = c.flat, shadeless = c.shadeless,
+        };
+
         static ZoneArt.Track Save(List<LayoutCard> cards, string prefabPath, float period)
+        {
+            var prefab = SavePrefab(cards, prefabPath);
+            if (prefab == null) return null;
+            float deepest = cards.Max(c => c.z);
+            return new ZoneArt.Track
+            {
+                prefab = prefab,
+                period = Mathf.Max(1f, period),
+                contentMin = cards.Min(c => c.x - c.w * 0.5f),
+                contentMax = cards.Max(c => c.x + c.w * 0.5f),
+                reach = Mathf.Max(10f, (CameraDistance + deepest) * ViewSpread + 5f),
+            };
+        }
+
+        static GameObject SavePrefab(List<LayoutCard> cards, string prefabPath)
         {
             var root = new GameObject(Path.GetFileNameWithoutExtension(prefabPath));
             int made = 0;
@@ -165,15 +195,7 @@ namespace ChickenRunner.EditorTools
             }
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
             Object.DestroyImmediate(root);
-            float deepest = cards.Max(c => c.z);
-            return new ZoneArt.Track
-            {
-                prefab = prefab,
-                period = Mathf.Max(1f, period),
-                contentMin = cards.Min(c => c.x - c.w * 0.5f),
-                contentMax = cards.Max(c => c.x + c.w * 0.5f),
-                reach = Mathf.Max(10f, (CameraDistance + deepest) * ViewSpread + 5f),
-            };
+            return prefab;
         }
     }
 }

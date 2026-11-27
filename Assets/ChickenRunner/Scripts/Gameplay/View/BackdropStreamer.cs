@@ -20,6 +20,7 @@ namespace ChickenRunner
 
         readonly List<Dictionary<int, GameObject>> _live = new List<Dictionary<int, GameObject>>();
         readonly List<Stack<GameObject>> _pool = new List<Stack<GameObject>>();
+        readonly List<Stack<GameObject>> _alternatePool = new List<Stack<GameObject>>();
         readonly List<int> _drop = new List<int>();
         ZoneArt _shown;
 
@@ -40,6 +41,7 @@ namespace ChickenRunner
             {
                 _live.Add(new Dictionary<int, GameObject>());
                 _pool.Add(new Stack<GameObject>());
+                _alternatePool.Add(new Stack<GameObject>());
             }
             if (targetCamera != null)
             {
@@ -64,12 +66,21 @@ namespace ChickenRunner
             {
                 foreach (var go in pool) Destroy(go);
             }
+            foreach (var pool in _alternatePool)
+            {
+                foreach (var go in pool) Destroy(go);
+            }
             _live.Clear();
             _pool.Clear();
+            _alternatePool.Clear();
             _shown = null;
         }
 
         void LateUpdate() => Refresh();
+
+        static bool UsesAlternate(ZoneArt.Track track, int k) => track.alternate != null && (k & 1) != 0;
+
+        Stack<GameObject> PoolFor(ZoneArt.Track track, int t, int k) => UsesAlternate(track, k) ? _alternatePool[t] : _pool[t];
 
         void Refresh()
         {
@@ -94,14 +105,17 @@ namespace ChickenRunner
                 {
                     var go = live[k];
                     go.SetActive(false);
-                    _pool[t].Push(go);
+                    PoolFor(track, t, k).Push(go);
                     live.Remove(k);
                 }
 
                 for (int k = first; k <= last; k++)
                 {
                     if (live.ContainsKey(k)) continue;
-                    var go = _pool[t].Count > 0 ? _pool[t].Pop() : Instantiate(track.prefab, transform);
+                    // Every other copy is the alternate arrangement, when the track has one.
+                    var pool = PoolFor(track, t, k);
+                    var prefab = UsesAlternate(track, k) ? track.alternate : track.prefab;
+                    var go = pool.Count > 0 ? pool.Pop() : Instantiate(prefab, transform);
                     go.transform.localPosition = new Vector3(k * track.period, 0f, 0f);
                     go.SetActive(true);
                     live[k] = go;
