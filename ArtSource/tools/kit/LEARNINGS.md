@@ -142,7 +142,101 @@ every model against the audit checklist at the end.** Add to it whenever somethi
 - Builds run several at once on a 4-core machine: `KIT_THREADS=1`, one Blender process per builder.
 - Edit only your own module; shared fixes go to the kit through the lead.
 
-## 9. The audit checklist (a model passes only if every answer is yes)
+## 9. From the audit of all 179 (eight directions and above, every model)
+
+Every model was audited from the exported FBX and fixed until its sheet passed or what is left was written down
+(`docs/art/model-audit.md`). The rules below are what the eight module audits found more than once; each module's full
+notes are in [learnings/](learnings/).
+
+Measuring and placing
+- **Measure thin parts from the painting's alpha, row by row** (the opaque run's centre and width), never by eye off
+  the grid: spokes, handles, poles, twigs and limbs traced by eye sat 3-12 px off their painted line (red on one side,
+  blue on the other). Detect spokes as lines from the hub; fit each wheel's ellipse on its own (two wheels of one
+  vehicle are often painted differently).
+- **AND every colour mask with the alpha**: transparent pixels keep colour, so fits ran out past torn leaf tips.
+- **Subtract the game's ink outline from painted radii** of trunks, stems and posts (about 1.5 x the outline width):
+  the painted width includes its ink line, the game draws its own outside the solid.
+- **A turned piece (three-quarters on) is solved from its painted posts or corners**: build it square, then turn every
+  part and cutter about the nearest corner, T(corner) R(-phi) S_x(1/cos phi) T(-corner) (`fields.turn`,
+  `stalls_ghx.Turned`). Front matches rose from 0.57-0.75 to 0.84-0.93.
+- **`np.interp` needs increasing sample points** (a hooked stalk gave nonsense); `binary_erosion(iterations=0)` erodes
+  everything: guard both.
+
+Ground and lift
+- **No earth disc, mound, bed or slab the painting does not have**: they read as plain discs from the side and spill
+  below the foot. Where the painting has earth, tile it with the painted soil (quilted) and keep its rim at the foot.
+- **Ground painted from above is not a slope to build**: keep it level; stand goods at their painted heights on a real
+  dais, plinth or raked stand (`stalls_ghx.raked_stand`), and accept the red where the painting shows the ground's top.
+- **Cards count for the lift**: end every card and figure polygon at the painted foot, or the lift goes to 0 and the
+  model floats by its foot height. Check the record's lift after a build.
+
+Projection
+- **Never push the painting straight through a turned body**: it drags one column round the sides (pots, tanks, sacks,
+  heaps, cloth stacks). Wrap it by angle: straight on over the front 45-70 degrees (exact, by sine), then the painted
+  half laid evenly round (`market_props.wrapped`, `lane_props.proj(wrap=)`, `ground_crops.wrapped`); for a nut lying at
+  a slant, round its own axis. Tops pushed through smear: project them on a slant (`proj(top_shear=)`).
+- **Projected solids take the painting only on faces turned front and back** (`fields.proj_tiles`, `trees.bark_mix`),
+  a tile everywhere else; raise `K.front_min` to 0.55 on trunks, posts, pots and boulders, or the painted ink outline
+  runs down their sides as a dark seam.
+- **Never project through a pole, and never give it a flat colour** (orange plastic): a squared strip of the painted
+  pole's lit middle (`stalls_cdef.pole_tile`).
+- **Painted light is not a material**: shadow, lamp glow, a ground shadow band. Crop clear of it.
+- **Exclude what stands in front of a recess or a wall by its own pixels** (`lane_houses.exclude_where`), not by a box:
+  a box leaves a pale rectangle; nothing leaves a ghost of the kettle, wheel or tyres on the wall behind.
+- **Two parts on one spot, or a face coplanar with the wall below it, get no painting** (the bake's visibility pass):
+  dedupe, set faces a few mm proud.
+- **The cut-out's own holes and halo**: fill specks before tiling (`market_props.ftile`), skin speckled walls
+  (`market_props.skin`), remove the halo by a flood from the outside (`ground_crops.halo_free`) so white parts (cotton
+  bolls) survive, and take opaque haze between stems off the projection.
+
+Tiles
+- **Pick crops by measurement**: fully opaque (check the alpha), lit, no stains, ink lines, neighbours, figures or glow;
+  then clean the marks out (`lane_houses.clean_tile`, `fields.delined`). A small clean crop repeats as a quilt grid:
+  give it a bigger `size`.
+- **Quilt, do not stretch**: a thin painted strip (earth under a prop, a field's top, a plinth) quilted from soft
+  feathered patches into a square tile (`lane_props.quilt_tile`, `ground_crops.quilt`, `fields.quilt`); wood and straw
+  quilted unturned so the grain stays one way. Mirror-stacked strips make chevrons and herringbones.
+- **Regular patterns are sampled once**: brick bonds, coursed stone and striped cloth ghost under `K.tile`'s two
+  blended samplings; lay a bond from the painted bricks with its courses on the painted ones (`fields.brick_bond`,
+  `pattern_tile`).
+- **Stone keeps its painted tones**: grain-only stone goes pale and plain. Sides take the painted side face's darker
+  stone. Damage painted on the front (fallen plaster, brick) goes on the back and sides too (`market_props.wall_patch`).
+- **Thatch**: straws run down the slope with no rows (`market_props.strand_tile`); soften squared thatch 0.4-0.5.
+
+Geometry
+- **Rope beds, nets, straw, stems and wires of thin tubes are all ink**: a sheet with the painted weave, cut-out wisps,
+  card ribbons.
+- **Corrugated tin goes black from the side** where it is modelled all the way up: corrugate the eave only (9 mm).
+- **A thick roof mat's hip ends stand out past the painted hip** by half its thickness: pull them in.
+- **Heaps against a wall are their painted outline carried back** with rounded edges, wearing a tile of their goods;
+  heaps standing free get pieces or a tile all round, not only on the front. Things hung on a back wall face outwards.
+- **Skirtings and dados are cut at doors and alcoves**; a back door copied onto the back wall gets steps.
+- **Slabs and beds are one closed mesh** whose walls hang from the top's edge (slits open where a ridged top meets a
+  flat end wall); cut ends carry the painted band round at its scale (`ground_crops.side_band`).
+
+Cards
+- **Shear the front and back shells of a crown into depth** (`trees.sheared_card`: every vertex at its painted x, z):
+  from the front exactly the painting. Turn only the volume cards inside, which the shell hides. Place shell cards by
+  coverage until 99.6 % of the painted leaves are covered.
+- **Fit frond and leaf widths to the pixels each spine owns** (`palms_plants.fit_widths_owned`), not to the painted
+  rachis alone (leaflets hanging below it went missing).
+- **Tufts wrap round their own stem** (shallow, about 0.35 deep, one card through it side-on); never crossed cards
+  (squeezed doubles from the front), never boxes smaller than the tuft. Grass clumps are their own traced blades.
+- **Side-on cards in a bush carry patches from inside the crown**, clamped to the crown's depth; volume cards stay within
+  about 30 degrees of the front in sparse plants; copies round the back turn half round, never mirror (ink blots).
+- **Masks**: `plant_pixels` keeps cream lime wash and turmeric plaster as petals (use leaves and vivid petals only on
+  such walls); drop specks by component size, never by opening (thin tips vanish); subtract the traced wood from the
+  leaf mask; put twigs too thin for tubes on the cards.
+- **Figures**: `market_props.figures(exact=True)` when two share an outline; turn figure cards 20-30 degrees in plan so
+  they are not sticks from the side.
+- **Decal quads get an ink frame** in the game: lay patches (cracks, fallen plaster) as cut-out cards instead.
+- **Leaves texture 2048** for paintings wider than 1024 px.
+
+The audit itself
+- **Its flags are hints**: `repeat` fires on a regular brick bond and on real symmetry, `streaks` on real wood grain,
+  `front_holes` on every level model of a painting drawn from above. Judge each view by eye.
+
+## 10. The audit checklist (a model passes only if every answer is yes)
 
 Front (the painting's frame, and the difference map):
 1. The outline matches: no red (missing) and no blue (extra) areas beyond a thin edge.
