@@ -572,6 +572,12 @@ def grass_pixels(rgb):
     return keep
 
 
+def water_pixels(rgb):
+    """A leaf rule for falling water: its pale blue-white and grey, not the brick or rust painted behind it."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    return b >= r - 12
+
+
 def everything(rgb):
     """A leaf rule that keeps every opaque pixel."""
     return np.ones(rgb.shape[:2], bool)
@@ -1916,7 +1922,11 @@ def pump_house(K):
     wall = delined(P.crop((158, 109, 238, 309)), 5)
     brick = pattern_tile(K, brick_bond(K, [], (92, 48, 30), brick=(48, 18), joint=2, nx=6, ny=8, seed=3,
                                        source=wall), P.m(6 * 50), z0=P.z(309), vary=0.05, key="brick")
-    plinth = K.tile((150, 320, 250, 343), soften=0.2, vary=0.04)
+    # the plinth: two courses of long dressed stones, each a patch of the painted plinth's own stone (its joints
+    # filtered out), laid with dark joints at the painted courses' heights (the grass at its foot left out)
+    plinth = pattern_tile(K, brick_bond(K, [], (78, 44, 30), brick=(110, 19), joint=3, nx=3, ny=2, seed=5,
+                                        source=delined(P.crop((262, 321, 412, 337)), 5)),
+                          P.m(3 * 113), z0=P.z(361), vary=0.05, key="plinth")
     coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
     body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")
     K.box(P.x(146), P.x(414), -0.04, D + 0.04, 0.0, P.z(318), plinth, bevel=0.01, name="plinth")
@@ -1970,7 +1980,7 @@ def pump_house(K):
     for a0, a1, b0, b1 in ((xa, xb, t0, t0 + rw), (xa, xb, t1 - rw, t1), (xa, xa + rw, t0, t1), (xb - rw, xb, t0, t1)):
         K.box(a0, a1, b0, b1, 0.0, zt, rimm, bevel=0.01, name="trough_rim")
     K.box(xa + rw, xb - rw, t0 + rw, t1 - rw, 0.0, zt - 0.03, wt, name="trough_water")
-    K.leaves_only((50, 226, 125, 356), everything)
+    K.leaves_only((50, 226, 125, 356), water_pixels)
     K.card_from_painting((52, 226, 124, 352), (P.x(88), yp, P.z(289)), name="stream", normal=(0, -1, 0.3))
     K.card_from_painting((52, 226, 124, 352), (P.x(92), yp, P.z(289)), yaw=90, name="stream", normal=(0, -1, 0.3))
     # grass at the foot
