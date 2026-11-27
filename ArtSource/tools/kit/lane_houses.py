@@ -2780,6 +2780,9 @@ def cattle_shed(K):
     # towards the camera, their own material is a tile of the painted hay: projected, it ran down their sides in
     # vertical streaks like a beehive)
     hm = K.tile((1250, 490, 1420, 565), size=0.6, vary=0.06, soften=0.1)
+    # the painted hay kept off the front bake (on a mound 1 m deep it ran down the flanks in vertical streaks): the
+    # hay tufts cut from the painting, laid on the mounds' faces, carry the painted look from the front
+    exclude_where(K, (880, 440, 1480, 880), hay_pixels, grow=2)
     heaps = ((1315, 300, 455, D - 0.8), (1120, 280, 555, 1.85), (975, 210, 700, 1.4))
     for px, w, top, y in heaps:
         sz = P.z(top) - zf
@@ -2791,7 +2794,7 @@ def cattle_shed(K):
     K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
     # tufts of hay on the heaps' faces where they are painted (never out in the air above or round them)
-    for i in range(160):
+    for i in range(320):
         cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
         if cx + 55 > calf[0] and cx - 55 < calf[2] and cy + 45 > calf[1]:
             continue

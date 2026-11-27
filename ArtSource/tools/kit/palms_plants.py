@@ -1598,7 +1598,7 @@ def h4_5(K):
 
 
 # ====================================================================== bananas
-def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana"):
+def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana", mask=None):
     """A bunch of bananas round its hanging stalk: hands [(py, reach px)] down the rachis (px, from the painting), each
     a ring of curved fingers springing from the stalk and curving up, reaching `reach` px out (the painted bunch's
     half-width there); finger_px (length, radius)."""
@@ -1610,6 +1610,11 @@ def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana"
     hang = rachis_px[top:]
     for k, (py, reach) in enumerate(hands):
         rx = float(np.interp(py, [p[1] for p in hang], [p[0] for p in hang]))
+        if mask is not None:                  # the hand round the painted bunch's own middle at its row
+            band = mask[max(0, int(py) - 6):int(py) + 7].any(axis=0)
+            xs = np.nonzero(band)[0]
+            if len(xs) > 4:
+                rx, reach = (xs.min() + xs.max()) / 2.0, (xs.max() - xs.min()) / 2.0
         ph = rng.uniform(0, 6.28)
         for i in range(per_hand):
             a = ph + 2 * math.pi * (i + rng.uniform(-0.2, 0.2)) / per_hand
@@ -1659,7 +1664,8 @@ def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, fo
     K.tube(pts, [P.m(rr) for _, _, rr in ped], stalk, segments=8, name="peduncle")
     fmat = masked_material(K, bunch_ok, inset=1)
     rach = [(x, y_) for x, y_, _ in ped]
-    bunch(K, rach, hands, finger, fmat, y=yb)
+    yellow = ndimage.binary_closing(bunch_ok & (g > 120) & (r > 0.82 * g) & (b < 0.62 * g), iterations=3)
+    bunch(K, rach, hands, finger, fmat, y=yb, mask=yellow)          # the painted bananas, not the stem behind
     bx, by, brx, bry = bell
     bell_ok = opaque & ellipse_mask(opaque.shape, [bell]) & not_ink(rgb, 50)
     bm_ = masked_material(K, bell_ok, inset=1)
