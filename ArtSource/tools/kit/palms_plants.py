@@ -2190,11 +2190,11 @@ def h6_4(K):
     bam = masked_material(K, bamboo_ok(rgb, opaque) & box_mask(opaque.shape, [(25, 30, 435, 548)]), inset=1)
     rope = masked_material(K, opaque & box_mask(opaque.shape, [(70, 80, 100, 115), (365, 85, 395, 115)])
                            & not_ink(rgb, 80), inset=0)
-    pr, br = 9.5, 8.5                           # painted half-widths with their ink, less the game's outline
+    pr, br = 10.5, 9.5                          # painted half-widths with their ink, less the game's outline
     yb = -P.m(pr + br) * 0.9
     # (centres measured off the painted bamboo, row by row and column by column)
-    pole(K, (87.5, 552), (85.5, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
-    pole(K, (376, 548), (375.5, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
+    pole(K, (87, 552), (85, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
+    pole(K, (376, 548), (379, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
     for a, b_ in (((28, 97.6), (428, 105.4)), ((28, 269), (412, 270)), ((38, 411.5), (422, 411))):
         pole(K, a, b_, br, bam, y=yb, nodes=(0.4,))
     for px, py in ((86, 99), (376, 104), (87, 269), (376, 270), (87, 411.5), (376, 411)):
