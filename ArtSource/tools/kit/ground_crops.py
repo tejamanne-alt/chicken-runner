@@ -87,14 +87,14 @@ def inset_px(mask, px):
 
 
 # ====================================================================== helpers: tiles synthesised from the painting
-def quilt(K, ok, out=256, patch=32, overlap=8, soften=0.25, turn=True):
+def quilt(K, ok, out=256, patch=32, overlap=8, soften=0.25, turn=True, rgb=None):
     """A square, seamless tile of a painted material (earth, water, husk fibre) quilted from random square patches
     of the painting wherever `ok` (bool HxW) holds, each turned and flipped at random (a ground seen from above has no
     direction; turn=False keeps the painted direction, for fibre and grain, and only flips them end for end) and
     feathered into its neighbours on a torus. For surfaces the painting shows only in a thin band or
     in perspective (a field's top, a husk's back): its own colours and brushwork, at its own scale, with no stripes."""
     P = K.paint
-    rgb = np.asarray(P.img.convert("RGB")).astype(np.float32)
+    rgb = np.asarray(P.img.convert("RGB")).astype(np.float32) if rgb is None else rgb.astype(np.float32)
     okf = ok.astype(np.int32)
     ii = np.pad(okf.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
     p = patch
@@ -228,10 +228,13 @@ def stone_masks(P, dark=95, ink=85, min_px=25, grow=3):
     return out
 
 
-def proj_material(K, src, axis_x=0.0, squeeze=1.0, name="proj", dz=0.0):
+def proj_material(K, src, axis_x=0.0, squeeze=1.0, name="proj", dz=0.0, side=None):
     """Like K.projected, but from a prepared source image (PIL, the painting's size): the painting straight through
     the model along y, sampled from `src` (e.g. the painting with its ink lines filled from their neighbours), dz
-    metres higher than the point (a part moved down from where it is painted keeps its own painted face)."""
+    metres higher than the point (a part moved down from where it is painted keeps its own painted face).
+    side=(pil, size): where the surface turns away from the front and back (its sides and top), a box-projected tile
+    of pil (a quilt of the same painted material, one tile `size` metres) instead, so they are not the painting
+    dragged through in stripes."""
     P = K.paint
     m = Mat(f"{K.name}_{name}{len(K._mats)}")
     nt = m.nt
@@ -258,7 +261,31 @@ def proj_material(K, src, axis_x=0.0, squeeze=1.0, name="proj", dz=0.0):
     tex.image = _image(src, f"{m.mat.name}_img")
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
-    m.set_colour(tex.outputs["Color"])
+    col = tex.outputs["Color"]
+    if side is not None:
+        pil, size = side
+        t2 = nt.nodes.new("ShaderNodeTexImage")
+        t2.image = _image(pil, f"{m.mat.name}_side")
+        t2.projection = "BOX"
+        t2.projection_blend = 0.3
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (1 / size, 1 / size, 1 / size)
+        nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs[0], t2.inputs["Vector"])
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        sn = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(geo.outputs["Normal"], sn.inputs[0])
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.inputs["From Min"].default_value = 0.45
+        mr.inputs["From Max"].default_value = 0.75
+        nt.links.new(op("ABSOLUTE", sn.outputs["Y"], 0.0), mr.inputs["Value"])
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(mr.outputs["Result"], mix.inputs["Factor"])
+        nt.links.new(t2.outputs["Color"], mix.inputs["A"])
+        nt.links.new(col, mix.inputs["B"])
+        col = mix.outputs["Result"]
+    m.set_colour(col)
     K._mats[("myproj", len(K._mats))] = m
     return m
 
@@ -394,10 +421,15 @@ def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
     for m, hull, bot, w, y_c, top in sorted(placed, key=lambda p: p[4]):
         lift = P.z(bot + 0.5)
         ok = ndimage.binary_erosion(m, iterations=4)
-        # its own painted face wrapped round its own middle (the sides carry the stone, not its outline in stripes)
-        ys, xs = np.nonzero(m)
-        mat = wrapped(K, P.x(xs.mean() + 0.5), axis_y=y_c - shift, squeeze=0.9,
-                      src=filled_source(P, ok if ok.sum() > 20 else m), dz=lift)
+        # its own painted face on its front and back, and on its sides and top a quilt of the same stone's painted
+        # surface (the sides carry the stone, not its outline dragged through in stripes)
+        inner = ok if ok.sum() > 20 else m
+        try:
+            side = quilt(K, ndimage.binary_erosion(m, iterations=2) & halo_free(P), out=96, patch=12, overlap=4,
+                         soften=0.1)
+        except RuntimeError:                                  # too small a stone for a patch: its painted face only
+            side = None
+        mat = proj_material(K, filled_source(P, inner), name="stone", dz=lift, side=side)
         rock(K, hull, y_c - shift, w * depth * K.rng.uniform(0.85, 1.05), mat, lift, top_px=top)
 
 
@@ -498,15 +530,21 @@ def tri_sheet(K, mask, step, yfn, mat, eps=1.2, back_y=None, thickness=0.0, name
     loose = [v for v in bm.verts if not v.link_faces]
     bmesh.ops.delete(bm, geom=loose, context="VERTS")
     if back_y is not None:
-        edges = [e for e in bm.edges if e.is_boundary]
-        ret = bmesh.ops.extrude_edge_only(bm, edges=edges)
-        new_vs = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
-        for v in new_vs:
-            v.co.y = back_y
-        new_es = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMEdge) and g.is_boundary]
-        filled = bmesh.ops.holes_fill(bm, edges=new_es, sides=0)["faces"]
-        # the flat back in triangles: a single many-sided face unwraps edge-on and starves the atlas
-        bmesh.ops.triangulate(bm, faces=filled, quad_method="BEAUTY", ngon_method="EAR_CLIP")
+        # the flat back: the front's own triangles flattened onto y = back_y (filling the outline's loop instead
+        # spanned the notches between tongues of a concave outline), joined to the front round the edge
+        front = list(bm.faces)
+        boundary = [(e.verts[0], e.verts[1]) for e in bm.edges if e.is_boundary]
+        vmap = {v: bm.verts.new((v.co.x, back_y, v.co.z)) for v in list(bm.verts)}
+        for f in front:
+            try:
+                bm.faces.new([vmap[v] for v in reversed(f.verts)])
+            except ValueError:
+                pass
+        for a, b in boundary:
+            try:
+                bm.faces.new([a, b, vmap[b], vmap[a]])
+            except ValueError:
+                pass
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     ob = _obj(name, bm, mat, smooth=smooth)
     if thickness:
@@ -589,6 +627,61 @@ def axis_wrap(K, c_px, d_px, src, squeeze=0.93, name="axiswrap"):
     return m
 
 
+def unrolled(P, ok, c, d, half_len, half_w):
+    """The painting resampled along an axis (through c, along d, px): a strip 2*half_len px along it by 2*half_w px
+    across, the axis running along its rows (fibres that follow the axis come out level); and `ok` resampled with it."""
+    d = np.asarray(d, float)
+    n = np.array((-d[1], d[0]))
+    ii, jj = np.mgrid[-half_w:half_w, -half_len:half_len].astype(float)
+    xs = c[0] + d[0] * jj + n[0] * ii - 0.5
+    ys = c[1] + d[1] * jj + n[1] * ii - 0.5
+    rgb = np.stack([ndimage.map_coordinates(P.rgba[..., k] * 255, [ys, xs], order=1, mode="nearest")
+                    for k in range(3)], -1)
+    okr = ndimage.map_coordinates(ok.astype(np.float32), [ys, xs], order=0, mode="constant") > 0.5
+    return rgb, okr
+
+
+def axis_quilt(K, c_px, d_px, pil, size, around, name="axisquilt"):
+    """A quilted tile (pil, one tile `size` metres) wrapped round a thing lying along an axis in the picture's plane
+    (through c_px along d_px): along the axis the tile's rows, round it `around` tiles (so it closes on itself), the
+    painted fibres running along the thing as they are painted. Its own material for the sides and back; the front
+    projection paints the front."""
+    P = K.paint
+    cx, cz = P.x(c_px[0]), P.z(c_px[1])
+    D = (float(d_px[0]), float(-d_px[1]))
+    N = (float(-d_px[1]), float(-d_px[0]))
+    m = Mat(f"{K.name}_{name}{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    qx = op("SUBTRACT", sep.outputs["X"], cx)
+    qz = op("SUBTRACT", sep.outputs["Z"], cz)
+    t = op("ADD", op("MULTIPLY", qx, D[0]), op("MULTIPLY", qz, D[1]))
+    w = op("ADD", op("MULTIPLY", qx, N[0]), op("MULTIPLY", qz, N[1]))
+    phi = op("ARCTAN2", w, op("MULTIPLY", sep.outputs["Y"], -1.0))
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(op("DIVIDE", t, size), vec.inputs[0])
+    nt.links.new(op("MULTIPLY", phi, around / (2 * math.pi)), vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(pil, f"{m.mat.name}_img")
+    tex.extension = "REPEAT"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[("axisquilt", len(K._mats))] = m
+    return m
+
+
 def lying_body(K, mask, mat, stations=22, seg=36, lobes=0.0, name="body"):
     """A body of revolution about the painted long axis of `mask` (PCA), lying in the picture's plane: at each station
     along the axis a round ring across it, as wide as the mask is there (its centre following the mask's middle), so
@@ -663,13 +756,19 @@ def coconut(K):
     # the pale halo round the nut off the front projection (the loose fibres beyond it stay for their cards)
     near = ndimage.binary_dilation(body, iterations=5)
     clean_front(K, ~(near & a & ~halo_free(P)))
-    src = filled_source(P, ndimage.binary_erosion(body, iterations=6) & halo_free(P))
-    # its axis first (from the whole nut), then the wrapped husk about it
+    # its axis first (from the whole nut); its husk round the sides and back a quilt of the painted husk unrolled
+    # along that axis (the fibres run along the nut, as painted); the front projection paints its front
     _, _, vt = np.linalg.svd(np.argwhere(body)[:, ::-1] - np.argwhere(body)[:, ::-1].mean(0), full_matrices=False)
+    d = vt[0] / np.linalg.norm(vt[0])
     ys, xs = np.nonzero(body)
     c = np.array((xs.mean() + 0.5, ys.mean() + 0.5))
-    husk = axis_wrap(K, c, vt[0] / np.linalg.norm(vt[0]), src, squeeze=0.93)
-    lying_body(K, inset_px(body, 3), husk, lobes=0.035, name="nut")
+    inner = ndimage.binary_erosion(body, iterations=6) & halo_free(P)
+    rgb, okr = unrolled(P, inner, c, d, 110, 100)
+    pil, size = quilt(K, okr, out=192, patch=22, overlap=6, soften=0.15, turn=False, rgb=rgb)
+    ob, _ = lying_body(K, inset_px(body, 3), None, lobes=0.035, name="nut")
+    rho = float(max(v.co.y for v in ob.data.vertices))
+    husk = axis_quilt(K, c, d, pil, size, max(1, round(2 * math.pi * rho / size)))
+    ob.data.materials.append(husk.mat)
     # loose fibres: the pale strands painted off its outline, where they are painted and stood round it
     card_mask(K, a & ~ndimage.binary_dilation(body, iterations=2))
     ax = float(c[0])

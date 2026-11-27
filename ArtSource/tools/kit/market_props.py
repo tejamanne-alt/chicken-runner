@@ -49,6 +49,63 @@ def strip_tile(K, box, vary=0.05, soften=0.4, name=None, image=None, key=None):
     return m
 
 
+def square_tile(K, box, vary=0.06, soften=0.3, size=None, image=None, key=None, name=None):
+    """K.tile for a thin strip of the painting: the strip mirror-stacked into a square first (as strip_tile), then
+    sampled twice at different scales and offsets blended by a large soft noise (as K.tile), so neither the strip's
+    rows nor the tile itself line up into a visible repeat. size: metres across (default: as painted)."""
+    from PIL import Image
+    P = K.paint
+    key = key or ("sqt", tuple(int(v) for v in box), soften, vary, size)
+    if key in K._mats:
+        return K._mats[key]
+    crop = (image if image is not None else P.crop(box)).convert("RGB")
+    a = np.asarray(crop).astype(np.float32)
+    if soften:
+        med = np.median(a.reshape(-1, 3), axis=0)
+        a = a * (1 - soften) + med * soften
+    w, h = a.shape[1], a.shape[0]
+    n = max(1, int(round(w / max(1, h))))
+    sq = Image.fromarray(np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+                         .clip(0, 255).astype(np.uint8))
+    sw = size or P.m(w)
+    sh = sw * sq.height / sq.width
+    m = Mat(name or f"{K.name}_sqt{len(K._mats)}")
+    img = _image(seamless(sq, 0.25), m.mat.name)
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    samples = []
+    for scale, offset in ((1.0, 0.0), (0.71, 0.413)):
+        tex = m.nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.25
+        mapping = m.nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sh)
+        mapping.inputs["Location"].default_value = (offset, offset * 0.7, offset * 1.3)
+        mapping.inputs["Rotation"].default_value = (0.0, 0.0, 0.0 if scale == 1.0 else math.radians(90))
+        m.nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+        m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        samples.append(tex.outputs["Color"])
+    noise = m.nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+    noise.inputs["Detail"].default_value = 2.0
+    m.nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = m.nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.4
+    ramp.inputs["From Max"].default_value = 0.6
+    m.nt.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    mix = m.nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    m.nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    m.nt.links.new(samples[0], mix.inputs["A"])
+    m.nt.links.new(samples[1], mix.inputs["B"])
+    col = mix.outputs["Result"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / sw)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
 def rake_tile(K, a, b, offset_px, thick_px, vary=0.1, soften=0.1):
     """A tile of a band painted along a slanting line (the thatch along a gable's rake) from a to b (px): the
     painting turned so the band lies flat, and the band offset_px below the line, thick_px thick, cut out."""
@@ -763,7 +820,7 @@ def hens_basket(K):
            (67, 76, 84), 14, wicker)
     ground_disc(K, cx, 124, 75, 0.2, (12, 119, 30, 123), h=0.004)
     # the nest: a lumpy ring of straw heaped over the rim and drooping over it, its hollow bedded with straw
-    straw = K.tile((92, 66, 122, 86), vary=0.1, soften=0.1)
+    straw = square_tile(K, (40, 72, 130, 88), vary=0.1, soften=0.2)   # the nest's front, below the hens
     sec = [(0, 72), (20, 72.5), (36, 71), (48, 67), (58, 63), (66, 64), (70.5, 68), (72, 73), (71, 80), (69, 86),
            (66, 87.5)]
     ring_sheet(K, P.x(cx), 0.0, [(P.m(r), P.z(y)) for r, y in sec], straw, nu=56, lumps=P.m(3.2), name="nest",
@@ -1034,35 +1091,56 @@ def cloth_sheet(K, tl, tr, tip, mat, billow=0.012, twist=0.0, nu=6, nv=6, thickn
     return K.sheet(fn, nu, nv, mat, name=name, smooth=True, thickness=thickness)
 
 
+def grow_triangle(a, b, c, d):
+    """Triangle a, b, c (px) with each edge moved out by d px (scaled about its incentre)."""
+    A, B, C = (np.array(v, float) for v in (a, b, c))
+    la, lb, lc = np.linalg.norm(B - C), np.linalg.norm(C - A), np.linalg.norm(A - B)
+    inc = (la * A + lb * B + lc * C) / (la + lb + lc)
+    s_ = (la + lb + lc) / 2
+    r = math.sqrt(max(1e-9, s_ * (s_ - la) * (s_ - lb) * (s_ - lc))) / s_
+    k = (r + d) / r
+    return [tuple(inc + (V - inc) * k) for V in (A, B, C)]
+
+
+def ellipse_ring(K, c, rx, rz, tube_r, mat, n=18, name="loop"):
+    """A closed tube round an ellipse in the xz plane (a bow's loop): centre c (x, y, z), radii rx, rz metres."""
+    pts = [(c[0] + rx * math.cos(2 * math.pi * i / n), c[1], c[2] + rz * math.sin(2 * math.pi * i / n))
+           for i in range(n + 1)]
+    return K.tube(pts, tube_r, mat, segments=6, name=name, cap=False)
+
+
 @model("bunting", "market", kind="prop")
 def bunting(K):
-    """A festival bunting: a twisted rope sagging between two bow-knotted ends, eight cloth pennants hung over it
-    (orange, yellow, pink, teal), each bellied a little in the breeze."""
+    """A festival bunting: a twisted golden rope sagging between two bow-knotted ends, eight cloth pennants hung over
+    it (orange, yellow, pink, teal), each bellied a little in the breeze. Pennants traced off the painting; rope and
+    bows wear the painted rope front and back."""
     P = K.paint
-    rope_m = K.colour((130, 57, 160, 60), vary=0.12, scale=60)
+    pale_halo(K, near=3, cell=2)
     path = [(22, 20), (30, 26), (45, 33), (62, 42), (80, 48), (97, 53), (114, 57), (130, 60), (147, 61.5), (163, 62),
             (180, 61.5), (195, 60), (210, 57), (225, 53), (240, 47), (255, 40), (268, 32), (282, 23), (287, 20)]
-    ys = [0.0] * len(path)
-    K.tube([P.pt(x, y, yy) for (x, y), yy in zip(path, ys)], P.m(2.6), rope_m, segments=8, name="rope")
-    # the bow knots at the ends: two loops and a tail each
-    for sx, knot in ((1, (24, 21)), (-1, (285, 21))):
-        kx, ky = knot
-        for (lx, ly, r) in ((-10, -5, 6), (1, -9, 5)):
-            c = P.pt(kx + sx * lx, ky + ly, 0.0)
-            ring(K, c[0], 0.0, c[2], P.m(r), P.m(1.2), rope_m, n=14, name="bow_loop")
-        K.tube([P.pt(kx, ky, 0), P.pt(kx - sx * 3, ky + 8, -0.005), P.pt(kx - sx * 7, ky + 14, 0),
-                P.pt(kx - sx * 4, ky + 18, 0.005)], P.m(1.6), rope_m, segments=6, name="bow_tail")
-        K.lathe([(P.m(3.2), -P.m(3)), (P.m(3.6), 0.0), (P.m(3.2), P.m(3)), (0.0, P.m(3.2))], rope_m, segments=10,
-                centre=(P.x(kx), 0.0, P.z(ky) - 0.0), name="knot")
-    flags = [((32, 30), (62, 44), (34, 79)), ((64, 46), (95, 55), (70, 94)), ((97, 56), (128, 62), (106, 104)),
-             ((130, 62), (160, 63), (142, 108)), ((163, 63), (192, 62), (176, 107)), ((195, 60), (223, 55), (210, 99)),
-             ((225, 52), (250, 44), (243, 89)), ((253, 42), (279, 28), (271, 73))]
+    rope_m = K.projected(squeeze=1.0, keep=[(x - 7, y - 3, x + 7, y + 3) for x, y in path] +
+                         [(6, 6, 34, 42), (276, 6, 305, 42)], inset=1)
+    K.tube([P.pt(x, y, 0.0) for x, y in path], P.m(2.6), rope_m, segments=8, name="rope")
+    # the bows at the ends: an upright loop, a loop out sideways, the knot and a curled tail, as painted
+    for s_, kx in ((1, 24), (-1, 286.5)):
+        X = lambda dx: kx + s_ * dx
+        ellipse_ring(K, P.pt(X(1), 14.5, 0.0), P.m(3.6), P.m(6.0), P.m(1.3), rope_m, name="bow_loop")
+        ellipse_ring(K, P.pt(X(-9), 19, 0.0), P.m(6.0), P.m(4.0), P.m(1.3), rope_m, name="bow_loop")
+        K.tube([P.pt(X(0), 22, 0), P.pt(X(-3), 30, -0.004), P.pt(X(-6), 35, 0), P.pt(X(-8), 38, 0.004),
+                P.pt(X(-10.5), 37, 0.004)], P.m(1.4), rope_m, segments=6, name="bow_tail")
+        K.lathe([(P.m(3.0), -P.m(2.8)), (P.m(3.4), 0.0), (P.m(3.0), P.m(2.8)), (0.0, P.m(3.0))], rope_m, segments=10,
+                centre=(P.x(kx), 0.0, P.z(22)), name="knot")
+    flags = [((32, 30), (61, 45), (34, 79)), ((64, 47), (95, 55), (70, 94)), ((97, 56), (127, 63), (106, 104)),
+             ((130, 64), (160, 64), (142, 108)), ((162, 64), (192, 62), (176, 107)), ((194, 62), (222, 56), (210, 100)),
+             ((224, 54), (251, 45), (242, 88)), ((253, 42), (279, 30), (271, 73))]
     for k, (tl, tr, tip) in enumerate(flags):
         xs, ys_ = [tl[0], tr[0], tip[0]], [tl[1], tr[1], tip[1]]
-        cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 2, min(ys_) + 3, max(xs) - 2, max(ys_) - 2)], inset=2)
+        cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 2, min(ys_) + 4, max(xs) - 1, max(ys_) - 2)], inset=2)
+        # the painted cloth reaches about 2 px past its traced edges (its outline): cover it
+        gtl, gtr, gtip = grow_triangle(tl, tr, tip, 2.2)
         # the cloth folds over the rope: its top edge a little behind and above the rope's middle
         tw = K.rng.uniform(-0.03, 0.03)
-        cloth_sheet(K, P.pt(tl[0], tl[1] - 1, P.m(1.5)), P.pt(tr[0], tr[1] - 1, P.m(1.5)), P.pt(*tip, 0.0), cloth,
+        cloth_sheet(K, P.pt(gtl[0], gtl[1], P.m(1.5)), P.pt(gtr[0], gtr[1], P.m(1.5)), P.pt(*gtip, 0.0), cloth,
                     billow=-K.rng.uniform(0.006, 0.014), twist=tw, name="flag")
 
 

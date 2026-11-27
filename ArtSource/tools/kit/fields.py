@@ -179,6 +179,111 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     return m
 
 
+def delined(crop, size=5):
+    """A patch of the painting with its thin ink lines (cracks, joints, outlines a pixel or two wide) taken out by a
+    median filter: the surface's blotches and colour kept, so a tile of it does not repeat a line in a grid."""
+    a = np.asarray(crop.convert("RGB"))
+    return Image.fromarray(np.stack([ndimage.median_filter(a[..., i], size=size) for i in range(3)], -1))
+
+
+def filled_source(K, keep=None, exclude=(), inset=4, blur=6.0):
+    """K.source(), with the filled-in pixels (those outside keep, inside exclude or past the outline, copied from the
+    nearest kept one) blurred, so a projection that lands on them shows a soft continuation, not radiating streaks."""
+    key = ("fsrc", tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude), inset, blur)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    a = np.asarray(P.img).astype(np.float32)
+    ok = a[..., 3] > 127
+    if keep:
+        k = np.zeros_like(ok)
+        for x0, y0, x1, y1 in keep:
+            k[int(y0):int(y1), int(x0):int(x1)] = True
+        ok &= k
+    for x0, y0, x1, y1 in exclude:
+        ok[int(y0):int(y1), int(x0):int(x1)] = False
+    if inset:
+        ok = ndimage.binary_erosion(ok, iterations=inset)
+    _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+    f = a[iy, ix][..., :3]
+    if blur:
+        soft = np.stack([ndimage.gaussian_filter(f[..., i], blur) for i in range(3)], -1)
+        w = np.clip(ndimage.distance_transform_edt(~ok) / (2 * blur), 0, 1)[..., None]
+        f = f * (1 - w) + soft * w
+    out = Image.fromarray(np.concatenate([f, np.full(f.shape[:2] + (1,), 255.0)], -1).clip(0, 255).astype(np.uint8),
+                          "RGBA")
+    K._mats[key] = out
+    return out
+
+
+def proj_tiles(K, keep, exclude, side, top, side_size=None, top_size=None, lo=0.5, hi=0.8, y_from=0.55, y_to=0.8,
+               inset=4, soften=0.25, vary=0.0, blur=6.0, name=None):
+    """A material for a solid cut from a painted section (a bank, a channel): the painting projected straight
+    through it along y on the faces turned to the front and the back (|normal.y| from y_from to y_to), and on every
+    other face two tiles of the surface, `side` where it faces sideways (a cut end, a steep slope) and `top` where it
+    faces up (normal.z lo..hi), so no face shows the painting dragged out into streaks. side / top: a box of the
+    painting, or a PIL image (with side_size / top_size, its width in metres)."""
+    key = ("ptiles", tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude),
+           side if isinstance(side, tuple) else id(side), top if isinstance(top, tuple) else id(top),
+           lo, hi, y_from, y_to, inset, soften, vary, blur)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(name or f"{K.name}_ptiles{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+
+    def tile(src, size):
+        if isinstance(src, tuple):
+            return _tile_socket(K, m, coord, src, size, soften, vary)
+        return _tile_socket(K, m, coord, (0, 0, src.width, src.height), size, 0.0, vary, image=src)
+    a, b = tile(side, side_size), tile(top, top_size)
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sn = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], sn.inputs[0])
+
+    def mix(f_socket, f0, f1, A, B, absolute=False):
+        rng = nt.nodes.new("ShaderNodeMapRange")
+        rng.inputs["From Min"].default_value = f0
+        rng.inputs["From Max"].default_value = f1
+        if absolute:
+            ab = nt.nodes.new("ShaderNodeMath")
+            ab.operation = "ABSOLUTE"
+            nt.links.new(f_socket, ab.inputs[0])
+            f_socket = ab.outputs[0]
+        nt.links.new(f_socket, rng.inputs["Value"])
+        mx = nt.nodes.new("ShaderNodeMix")
+        mx.data_type = "RGBA"
+        nt.links.new(rng.outputs["Result"], mx.inputs["Factor"])
+        nt.links.new(A, mx.inputs["A"])
+        nt.links.new(B, mx.inputs["B"])
+        return mx.outputs["Result"]
+    tiles = mix(sn.outputs["Z"], lo, hi, a, b)
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    for i, (ax, size) in enumerate((("X", P.W), ("Z", P.H))):
+        d = nt.nodes.new("ShaderNodeMath")
+        d.operation = "DIVIDE"
+        nt.links.new(sep.outputs[ax], d.inputs[0])
+        d.inputs[1].default_value = size
+        if ax == "X":
+            ad = nt.nodes.new("ShaderNodeMath")
+            ad.operation = "ADD"
+            nt.links.new(d.outputs[0], ad.inputs[0])
+            ad.inputs[1].default_value = 0.5
+            nt.links.new(ad.outputs[0], vec.inputs[0])
+        else:
+            nt.links.new(d.outputs[0], vec.inputs[1])
+    ptex = nt.nodes.new("ShaderNodeTexImage")
+    ptex.image = _image(filled_source(K, keep, exclude, inset, blur), f"{m.mat.name}_proj")
+    ptex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], ptex.inputs["Vector"])
+    m.set_colour(mix(sn.outputs["Y"], y_from, y_to, tiles, ptex.outputs["Color"], absolute=True))
+    K._mats[key] = m
+    return m
+
+
 def strip(K, p0, p1, half):
     """A strip of the painting along the line p0 -> p1 (pixels), `half` px either side of it, turned level: the
     clean surface of a thing the painting draws on a slant (a slab's top running away from us), to tile."""
@@ -824,16 +929,20 @@ def canal_bank(K):
     ground = [(2, 145), (40, 140), (80, 148), (120, 153), (160, 154), (200, 166), (250, 190), (300, 218), (340, 240),
               (400, 265), (440, 287), (480, 288), (560, 303), (640, 322), (720, 327), (800, 310), (880, 296),
               (960, 266), (1000, 257), (1040, 225), (1080, 190), (1120, 173), (1160, 160), (1196, 152)]
-    earth = turned(K, 0.0, (60, 156, 200, 196), squeeze=1.0, keep=[(0, 120, 1198, 373)],
-                   exclude=[(225, 0, 500, 250), (420, 190, 840, 310)], side="z", side_from=0.45, side_to=0.7,
-                   soften=0.3)
+    # the painted section on its front and back (the cut ends of the stretch); its grassy topsoil on the banks' tops
+    # and slopes, its earth (the section's blotched soil, its cracks taken out) on the cut ends at either side
+    earth = proj_tiles(K, [(0, 120, 1198, 373)], [(225, 0, 500, 250)],
+                       speckle(delined(P.crop((12, 215, 240, 350)), 7), sigma=4.0, amount=1.2),
+                       speckle(delined(P.crop((20, 158, 200, 176)), 3), sigma=3.0, amount=0.9),
+                       side_size=P.m(228), top_size=P.m(180), lo=0.35, hi=0.6, vary=0.14, blur=8.0)
     section(K, ground + [(1196, 364), (2, 364)], -d, d, earth, name="banks")
     # the water: its surface level with the banks' edges, its body down to the bed
     bed = [p for p in ground if 330 <= p[0] <= 1045]
     surface = [(336, 241), (1036, 241)]
     wtop = K.paint.colour((700, 244, 900, 262))
-    water = turned(K, 0.0, (640, 246, 990, 262), squeeze=1.0, keep=[(330, 238, 1040, 330)],
-                   exclude=[(420, 190, 840, 300)], side="z", side_from=0.4, side_to=0.7, soften=0.4)
+    still = speckle(P.crop((640, 250, 990, 262)), sigma=3.0, amount=0.8)
+    water = proj_tiles(K, [(330, 241, 1040, 330)], [], still, still, side_size=P.m(350), top_size=P.m(350), lo=0.4,
+                       hi=0.7, vary=0.05, blur=4.0)
     section(K, [surface[0]] + bed[1:-1] + [surface[1]], -d + 0.01, d - 0.01, water, name="water")
     # the reeds and cattails along the left bank's slope, all the way back
     K.leaves_only((225, 0, 500, 246), no_white)

@@ -4,14 +4,30 @@ import math
 from kitlib import model
 
 
-def ground_patch(K, cx_px, y_px, rx_px, ry, box, pebbles=(), grass=()):
+def smooth(pts, n=4):
+    """A traced profile [(a, b), ...] made smooth: n points per span on a Catmull-Rom curve through the traced ones,
+    so a turned pot's silhouette has no corners at the points it was traced at."""
+    out = []
+    m = len(pts)
+    for i in range(m - 1):
+        p0, p1, p2, p3 = pts[max(0, i - 1)], pts[i], pts[i + 1], pts[min(m - 1, i + 2)]
+        for k in range(n):
+            t = k / n
+            out.append(tuple(0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t * t
+                                    + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t ** 3) for j in range(2)))
+    out.append(tuple(pts[-1]))
+    return out
+
+
+def ground_patch(K, cx_px, y_px, rx_px, ry, box, pebbles=(), grass=(), dirt_box=None, dirt_exclude=()):
     """The patch of earth a painted prop stands on: a low, uneven disc of the painting's own dirt, with pebbles
-    (px, py, size_px) and grass cards (box_px) where the painting has them."""
+    (px, py, size_px) and grass cards (box_px) where the painting has them. dirt_box: the painted earth its tile is
+    quilted from (else a colour from box)."""
     P = K.paint
-    dirt = K.colour(box, vary=0.18, scale=12.0)
+    dirt = quilt_tile(K, dirt_box, exclude=dirt_exclude) if dirt_box else K.colour(box, vary=0.18, scale=12.0)
     rx = P.m(rx_px)
-    K.lathe([(0.0, 0.0), (rx * 0.98, 0.0), (rx * 0.9, 0.012), (rx * 0.55, 0.02), (0.0, 0.022)], dirt, segments=28,
-            centre=(P.x(cx_px), 0.0, P.z(y_px) - 0.012), scale_y=ry / rx, wobble=0.12, name="ground")
+    K.lathe([(rx * 0.98, 0.0), (rx * 0.9, 0.012), (rx * 0.55, 0.02), (0.0, 0.022)], dirt, segments=28,
+            centre=(P.x(cx_px), 0.0, P.z(y_px) - 0.012), scale_y=ry / rx, wobble=0.12, name="ground", cap=False)
     stone = K.colour((0.42, 0.33, 0.26), vary=0.15)
     for px, py, s in pebbles:
         r = P.m(s) / 2
@@ -29,25 +45,27 @@ def pot_stack(K):
     P = K.paint
     K.front_projection = False          # the pots carry the painting all the way round (projected) instead
     cx = 148
-    clay = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(35, 0, 262, 384)],
-                       exclude=[(18, 338, 82, 384), (222, 352, 268, 384)])
+    clay = proj(K, P.x(cx), 0.93, keep=[(35, 0, 262, 384)], exclude=[(18, 338, 82, 384), (222, 352, 268, 384)],
+                wrap=62)
     pots = [
         # (radius px, y px) from the foot up: bottom pot, its neck and rim
-        [(52, 390), (75, 380), (96, 350), (106, 315), (107, 295), (100, 262), (84, 241), (70, 233), (76, 228),
-         (77, 218), (70, 213)],
+        [(50, 390), (64, 380), (72, 371), (78.5, 360), (85, 352), (90, 344), (95, 336), (98.5, 328), (102, 320),
+         (104.5, 312), (106.5, 304), (107.5, 294), (107, 284), (105, 274), (100, 262), (93, 252), (85, 244), (70, 233),
+         (76, 228), (77, 218), (70, 213)],
         [(46, 214), (63, 205), (80, 182), (81, 165), (74, 140), (56, 125), (50, 119), (61, 115), (61, 107), (55, 104)],
         [(44, 108), (57, 92), (61, 68), (52, 46), (35, 33), (40, 25), (42, 14), (40, 8)],
     ]
     for i, prof in enumerate(pots):
-        prof_m = [(P.m(r), P.z(y)) for r, y in prof]
-        K.lathe(prof_m, clay, segments=40, centre=(P.x(cx), 0, 0), wobble=0.012, name=f"pot{i}", cap=i < 2)
+        prof_m = [(P.m(r), P.z(y)) for r, y in smooth(prof)]
+        K.lathe(prof_m, clay, segments=48, centre=(P.x(cx), 0, 0), wobble=0.012, name=f"pot{i}", cap=i < 2)
     # the top pot's open mouth: a dark inside going down into it
     inside = K.colour((0.09, 0.035, 0.015), vary=0.1)
     K.lathe([(P.m(36), P.z(9)), (P.m(33), P.z(16)), (P.m(30), P.z(35)), (0.0, P.z(40))], inside, segments=40,
             centre=(P.x(cx), 0, 0), name="mouth", cap=False)
     ground_patch(K, cx, 386, 120, 0.16, (60, 372, 110, 392),
                  pebbles=[(75, 388, 26), (190, 389, 30), (240, 380, 14), (40, 382, 10)],
-                 grass=[(18, 338, 82, 384), (222, 352, 268, 384)])
+                 grass=[(18, 338, 82, 384), (222, 352, 268, 384)], dirt_box=(10, 370, 280, 407),
+                 dirt_exclude=[(50, 370, 245, 392)])
 
 
 # ====================================================================== kolams (rice-flour drawings on the ground)
@@ -178,14 +196,21 @@ def quilt_tile(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.3
 
 
 def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_polys=(), inset=4, mirror=0, dz=0.0,
-         side_tile=None, side_soften=0.25, mask=None, top_tile=None):
+         side_tile=None, side_soften=0.25, mask=None, top_tile=None, wrap=None, axis_y=0.0, top_shear=0.0):
     """Like K.projected (the painting straight through the model along y, squeezed towards axis_x), but the source
     may be cut to polygons (polys: [[(px, py), ...], ...], the thing's own outline where it overlaps its neighbours)
     and mirror = -1 / +1 makes it wear only its left / right half, mirrored onto the other (a round thing whose
     other half is hidden behind a neighbour). side_tile (a box of the painting): faces turned to the side (+-x),
     which a projection along y would streak, wear that patch as a seamless box-projected tile instead (a long
     sack's ends). mask(rgba HxWx4 0..255) -> bool: only those pixels (a basket's strips, not the gaps between
-    them), the rest filled from the nearest one."""
+    them), the rest filled from the nearest one. wrap (degrees): for a round thing turned about the vertical through
+    (axis_x, axis_y), the painting is wrapped round it by angle instead of pushed straight through: as the straight
+    projection up to `wrap` degrees from the front, then folding back in towards the middle of the painted half, so
+    the sides show the thing's painted bands and marks at their own width, not its painted rim dragged round into
+    streaks; the back wears the front, mirrored. top_shear (k): faces turned up (a sack's top, a heap's crown) take
+    the painting projected obliquely, sampling k metres further down it for every metre they reach back from axis_y,
+    so they wear the thing's own painted texture at its own scale, its stripes and bands still where they are along
+    x, instead of the one painted row at their height dragged back into streaks."""
     import numpy as np
     from PIL import Image, ImageDraw
     from scipy import ndimage
@@ -194,7 +219,7 @@ def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_pol
            tuple(tuple(map(tuple, q)) for q in polys) if polys else None, tuple(tuple(b) for b in exclude),
            tuple(tuple(map(tuple, q)) for q in exclude_polys), inset, mirror, round(dz, 4),
            tuple(side_tile) if side_tile else None, side_soften, mask.__name__ if mask else None,
-           tuple(top_tile) if top_tile else None)
+           tuple(top_tile) if top_tile else None, wrap, round(axis_y, 4), top_shear)
     if key in K._mats:
         return K._mats[key]
     P = K.paint
@@ -238,7 +263,17 @@ def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_pol
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
     off = op("SUBTRACT", sep.outputs["X"], axis_x)
-    if mirror:
+    if wrap:
+        f = math.radians(wrap)
+        k = (math.sin(f) - 0.5) / (math.pi / 2 - f)
+        dy = op("SUBTRACT", sep.outputs["Y"], axis_y)
+        r = op("SQRT", op("ADD", op("MULTIPLY", off, off), op("MULTIPLY", dy, dy)))
+        th = op("ARCTAN2", op("ABSOLUTE", off), op("MULTIPLY", dy, -1.0))          # 0 at the front, pi at the back
+        th = op("MINIMUM", th, op("SUBTRACT", math.pi, th))                       # the back wears the front
+        h = op("SUBTRACT", op("SINE", op("MINIMUM", th, f)), op("MULTIPLY", op("MAXIMUM", op("SUBTRACT", th, f), 0.0), k))
+        sgn = float(mirror) if mirror else op("SIGN", off)
+        off = op("MULTIPLY", op("MULTIPLY", r, h), sgn)
+    elif mirror:
         off = op("MULTIPLY", op("ABSOLUTE", off), float(mirror))
     x = op("ADD", op("MULTIPLY", off, squeeze), axis_x)
     u = op("ADD", op("DIVIDE", x, P.W), 0.5)
@@ -251,6 +286,28 @@ def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_pol
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
     col = tex.outputs["Color"]
+    if top_shear:
+        v2 = op("DIVIDE", op("SUBTRACT", op("ADD", sep.outputs["Z"], dz),
+                             op("MULTIPLY", op("SUBTRACT", sep.outputs["Y"], axis_y), top_shear)), P.H)
+        vec2 = nt.nodes.new("ShaderNodeCombineXYZ")
+        nt.links.new(u, vec2.inputs[0])
+        nt.links.new(v2, vec2.inputs[1])
+        tex2 = nt.nodes.new("ShaderNodeTexImage")
+        tex2.image = tex.image
+        tex2.extension = "EXTEND"
+        nt.links.new(vec2.outputs[0], tex2.inputs["Vector"])
+        nsepS = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(coord.outputs["Normal"], nsepS.inputs[0])
+        rngS = nt.nodes.new("ShaderNodeMapRange")
+        rngS.inputs["From Min"].default_value = 0.35
+        rngS.inputs["From Max"].default_value = 0.75
+        nt.links.new(nsepS.outputs["Z"], rngS.inputs["Value"])
+        mixS = nt.nodes.new("ShaderNodeMix")
+        mixS.data_type = "RGBA"
+        nt.links.new(rngS.outputs["Result"], mixS.inputs["Factor"])
+        nt.links.new(col, mixS.inputs["A"])
+        nt.links.new(tex2.outputs["Color"], mixS.inputs["B"])
+        col = mixS.outputs["Result"]
     if side_tile:
         from kitlib import seamless
         crop = P.crop(side_tile).convert("RGB")
@@ -308,6 +365,15 @@ def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_pol
     mat.set_colour(col)
     K._mats[key] = mat
     return mat
+
+
+def plain_pixels(rgba):
+    """A plain material's own pixels (stone, wood, earth): opaque, not the ink line, not a bright highlight and not
+    the vivid paint of flowers, garlands or marks painted on it."""
+    import numpy as np
+    r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    return (a > 220) & (mx > 55) & (mx < 215) & (mx - mn < 95)
 
 
 def opaque_pixels(rgba):
@@ -370,9 +436,10 @@ def earth(K, cx_px, foot_py, low_py, rx_px, ry, box, grass=(), pebbles=(), pebbl
     rx = P.m(rx_px)
     top, drop = P.z(foot_py), max(0.01, P.m(low_py - foot_py))
     # the rim is steep enough (over its last few percent) to face the camera and take the painted dirt
-    ob = K.lathe([(0.0, top - drop - 0.004), (rx, top - drop - 0.004), (rx * 1.0, top - drop), (rx * 0.965, top - drop * 0.45),
-                  (rx * 0.92, top - drop * 0.08), (rx * 0.86, top), (0.0, top + 0.004)], dirt, segments=36,
-            centre=(P.x(cx_px), 0.0, 0.0), scale_y=ry / rx, wobble=0.08, name=name)
+    # (no bottom: it lies on the ground, never seen, and would only take room in the atlas)
+    ob = K.lathe([(rx, top - drop - 0.004), (rx * 1.0, top - drop), (rx * 0.965, top - drop * 0.45),
+                  (rx * 0.92, top - drop * 0.08), (rx * 0.86, top), (rx * 0.45, top + 0.003), (0.0, top + 0.004)], dirt,
+                 segments=36, centre=(P.x(cx_px), 0.0, 0.0), scale_y=ry / rx, wobble=0.08, name=name, cap=False)
     if tilt:
         for v in ob.data.vertices:
             v.co.z += tilt * v.co.y
@@ -413,8 +480,8 @@ def dung(K):
     lump[:, -1] = lump[:, 0]
     # the heap's (radius, height above its foot), from the dimple out over the rim and down the outer wall: traced
     # from the painting's silhouette (half-width at each height)
-    hr = [(0.0, 0.15), (0.02, 0.168), (0.05, 0.174), (0.09, 0.158), (0.125, 0.143), (0.15, 0.128), (0.175, 0.11),
-          (0.19, 0.095), (0.2, 0.075), (0.204, 0.042), (0.2, 0.012), (0.19, 0.0)]
+    hr = [(0.0, 0.155), (0.02, 0.172), (0.05, 0.182), (0.09, 0.173), (0.125, 0.163), (0.15, 0.149), (0.175, 0.133),
+          (0.19, 0.116), (0.2, 0.098), (0.206, 0.07), (0.205, 0.035), (0.2, 0.01), (0.19, 0.0)]
     rim = 8                                   # hr index of the rim: past it, the outer wall
 
     def height(v):
@@ -434,7 +501,7 @@ def dung(K):
         j, i = int(round(v * nv)), int(round(u * nu))
         lobes = 0.2 + 0.8 * min(1.0, max(0.0, (r - R * 0.7) / (R * 0.25)))
         bump = P.m(2.6) * lump[j, i] * lobes
-        z = z - 0.02 * groove + (bump * 0.4 if k < rim else 0.0)
+        z = z - 0.011 * groove + (bump * 0.4 if k < rim else 0.0)
         r = r + bump
         return (X0 + r * math.cos(a), -r * math.sin(a), Z0 + z)
     K.sheet(surf, nu, nv, dungm, name="heap")
@@ -445,7 +512,7 @@ def dung(K):
     for a, b, y0, y1 in (((48, 98), (100, 98), -0.2, -0.18), ((215, 98), (250, 99), 0.12, 0.2),
                          ((240, 49), (284, 44), -0.02, -0.03), ((70, 98), (40, 99), 0.1, 0.16),
                          ((150, 99), (120, 99), 0.22, 0.27), ((260, 98), (232, 99), -0.08, -0.17)):
-        straw(K, a, b, y0, y1, gold, r_px=1.3)
+        straw(K, a, b, y0, y1, gold, r_px=2.3)
     for i in range(12):
         ang = K.rng.uniform(0.1, 0.9) * math.pi              # round the back half of the outer coil
         rr = R * 1.0
@@ -455,10 +522,11 @@ def dung(K):
         d = np.array([math.cos(a2), math.sin(a2), K.rng.uniform(-0.3, 0.2)])
         d /= np.linalg.norm(d)
         L = K.rng.uniform(0.03, 0.06)
-        K.tube([tuple(base - d * 0.01), tuple(base + d * L * 0.5), tuple(base + d * L)], P.m(1.2), gold, segments=5,
-               name="straw_in", taper=0.6)
-    earth(K, cx, foot, 114, 128, 0.27, (95, 104, 130, 114), grass=[(0, 58, 48, 98), (256, 66, 292, 100)],
-          pebbles=[(22, 104, 9), (276, 103, 8), (262, 104, 10)], pebble_box=(60, 104, 68, 110))
+        K.tube([tuple(base - d * 0.01), tuple(base + d * L * 0.5), tuple(base + d * L)], P.m(2.2), gold, segments=6,
+               name="straw_in", taper=0.7)
+    earth(K, cx, foot, 113, 128, 0.27, (95, 104, 130, 114), grass=[(0, 58, 48, 98), (256, 66, 292, 100)],
+          pebbles=[(22, 104, 9), (276, 103, 8), (262, 104, 10)], pebble_box=(60, 104, 68, 110),
+          dirt_box=(0, 84, 300, 126), dirt_exclude=[(50, 0, 262, 100)])
 
 
 def mouth(K, cx, cy, r_px, top_py, depth_px, mat, segments=32):
@@ -474,12 +542,11 @@ def brass_pots(K):
     """Two polished brass kudams (water pots) set down on the earth: a big one behind, a smaller one in front of it
     to the right, each with a round belly, a narrow neck and a flared rim, turned bands round their bellies."""
     P = K.paint
-    inside = K.colour((0.1, 0.045, 0.01), vary=0.1)
-    tilt = 0.115
+    inside = K.colour((0.16, 0.075, 0.02), vary=0.35, scale=40)
     pots = [
         # centre px, depth y, keep, exclude, profile [(r px, y px)] from the foot up to the rim's top
         (102, 0.12, [(24, 6, 156, 172), (156, 6, 180, 92)], [(10, 138, 52, 172)],
-         [(0, 170), (42, 170), (48, 167.5), (52, 161), (56, 152), (61, 144), (65, 136), (68, 128), (71, 120),
+         [(0, 177), (41, 177), (42, 172), (48, 167.5), (52, 161), (56, 152), (61, 144), (65, 136), (68, 128), (71, 120),
           (73, 112), (75, 104), (76.5, 96), (77, 86), (77, 76), (75.5, 68), (71, 61), (64, 53), (57, 48.5), (50, 44.5),
           (45, 40.5), (41.5, 36.5), (40, 32), (41.5, 28), (47, 25.5), (51, 23.5), (52.5, 20), (52.3, 15), (50.5, 11.5),
           (46.5, 9.2), (42, 8.4)], (41, 9.0)),
@@ -492,14 +559,18 @@ def brass_pots(K):
     for i, (cx, cy, keep, excl, pr, (mr, mtop)) in enumerate(pots):
         if i == 0:
             # the big pot's right side is hidden behind the small one: it wears its left half all round
-            brass = mirrored(K, P.x(cx), -1, squeeze=0.93, keep=keep, exclude=excl, inset=2)
+            brass = proj(K, P.x(cx), 0.93, keep=keep, exclude=excl, inset=2, mirror=-1, wrap=62, axis_y=cy)
         else:
-            brass = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=keep, exclude=excl, inset=2)
-        K.lathe(prof(P, pr), brass, segments=40, centre=(P.x(cx), cy, 0), wobble=0.004, name=f"pot{i}", cap=False)
+            brass = proj(K, P.x(cx), 0.93, keep=keep, exclude=excl, inset=2, wrap=62, axis_y=cy)
+        K.lathe(prof(P, smooth(pr, 2)), brass, segments=48, centre=(P.x(cx), cy, 0), wobble=0.004, name=f"pot{i}",
+                cap=False)
         mouth(K, cx, cy, mr, mtop, 22, inside, segments=40)
-    earth(K, 155, 176, 189, 138, 0.33, (60, 176, 90, 186), tilt=tilt,
+    # the earth is level: the big pot behind (painted higher, as further away) stands on it as the small one does,
+    # which sits a little into the soft earth
+    earth(K, 155, 176, 186, 128, 0.33, (60, 176, 90, 186),
           grass=[(10, 138, 52, 172), (258, 150, 296, 178)],
-          pebbles=[(130, 177, 8), (290, 180, 6)], pebble_box=(125, 172, 135, 178))
+          pebbles=[(130, 177, 8), (285, 180, 6)], pebble_box=(125, 172, 135, 178),
+          dirt_box=(0, 160, 302, 195), dirt_exclude=[(60, 0, 272, 176)])
 
 
 def stone_block(K, outline_px, y0, y1, mat, bevel=0.012, jitter=0.0, name="stone"):
@@ -675,7 +746,7 @@ def jute_sacks(K):
     grass = [(8, 192, 62, 222), (112, 207, 155, 226), (282, 200, 322, 222)]
     # the bottom right sack, in front
     weave = (150, 125, 200, 160)
-    m = proj(K, P.x(235), 0.95, polys=[right], exclude=grass, inset=3, side_tile=weave)
+    m = proj(K, P.x(235), 0.95, polys=[right], exclude=grass, inset=3, side_tile=weave, axis_y=-0.3, top_shear=0.5)
     sack(K, top=[(135, 168), (140, 125), (150, 117), (160, 112), (180, 105), (200, 100), (220, 96), (240, 93),
                  (260, 94), (280, 100), (300, 112), (310, 128), (318, 150), (324, 166), (333, 180)],
          seam=[(135, 168), (160, 178), (190, 181), (220, 181), (250, 178), (270, 172), (300, 170), (320, 169),
@@ -685,7 +756,7 @@ def jute_sacks(K):
          depth=[(135, 0.08), (150, 0.2), (190, 0.25), (290, 0.25), (318, 0.18), (333, 0.07)], yc=-0.05, mat=m,
          ground_py=224.5, lump=0.006, name="sack_right")
     # the bottom left sack, a little behind
-    m = proj(K, P.x(75), 0.95, polys=[left], exclude=grass, inset=3, side_tile=weave)
+    m = proj(K, P.x(75), 0.95, polys=[left], exclude=grass, inset=3, side_tile=weave, axis_y=-0.11, top_shear=0.5)
     sack(K, top=[(8, 180), (20, 152), (30, 138), (40, 128), (55, 115), (70, 107), (90, 104), (110, 105), (130, 110),
                  (145, 118), (160, 140), (166, 170)],
          seam=[(8, 180), (20, 172), (40, 166), (60, 163), (90, 164), (110, 166), (125, 172), (150, 172), (166, 170)],
@@ -694,16 +765,16 @@ def jute_sacks(K):
          depth=[(8, 0.07), (25, 0.17), (60, 0.23), (130, 0.23), (155, 0.16), (166, 0.07)], yc=0.12, mat=m,
          ground_py=223.5, lump=0.006, name="sack_left")
     # the top sack across them, its left end gathered into the neck
-    m = proj(K, P.x(170), 0.96, polys=[tops], inset=3, side_tile=weave)
+    m = proj(K, P.x(170), 0.96, polys=[tops], inset=3, side_tile=weave, axis_y=-0.13, top_shear=0.6)
     sack(K, top=[(66, 48), (70, 30), (80, 22), (100, 16), (120, 10), (150, 7), (180, 6), (200, 9), (220, 14),
                  (240, 21), (260, 33), (270, 41), (280, 44), (290, 49), (299, 60)],
          seam=[(66, 62), (100, 62), (150, 64), (190, 70), (205, 76), (220, 72), (250, 66), (280, 60), (299, 60)],
-         bottom=[(66, 76), (70, 88), (80, 95), (100, 100), (130, 104), (160, 107), (200, 108), (220, 104),
-                 (240, 96), (260, 86), (280, 75), (299, 60)],
+         bottom=[(66, 76), (70, 90), (80, 99), (100, 106), (130, 109), (160, 110), (200, 110), (220, 106),
+                 (240, 98), (260, 88), (280, 76), (299, 60)],
          depth=[(66, 0.045), (80, 0.13), (110, 0.2), (240, 0.2), (280, 0.15), (299, 0.06)], yc=0.07, mat=m,
          lump=0.005, name="sack_top")
     # the neck: gathered, bound with twine, and the frilled mouth of the sack beyond it
-    neck = proj(K, P.x(50), 0.9, keep=[(33, 36, 70, 88)], inset=2)
+    neck = proj(K, P.x(50), 0.9, keep=[(33, 36, 70, 88)], inset=2, side_tile=(40, 50, 62, 72))
     axis_lathe(K, [(0.0, 0.0), (P.m(13), 0.0), (P.m(21), P.m(3)), (P.m(24), P.m(9)), (P.m(22), P.m(15)),
                    (P.m(16), P.m(20)), (P.m(10), P.m(24)), (P.m(12), P.m(26)), (P.m(12), P.m(30)), (P.m(9), P.m(32)),
                    (P.m(13), P.m(35)), (P.m(15), P.m(37))], neck, (P.x(34), 0.07, P.z(62)), (1, 0, 0), segments=24,
@@ -712,8 +783,9 @@ def jute_sacks(K):
     for dx in (27.5, 29.5):
         axis_lathe(K, [(P.m(12.5), 0.0), (P.m(13.5), P.m(0.8)), (P.m(12.5), P.m(1.6))], twine,
                    (P.x(34 + dx - 0.8), 0.07, P.z(62)), (1, 0, 0), segments=16, name="twine")
-    earth(K, 170, 224, 232, 168, 0.48, (60, 222, 100, 230), grass=grass,
-          pebbles=[(45, 220, 10), (75, 218, 12), (260, 226, 12)], pebble_box=(40, 216, 55, 223))
+    earth(K, 170, 224, 232, 158, 0.48, (60, 222, 100, 230), grass=grass,
+          pebbles=[(45, 220, 10), (75, 218, 12), (260, 226, 12)], pebble_box=(40, 216, 55, 223),
+          dirt_box=(0, 214, 340, 236))
 
 
 def basket_strip_pixels(rgba):
@@ -788,15 +860,16 @@ def chicken_basket(K):
                  (rad(z1) - t * 0.4, z1), (rad(z0) - t * 0.4, z0)], cane, segments=56, centre=(X0, 0, 0),
                 name="hoop", smooth=False, cap=False)
     # the crown: a woven knot where the ribs meet, and the twisted handle looped over it, its feet lashed on
-    crown = proj(K, X0, 0.9, keep=[(108, 38, 214, 58)], inset=1)
+    crown = proj(K, X0, 0.9, keep=[(108, 38, 214, 58)], inset=1, top_shear=0.8)
     K.lathe(prof(P, [(0, 40.5), (22, 41), (38, 43), (47, 46.5), (52, 51), (53, 55.5), (48, 58), (0, 58)]), crown,
             segments=40, centre=(X0, 0, 0), name="crown", wobble=0.03)
-    handle = proj(K, X0, 0.97, keep=[(118, 3, 212, 50)], inset=1)
-    loop = [(125, 50), (126, 40), (129, 30), (135, 20), (144, 12), (156, 8), (170, 8), (182, 12), (192, 21),
-            (199, 31), (203, 41), (205, 50)]
-    K.tube([P.pt(x, y) for x, y in loop], P.m(5.3), handle, segments=12, name="handle")
-    for x in (125, 205):
-        ellipsoid(K, (P.x(x), 0.0, P.z(47)), (P.m(13), P.m(10), P.m(7)), crown, name="lashing")
+    handle = proj(K, X0, 0.97, keep=[(118, 3, 212, 50)], inset=1, top_shear=0.8)
+    # the twisted cane loop, traced along the middle of its painted band
+    loop = [(131, 50), (131, 45), (133, 36), (137, 27), (143, 20), (152, 14.5), (164, 12.5), (176, 14), (185, 19.5),
+            (191, 27), (194.5, 36), (196, 44), (196, 50)]
+    K.tube([P.pt(x, y) for x, y in loop], P.m(7.0), handle, segments=12, name="handle")
+    for x in (131, 196):
+        ellipsoid(K, (P.x(x), 0.0, P.z(48)), (P.m(13), P.m(11), P.m(7)), crown, name="lashing")
     # the thick bamboo ring the cage stands in, with its lashings
     ring_m = proj(K, X0, 0.96, keep=[(28, 222, 292, 248)], inset=2)
     rr = P.m(128)
@@ -823,8 +896,9 @@ def chicken_basket(K):
     straw_m = K.colour((0.42, 0.25, 0.05), vary=0.2, scale=30)
     K.lathe(prof(P, [(0, 228), (60, 229), (100, 231.5), (118, 233), (118, 236), (0, 236)]), straw_m, segments=40,
             centre=(X0, 0, 0), name="straw_bed", wobble=0.05)
-    earth(K, cx, 245, 252, 146, 0.33, (110, 246, 140, 252), grass=[(6, 202, 42, 248), (280, 212, 306, 248)],
-          pebbles=[(25, 245, 12), (88, 250, 14), (155, 251, 10), (255, 248, 12)], pebble_box=(80, 246, 96, 253))
+    earth(K, cx, 245, 251, 138, 0.33, (110, 246, 140, 252), grass=[(6, 202, 42, 248), (280, 212, 306, 248)],
+          pebbles=[(25, 245, 12), (88, 250, 14), (155, 251, 10), (255, 248, 12)], pebble_box=(80, 246, 96, 253),
+          dirt_box=(0, 228, 311, 260), dirt_exclude=[(26, 0, 294, 244)])
 
 
 def ellipsoid(K, c, r3, mat, rot=(0, 0, 0), seg=14, rings=8, name="ellipsoid"):
@@ -1024,14 +1098,15 @@ def shrine_stone(K):
     among scattered flower offerings, leaves growing at its sides."""
     P = K.paint
     X, Z = P.x, P.z
-    stone = K.tile((68, 155, 100, 195), vary=0.08, soften=0.3)
-    base_m = K.tile((100, 220, 180, 243), vary=0.06, soften=0.3)
+    # the stone's and the slab's own grain, quilted from the painting (the garland, ash and kumkum left out)
+    stone = quilt_tile(K, (60, 20, 205, 200), keep=plain_pixels, patch_px=22, size_px=132, soften=0.25)
+    base_m = quilt_tile(K, (36, 208, 240, 244), keep=plain_pixels, patch_px=20, size_px=120, soften=0.25)
     yf, yb = -0.06, 0.14
     outline = [(58, 201), (207, 201), (206, 160), (204, 120), (201, 90), (196, 65), (188, 48), (176, 34), (163, 24),
                (150, 15), (138, 9), (130, 8), (121, 10), (110, 18), (100, 28), (90, 40), (80, 52), (72, 66), (66, 85),
                (63, 110), (60, 140), (58, 170)]
     stone_block(K, outline[::-1], yf, yb, stone, bevel=0.018, jitter=0.0, name="stone")
-    stone_block(K, [(33, 246), (243, 246), (243, 201), (33, 201)][::-1], -0.3, 0.26, base_m, bevel=0.012,
+    stone_block(K, [(33, 246), (243, 246), (243, 201), (33, 201)][::-1], -0.3, 0.26, base_m, bevel=0.006,
                 jitter=0.003, name="base")
     # the garland: down the stone's face in a V from its shoulders, round its back over the top
     marigold = K.colour((0.95, 0.5, 0.02), vary=0.12, scale=60)
@@ -1067,7 +1142,8 @@ def shrine_stone(K):
             K.card_from_painting(box, (X(bx), 0.05, Z(by)), yaw=yaw, scale=0.9, name="leaves")
     K.leaves_only((238, 222, 266, 248), tulsi_pixels)
     K.card_from_painting((238, 222, 266, 248), (X(252), -0.28, Z(235)), name="fallen_flowers")
-    earth(K, 138, 246, 250, 122, 0.36, (0.2, 0.1, 0.045), pebbles=[(35, 244, 12)], pebble_box=(30, 240, 45, 248))
+    earth(K, 138, 246, 250, 122, 0.36, (0.2, 0.1, 0.045), pebbles=[(35, 244, 12)], pebble_box=(30, 240, 45, 248),
+          dirt_box=(0, 228, 270, 253))
 
 
 def bar(K, pts, w, t, mat, y0=0.0, segments=10, name="bar", taper=None):

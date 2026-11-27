@@ -1251,7 +1251,7 @@ def stall_d_2(K):
     bamboo(K, P.pt(160, 74, yb + 0.03), P.pt(785, 72, yb + 0.03), P.m(8), bam, node_at=[0.3, 0.62], taper=1.0,
            name="back_bar")
     # ---------------------------------------------------------------- the cloth
-    cloth = K.projected(squeeze=1.0, keep=[(60, 55, 885, 285)],
+    cloth = K.projected(squeeze=1.0, keep=[(60, 76, 885, 285)],
                         exclude=[(30, 160, 82, 250), (860, 160, 912, 250), (140, 40, 178, 90), (770, 40, 805, 88)],
                         inset=3)
     under = ktile(K, (300, 100, 600, 200), vary=0.05, soften=0.3)
@@ -1274,7 +1274,7 @@ def stall_d_2(K):
             K.box(P.x(x0) + 0.008, P.x(x1) - 0.008, y - 0.042, y + 0.042, 0.0, ztop - P.m(40), block, bevel=0.006,
                   name="leg")
     # the woven rope bed: a sagging sheet wearing the painted weave (thin cords were all ink outline: a dark mesh)
-    bedw = ktile(K, (425, 616, 600, 640), vary=0.06, soften=0.15)
+    bedw = pole_tile(K, (160, 651, 380, 665), soften=0.15)      # the painted rope coiled round the front rail
     K.sheet(lambda u, v: (P.x(135) + (P.x(808) - P.x(135)) * u, cyf + 0.02 + (cyb - cyf - 0.04) * v,
                           zf - 0.004 - 0.025 * math.sin(math.pi * u) * math.sin(math.pi * v)), 16, 8, bedw,
             name="rope_bed", thickness=0.01)
@@ -1563,7 +1563,7 @@ def stall_e_1(K):
     for a, b, y, j in stubs:
         bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(11), bam, node_at=[], taper=1.0, name="stub")
         joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(12), rope)
-    cloth = K.projected(squeeze=1.0, keep=[(80, 40, 1440, 278)],
+    cloth = K.projected(squeeze=1.0, keep=[(80, 62, 1440, 278)],
                         exclude=[(30, 120, 95, 185), (1420, 130, 1480, 195), (220, 25, 262, 75), (1290, 25, 1330, 70)],
                         inset=3)
     under = ktile(K, (500, 100, 900, 200), vary=0.05, soften=0.3)
@@ -2083,7 +2083,7 @@ def wall_behind(K, keep, poly, others=()):
     return K.projected(squeeze=1.0, keep=keep_l, exclude=others, inset=2)
 
 
-def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9, back=None):
+def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9, back=None, clad=True):
     """A plank booth: a back wall and two side walls, dark inside, with battens down the outside of the back.
     back: the back wall's inside (the painted interior, with what stands in front of it filled in)."""
     P = K.paint
@@ -2096,6 +2096,8 @@ def booth_shell(K, x0, x1, y0, y1, z_top, inside, outside, batten, battens=9, ba
         edges = np.linspace(a, b, n + 1)
         for k, (u0, u1) in enumerate(zip(edges, edges[1:])):
             put(u0 + 0.003, u1 - 0.003, K.rng.uniform(-0.004, 0.004))
+    if not clad:                         # a wall of horizontal planks (its tile has the plank lines)
+        boards = lambda a, b, put: put(a, b, 0.0)     # noqa: E731
     boards(x0, x1, lambda u0, u1, j: K.box(u0, u1, y1, y1 + 0.02 + j, 0.0, z_top + j, outside, bevel=0.004,
                                             name="back_board"))
     K.box(x0 + 0.01, x1 - 0.01, y1, y1 + 0.012, 0.0, z_top, inside, name="back_wall_gap")
@@ -2157,7 +2159,7 @@ def stall_f_1(K):
         K.tube([(P.x(x_px), yp, Z(205)), (P.x(x_px) + (-0.1 if x_px < 300 else 0.1), yfr, Z(205))], P.m(7), bam,
                segments=8, name="side_rail")
     bamboo(K, P.pt(8, 207, yfr), P.pt(768, 207, yfr), P.m(9), bam, node_at=[0.3, 0.7], taper=1.0, name="front_bar")
-    cloth = K.projected(squeeze=1.0, keep=[(30, 40, 750, 252)], exclude=[(48, 30, 85, 62), (690, 30, 728, 62)], inset=3)
+    cloth = K.projected(squeeze=1.0, keep=[(30, 56, 750, 252)], exclude=[(48, 30, 85, 62), (690, 30, 728, 62)], inset=3)
     under = ktile(K, (250, 80, 500, 180), vary=0.05, soften=0.3)
     awning(K, P.pt(28, 207, yfr + 0.01), P.pt(752, 207, yfr + 0.01), P.pt(76, 45, yp - 0.02), P.pt(698, 45, yp - 0.02),
            cloth, sag_front=P.m(40), sag_back=P.m(8), belly=0.03, sag_side=0.02, under=under, nu=36, nv=16)
@@ -2209,19 +2211,18 @@ def stall_f_2(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
-    bam = K.colour((40, 300, 58, 400), vary=0.08)
+    bam = pole_tile(K, (44, 300, 54, 420))
     yf, yb = -0.72, 0.55
     # ---------------------------------------------------------------- posts and the canvas
     for (tx, ty), bx, y, keep in (((45, 162), 50, yf, [(30, 155, 68, 778)]), ((748, 162), 745, yf, [(728, 155, 765, 778)]),
                                  ((100, 12), 103, yb, [(88, 5, 112, 40), (95, 220, 112, 560)]),
                                  ((682, 12), 680, yb, [(670, 5, 695, 40), (668, 220, 690, 560)])):
-        mat = K.projected(axis_x=P.x((tx + bx) / 2), squeeze=0.9, keep=keep, inset=2)
-        bamboo(K, (P.x(bx), y, 0.0), P.pt(tx, ty, y), P.m(10), mat, nodes=0.5, bend=0.005, name="post")
+        bamboo(K, (P.x(bx), y, 0.0), P.pt(tx, ty, y), P.m(10), bam, nodes=0.5, bend=0.005, name="post")
     for (a, b, y, j) in (((15, 192), (75, 192), yf, (45, 195)), ((725, 192), (770, 192), yf, (748, 195)),
                          ((85, 35), (120, 35), yb, (100, 35)), ((665, 35), (700, 35), yb, (682, 35))):
         bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(9), bam, node_at=[], taper=1.0, name="stub")
         joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(10), rope)
-    cloth = K.projected(squeeze=1.0, keep=[(30, 25, 760, 245)], exclude=[(85, 5, 120, 50), (665, 5, 700, 50),
+    cloth = K.projected(squeeze=1.0, keep=[(30, 48, 760, 245)], exclude=[(85, 5, 120, 50), (665, 5, 700, 50),
                                                                          (15, 160, 75, 215), (725, 160, 775, 215)], inset=3)
     under = ktile(K, (250, 80, 500, 180), vary=0.05, soften=0.3)
     awning(K, P.pt(40, 195, yf + 0.02), P.pt(752, 195, yf + 0.02), P.pt(100, 32, yb - 0.02), P.pt(682, 32, yb - 0.02),
@@ -2230,7 +2231,7 @@ def stall_f_2(K):
     dark = ktile(K, (300, 320, 420, 380), vary=0.05)
     planks = ktile(K, (230, 690, 400, 750), vary=0.06)
     batten = K.colour((300, 660, 400, 676), vary=0.08)
-    booth_shell(K, P.x(108), P.x(692), -0.3, 0.45, Z(225), dark, planks, batten)
+    booth_shell(K, P.x(108), P.x(692), -0.3, 0.45, Z(225), dark, planks, batten, clad=False)
     scarves(K, [(135, 180, 312), (190, 228, 326), (247, 268, 280), (281, 305, 294), (425, 512, 298), (530, 570, 318),
                 (570, 645, 305)], 0.0, Z(232), P.x(120), P.x(680), bam)
     # ---------------------------------------------------------------- the counter and the stepped stand on it

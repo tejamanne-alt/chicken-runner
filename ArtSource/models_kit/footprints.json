@@ -4,7 +4,8 @@
  "kind": "slab",
  "width": 1.4,
  "height": 0.278,
- "depth": 0.002,
+ "depth": 0.005,
+ "lift": 0.0,
  "faces": 7,
  "source": "blender"
 }
