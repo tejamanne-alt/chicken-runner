@@ -1551,7 +1551,9 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         wood.append(K.tube(q, [r0 * 0.4, r0 * 0.3, r0 * 0.15, r0 * 0.05], bark, segments=10, name="root"))
     trunk_ob = K.fuse(wood, voxel=P.H / 180, faces=8500)
     # the crown: everything painted in its box but the wood modelled there
-    excl = raster((P.h, P.w), exclude_wood, grow=4)
+    # (grown by a pixel only: a wider ring round the modelled wood showed as a see-through slit along every limb
+    # once the cards show exactly their painted place)
+    excl = raster((P.h, P.w), exclude_wood, grow=1)
     if crown_extra_exclude is not None:
         excl |= crown_extra_exclude
     rgb = (P.rgba[..., :3] * 255).astype(np.int32)
@@ -1584,7 +1586,9 @@ def peepal_platform(K):
     face = K.tile((300, 1245, 640, 1330), vary=0.05, soften=0.35)
     plinth = K.tile((260, 1345, 640, 1385), vary=0.05, soften=0.3)
     coping = K.tile((300, 1201, 640, 1228), vary=0.05, soften=0.3)
-    top = strip_tile(K, (200, 1158, 440, 1192), soften=0.4)       # squared: a thin strip on the top streaked
+    # the top: a tile of its painted stone, squared (a thin strip streaked) and softened (its cracks, mirrored,
+    # made a chevron pattern)
+    top = strip_tile(K, (200, 1158, 440, 1192), soften=0.6, blur=2.0)
     zb = P.z(1409)                                   # the painted foot of the steps (the game sets it down)
     K.box(P.x(177), P.x(1669), -hy - 0.11, hy + 0.11, zb, P.z(1337), plinth, bevel=0.01, name="plinth")
     K.box(P.x(206), P.x(1644), -hy, hy, P.z(1337), P.z(1231), face, name="body")

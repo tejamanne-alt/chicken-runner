@@ -4,7 +4,8 @@
  "kind": "building",
  "width": 6.373,
  "height": 3.438,
- "depth": 4.211,
- "faces": 6425,
+ "depth": 4.214,
+ "lift": 0.0,
+ "faces": 6433,
  "source": "blender"
 }

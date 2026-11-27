@@ -154,7 +154,9 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     """A material of two tiles of the painting: side_box on the surfaces that face sideways (an earth bank's face,
     a wall) and top_box on those that face up (the bank's grassy or trodden top), blended on normal.z (lo..hi).
     side_img / top_img: images to tile instead (strip() crops), the boxes then only give their painted widths."""
-    key = ("two", tuple(side_box), tuple(top_box), lo, hi, side_size, top_size, soften, id(side_img), id(top_img))
+    ck = lambda im: None if im is None else zlib.crc32(im.tobytes()) ^ (im.width << 16) ^ im.height   # by content
+    key = ("two", tuple(side_box), tuple(top_box), lo, hi, side_size, top_size, soften, ck(side_img), ck(top_img),
+           vary, square)
     if key in K._mats:
         return K._mats[key]
     m = Mat(name or f"{K.name}_two{len(K._mats)}")
@@ -226,7 +228,8 @@ def proj_tiles(K, keep, exclude, side, top, side_size=None, top_size=None, lo=0.
     faces up (normal.z lo..hi), so no face shows the painting dragged out into streaks. side / top: a box of the
     painting, or a PIL image (with side_size / top_size, its width in metres)."""
     key = ("ptiles", tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude),
-           side if isinstance(side, tuple) else id(side), top if isinstance(top, tuple) else id(top),
+           side if isinstance(side, tuple) else zlib.crc32(side.tobytes()) ^ (side.width << 16),
+           top if isinstance(top, tuple) else zlib.crc32(top.tobytes()) ^ (top.width << 16), side_size, top_size,
            lo, hi, y_from, y_to, inset, soften, vary, blur)
     if key in K._mats:
         return K._mats[key]
@@ -879,11 +882,15 @@ def bund_block(K):
         K.card_from_painting(box, P.pt(cx, cy, -hb - 0.04), name="weeds", normal=(0, -0.4, 1))
         K.card_from_painting(box, P.pt(cx + K.rng.uniform(-60, 60), cy, hb + 0.05), yaw=180 + K.rng.uniform(-30, 30),
                              name="weeds", normal=(0, 0.4, 1))
-    for box, x_end, side in (((0, 92, 118, 206), 42, -1), ((588, 82, 718, 206), 700, 1)):
+    vines = ((0, 92, 118, 206), (588, 82, 718, 206))
+    for k, (box, x_end, side) in enumerate(((vines[0], 42, -1), (vines[1], 700, 1))):
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, P.pt(cx, cy, -hb - 0.03), name="vines", normal=(side, -0.5, 0.6))
-        for y in (-0.3, 0.0, 0.3):
-            K.card_from_painting(box, (P.x(x_end) + side * 0.04, y, P.z(cy)), yaw=90 + K.rng.uniform(-20, 20),
+        # over the end: the two painted clumps by turns, mirrored and sized differently (no clump twice alike)
+        for j, (y, sc) in enumerate(((-0.32, 0.95), (0.02, 0.8), (0.33, 1.0))):
+            b = vines[(k + j) % 2]
+            K.card_from_painting(b, (P.x(x_end) + side * 0.04, y, P.z(200) + P.m(b[3] - b[1]) * sc / 2),
+                                 yaw=(90 if j % 2 == 0 else 270) + K.rng.uniform(-15, 15), scale=sc,
                                  name="vines", normal=(side, 0, 0.6))
         K.card_from_painting(box, P.pt(cx, cy, hb + 0.03), yaw=180, name="vines", normal=(side, 0.5, 0.6))
 
@@ -1269,30 +1276,42 @@ def canal_piece_1(K):
     lever beam pinned in its fork, a rough stone lashed to the beam's short end for a counterweight, and from the
     long end a rope with a clay pot slung on it."""
     P = K.paint
+    grain = P.crop((246, 520, 286, 900))                     # the trunk's painted grain, running up it
     wood = K.tile((246, 520, 286, 900), vary=0.05, soften=0.2)
-    post = K.projected(axis_x=P.x(266), squeeze=0.9, keep=[(160, 150, 350, 950)], exclude=[(0, 0, 160, 950)], inset=2)
-    # the post: a trunk forking into two prongs, as one piece of timber
-    parts = [K.tube([P.pt(265, 950), P.pt(265, 800), P.pt(266, 600), P.pt(264, 450), P.pt(262, 380)],
-                    [P.m(36), P.m(34), P.m(31), P.m(28), P.m(27)], post, segments=14, name="trunk"),
-             K.tube([P.pt(262, 400), P.pt(240, 330), P.pt(210, 250), P.pt(190, 184)],
-                    [P.m(25), P.m(19), P.m(17), P.m(17)], post, segments=12, name="prong"),
-             K.tube([P.pt(266, 400), P.pt(290, 320), P.pt(308, 240), P.pt(322, 170)],
-                    [P.m(25), P.m(19), P.m(17), P.m(17)], post, segments=12, name="prong")]
-    K.fuse(parts, voxel=0.025, faces=3000)
-    # the lever beam, lying in the fork behind the prongs, on a pin through them
-    beam_mat = K.projected(squeeze=1.0, keep=[(20, 0, 650, 480)], exclude=[(160, 150, 350, 420)], inset=2)
+    # the post: the painting projected through it front and back only (its prongs splay: a projection squeezed about
+    # the vertical would drag their ink edges round their sides); the painted grain round its sides. The beam crossing
+    # in front of the right prong and the stone end are not part of the post's own picture.
+    post = proj_tiles(K, [(160, 150, 350, 954)], [(0, 0, 160, 954), (262, 185, 345, 292)], grain, grain,
+                      side_size=P.m(40), top_size=P.m(40), y_from=0.45, y_to=0.75, inset=3, soften=0.2, vary=0.05)
+    # the post: a trunk widening into its fork and two thick prongs, as one piece of timber
+    parts = [K.tube([P.pt(266, 950), P.pt(266, 800), P.pt(266, 600), P.pt(265, 450), P.pt(264, 380)],
+                    [P.m(32), P.m(31), P.m(30), P.m(34), P.m(37)], post, segments=14, name="trunk"),
+             K.tube([P.pt(260, 400), P.pt(222, 300), P.pt(203, 245), P.pt(194, 180)],
+                    [P.m(30), P.m(28), P.m(23), P.m(19)], post, segments=12, name="prong"),
+             K.tube([P.pt(270, 400), P.pt(295, 300), P.pt(306, 245), P.pt(320, 168)],
+                    [P.m(30), P.m(30), P.m(27), P.m(20)], post, segments=12, name="prong")]
+    K.fuse(parts, voxel=0.02, faces=3500)
+    # the lever beam, lying in the fork behind the prongs, on a pin through them; painted front and back (the left
+    # prong painted over it left out), its grain along it round its top and underside
+    beam_mat = proj_tiles(K, [(20, 0, 650, 480)], [(175, 238, 256, 352)], grain.transpose(Image.ROTATE_90),
+                          grain.transpose(Image.ROTATE_90), side_size=P.m(380), top_size=P.m(380), y_from=0.45,
+                          y_to=0.75, inset=2, soften=0.2, vary=0.05)
     yb = 0.12
-    K.tube([P.pt(40, 455, yb), P.pt(324, 233, yb), P.pt(608, 11, yb)], P.m(15.5), beam_mat, segments=12, name="beam")
+    K.tube([P.pt(40, 459, yb), P.pt(324, 237, yb), P.pt(608, 15, yb)], P.m(15.5), beam_mat, segments=12, name="beam")
     K.tube([P.pt(256, 286, -0.1), P.pt(256, 286, yb + 0.12)], P.m(6), wood, segments=8, name="pin")
-    # the counterweight: a rough stone hung by a loop of rope from the beam's short end
-    stone = K.tile((26, 545, 124, 628), soften=0.3)
-    K.block(P.x(88), yb, P.z(585), P.m(150), 0.62, P.m(150), stone, rot=(0, 3, 6), bevel=0.05, jitter=0.02,
+    # the counterweight: a rough block of stone, painted turned so its front and right faces both show (turned the
+    # same in plan here), hung by a loop of rope from the beam's short end; the painted grain on its unpainted faces
+    grey = np.array(lit_median(K, (20, 540, 110, 640), 60))
+    buff = np.array(lit_median(K, (122, 540, 158, 630), 60))
+    rock = img_tile(K, speckle(P.crop((124, 550, 156, 625)), base=0.5 * grey + 0.5 * buff, amount=1.3), P.m(35),
+                    vary=0.12, key="rock")
+    sz = P.m(140)
+    K.block(P.x(87), yb, P.z(662) + sz / 2, P.m(117), P.m(117), sz, rock, rot=(0, 0, -22.6), bevel=0.06, jitter=0.025,
             name="stone")
     rope = K.colour((574, 150, 581, 400), vary=0.08)
     for x, top in ((76, 412), (103, 432)):
         K.tube([P.pt(x, top, yb), P.pt(x, 520, yb - 0.04)], P.m(4.5), rope, segments=6, name="rope")
     rope_ring(K, P.x(90), yb, P.z(418), P.m(17), rope, axis=(P.m(290), P.m(215)), thick=P.m(4), name="lashing")
-    K.box(P.x(14), P.x(162), yb - 0.32, yb + 0.32, P.z(520), P.z(516), rope, name="rope_band")
     # the pot on its rope at the long end, slung in a three-strand sling
     rope_ring(K, P.x(578), yb, P.z(45), P.m(15), rope, axis=(P.m(570), P.m(430)), thick=P.m(4), name="lashing")
     K.tube([P.pt(577, 50, yb), P.pt(577, 440, yb)], P.m(3.5), rope, segments=6, name="rope")
@@ -1308,10 +1327,6 @@ def canal_piece_1(K):
     inside = K.colour((0.09, 0.035, 0.015), vary=0.1)
     K.lathe([(P.m(29), P.z(473)), (P.m(25), P.z(480)), (P.m(20), P.z(495)), (0.0, P.z(500))], inside, segments=32,
             centre=(P.x(577), yb, 0), name="mouth", cap=False)
-    # the earth the post is planted in
-    earth = K.colour((0.32, 0.2, 0.11), vary=0.15)
-    K.lathe([(0.0, 0.0), (P.m(80), 0.0), (P.m(60), 0.03), (P.m(30), 0.05), (0.0, 0.055)], earth, segments=20,
-            centre=(P.x(265), 0, 0), wobble=0.15, name="mound")
 
 
 def with_cutters(parts):

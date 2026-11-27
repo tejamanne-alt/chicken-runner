@@ -1428,17 +1428,25 @@ def crop_strip_2(K):
 
     def depth_of(foot):
         return -depth / 2 + 0.25 + (hi - foot) / max(1, hi - lo) * (depth - 0.75)
+    placed = []                                               # (x, y, foot radius) of every stook, for the stubble
     for ax, top, tie, foot, rf in STOOKS:
         y = depth_of(foot)
         dz = P.z(foot) - z0                                   # how far it is set down from where it is painted
         straw = wrapped(K, P.x(ax), axis_y=y, squeeze=0.9, src=straw_src, dz=dz)
         stook(K, ax, top, tie, foot, rf, P.x(ax), y, z0, straw, band)
-    # more stooks in the gaps behind, copies of painted ones
-    for x in (60, 380, 690, 1110, 820, 500):
-        ax, top, tie, foot, rf = STOOKS[int(K.rng.integers(len(STOOKS)))]
-        y = depth / 2 - 0.3 - K.rng.uniform(0, 0.25)
-        straw = wrapped(K, P.x(x), axis_y=y, squeeze=0.9, src=straw_src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
-        stook(K, ax, top, tie, foot, rf, P.x(x), y, z0, straw, band, scale=K.rng.uniform(0.8, 0.95))
+        placed.append((P.x(ax), y, P.m(rf)))
+    # more stooks further back, each behind a painted one and no bigger, so from the front they stay hidden behind
+    # it (the painting's gaps stay open) and from the side the field is stooked all through
+    for ax, top, tie, foot, rf in STOOKS:
+        y0 = depth_of(foot)
+        if y0 > depth / 2 - 0.55:
+            continue
+        y = min(depth / 2 - 0.3, y0 + 0.45 + K.rng.uniform(0, 0.2))
+        x = P.x(ax) + K.rng.uniform(-0.03, 0.03)
+        straw = wrapped(K, x, axis_y=y, squeeze=0.9, src=straw_src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
+        sc = K.rng.uniform(0.82, 0.92)
+        stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=sc)
+        placed.append((x, y, P.m(rf) * sc))
     # the stubble: hills of cut stalks in rows over the whole field
     stub = K.tile((163, 140, 178, 176), vary=0.1, soften=0.1)
     rows = [-depth / 2 + 0.1 + k * 0.24 for k in range(6)]
@@ -1446,7 +1454,7 @@ def crop_strip_2(K):
         x = P.x(20) + K.rng.uniform(0, 0.25)
         while x < P.x(1170):
             yy = y + K.rng.uniform(-0.04, 0.04)
-            ok = all(math.hypot(x - P.x(ax), yy - depth_of(f)) > P.m(rf) + 0.06 for ax, _, _, f, rf in STOOKS)
+            ok = all(math.hypot(x - sx, yy - sy) > sr + 0.06 for sx, sy, sr in placed)
             if ok:
                 r = K.rng.uniform(0.034, 0.046)
                 hh = K.rng.uniform(0.13, 0.22) * (1.0 if k < 2 else 0.85)

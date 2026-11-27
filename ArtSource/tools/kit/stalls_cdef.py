@@ -1768,7 +1768,7 @@ def cone_stack(K, tip, r, h, n, mat, axis=(0, 0, 1), name="cones"):
     higher than the one inside it."""
     parts = []
     for k in range(n):
-        dz = k * h * 0.2
+        dz = k * h * 0.12
         prof = [(0.0, dz), (r * 0.98, dz + h), (r, dz + h + 0.003)]
         parts.append(K.lathe(prof, mat, segments=16, centre=tip, cap=False, name=name))
     for p in parts:
@@ -1876,10 +1876,11 @@ def stall_e_2(K):
     on_heap(K, hp, P.x(555), py_, P.m(60) * 0.8, (490, 455, 625, 515), nuts2, dark=95, min_area=20, max_area=400,
             rmax=9, kind="pod")
     # the paper cones: their own pale paper all round (projected through, the ink between them made dark fins)
-    paper = K.colour((600, 395, 690, 525), pct=78, vary=0.05)
-    cone_stack(K, (P.x(640), -0.42, Z(505)), P.m(26), P.m(58), 5, paper, axis=(-0.4, 0.0, 1.0))
-    cone_stack(K, (P.x(662), -0.47, Z(522)), P.m(27), P.m(58), 4, paper, axis=(-0.15, 0.0, 1.0))
-    cone_stack(K, (P.x(680), -0.52, Z(527)), P.m(26), P.m(55), 4, paper, axis=(0.1, 0.0, 1.0))
+    paper = K.colour((0.75, 0.64, 0.49), vary=0.05)
+    # three stacks of nested cones, traced: tip on the table, leaning as painted
+    cone_stack(K, (P.x(625), -0.44, Z(525)), P.m(17), P.m(88), 4, paper, axis=(-0.12, 0.0, 1.0))
+    cone_stack(K, (P.x(645), -0.5, Z(526)), P.m(17), P.m(78), 4, paper, axis=(-0.1, 0.0, 1.0))
+    cone_stack(K, (P.x(662), -0.56, Z(527)), P.m(20), P.m(50), 4, paper, axis=(0.05, 0.0, 1.0))
     # ---------------------------------------------------------------- his stool behind the wok, and the roaster himself
     K.box(P.x(345), P.x(445), 0.12, 0.42, 0.0, 0.42, wood, bevel=0.01, name="stool")
     K.figure([(352, 205), (380, 197), (410, 204), (420, 240), (414, 285), (448, 300), (462, 330), (470, 380),

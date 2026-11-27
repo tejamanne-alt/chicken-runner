@@ -323,18 +323,59 @@ def round_material(K, ok, axis_px, tile_pil, tile_m, squeeze=0.85, inset=2, soft
     return m
 
 
-def patch_card(K, box, corners, keep_fn, normal, name="patch"):
+def stash(K, pil, margin=45):
+    """Pastes a small RGBA image (a patch made for the back of something) into an empty corner of the painting, where
+    no painted pixel is within `margin` px (so no other card's box and no solid's front projection reaches it), and
+    returns its box there (px): the leaves texture, which is the painting, then carries it for a card to show.
+    Shrinks the image if there is no room. Kept: only the image's opaque pixels (one card rule for the box)."""
+    P = K.paint
+    if not hasattr(K, "_stash_occ"):
+        K._stash_occ = ndimage.binary_dilation(P.rgba[..., 3] > 0.02, iterations=margin)
+        K._stash_occ[:3, :] = K._stash_occ[-3:, :] = True
+        K._stash_occ[:, :3] = K._stash_occ[:, -3:] = True
+    occ = K._stash_occ
+    sat = np.pad(np.cumsum(np.cumsum(occ.astype(np.int32), 0), 1), ((1, 0), (1, 0)))
+    for k in (1.0, 0.8, 0.65, 0.5, 0.4, 0.3):
+        w, h = max(4, int(pil.width * k)), max(4, int(pil.height * k))
+        if w >= P.w - 8 or h >= P.h - 8:
+            continue
+        tot = sat[h:, w:] - sat[:-h, w:] - sat[h:, :-w] + sat[:-h, :-w]
+        ys, xs = np.nonzero(tot == 0)
+        if len(ys):
+            y0, x0 = int(ys[0]), int(xs[0])
+            im = pil.resize((w, h), Image.LANCZOS) if k < 1.0 else pil
+            a = np.asarray(P.img).copy()
+            patch = np.asarray(im.convert("RGBA"))
+            keep = patch[..., 3] > 127
+            a[y0:y0 + h, x0:x0 + w][keep] = patch[keep]
+            P.img = Image.fromarray(a, "RGBA")
+            P.rgba = a.astype(np.float32) / 255
+            occ[max(0, y0 - 4):y0 + h + 4, max(0, x0 - 4):x0 + w + 4] = True
+            box = (x0, y0, x0 + w, y0 + h)
+            K.leaves_only(box, lambda rgb, m=keep: m if m.shape == rgb.shape[:2] else np.zeros(rgb.shape[:2], bool))
+            return box
+    return None
+
+
+def patch_card(K, box, corners, keep_fn, normal, name="patch", fill=True):
     """A patch of the painting inside box (fallen plaster showing the brick, a crack) as a cut-out card laid on a
     face round the back (corners: the box's bottom-right, bottom-left, top-left, top-right, metres, a mm off the
     face): only the pixels keep_fn(rgb) keeps show, with their painted ragged edge, and a card has no ink line round
-    it (a decal quad does: a framed rectangle)."""
+    it (a decal quad does: a framed rectangle). Its pixels are stashed in an empty corner of the painting, so no
+    other card shows them."""
     P = K.paint
-    x0, y0, x1, y1 = box
-    a = painted_rgb(K)[int(y0):int(y1), int(x0):int(x1)]
-    m = np.zeros((P.h, P.w), bool)
-    m[int(y0):int(y1), int(x0):int(x1)] = ndimage.binary_opening(keep_fn(a), iterations=1)
-    K.leaves_only(box, mask_rule(m, box))
-    uvs = [(x1 / P.w, 1 - y1 / P.h), (x0 / P.w, 1 - y1 / P.h), (x0 / P.w, 1 - y0 / P.h), (x1 / P.w, 1 - y0 / P.h)]
+    x0, y0, x1, y1 = [int(v) for v in box]
+    crop = np.asarray(P.img.crop((x0, y0, x1, y1))).copy()
+    keep = ndimage.binary_opening(keep_fn(crop[..., :3].astype(np.int32)), iterations=1)
+    if fill:
+        keep = ndimage.binary_fill_holes(ndimage.binary_closing(keep, iterations=2))
+    crop[..., 3] = np.where(keep, 255, 0)
+    sb = stash(K, Image.fromarray(crop, "RGBA"))
+    if sb is None:
+        return None
+    sx0, sy0, sx1, sy1 = sb
+    uvs = [(sx1 / P.w, 1 - sy1 / P.h), (sx0 / P.w, 1 - sy1 / P.h), (sx0 / P.w, 1 - sy0 / P.h),
+           (sx1 / P.w, 1 - sy0 / P.h)]
     return K.card([tuple(c) for c in corners], uvs, name=name, normal=normal)
 
 
@@ -1945,12 +1986,10 @@ def h6_2(K):
     along_x(K, [(-t - 0.045, P.z(178)), (t + 0.045, P.z(178)), (t + 0.045, P.z(140)), (0.0, P.z(132)),
                 (-t - 0.045, P.z(146))], P.x(14), P.x(80), coping, name="pillar_cap")
     # the pillar's outer end: its plaster cracked and fallen low down to the brick, as on its front
-    xe = P.x(27) - 0.001
-    K.quad([(xe, t + 0.03, P.z(500)), (xe, -t - 0.03, P.z(500)), (xe, -t - 0.03, P.z(380)), (xe, t + 0.03, P.z(380))],
-           patch_decal(K, (30, 380, 100, 500), brickish, (310, 360, 450, 440)), name="brick_pillar_end")
-    K.quad([(xe, t + 0.01, P.z(300)), (xe, -t + 0.02, P.z(300)), (xe, -t + 0.02, P.z(220)), (xe, t + 0.01, P.z(220))],
-           patch_decal(K, (296, 258, 336, 330), lambda c: chan(c)[3] < 125, (310, 360, 450, 440), feather=6),
-           name="crack_pillar_end")
+    xe = P.x(27) - 0.0015
+    patch_card(K, (30, 380, 100, 500), [Vector(v) for v in ((xe, t + 0.03, P.z(500)), (xe, -t - 0.03, P.z(500)),
+                                                             (xe, -t - 0.03, P.z(380)), (xe, t + 0.03, P.z(380)))],
+               brickish, (-1.0, 0.0, 0.3), name="brick_pillar_end")
     # the coping along the top: sloping back a little, so from the front its top shows as the painted band
     along_x(K, [(-t - 0.025, P.z(176)), (t + 0.025, P.z(176)), (t + 0.025, P.z(150)), (0.0, P.z(138)),
                 (-t - 0.025, P.z(150))], P.x(70), P.x(646), coping, name="coping")
@@ -1959,9 +1998,9 @@ def h6_2(K):
         x0, y0, x1, y1 = box
         w = P.m(x1 - x0)
         xb = P.x(x_back)
-        K.quad([(xb + w, t + 0.001, P.z(y1)), (xb, t + 0.001, P.z(y1)), (xb, t + 0.001, P.z(y0)),
-                (xb + w, t + 0.001, P.z(y0))], patch_decal(K, box, brickish, (310, 360, 450, 440)),
-               name="brick_back")
+        patch_card(K, box, [Vector(v) for v in ((xb + w, t + 0.0015, P.z(y1)), (xb, t + 0.0015, P.z(y1)),
+                                                (xb, t + 0.0015, P.z(y0)), (xb + w, t + 0.0015, P.z(y0)))],
+                   brickish, (0.0, 1.0, 0.3), name="brick_back")
     K.quad([(P.x(632) + 0.001, -t, P.z(498)), (P.x(632) + 0.001, t, P.z(498)), (P.x(632) + 0.001, t, P.z(365)),
             (P.x(632) + 0.001, -t, P.z(365))], patch_decal(K, (540, 365, 628, 498), brickish, (310, 360, 450, 440)),
            name="brick_end")
@@ -1969,10 +2008,15 @@ def h6_2(K):
             (P.x(632) + 0.001, -t, P.z(178))], patch_decal(K, (560, 178, 630, 285), brickish, (310, 360, 450, 440)),
            name="brick_end")
     # ---- the bougainvillea: a heap over the top of the wall, and its sprays hanging down the front and the back
-    flower = (plant_pixels(rgb) | ((r > 150) & (b > 100) & (g < 120))) & opaque & ~halo(rgb)
-    flower &= ~(box_mask(opaque.shape, [(0, 170, P.w, 538)]) & ~(((r - g > 60) & (b > g)) | ((g > r) & (g > b + 15))
-                                                                 | (mx < 70)))
-    flower = ndimage.binary_opening(flower, iterations=1)
+    # the bracts (pink to deep purple), the olive leaves, and the ink round them; not the coping, plaster, brick
+    magenta = (r > g + 25) & (b > g - 5)
+    olive = (g > 60) & (b < 0.58 * g) & (r < g * 1.25)
+    flower = opaque & ~halo(rgb) & (magenta | olive | ((mx < 85) & ndimage.binary_dilation(magenta | olive,
+                                                                                            iterations=3)))
+    lab, nl = ndimage.label(flower)
+    if nl:
+        sizes = ndimage.sum(flower, lab, range(1, nl + 1))
+        flower &= np.isin(lab, 1 + np.nonzero(sizes >= 15)[0])
     fb = (0, 0, P.w, 470)
     K.leaves_only(fb, mask_rule(flower, fb))
     heap = flower & box_mask(opaque.shape, [(0, 0, P.w, 200)])
@@ -2406,7 +2450,7 @@ def h7_4(K):
         else:
             a_, b_ = back - R * s * u0 + L * 0.0015, back - R * s * u1 + L * 0.0015
         patch_card(K, box, [a_ + Vector((0, 0, z0)), b_ + Vector((0, 0, z0)), b_ + Vector((0, 0, z1)),
-                            a_ + Vector((0, 0, z1))], crack, (L.x, L.y, 0.3), name="crack_back")
+                            a_ + Vector((0, 0, z1))], crack, (L.x, L.y, 0.3), name="crack_back", fill=False)
     # ---- weeds, grass and the moss on the cap: each tuft the painted tuft wrapped round its own stem, so from the
     # front it is the painting (no squeezed copies beside it) and round from the side
     green = (g > r) & (g > b + 8)
@@ -2659,13 +2703,17 @@ def h5_5(K):
         p3 = [(P.x(x), y * (0.3 + 0.7 * i / 11), P.z(z)) for i, (x, z) in enumerate(sp)]
         rr = [P.m(10.5 - 2.5 * i / 11) for i in range(12)]
         culm(K, p3, rr, cane_mat, node, node_every=P.m(55), node_r=1.12, segments=10, name="cane")
-    leaf_ok = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 478)])
+    from trees import raster
+    canes_px = raster(opaque.shape, [[(x, y, 11) for x, y in pts] for pts, _ in H55_CANES])
+    leaf_ok = opaque & ~halo(rgb) & (box_mask(opaque.shape, [(0, 0, P.w, 478)])
+                                     | (box_mask(opaque.shape, [(0, 478, P.w, 545)]) & ~canes_px
+                                        & ((g > r + 12) | (mx < 70))))
     leaf_ok = ndimage.binary_opening(leaf_ok, iterations=1)
-    K.leaves_only((0, 0, P.w, 478), mask_rule(leaf_ok, (0, 0, P.w, 478)))
+    K.leaves_only((0, 0, P.w, 545), mask_rule(leaf_ok, (0, 0, P.w, 545)))
     # the blades: one card ribbon along each painted blade, springing from the canes' tops and arching out into the
     # clump's depth all round
-    shape = Crown(K, (0, 0, P.w, 478), 0.22, (245, 260), mask=ndimage.binary_fill_holes(
-        ndimage.binary_closing(leaf_ok, iterations=8)), core=0.35, dome=(260, 0, 478), dome_pow=0.6)
+    shape = Crown(K, (0, 0, P.w, 545), 0.22, (245, 260), mask=ndimage.binary_fill_holes(
+        ndimage.binary_closing(leaf_ok, iterations=8)), core=0.35, dome=(260, 0, 545), dome_pow=0.6)
     cover = blade_cards(K, leaf_ok, [(150, 385, 345, 470)], 220, (11, 20), shape, len_px=(40, 480), arch=0.45,
                         widen=1.5, target=0.97, min_gain=25, base_r=0.04, profile="strap")
     rest = leaf_ok & ~ndimage.binary_dilation(cover, iterations=1)
@@ -2673,7 +2721,7 @@ def h5_5(K):
                 yaw=70, pitch=30, name="blade_bits", max_cards=200)
     # grass at the foot, either side of the canes (each box the whole tuft)
     gl = [(136, 775, 194, 884), (310, 775, 360, 884)]
-    gm = opaque & ~halo(rgb) & ((mx - mn > 18) | (mx < 110))
+    gm = opaque & ~halo(rgb) & ((mx - mn > 18) | (mx < 110)) & ~canes_px
     for bx in gl:
         K.leaves_only(bx, mask_rule(gm, bx))
     tufts(K, gl, [-0.05, -0.05])

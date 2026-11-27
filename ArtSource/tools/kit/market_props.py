@@ -1340,17 +1340,18 @@ def coconut_cart(K):
     bullocks are painted cut-outs standing in the yoke."""
     P = K.paint
     X, Z = P.x, P.z
-    # the bullocks (animals: painted cut-outs): the near one hides the pole's end with its hump
+    # the bullocks (animals: painted cut-outs): the near one hides the pole's end with its hump; their cards turned
+    # in plan a little more than the cart, heads to the camera, so from ahead they are not seen edge-on
     figures(K, [([(498, 530), (496, 480), (503, 440), (508, 400), (510, 340), (515, 330), (715, 330), (710, 300),
               (716, 278), (728, 262), (748, 256), (765, 262), (778, 278), (790, 262), (792, 235), (797, 226),
               (808, 248), (818, 268), (832, 274), (842, 262), (846, 240), (850, 226), (858, 248), (860, 268),
               (872, 280), (880, 335), (910, 350), (912, 395), (880, 410), (855, 440), (850, 470), (848, 574),
-              (500, 574)], -0.38, "bullock_near"),
+              (500, 574)], -0.38, "bullock_near", 14),
                 ([(848, 574), (850, 470), (855, 440), (880, 410), (912, 395), (910, 350), (880, 335), (872, 280),
               (880, 270), (895, 262), (902, 240), (905, 225), (915, 240), (925, 262), (940, 270), (955, 262),
               (962, 240), (964, 225), (975, 250), (980, 270), (1000, 290), (1012, 330), (1030, 352), (1036, 375),
               (1028, 394), (1000, 397), (985, 410), (975, 440), (962, 455), (952, 500), (962, 574)],
- 0.36, "bullock_far")], exact=True)
+ 0.36, "bullock_far", 14)], exact=True)
     # the cart is painted turned a little (its far wheel shows to the right of the near one): it is built square in
     # its own frame and turned in plan by TURN degrees about the near wheel's hub, so the far wheel and the far rails
     # are real; every part keeps its painted x at its own depth (or, for the frame, at the near rails' depth)
