@@ -46,12 +46,16 @@ What it mirrors, file by file:
     none on flat pieces, leaf cards cut out at alpha 0.5 and two-sided; only Blender/TRELLIS models (an extruded-only
     model is its painted card, as with "Include Extruded Scenery Models" off). ArtAssets.Card for the rest.
   * ZoneArtBuilder.cs + BackdropStreamer.cs: the layout's wide cards (w >= 20 m) as strips per depth, the rest as one set
-    cut to the near cards' stretch; standing cards between z -2 and 1.4 and the Characters/Ground layers dropped; each
-    track repeated every period, with exactly the copies the streamer keeps alive around the camera's x;
-    ArtModels.RoomBehind per track.
+    cut to the near cards' stretch; standing cards between z -2 and 1.4, flat ones on the running line (|z| < 0.9; zone
+    2: anywhere on the lane) and the Characters/Ground layers dropped; the side lanes (side_lane_mud.png, 8 m back from
+    the road's back edge, in house gaps of 3 m or more, zones 1 and 3); each track repeated every period with exactly
+    the copies the streamer keeps alive around the camera's x, the set's odd copies its mirrored arrangement
+    (x' = 2 start + period - x, pictures unflipped); ArtModels.RoomBehind per track.
   * GameBuilder.cs ZoneGround/GroundMaterial + PaintedGround.shader: the red earth tiled 3.5 m in world space, the turned
-    second sample, the slow drifts and the depth haze 6..40 m; ground only where the game has it (the chunks' slabs from
-    x = -10, z -40..4.5; the streamer's plane z 4.4..95); the sky is the haze colour.
+    second sample, the slow drifts and the depth haze 6..40 m (zone 2: paddy beyond the bund, haze 10..55 m); the zone's
+    road band (RoadFront..RoadBack read from GameBuilder.cs, wavy soft edges, its tile u = x / RoadTile, v front to
+    back); ground only where the game has it (the chunks' slabs from x = -10, z -40..4.5, cut by canal holes; the
+    streamer's plane z 4.4..95); the canals' light water tile and granite kerbs; the puddle card; the sky is the haze.
   * ChaseCamera.cs (Kick Off's framing): a 34 degree vertical lens pitched 4 degrees down; half-height
     max(2.7, minHalf / aspect) with minHalf = max(5.5, 1 s of the zone's run speed / (2 x 2/3)); the screen's centre on
     the lane plane, the kid on the left third, 1.75 m above the ground she stands on (not following jumps); a close
@@ -464,6 +468,24 @@ class Level:
                         rec.state = ("after", mischief.get(it.get("id"), it["x"]))
                     recs.append(rec)
                     self.recs.append(rec)
+                if k == "steps" and int(it.get("count", 0)) == 6 and abs(float(it.get("landing", 0)) - 6.0) < 0.01 \
+                        and (ART / "Models" / "market" / "temple_steps.fbx").exists():
+                    # Kit.Steps: the hand-built granite flight, stood (ArtModels.Stand, its own size, upright) at the
+                    # flight's middle, z 0.4; the step boxes stay as colliders with their renderers off
+                    steps = [r for r in recs if r.mode == "box" and r.piece == "step"]
+                    for r in steps:
+                        r.mode = "solid"
+                    x0_ = min((r.x - r.w / 2 for r in steps), default=it["x"])
+                    x1_ = max((r.x + r.w / 2 for r in steps), default=it.get("end", it["x"]))
+                    mid = (x0_ + x1_) / 2
+                    stand = Rec(role="platform_art", mode="ladder", src="plan", section=s["name"], item=it, item_id=item_id,
+                                item_kind=k, piece="temple_steps", name=f"{s['name']}/steps@{it['x']:.1f}/temple_steps",
+                                x=mid, y=0.0, z=0.4, w=x1_ - x0_, h=1.5, flat=False, outline=0.004, vis_kind="art",
+                                entry={"name": "temple_steps", "folder": "market", "width": 1.0, "height": 1.0,
+                                       "depth": 2.2, "kind": "volume"})
+                    stand.head = (mid, 1.0, 0.4)
+                    recs.append(stand)
+                    self.recs.append(stand)
                 if is_obstacle(it):
                     if k == "cart":
                         x0, x1, top = it["x"], it["x"] + it.get("span", 3.6 * 0.62), it.get("bed", 0.95)

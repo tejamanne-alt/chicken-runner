@@ -124,7 +124,7 @@ namespace ChickenRunner.EditorTools
             /// Returns null, and its size as zero, when the cut-out does not exist.
             /// </summary>
             public GameObject Art(Transform parent, string piece, float x, float y, float z, out Vector2 size, float height = 0f,
-                float width = 0f, bool mirror = false, int order = LaneOrder)
+                float width = 0f, bool mirror = false, int order = LaneOrder, float roomBehind = float.PositiveInfinity)
             {
                 size = Vector2.zero;
                 var texture = ArtAssets.CutoutTexture(piece);
@@ -134,10 +134,29 @@ namespace ChickenRunner.EditorTools
                 if (height > 0f) size = new Vector2(height * aspect, height);
                 else if (width > 0f) size = new Vector2(width, width / aspect);
                 else size = real;
-                var card = ArtModels.Enabled ? ArtModels.Place(parent ?? _root, piece, new Vector3(x, y, z), size, mirror) : null;
+                var card = ArtModels.Enabled
+                    ? ArtModels.Place(parent ?? _root, piece, new Vector3(x, y, z), size, mirror, roomBehind: roomBehind)
+                    : null;
                 if (card == null) card = ArtAssets.Card(parent ?? _root, piece, ArtAssets.CardMaterial(texture), new Vector3(x, y, z), size, mirror);
                 foreach (var renderer in card.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = order;
                 return card;
+            }
+
+            /// <summary>
+            /// Moves a placed piece back (along +z) until the nearest point of what it draws is at <paramref name="frontZ"/>:
+            /// models are centred on their own origins, not all on their painting's plane, so a deep one (a stall's tables, a
+            /// tree's crown, the cart's near side) can reach a metre or two toward the camera, over the running line. A piece
+            /// already behind it stays.
+            /// </summary>
+            static void FrontAt(GameObject piece, float frontZ)
+            {
+                if (piece == null) return;
+                var renderers = piece.GetComponentsInChildren<Renderer>();
+                if (renderers.Length == 0) return;
+                var bounds = renderers[0].bounds;
+                foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
+                float shift = frontZ - bounds.min.z;      // chunks are built at the origin: world z is the chunk's
+                if (shift > 0f) piece.transform.position += new Vector3(0f, 0f, shift);
             }
 
             public GameObject Art(string piece, float x, float z, float height = 0f, float width = 0f, bool mirror = false) =>
@@ -244,7 +263,16 @@ namespace ChickenRunner.EditorTools
                 const float top = 1.6f;
                 var obstacle = MakeObstacle("Clothesline", x, _z.obstacles.clothesline, 1.7f, top - bottom, bottom);
                 bool flip = mirror ?? _random.NextDouble() < 0.5;
-                if (Art(obstacle.visual, "clothesline", 0f, 0f, 0.05f, out _, width: 2.2f, mirror: flip) == null)
+                // The game's own line (ArtSource/tools/models/clothesline_model.py): the painted one's posts and sarees, its
+                // hems at 0.78 m so the slide's gap under them is clear; the painted card's cloth hangs to 0.3 m.
+                var line = ArtModels.Stand(obstacle.visual, "lane", "clothesline_line", new Vector3(0f, 0f, 0.05f),
+                    new Vector3(0f, 1f, 0.05f));
+                if (line != null)
+                {
+                    if (flip) line.transform.localScale = new Vector3(-1f, 1f, 1f);
+                    foreach (var renderer in line.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder;
+                }
+                else if (Art(obstacle.visual, "clothesline", 0f, 0f, 0.05f, out _, width: 2.2f, mirror: flip) == null)
                 {
                     Prim(PrimitiveType.Cube, "Sarees", obstacle.visual, new Vector3(0f, (top + bottom) * 0.5f, 0f), new Vector3(1.6f, top - bottom, 0.04f), Palette.Kumkum);
                     Prim(PrimitiveType.Cylinder, "PoleLeft", _root, new Vector3(x - 1f, 0.85f, 0f), new Vector3(0.07f, 0.85f, 0.07f), Palette.Wood);
@@ -276,6 +304,9 @@ namespace ChickenRunner.EditorTools
             {
                 const float width = 3.6f;
                 var card = Art("bullock_cart", x + width * 0.5f, 0.05f, width: width);
+                // Its near side just in front of the running line, so a kid on the bed shows above it (its mesh reaches a
+                // metre in front of its origin).
+                FrontAt(card, -0.3f);
                 float bedLength = card != null ? width * 0.62f : 2.6f;
                 const float bedTop = 0.95f;
                 var solid = Box("CartBed", _root, new Vector3(x + bedLength * 0.5f, bedTop * 0.5f, 0f), new Vector3(bedLength, bedTop, 1.2f), _z.prims, true);
@@ -328,7 +359,8 @@ namespace ChickenRunner.EditorTools
                 {
                     bool withLadder = ladder && i == 0;
                     string piece = withLadder ? "house_turmeric_ladder" : fronts[i];
-                    var card = Art(_root, piece, 0f, 0f, 0.4f, out var size, height: cardHeight, mirror: withLadder);
+                    // Its depth kept to 1 m behind its front, so it never runs back through the zone's scenery behind it.
+                    var card = Art(_root, piece, 0f, 0f, 0.4f, out var size, height: cardHeight, mirror: withLadder, roomBehind: 1.0f);
                     float width = card != null ? size.x : 2.6f;
                     if (card != null) card.transform.localPosition = new Vector3(x + width * 0.5f, cardHeight * 0.5f, 0.4f);
                     var wall = Box("House", _root, new Vector3(x + width * 0.5f, roof * 0.5f, 0f), new Vector3(width, roof, 1.2f), _z.prims, true);
@@ -459,7 +491,7 @@ namespace ChickenRunner.EditorTools
                 var card = Art(_root, "buffalo_mud", 0f, 0f, 0.15f, out var size, height: 1.5f);
                 float width = card != null ? size.x : 2.6f;
                 if (card != null) card.transform.localPosition = new Vector3(x + width * 0.5f, 0.75f, 0.15f);
-                Decal("cracked_mud", x + width * 0.5f, 0f, width + 1.2f, 0f);
+                Decal("cracked_mud", x + width * 0.5f, 0f, 1.8f, 0f);
                 const float back = 1.1f;
                 var body = Box("Buffalo", _root, new Vector3(x + width * 0.5f, back * 0.5f, 0f), new Vector3(width * 0.7f, back, 1.0f), _z.prims, true);
                 body.GetComponent<Renderer>().enabled = card == null;
@@ -485,7 +517,9 @@ namespace ChickenRunner.EditorTools
             /// </summary>
             public void MangoTree(float x)
             {
-                if (Art(_root, "tree_mango_1", x + 3f, 0f, 0.9f, out _, height: 5.2f) == null)
+                var tree = Art(_root, "tree_mango_1", x + 3f, 0f, 0.9f, out _, height: 5.2f);
+                FrontAt(tree, 0.45f);        // its crown and roots behind the road, its crown still over it from the camera
+                if (tree == null)
                 {
                     Prim(PrimitiveType.Cylinder, "Trunk", _root, new Vector3(x + 1.2f, 1.3f, 0.9f), new Vector3(0.4f, 1.3f, 0.4f), Palette.Wood);
                     Prim(PrimitiveType.Sphere, "Crown", _root, new Vector3(x + 3f, 3.6f, 0.9f), new Vector3(5f, 2.6f, 2f), Palette.Leaf);
@@ -507,7 +541,11 @@ namespace ChickenRunner.EditorTools
                 var card = Art(_root, piece, 0f, 0f, 0.55f, out var size);
                 float width = card != null ? size.x : 3.2f;
                 float height = card != null ? size.y : 2.8f;
-                if (card != null) card.transform.localPosition = new Vector3(x + width * 0.5f, height * 0.5f, 0.55f);
+                if (card != null)
+                {
+                    card.transform.localPosition = new Vector3(x + width * 0.5f, height * 0.5f, 0.55f);
+                    FrontAt(card, 0.45f);    // its tables and goods behind the running line
+                }
                 else Prim(PrimitiveType.Cube, "Awning", _root, new Vector3(x + width * 0.5f, height * 0.76f, 0.4f), new Vector3(width, 0.1f, 1.2f), Palette.Kumkum);
 
                 var awning = new GameObject("Awning");
@@ -534,14 +572,15 @@ namespace ChickenRunner.EditorTools
                 GameObject model = null;
                 if (count == 6 && Mathf.Abs(landing - 6f) < 0.01f)
                 {
-                    var middle = new Vector3((x + end) * 0.5f, 0f, 0.4f);
+                    var middle = new Vector3((x + end) * 0.5f, 0f, 0.6f);
                     model = ArtModels.Stand(_root, "market", "temple_steps", middle, middle + Vector3.up);
                 }
                 for (int i = 0; i < count; i++)
                 {
                     float from = x + i * tread;
                     float to = end - i * tread;
-                    var step = Box("Step", _root, new Vector3((from + to) * 0.5f, i * rise + rise * 0.5f, 0.4f), new Vector3(to - from, rise, 2.2f), _z.prims, true);
+                    // 1.8 m deep from just in front of the running line (-0.3) back, so the steps never hide the runners
+                    var step = Box("Step", _root, new Vector3((from + to) * 0.5f, i * rise + rise * 0.5f, 0.6f), new Vector3(to - from, rise, 1.8f), _z.prims, true);
                     if (model != null) step.GetComponent<Renderer>().enabled = false;
                     else step.AddComponent<GreyboxColor>().SetColor(Color.Lerp(Palette.Granite, Palette.Granite * 0.85f, i % 2));
                 }

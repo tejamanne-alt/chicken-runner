@@ -272,7 +272,8 @@ class Plan:
         """Kit.Clothesline: sarees from 1.6 m down to 0.7 m across 1.7 m of lane: slide under, or double jump over."""
         if mirror is None:
             mirror = self.rng.random() < 0.5
-        self.add(s, "clothesline", x, [visual("clothesline", x, z=0.05, w=2.2, mirror=mirror)], mirror=mirror,
+        self.add(s, "clothesline", x, [{"piece": "clothesline_line", "x": round(x, 3), "y": 0.0, "z": 0.05, "w": 2.3,
+                                        "h": 1.85, "mirror": mirror, "flat": False, "turn": 0, "kind": "model"}], mirror=mirror,
                  bottom=0.7, top=1.6, span=1.7)
         self.mango_line(s, x - 1.2, 4, 0.8, 0.3)      # low mangoes: the slide's line
 
@@ -287,7 +288,7 @@ class Plan:
             vis.append(box("bank", edge, -0.32, -17.75, 0.24, 0.34, 44.5, (0.6, 0.56, 0.52)))
         if bridge:
             vis.append(box("plank", x + width / 2, -0.1, 0.0, width + 0.4, 0.1, 0.9, WOOD))
-            for z in (-0.45, 0.45):
+            for z in (0.45,):                                    # the far handrail only (plank_model.py)
                 vis.append(box("rail", x + width / 2, 0.525, z, width + 0.4, 0.05, 0.05, BAMBOO))
                 for px in (x - 0.2, x + width + 0.2):
                     vis.append(box("post", px, -0.05, z, 0.06, 0.7, 0.06, BAMBOO))
@@ -362,7 +363,7 @@ class Plan:
         or climb over it slowly. Returns where it ends."""
         w = 1.5 * card_aspect("buffalo_mud")
         vis = [visual("buffalo_mud", x + w / 2, 0.0, 0.15, h=1.5),
-               visual("cracked_mud", x + w / 2, 0.0, 0.0, w=w + 1.2, flat=True, kind="decal")]
+               visual("cracked_mud", x + w / 2, 0.0, 0.0, w=1.8, flat=True, kind="decal")]
         self.add(s, "buffalo", x, vis, width=round(w, 4), top=1.1, span=round(w * 0.7, 4),
                  implicitHop=[round(x - 1.0, 3), round(w + 2.0, 3), 1.6])
         return x + w
@@ -391,7 +392,7 @@ class Plan:
         vis = []
         for i in range(count):
             a, b = x + i * tread, end - i * tread
-            vis.append(box("step", (a + b) / 2, i * rise, 0.4, b - a, rise, 2.2, (0.62, 0.58, 0.55)))
+            vis.append(box("step", (a + b) / 2, i * rise, 0.6, b - a, rise, 1.8, (0.62, 0.58, 0.55)))
         top = count * rise
         for k in range(2):
             vis.append(visual("lamp_step", x + count * tread + landing * (0.25 + 0.5 * k), top, 1.2, h=1.9))

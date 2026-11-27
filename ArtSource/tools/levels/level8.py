@@ -49,8 +49,6 @@ def design():
     p.prop(s, "coconut_cart", -5.0, 3.0, h=2.7)
     p.prop(s, "brass_vessels", 1.0, 1.6, h=0.9)
     p.prop(s, "veg_basket", 2.2, 1.4, h=0.6)
-    p.prop(s, "bunting", 5.5, 1.6, h=0.7, y=2.4)
-    p.prop(s, "hen_with_chicks", 9.5, 1.5, h=0.5)
     p.mango_line(s, 2.0, 5, 2.0, 0.6)
     p.litter(s, 3)
 
@@ -182,7 +180,6 @@ def design():
     s = p.section("MarketEnd", 626.0, 80.0, "The market thins out: if he is still ahead, he gets away at 700 m.")
     p.hens(s, 634.0, 2)
     p.mango_line(s, 640.0, 16, 1.4, 0.6)
-    p.prop(s, "coconut_cart", 668.0, 3.0, h=2.7, mirror=True)
     p.prop(s, "brass_vessels", 684.0, 1.6, h=0.9)
     p.litter(s, 6, avoid=(634.0,))
     return p

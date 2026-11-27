@@ -24,7 +24,6 @@ def canal_jump(p, s, x, width):
         p.jump_arc(s, x + width / 2)
     else:
         p.arc(s, x - 1.6, width + 3.2, 2.3, 7)
-    p.prop(s, "sluice_gate", x + width / 2, 2.6, h=1.7)
 
 
 def small(p, s, x):
@@ -126,7 +125,6 @@ def design():
     # ---- test
     s = p.section("Mischief", 280.0, 24.0, "Dung; the rooster knocks the pots by the well into the road; a canal after.")
     p.dung(s, 284.0)
-    p.prop(s, "well", 292.4, 2.4, h=2.4)
     p.pots(s, 292.0, hidden=True, ident="knocked")
     p.mischief(s, 293.0, "knocked")
     p.jump_arc(s, 292.0)
@@ -148,7 +146,6 @@ def design():
     s = p.section("ChilliLane", 370.0, 18.0, "A chilli to win back ground.")
     p.chilli(s, 371.0)
     p.mango_line(s, 373.5, 10, 1.2, 0.6)
-    p.prop(s, "haystack", 380.0, 4.5, h=2.6, mirror=True)
     p.litter(s, 3)
 
     s = p.section("CartCanal", 388.0, 24.0, "The cart, then a canal.")

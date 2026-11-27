@@ -25,7 +25,7 @@ IND, PINK, LIME = "house_indigo_veranda", "house_pink", "house_limewash"
 def row(p, s, x, fronts, ladder=False, crows=None):
     end = p.roofs(s, x, ([""] if ladder else []) + list(fronts), ladder=ladder)
     if crows is not None:
-        p.prop(s, "crows_on_ledge", crows, 0.55, h=0.45, y=ROOF + 0.15)
+        p.prop(s, "crows_on_ledge", crows, 1.3, h=0.45, y=ROOF + 0.15)    # on the back parapet
     return end
 
 
@@ -48,8 +48,6 @@ def design():
     # ---- the opening: the street of houses
     s = p.section("Street", -10.0, 24.0, "A street of flat-roofed houses: the rooster struts ahead; tap to chase.")
     p.prop(s, "kids_rolling_tyre", -5.5, 2.3, h=1.2)
-    p.prop(s, "tulsi_planter", 1.5, 1.8, h=1.1)
-    p.prop(s, "woman_carrying_pot", 7.5, 2.1, h=1.5, mirror=True)
     p.decal(s, "kolam_5", -1.0, 1.0, 1.0)
     p.mango_line(s, 2.0, 5, 2.0, 0.6)
     p.litter(s, 3)

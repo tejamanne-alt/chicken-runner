@@ -85,54 +85,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 5.5,
-     "piece": "bunting",
-     "z": 1.6,
-     "h": 0.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 2.4,
-     "visuals": [
-      {
-       "piece": "bunting",
-       "x": 5.5,
-       "y": 2.4,
-       "z": 1.6,
-       "w": 1.893,
-       "h": 0.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 9.5,
-     "piece": "hen_with_chicks",
-     "z": 1.5,
-     "h": 0.5,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "hen_with_chicks",
-       "x": 9.5,
-       "y": 0.0,
-       "z": 1.5,
-       "w": 0.99,
-       "h": 0.5,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "mango",
      "x": 2.0,
      "y": 0.6,
@@ -1638,16 +1590,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 126.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": false,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -3147,16 +3099,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 230.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": true,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -4162,16 +4114,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 306.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": false,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -5501,16 +5453,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 391.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": true,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -6491,16 +6443,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 471.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": false,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -8192,16 +8144,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 585.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": true,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -9055,30 +9007,6 @@
        "flat": false,
        "turn": 0.0,
        "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 668.0,
-     "piece": "coconut_cart",
-     "z": 3.0,
-     "h": 2.7,
-     "w": 0.0,
-     "mirror": true,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "coconut_cart",
-       "x": 668.0,
-       "y": 0.0,
-       "z": 3.0,
-       "w": 4.838,
-       "h": 2.7,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
       }
      ]
     },

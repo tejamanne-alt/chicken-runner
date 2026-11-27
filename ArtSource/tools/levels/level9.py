@@ -68,7 +68,6 @@ def design():
     p.prop(s, "lamp_step", -6.0, 2.2, h=1.9)
     p.prop(s, "brass_vessels", -2.0, 1.6, h=0.9)
     p.prop(s, "flower_stall", 4.5, 3.2)
-    p.prop(s, "lantern", 9.0, 1.6, h=0.45, y=1.6)
     p.decal(s, "kolam_6", -3.5, -1.2, 1.2)
     p.mango_line(s, 2.0, 5, 2.0, 0.6)
     p.litter(s, 3)

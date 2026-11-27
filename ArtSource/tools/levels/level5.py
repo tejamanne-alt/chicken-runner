@@ -20,7 +20,6 @@ def canal_jump(p, s, x, width):
         p.jump_arc(s, x + width / 2)
     else:
         p.arc(s, x - 1.6, width + 3.2, 2.3, 7)
-    p.prop(s, "sluice_gate", x + width / 2, 2.6, h=1.7)
 
 
 def plank(p, s, x, width=3.5):

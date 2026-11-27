@@ -129,12 +129,12 @@ def build():
         x = sx * (LENGTH / 2 - 0.18)
         tube(bm, (x, -DEPTH / 2 - 0.08, -THICK - 0.055), (x, DEPTH / 2 + 0.08, -THICK - 0.055), 0.055, bamboo,
              segments=10)
-    for sx in (-1, 1):                                   # posts, driven into the banks
-        for sy in (-1, 1):
+    for sx in (-1, 1):                                   # posts, driven into the banks, on the far side only: a rail
+        for sy in (1,):                                  # on the near side would stand between the camera and the runners
             x, y = sx * (LENGTH / 2 - 0.1), sy * RAIL_Y
             tube(bm, (x, y, -0.35), (x, y, RAIL_Z + 0.08), POST_R, bamboo, segments=10, ring_every=0.31)
             tube(bm, (x, y, RAIL_Z - 0.04), (x, y, RAIL_Z + 0.04), POST_R + 0.008, coir, segments=10)
-    for sy in (-1, 1):                                   # handrails
+    for sy in (1,):                                      # the handrail, on the far side
         tube(bm, (-LENGTH / 2 - 0.05, sy * RAIL_Y, RAIL_Z), (LENGTH / 2 + 0.05, sy * RAIL_Y, RAIL_Z), RAIL_R, bamboo,
              segments=10, ring_every=0.47)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)

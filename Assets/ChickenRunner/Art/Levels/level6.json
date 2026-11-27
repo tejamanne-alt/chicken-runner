@@ -328,8 +328,8 @@
        "x": 23.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -1817,30 +1817,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 135.25,
-     "piece": "sluice_gate",
-     "z": 2.6,
-     "h": 1.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "sluice_gate",
-       "x": 135.25,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 2.205,
-       "h": 1.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "decal",
      "x": 132.267,
      "piece": "tuft_4",
@@ -1921,8 +1897,8 @@
        "x": 149.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -2584,30 +2560,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 194.25,
-     "piece": "sluice_gate",
-     "z": 2.6,
-     "h": 1.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "sluice_gate",
-       "x": 194.25,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 2.205,
-       "h": 1.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "decal",
      "x": 206.395,
      "piece": "hoof_prints",
@@ -2971,8 +2923,8 @@
        "x": 230.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -3736,30 +3688,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 292.4,
-     "piece": "well",
-     "z": 2.4,
-     "h": 2.4,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "well",
-       "x": 292.4,
-       "y": 0.0,
-       "z": 2.4,
-       "w": 3.137,
-       "h": 2.4,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "pots",
      "x": 292.0,
      "mirror": false,
@@ -4055,30 +3983,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 299.75,
-     "piece": "sluice_gate",
-     "z": 2.6,
-     "h": 1.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "sluice_gate",
-       "x": 299.75,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 2.205,
-       "h": 1.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "decal",
      "x": 292.168,
      "piece": "tuft_4",
@@ -4159,8 +4063,8 @@
        "x": 308.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -4311,8 +4215,8 @@
        "x": 321.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -5096,30 +5000,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 380.0,
-     "piece": "haystack",
-     "z": 4.5,
-     "h": 2.6,
-     "w": 0.0,
-     "mirror": true,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "haystack",
-       "x": 380.0,
-       "y": 0.0,
-       "z": 4.5,
-       "w": 2.854,
-       "h": 2.6,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "decal",
      "x": 380.626,
      "piece": "tuft_4",
@@ -5506,30 +5386,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 403.25,
-     "piece": "sluice_gate",
-     "z": 2.6,
-     "h": 1.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "sluice_gate",
-       "x": 403.25,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 2.205,
-       "h": 1.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "decal",
      "x": 411.115,
      "piece": "tuft_1",
@@ -5610,8 +5466,8 @@
        "x": 416.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -5939,30 +5795,6 @@
        "flat": false,
        "turn": 0.0,
        "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 431.25,
-     "piece": "sluice_gate",
-     "z": 2.6,
-     "h": 1.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "sluice_gate",
-       "x": 431.25,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 2.205,
-       "h": 1.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
       }
      ]
     },
@@ -6710,8 +6542,8 @@
        "x": 496.308,
        "y": 0.0,
        "z": 0.0,
-       "w": 3.815,
-       "h": 1.595,
+       "w": 1.8,
+       "h": 0.753,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -7207,30 +7039,6 @@
        "flat": false,
        "turn": 0.0,
        "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 525.613,
-     "piece": "sluice_gate",
-     "z": 2.6,
-     "h": 1.7,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "sluice_gate",
-       "x": 525.613,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 2.205,
-       "h": 1.7,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
       }
      ]
     },

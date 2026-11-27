@@ -13,7 +13,7 @@ irrigation canal across the bund path, in the doc's three widths:
   * 4.5 m: only a double jump clears it (405 ms); otherwise the kid wades across at 45% speed, about 5.5 m lost.
 
 Falling in is never a fail: she wades out (the bed is 0.28 m down, a step up). The design:
-  * Opening (-10 to 14 m): the bund between the paddies, a scarecrow, ducks by the first sluice.
+  * Opening (-10 to 14 m): the bund between the paddies, a scarecrow, paddy and a cow.
   * Teach (to about 150 m, past the 131 m where a clean run catches him): the 2.5 m canal alone, the plank over the
     3.5 m one, cow dung (known from the lane), the small haystack (hop onto it or over it), the 4.5 m canal with a
     double-jump arc of mangoes and a feather at its top, a breather with a chilli, the bullock cart.
@@ -31,15 +31,14 @@ from levelkit import Plan, run
 
 
 def canal_jump(p, s, x, width):
-    """A canal to jump, with the mangoes tracing a held jump (or, for the wide one, a double jump) across it and a
-    sluice gate upstream behind the lane."""
+    """A canal to jump, with the mangoes tracing a held jump (or, for the wide one, a double jump) across it (the zone's
+    scenery has its own sluice gates in the fields)."""
     p.canal(s, x, width)
     if width <= 3.0:
         p.jump_arc(s, x + width / 2)
     else:
         # the double jump's line: up, the second push at the top, down beyond the far bank
         p.arc(s, x - 1.6, width + 3.2, 2.3, 7)
-    p.prop(s, "sluice_gate", x + width / 2, 2.6, h=1.7)
 
 
 def plank(p, s, x, width=3.5):
@@ -57,8 +56,6 @@ def design():
     p.prop(s, "paddy_ripe", -7.5, 1.6, h=1.0)
     p.prop(s, "paddy_ripe", 1.5, 1.7, h=1.0, mirror=True)
     p.prop(s, "paddy_tall", 6.0, 1.9, h=1.2)
-    p.prop(s, "duck_1", 9.5, 1.5, h=0.55)
-    p.prop(s, "duck_2", 10.4, 1.7, h=0.55)
     p.decal(s, "hoof_prints", -2.0, 0.8, 1.2)
     p.mango_line(s, 2.0, 5, 2.0, 0.6)
     p.litter(s, 4)
@@ -155,7 +152,6 @@ def design():
     # ---- test
     s = p.section("Mischief", 318.0, 24.0, "Dung; then the rooster knocks the pots by the well into the lane; a canal after.")
     p.dung(s, 322.0)
-    p.prop(s, "well", 330.4, 2.4, h=2.4)
     p.pots(s, 330.0, hidden=True, ident="knocked")
     p.mischief(s, 331.0, "knocked")
     p.jump_arc(s, 330.0)
@@ -226,7 +222,6 @@ def design():
 
     s = p.section("OpenBund", 574.0, 32.0, "The bund opens out: if he is still ahead, he gets away at 600 m.")
     p.mango_line(s, 576.0, 12, 1.4, 0.6)
-    p.prop(s, "scarecrow", 588.0, 2.4, h=2.1, mirror=True)
     p.prop(s, "hut_with_pen", 596.0, 5.5, h=3.8)
     p.litter(s, 4)
     return p

@@ -40,7 +40,8 @@ def v_of(z):
 def noise(rng, cells_u, cells_v, h=H, w=W, order=3):
     """Smooth noise in [0, 1], seamless along u (and v): a random grid upsampled with wrap-around."""
     g = rng.random((cells_v, cells_u))
-    out = ndimage.zoom(g, (h / cells_v, w / cells_u), order=order, mode="grid-wrap")
+    # grid_mode: the grid's cells (not its end samples) map onto the output, so the last column runs on into the first
+    out = ndimage.zoom(g, (h / cells_v, w / cells_u), order=order, mode="grid-wrap", grid_mode=True)
     out = out[:h, :w]
     return (out - out.min()) / max(1e-6, out.max() - out.min())
 
@@ -151,10 +152,10 @@ def cart_track(rng):
         col = col * (1 - 0.15 * np.clip(lip, 0, 1)[..., None])
     # grass in small tufts: fine noise, thresholded, a soft edge; thicker on the hump and at the road's edges
     grass_t = 0.6 * fbm(rng, 90, 40, 2) + 0.4 * fbm(rng, 16, 8, 2)
-    hump = band(v, (ruts[0] + ruts[1]) / 2, 0.08, 0.07) * np.clip((grass_t - 0.48) * 6.0, 0, 1)
+    hump = band(v, (ruts[0] + ruts[1]) / 2, 0.06, 0.06) * np.clip((grass_t - 0.56) * 5.0, 0, 1) * 0.8
     edges = (1 - band(v, 0.5, 0.40, 0.08)) * np.clip((grass_t - 0.42) * 6.0, 0, 1)
     grass = ndimage.gaussian_filter(np.clip(hump + edges, 0, 1), sigma=0.8)
-    gcol = ramp(fbm(rng, 60, 60, 2), [(0.0, (96, 108, 42)), (0.5, (128, 136, 56)), (1.0, (164, 160, 76))])
+    gcol = ramp(fbm(rng, 60, 60, 2), [(0.0, (124, 132, 58)), (0.5, (150, 152, 70)), (1.0, (182, 176, 92))])
     col = col * (1 - grass[..., None] * 0.8) + gcol * grass[..., None] * 0.8
     col = finish(col, rng)
     img = Image.fromarray(col.astype(np.uint8), "RGB").convert("RGBA")

@@ -29,9 +29,9 @@ def row(p, s, x, fronts, ladder=False, mats=(), crows=None):
     """A roof row with mangoes along its top; `mats` are x positions of drying mats on it."""
     end = p.roofs(s, x, ([""] if ladder else []) + list(fronts), ladder=ladder)
     for i, mx in enumerate(mats):
-        p.prop(s, "chilli_mat" if i % 2 == 0 else "papad_mat", mx, 0.3, h=0.25, y=ROOF)
+        p.prop(s, "chilli_mat" if i % 2 == 0 else "papad_mat", mx, 0.95, h=0.25, y=ROOF)    # behind her line
     if crows is not None:
-        p.prop(s, "crows_on_ledge", crows, 0.55, h=0.45, y=ROOF + 0.15)
+        p.prop(s, "crows_on_ledge", crows, 1.3, h=0.45, y=ROOF + 0.15)    # on the back parapet
     return end
 
 
@@ -62,7 +62,6 @@ def design():
     p.prop(s, "brass_vessels", -6.5, 1.5, h=0.9)
     p.prop(s, "veg_basket", -3.0, 1.3, h=0.6)
     p.prop(s, "coconut_cart", 4.0, 2.8, h=2.7)
-    p.prop(s, "bunting", 9.0, 1.6, h=0.7, y=2.4)
     p.prop(s, "hen_2", 11.0, 1.4, h=0.42)
     p.decal(s, "kolam_4", -1.5, -1.3, 1.2)
     p.mango_line(s, 2.0, 5, 2.0, 0.6)
@@ -239,7 +238,6 @@ def design():
     s = p.section("FinalChilli", 552.0, 20.0, "The last chilli.")
     p.chilli(s, 553.0)
     p.mango_line(s, 555.5, 10, 1.3, 0.6)
-    p.prop(s, "bunting", 562.0, 1.6, h=0.7, y=2.4)
     p.litter(s, 3)
 
     s = p.section("LastRoofs", 572.0, 64.0, "The last long run: two tanks, a gap, a tank, a gap; down, a clothesline.")

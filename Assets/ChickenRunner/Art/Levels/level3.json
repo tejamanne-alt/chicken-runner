@@ -37,54 +37,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 1.5,
-     "piece": "tulsi_planter",
-     "z": 1.8,
-     "h": 1.1,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "tulsi_planter",
-       "x": 1.5,
-       "y": 0.0,
-       "z": 1.8,
-       "w": 0.729,
-       "h": 1.1,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 7.5,
-     "piece": "woman_carrying_pot",
-     "z": 2.1,
-     "h": 1.5,
-     "w": 0.0,
-     "mirror": true,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "woman_carrying_pot",
-       "x": 7.5,
-       "y": 0.0,
-       "z": 2.1,
-       "w": 0.551,
-       "h": 1.5,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "decal",
      "x": -1.0,
      "piece": "kolam_5",
@@ -437,7 +389,7 @@
      "kind": "prop",
      "x": 24.5,
      "piece": "crows_on_ledge",
-     "z": 0.55,
+     "z": 1.3,
      "h": 0.45,
      "w": 0.0,
      "mirror": false,
@@ -447,7 +399,7 @@
        "piece": "crows_on_ledge",
        "x": 24.5,
        "y": 2.5,
-       "z": 0.55,
+       "z": 1.3,
        "w": 0.908,
        "h": 0.45,
        "mirror": false,
@@ -1122,16 +1074,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 70.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": true,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -2192,7 +2144,7 @@
      "kind": "prop",
      "x": 131.5,
      "piece": "crows_on_ledge",
-     "z": 0.55,
+     "z": 1.3,
      "h": 0.45,
      "w": 0.0,
      "mirror": false,
@@ -2202,7 +2154,7 @@
        "piece": "crows_on_ledge",
        "x": 131.5,
        "y": 2.5,
-       "z": 0.55,
+       "z": 1.3,
        "w": 0.908,
        "h": 0.45,
        "mirror": false,
@@ -3377,16 +3329,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 186.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": true,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -4908,16 +4860,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 266.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": false,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -5501,7 +5453,7 @@
      "kind": "prop",
      "x": 302.0,
      "piece": "crows_on_ledge",
-     "z": 0.55,
+     "z": 1.3,
      "h": 0.45,
      "w": 0.0,
      "mirror": false,
@@ -5511,7 +5463,7 @@
        "piece": "crows_on_ledge",
        "x": 302.0,
        "y": 2.5,
-       "z": 0.55,
+       "z": 1.3,
        "w": 0.908,
        "h": 0.45,
        "mirror": false,
@@ -6955,16 +6907,16 @@
      "span": 1.7,
      "visuals": [
       {
-       "piece": "clothesline",
+       "piece": "clothesline_line",
        "x": 366.0,
        "y": 0.0,
        "z": 0.05,
-       "w": 2.2,
-       "h": 1.552,
+       "w": 2.3,
+       "h": 1.85,
        "mirror": false,
        "flat": false,
-       "turn": 0.0,
-       "kind": "art"
+       "turn": 0,
+       "kind": "model"
       }
      ]
     },
@@ -8722,7 +8674,7 @@
      "kind": "prop",
      "x": 455.0,
      "piece": "crows_on_ledge",
-     "z": 0.55,
+     "z": 1.3,
      "h": 0.45,
      "w": 0.0,
      "mirror": false,
@@ -8732,7 +8684,7 @@
        "piece": "crows_on_ledge",
        "x": 455.0,
        "y": 2.5,
-       "z": 0.55,
+       "z": 1.3,
        "w": 0.908,
        "h": 0.45,
        "mirror": false,

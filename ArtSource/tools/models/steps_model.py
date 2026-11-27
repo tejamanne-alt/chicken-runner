@@ -2,7 +2,7 @@
 
     python steps_model.py [--sheet OUT.png]
 
-Six steps of 0.25 m (0.7 m treads) up to a landing 6 m long, and six steps down, 2.2 m deep: what GameBuilder.Kit.Steps
+Six steps of 0.25 m (0.7 m treads) up to a landing 6 m long, and six steps down, 1.8 m deep: what GameBuilder.Kit.Steps
 lays as colliders (count 6, landing 6, as every level plan uses). Each step is a granite block with its edges eased; the
 treads in the granite tile, the risers in a darker cut of it, and a dark seam between blocks. Its origin is the middle of
 the flight on the ground, so it is the same turned either way; its front (toward the camera) is -Y like the other models.
@@ -21,7 +21,7 @@ import numpy as np  # noqa: E402
 from PIL import Image, ImageEnhance  # noqa: E402
 
 ARGS = sys.argv[1:]
-COUNT, RISE, TREAD, LANDING, DEPTH = 6, 0.25, 0.7, 6.0, 2.2      # Kit.Steps
+COUNT, RISE, TREAD, LANDING, DEPTH = 6, 0.25, 0.7, 6.0, 1.8      # Kit.Steps
 LENGTH = COUNT * TREAD * 2 + LANDING
 TILE = 1.2                                                        # metres of granite per texture repeat
 EASE = 0.03                                                       # the blocks' eased edges
