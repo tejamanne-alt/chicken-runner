@@ -1613,11 +1613,13 @@ def stall_high(K):
     n1 = collect(K)
     scallop_cloth(K, -a_ - 0.08, a_ + 0.12, yf, zr + 0.03, yf - 0.48, Z(76), stripes, hem=P.m(9), n_scallop=11,
                   drop=Z(76) - Z(88), sag=0.03, name="awning")
-    # the back slope wears the awning's own stripes as a tile (projected through, its stripes ran askew)
-    scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), ktile(K, (150, 36, 230, 76), vary=0.04),
+    # the back slope wears the awning's own stripes: a strip across them above the scallops, where they hang
+    # straight, stacked square (projected through, or tiled at two scales, they ran askew)
+    stripe_t = pole_tile(K, (140, 82, 250, 91), soften=0.0, vary=0.03)
+    scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), stripe_t,
                   hem=P.m(7), n_scallop=10, drop=Z(88) - Z(104), sag=0.02, name="awning_back")
     # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
-    gable = ktile(K, (150, 36, 230, 76), vary=0.04)             # the awning's own stripes
+    gable = stripe_t
     for x in (-a_ - 0.06, a_ + 0.06):
         K.prism([(yf - 0.42, Z(72)), (yf, zr + 0.01), (yb + 0.08, Z(82)), (yb + 0.08, Z(90)), (yf - 0.42, Z(80))],
                 0.0, 0.012, gable, name="gable")
@@ -1731,11 +1733,13 @@ def stall_low(K):
     n1 = collect(K)
     scallop_cloth(K, -a_ - 0.06, a_ + 0.16, yf, zr + 0.03, yf - 0.42, Z(56), stripes, hem=P.m(6), n_scallop=10,
                   drop=Z(56) - Z(66), sag=0.02, name="awning")
-    # the back slope wears the awning's own stripes as a tile (projected through, its stripes ran askew)
-    scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), ktile(K, (110, 22, 186, 62), vary=0.04),
+    # the back slope wears the awning's own stripes: a strip across them above the scallops, where they hang
+    # straight, stacked square (projected through, or tiled at two scales, they ran askew)
+    stripe_t = pole_tile(K, (100, 58, 200, 65), soften=0.0, vary=0.03)
+    scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), stripe_t,
                   hem=P.m(5), n_scallop=8, drop=Z(60) - Z(70), sag=0.02, name="awning_back")
     # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
-    gable = ktile(K, (110, 22, 186, 62), vary=0.04)             # the awning's own stripes
+    gable = stripe_t
     for x in (-a_ - 0.05, a_ + 0.05):
         K.prism([(yf - 0.36, Z(52)), (yf, zr + 0.01), (yb + 0.06, Z(56)), (yb + 0.06, Z(62)), (yf - 0.36, Z(58))],
                 0.0, 0.012, gable, name="gable")
