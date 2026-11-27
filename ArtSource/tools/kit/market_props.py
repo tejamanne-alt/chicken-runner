@@ -1061,29 +1061,33 @@ class Tray:
 # (K.oblique: painted v = z + k * y) and narrowing with depth (K.converge: scaled 1 / (1 + c * y) about column xc), so
 # the painted top lands on the real top and the audit compares the front the same way.
 # Measured (both paintings, which show the same tray from the same place, their poles within a pixel or two):
-# - convergence, from the painted side poles' centre lines (14 rows each, rows 28-106, both trays): straight real poles
-#   at x = 11.2 and 235.1 px seen narrowing as 1 / (1 + q * k * y) about column 111.2 fit them to 1 px rms, with
-#   q = c / k = 1.865 (the side poles' painted depth k * y is their painted rise above their own height);
+# - convergence, from the painted side poles' outlines (the cut-out's edge, 38 rows each, rows 30-104, both trays; the
+#   game's ink, 1.7 px, drawn outside the solid): straight real poles lying on the ground at x = 9.4 and 238.3 px,
+#   seen narrowing as 1 / (1 + q * k * y) about column 110.9, fit them to 0.9 px rms, with q = c / k = 1.82;
 # - the slope, from papad_mat's papads (round, lying flat: painted k * f times as high as wide, f = 1 + c * y the
-#   narrowing where each lies): 0.46-0.51 for the seven drawn whole or nearly, with no trend front to back once f is
-#   taken out; k = 0.49, so c = 0.91 per metre. (Without the convergence the back papads read as tilted, 0.64-0.67.)
+#   narrowing where each lies): 0.46-0.52 for the seven drawn whole or nearly, with no trend front to back once f is
+#   taken out; k = 0.49, so c = 0.89 per metre. (Without the convergence the back papads read as tilted, 0.64-0.67.)
+#   The painting does not draw heights smaller further back (the papads' painted heights do not shrink with their
+#   widths), so the convergence is about a column only.
 # - the depth then follows from how high the back pole is painted (centre at row 17, the front pole's at 123.5):
-#   0.39 m, and the side poles stand 0.39 m apart: a square drying tray, as they are made; its back pole, painted 0.74
-#   as long as the front one, is as long.
-# Neither painting shows legs, stones or bricks: the tray lies on the ground.
+#   0.39 m, and the side poles stand 0.40 m apart: a near-square drying tray, as they are made; its back pole, painted
+#   0.75 as long as the front one, is as long.
+# Neither painting shows legs, stones or bricks: the tray lies on the ground, all four poles on the ground, lashed at
+# the corners: the side poles butt against the back pole (its ends just past them, as painted) and run into the
+# thicker front pole.
 TRAY_K = 0.49
-TRAY_CONVERGE = (0.914, 111.2)
+TRAY_CONVERGE = (0.890, 110.9)
 
 
 class LevelTray:
-    """A drying tray painted from above (see above), true and level on the ground: the front pole (painted thicker)
-    and the back pole on the ground; the two side poles laid across them (let into the front pole, resting on the back
-    one), their cut ends showing at the front as painted; the woven mat on the ground between.
+    """A drying tray painted from above (see above), true and level on the ground: four bamboo poles lying on the
+    ground, lashed at the corners (the side poles butted against the back pole and run into the thicker front pole);
+    the woven mat on the ground between.
     on(px, py, z): the point at height z that the painting's (px, py) lands on; px_at(x, y): the painted column a plan
     point shows; f(y): how much smaller the painting draws things at depth y."""
 
     def __init__(self, K, k=TRAY_K, converge=TRAY_CONVERGE, front_py=123.5, back_py=17.0, rf_px=7.0, r_px=4.3,
-                 ends=(8.0, 239.0), sides=(11.2, 235.1)):
+                 ends=(8.0, 239.0), sides=(9.4, 238.3)):
         P = K.paint
         K.oblique = k
         K.converge = converge
@@ -1092,8 +1096,11 @@ class LevelTray:
         self.c, self.xcm = converge[0], P.x(converge[1])
         self.rf, self.r = P.m(rf_px), P.m(r_px)
         self.zg = P.z(front_py) - self.rf      # the ground: the front pole's centre on its painted one (record's lift)
-        self.yb = (P.z(back_py) - self.zg - self.r) / k      # the back pole's centre, at its real depth
-        self.zs = self.zg + 3 * self.r         # the side poles' centres: resting on the back pole
+        self.zf = self.zg + self.rf            # the front pole's centre, on the ground
+        self.zs = self.zg + self.r             # the side poles' centres, on the ground
+        self.zb = self.zg + self.r             # the back pole's centre, on the ground
+        self.yb = (P.z(back_py) - self.zb) / k    # the back pole's centre, at its real depth
+        self.ym = self.yb + 0.6 * self.r       # the mat's back edge, tucked under the back pole
         self.zm = self.zg + 0.002              # the mat's top, lying on the ground
         self.x0, self.x1 = P.x(ends[0]), P.x(ends[1])
         self.xl, self.xr = P.x(sides[0]), P.x(sides[1])
@@ -1411,14 +1418,15 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
     P, k = K.paint, T.k
     pale_halo(K)
     # the poles
-    zf, zb = T.zg + T.rf, T.zg + T.r
+    zf, zb = T.zf, T.zb
     K.tube([(T.x0, 0.0, zf), (T.x1, 0.0, zf)], T.rf, bamboo_wrap(K, "x", 0.0, zf, T.rf, P.x(30)), segments=16,
            name="pole_front")
-    # the back pole as long as the frame needs (its painted ends reach as far past the side poles as the front's do)
-    K.tube([(T.xl - P.m(6), T.yb, zb), (T.xr + P.m(6), T.yb, zb)], T.r, bamboo_wrap(K, "x", T.yb, zb, T.r, P.x(30)),
+    # the back pole, its ends just past the side poles (as painted)
+    K.tube([(T.xl - T.r, T.yb, zb), (T.xr + T.r, T.yb, zb)], T.r, bamboo_wrap(K, "x", T.yb, zb, T.r, P.x(30)),
            segments=12, name="pole_back")
+    # the side poles, from inside the front pole to the back pole's side, butted against it
     for xs in (T.xl, T.xr):
-        K.tube([(xs, -T.rf - T.r * 0.15, T.zs), (xs, T.yb + T.r * 0.7, T.zs)], T.r,
+        K.tube([(xs, T.rf * 0.5, T.zs), (xs, T.yb - T.r * 0.75, T.zs)], T.r,
                bamboo_wrap(K, "y", xs, T.zs, T.r, -T.rf), segments=12, name="pole_side")
     # the bamboo's nodes, low ridges round the poles where the painting draws them (on the front and back poles at
     # their painted places, on the side poles at the depths their painted bands land)
@@ -1433,11 +1441,11 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
             ring(K, xs, (P.z(row) - T.zs) / k, T.zs, T.r, T.r * 0.13, bamboo_wrap(K, "y", xs, T.zs, T.r, -T.rf),
                  axis="y", n=12, name="node")
     # cane wraps where the poles cross: round the front pole at the painted bands (21-28 px, 215-222 px), round the
-    # back pole as far in from the side poles, round the side poles in front of the back pole and behind the front one
+    # back pole just in from the side poles, round the side poles in front of the back pole and behind the front one
     cane = K.colour((22, 114, 27, 126), vary=0.12, pct=55)
     for px in (21.5, 24.0, 26.5, 216.0, 218.5, 221.0):
         ring(K, P.x(px), 0.0, zf, T.rf * 1.04, T.rf * 0.16, cane, axis="x", n=12, name="lashing")
-    for d in (6.0, 8.5, 11.0):
+    for d in (5.5, 8.0, 10.5):
         for xs, sgn in ((T.xl, 1), (T.xr, -1)):
             ring(K, xs + sgn * P.m(d), T.yb, zb, T.r * 1.06, T.r * 0.2, cane, axis="x", n=10, name="lashing")
     for xs in (T.xl, T.xr):
@@ -1450,7 +1458,7 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
     zm = T.zm
     xa, xb = T.xl, T.xr
     nu, nv = (56, 60) if height is not None else (10, 8)
-    xs, ys = np.linspace(xa, xb, nu + 1), np.linspace(0.0, T.yb, nv + 1)
+    xs, ys = np.linspace(xa, xb, nu + 1), np.linspace(0.0, T.ym, nv + 1)
     Z = np.full((nv + 1, nu + 1), zm)
     if height is not None:
         for i, x in enumerate(xs):
@@ -1462,18 +1470,18 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
 
     def surf_z(x, y):
         fi = min(nu - 1e-6, max(0.0, (x - xa) / (xb - xa) * nu))
-        fj = min(nv - 1e-6, max(0.0, y / T.yb * nv))
+        fj = min(nv - 1e-6, max(0.0, y / T.ym * nv))
         i, j = int(fi), int(fj)
         u, v = fi - i, fj - j
         return float(Z[j, i] * (1 - u) * (1 - v) + Z[j, i + 1] * u * (1 - v) + Z[j + 1, i] * (1 - u) * v
                      + Z[j + 1, i + 1] * u * v)
     own = mat_mirrored(K, ((26, 96), (41, 30)), ((219.5, 96), (201, 30)), 111.0, 24.0, goods, weave_box,
                        (zm + 0.002, zm + 0.004) if height is not None else None)
-    K.sheet(lambda u, v: (xa + (xb - xa) * u, T.yb * v, float(Z[int(round(v * nv)), int(round(u * nu))])), nu, nv,
+    K.sheet(lambda u, v: (xa + (xb - xa) * u, T.ym * v, float(Z[int(round(v * nv)), int(round(u * nu))])), nu, nv,
             own, name="mat", smooth=True)
     # its woven underside, on the ground
     weave = weave_tile(K, weave_box)
-    K.sheet(lambda u, v: (xb - (xb - xa) * u, T.yb * v, T.zg + 0.0006), 8, 6, weave, name="mat_under", smooth=False)
+    K.sheet(lambda u, v: (xb - (xb - xa) * u, T.ym * v, T.zg + 0.0006), 8, 6, weave, name="mat_under", smooth=False)
     return surf_z
 
 
@@ -1509,18 +1517,26 @@ def lying_papad(K, T, cx, mid_py, R_px, ratio, roll, z_rest, mat, wobble=0.0025,
             h = wobble * v * v * math.sin(3 * a + ph[2]) * 0.5 + 0.0012 * (1 - v)
             ring_v.append(bm.verts.new(c + ex * rr * math.cos(a) + ey * rr * math.sin(a) + ez * h))
         rings.append(ring_v)
-    # ride up over the back pole: the lift it needs there, ramped in from the papad's middle
+    # ride up over the back pole (the lift it needs at the pole's crest, ramped in from the papad's middle) and,
+    # still pliable as it dries, drape over it: behind the crest it follows the pole round and falls towards the
+    # ground, so that from the painter's view it ends at the pole's top, as painted
+    R1 = T.r * 1.1
     need = 0.0
     for v in bm.verts:
         dy = v.co.y - T.yb
-        if abs(dy) < T.r * 1.1:
-            top = T.zg + T.r + math.sqrt(max(0.0, (T.r * 1.1) ** 2 - dy * dy)) + 0.0012
+        if abs(dy) < R1:
+            top = T.zb + math.sqrt(max(0.0, R1 * R1 - dy * dy)) + 0.0012
             need = max(need, top - v.co.z)
     if need > 0:
         y0, y1 = c.y, T.yb - T.r * 0.6
+        crest = T.zb + R1 + 0.0012
         for v in bm.verts:
             w = min(1.0, max(0.0, (v.co.y - y0) / max(1e-4, y1 - y0)))
             v.co.z += need * w * w * (3 - 2 * w)
+            dy = v.co.y - T.yb
+            if dy > 0:
+                pole = T.zb + math.sqrt(max(0.0, R1 * R1 - dy * dy)) + 0.0012 if dy < R1 else 0.0
+                v.co.z = min(v.co.z, max(pole, crest - 1.3 * dy, T.zg + 0.003))
     for i in range(n):
         bm.faces.new([mid, rings[0][i], rings[0][(i + 1) % n]])
     for r0, r1 in zip(rings, rings[1:]):

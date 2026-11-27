@@ -1430,6 +1430,7 @@ def rope_cot(K):
         """The height of a point painted at py that stands y metres back (painted higher by k y)."""
         return Z(py) - k * y
     def Xf(px):
+        """The x of a leg painted at px (its middle, a block's half width behind the painting's plane)."""
         return Xs(px, yF)
     dz0 = -k * yF                                         # the frame, painted at its legs' middles, set down by this
     z_foot = Z(foot) + dz0
@@ -1437,17 +1438,17 @@ def rope_cot(K):
     # the front legs' feet (264; 262 between them) back to 243: a patch from just behind the legs' front faces to
     # 0.45 m behind them, its top level at the feet
     n0 = len(K.parts)
-    earth(K, 263, P.py(z_foot), P.py(z_foot) + 2, 262, 0.21, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
+    earth(K, 263, P.py(z_foot), P.py(z_foot) + 2, 262, 0.195, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
           dirt_exclude=[(20, 200, 510, 262)])
     for ob in K.parts[n0:]:
         for v in ob.data.vertices:
-            v.co.y += 0.24
+            v.co.y += yF + 0.255
     # its grass, each tuft standing at the depth its painted foot gives
     for box in ((8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
                 (420, 240, 462, 262), (490, 248, 510, 262)):
         K.leaves_only(box, grass_pixels)
         gx, gy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        yy = max(0.0, (foot - box[3]) / (k * P.ppm))
+        yy = yF + max(0.0, (foot - box[3]) / (k * P.ppm))
         for yaw in (0, 90):
             K.card_from_painting(box, (Xs(gx, yy), yy, Zs(gy, yy)), yaw=yaw, scale=1 + cv * yy, name="grass",
                                  normal=(0, -0.4, 1))
@@ -1469,15 +1470,20 @@ def rope_cot(K):
           (0, 67)]),
     ]
     blockm = K.tile((36, 104, 72, 150), vary=0.06, soften=0.3)
+
+    def no_grass(rgba):
+        """The legs' own pixels: not the grass painted in front of their feet (it would stain their backs green)."""
+        return ~grass_pixels(rgba[..., :3])
     for cx, keep, low, blk, top in legs:
         for yy in (yF, yB):
-            wood_y = proj(K, Xf(cx), 0.92, keep=[keep], inset=2, wrap=62, axis_y=yy, dz=-dz0)
+            wood_y = proj(K, Xf(cx), 0.92, keep=[keep], inset=2, wrap=62, axis_y=yy, dz=-dz0, mask=no_grass)
             K.lathe(prof(P, low), wood_y, segments=24, centre=(Xf(cx), yy, dz0), name="leg")
             x0, x1, t_py, b_py = blk
             hw = P.m(x1 - x0) / 2
-            K.box(Xf(cx) - hw, Xf(cx) + hw, yy - hw, yy + hw, Z(b_py) + dz0, Z(t_py) + dz0, blockm, bevel=0.008,
+            bx = X(cx) + (Xf(cx) - X(cx)) * 0.3    # its front face where it is painted, all but centred on its leg
+            K.box(bx - hw, bx + hw, yy - hw, yy + hw, Z(b_py) + dz0, Z(t_py) + dz0, blockm, bevel=0.008,
                   name="block")
-            decal_faces(K, (32, 102, 77, 152), Xf(cx) - hw, Xf(cx) + hw, yy - hw, yy + hw, Z(b_py) + dz0,
+            decal_faces(K, (32, 102, 77, 152), bx - hw, bx + hw, yy - hw, yy + hw, Z(b_py) + dz0,
                         Z(t_py) + dz0, faces=("back", "left", "right"))
             K.lathe(prof(P, top), wood_y, segments=24, centre=(Xf(cx), yy, dz0), name="finial")
     # the frame's rails, wrapped in rope, all four level at the blocks' middle
@@ -1504,10 +1510,11 @@ def rope_cot(K):
     K.sheet(bed, 36, 14, weave, name="bed", thickness=0.014)
     # the patchwork cushion at the head: its lower edge on the bed, leaning back towards the head's far corner
     cushion_px = [(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]
-    pil = proj(K, X(150), 1.0, polys=[cushion_px], inset=3)
     yb, yt = yF + 0.12, yF + 0.55
-    cushion(K, [(Xs(102, yb), yb, Zs(114, yb)), (Xs(236, yb), yb, Zs(101, yb)), (Xs(175, yt), yt, Zs(10, yt)),
-                (Xs(66, yt), yt, Zs(13, yt))], 0.09, pil, name="cushion")
+    # (its back wears its painted front, sampled along the slope at its middle depth)
+    pil = proj(K, X(150), 1.0, polys=[cushion_px], inset=3, dz=k * (yb + yt) / 2)
+    cushion(K, [(Xs(102, yb), yb, Zs(114, yb)), (Xs(236, yb), yb, Zs(101, yb)), (Xs(175, yt), yt, Zs(15, yt)),
+                (Xs(67, yt), yt, Zs(18, yt))], 0.075, pil, name="cushion")
 
 
 def octagon(K, prof_hw, cx_px, cy, mat, name="octagon"):
@@ -2156,7 +2163,7 @@ def bullock_cart(K):
     from mathutils import Vector
     P = K.paint
     X, Z = P.x, P.z
-    phi = math.radians(0)
+    phi = math.radians(8)
     cphi, sphi = math.cos(phi), math.sin(phi)
     ax = Vector((cphi, -sphi, 0.0))                  # along the cart, towards the pole (and the camera)
     nrm = Vector((sphi, cphi, 0.0))                  # across it, towards its far side

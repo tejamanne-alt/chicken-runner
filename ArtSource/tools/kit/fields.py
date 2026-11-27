@@ -1722,12 +1722,12 @@ def canal_piece_2(K):
     K.front_min = 0.03                                      # the tops (lit at 0.27 along the slope) take the painting
     th, origin = 49.95, (-0.476, 0.189)                     # the turn; the front slab's near front corner
     g = 0.115                                               # the gap between the slabs
-    # each slab: its start along the slabs, length, width; its near and far piers: length along the slab, and how far
-    # they stop short of the slab's back edge (they stand flush with its front edge and its ends)
-    slabs = ((0.0, 3.290, 0.674, (0.599, 0.138), (0.450, 0.106)),
-             (-0.162, 3.433, 0.660, (0.594, 0.133), (0.414, 0.108)))
-    zt, t = 0.727, 0.189                                    # the slabs' top, their thickness
-    zb = zt - t
+    # each slab: its start along the slabs, length, width, thickness; its near and far piers: length along the slab,
+    # and how far they stop short of the slab's back edge (they stand flush with its front edge and its ends); the
+    # back slab's far pier, hidden behind the front one's in the painting, a short one
+    slabs = ((0.0, 3.290, 0.674, 0.189, (0.599, 0.138), (0.450, 0.107)),
+             (-0.162, 3.433, 0.660, 0.231, (0.594, 0.133), (0.256, 0.108)))
+    zt = 0.727                                              # the slabs' top
     rot = ((250, 150), (600, 70))                           # the front slab's long side, as painted
     grain = turned_crop(K, *rot, (300, 108, 450, 132), centre=(330, 164))     # a clean patch of the slab's top
     # the slabs' own painted stone, its tones kept: the top's ochre-cream with its brown-grey blotches and flecks
@@ -1747,7 +1747,8 @@ def canal_piece_2(K):
               for i, sh in enumerate(shades)]
     parts = []
     v0 = 0.0
-    for u0, length, w, (nd, ni), (fd, fi) in slabs:
+    for u0, length, w, t, (nd, ni), (fd, fi) in slabs:
+        zb = zt - t
         parts.append(K.block(u0 + length / 2, v0 + w / 2, zb + t / 2, length, w, t, slab, bevel=0.06, jitter=0.006,
                              name="slab"))
         parts[-1].modifiers["bevel"].segments = 3          # a rounded edge, its upper face half dark
@@ -1774,8 +1775,9 @@ def canal_piece_3(K):
     tray on the ground before the lowest step and a brass pot standing on the ground beside the lowest step's right
     end. The painting looks down on it (K.oblique 0.292: the treads, the left end's foot and the tray, fitted with the
     outline) three-quarters on from the left, the risers running away up to the right: it is modelled level and
-    square, the steps turned 34 degrees in plan and the tray 38, so the left end and the risers are real faces and
-    the painting, projected along its slope, lands on the risers, the treads, the left end and the pot.
+    square, the steps turned 34 degrees in plan and the tray 37.6, so the left end and the risers are real faces and
+    the painting, projected along its slope, lands on the risers, the treads, the left end and the pot; the tray,
+    drawn more steeply in its own perspective, takes the painting by its own painted corners (quad_mapped).
     Behind and underneath, stone block by block, each block one of the painted blocks' shades."""
     P = K.paint
     K.oblique = k = 0.292
@@ -2645,9 +2647,12 @@ def field_shrine(K):
     pole = K.colour((186, 60, 196, 110), vary=0.08)
     by = (M @ Vector((P.x(188) - (ym + 0.2) * s_, ym + 0.2, 0.0))).y
     K.tube([(P.x(187), by, P.z(140)), (P.x(205), by, P.z(10))], P.m(4), pole, segments=8, name="pole")
-    def cloth(rgb):                                         # the flag's cloth: no halo, and not the painted pole
-        yy, xx = np.mgrid[4:4 + rgb.shape[0], 196:196 + rgb.shape[1]]
-        return no_halo(rgb) & (xx > 186 + (140 - yy) * 19 / 130 + 5)
+    def cloth(rgb):                                         # the flag's cloth: no halo, not the painted pole,
+        yy, xx = np.mgrid[4:4 + rgb.shape[0], 196:196 + rgb.shape[1]]     # no specks off its tails
+        keep = no_halo(rgb) & (xx > 186 + (140 - yy) * 19 / 130 + 5)
+        lab, n = ndimage.label(keep)
+        sizes = ndimage.sum(keep, lab, range(1, n + 1))
+        return np.isin(lab, 1 + np.flatnonzero(sizes >= 40))
     K.leaves_only((196, 4, 312, 126), cloth)
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by, P.z(64)), name="flag", normal=(0, -0.5, 0.5))
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by + 0.12, P.z(64)), yaw=-20, name="flag",
