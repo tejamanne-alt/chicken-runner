@@ -2525,7 +2525,7 @@ def field_bldg_3(K):
     # the shed, painted three-quarters on (its gable end and its long slatted right side receding to x 1165), turned
     # in plan about its nearest corner (the front-right post) so its right side and the roof's long slope are real
     # faces; its front first drawn out to its true width (1 / cos) so the turned front covers the painted front
-    phi = math.degrees(math.asin(min(0.85, P.m(1165 - 878) / (D + 0.3))))
+    phi = math.degrees(math.asin(min(0.85, P.m(1165 - 878) / (D + 0.75))))   # (the roof's back overhang too)
     c = math.cos(math.radians(phi))
     M = (Matrix.Translation((x1, 0.0, 0.0)) @ Matrix.Rotation(math.radians(-phi), 4, "Z")
          @ Matrix.Diagonal((1 / c, 1.0, 1.0, 1.0)) @ Matrix.Translation((-x1, 0.0, 0.0)))
