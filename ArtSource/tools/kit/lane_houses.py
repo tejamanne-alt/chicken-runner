@@ -1320,15 +1320,137 @@ def straw_clean(rgb):
     return straw_pixels(rgb) & ~ndimage.binary_dilation(pale, iterations=4)
 
 
+def strand_image(K, sources, size_px=256, strip=12, feather=3, low=0.3, soften=0.08, fade=8, seg=(0.5, 0.95),
+                 even=0.0, gain=1.0):
+    """A square, seamless image of straws running down it, with no rows, from painted straw running down in each
+    source box (px): each box's light-to-dark shading taken out (it would band the tile), then the square built of
+    vertical strips (a straw bundle each, feathered into its neighbours), each strip a run of segments cut from random
+    places in the boxes and cross-faded at random heights, so the straws' ends and overlaps fall anywhere, never in a
+    row (a strip stacked into a square, strip_tile, shows its seams as rows every strip's height). even: the share of
+    each segment's own mean brightness taken out (painted straw shaded in clumps otherwise shows as a mosaic of
+    lighter and darker blocks); gain: the straws' own light and dark (above the shading) strengthened that much."""
+    import zlib
+    from PIL import Image
+    rng = np.random.default_rng(zlib.crc32(repr(sources).encode()))
+    srcs = []
+    for box in sources:
+        a = np.asarray(K.paint.img.crop(tuple(int(v) for v in box)).convert("RGB")).astype(np.float32)
+        srcs.append(a)
+    mean = np.concatenate([a.reshape(-1, 3) for a in srcs]).mean(axis=0)
+    for k, a in enumerate(srcs):
+        h, w = a.shape[:2]
+        lowf = ndimage.gaussian_filter(a, (h / 5, w / 8, 0), mode="reflect")
+        a = mean + (a - lowf) * gain + (lowf - mean) * low
+        if soften:
+            a = a * (1 - soften) + mean * soften
+        srcs[k] = a
+    W = H = size_px
+    sw = strip + 2 * feather
+    acc = np.zeros((H, W, 3))
+    wt = np.zeros((H, W, 1))
+    hw = np.ones(sw)
+    hw[:feather], hw[-feather:] = np.linspace(0.05, 1, feather), np.linspace(1, 0.05, feather)
+    for x in range(0, W, strip):
+        col = np.zeros((H + fade, sw, 3))
+        cw = np.zeros((H + fade, 1, 1))
+        y = -int(rng.integers(0, fade + 1))
+        while y < H:
+            a = srcs[int(rng.integers(0, len(srcs)))]
+            h, w = a.shape[:2]
+            L = max(2 * fade + 2, int(rng.uniform(*seg) * h))
+            sx, sy = int(rng.integers(0, w - sw)), int(rng.integers(0, max(1, h - L)))
+            part = a[sy:sy + L, sx:sx + sw]
+            L = part.shape[0]
+            if rng.uniform() < 0.5:
+                part = part[:, ::-1]
+            if even:
+                part = part - (part.reshape(-1, 3).mean(axis=0) - mean) * even
+            vw = np.ones(L)
+            vw[:fade], vw[-fade:] = np.linspace(0.02, 1, fade), np.linspace(1, 0.02, fade)
+            ys = np.arange(y, y + L)
+            ok = (ys >= 0) & (ys < H + fade)
+            col[ys[ok]] += part[ok] * vw[ok, None, None]
+            cw[ys[ok]] += vw[ok, None, None]
+            y += L - fade
+        col = col / np.maximum(cw, 1e-6)
+        r = np.linspace(0, 1, fade)[:, None, None]                 # the overhang fades into the top: it tiles
+        col[:fade] = col[:fade] * r + col[H:H + fade] * (1 - r)
+        col = np.roll(col[:H], int(rng.integers(0, H)), axis=0)    # (that seam at a different height in each strip)
+        xs = np.arange(x - feather, x - feather + sw) % W
+        acc[:, xs] += col * hw[None, :, None]
+        wt[:, xs] += hw[None, :, None]
+    return Image.fromarray((acc / np.maximum(wt, 1e-6)).clip(0, 255).astype(np.uint8))
+
+
+def strand_mat(K, sources, size=1.0, vary=0.06, **kw):
+    """A thatch material whose straws run along the 'decal' UVs' v, which hip_thatch(strands=True) sets in metres
+    down every slope, hip end and fringe (a box projection lays the straws across a hip end, and blends two
+    projections into a basket weave where a slope is near 45 degrees). The strand_image, `size` m across, sampled
+    twice at different scales and offsets, switched by a large soft noise with a short transition (a long one averages
+    two sets of straws into a blur)."""
+    key = ("lh_strand", repr(sources), size, vary, repr(sorted(kw.items())))
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(f"{K.name}_strand{len(K._mats)}")
+    img = _image(strand_image(K, sources, **kw), m.mat.name)
+    nt = m.nt
+    uv = nt.nodes.new("ShaderNodeUVMap")
+    uv.uv_map = "decal"
+    samples = []
+    for scale, (ox, oy) in ((1.0, (0.0, 0.0)), (0.79, (0.37, 0.61))):
+        mapping = nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / size, scale / size, 1.0)
+        mapping.inputs["Location"].default_value = (ox, oy, 0.0)
+        nt.links.new(uv.outputs["UV"], mapping.inputs["Vector"])
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.extension = "REPEAT"
+        nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        samples.append(tex.outputs["Color"])
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.8 / size
+    noise.inputs["Detail"].default_value = 2.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.46
+    ramp.inputs["From Max"].default_value = 0.54
+    nt.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(samples[0], mix.inputs["A"])
+    nt.links.new(samples[1], mix.inputs["B"])
+    col = mix.outputs["Result"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / size)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def uv_metres(ob, nu, nv, st):
+    """Gives a K.sheet part (fn(u, v) on an nu x nv grid) 'decal' UVs st(u, v) -> (s, t), in metres (strand_mat)."""
+    me = ob.data
+    layer = me.uv_layers.get("decal") or me.uv_layers.new(name="decal")
+    for li, lp in enumerate(me.loops):
+        j, i = divmod(lp.vertex_index, nu + 1)
+        layer.data[li].uv = st(i / nu, j / nv)
+
+
 def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch",
-               pull=0.0, end_fringe=None, corner=0.0):
+               pull=0.0, end_fringe=None, corner=0.0, strands=False, lump=None):
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
     ragged fringe `fringe` m deep. The mat's thickness stands half outside the surface, so seen from the front the
     hip ends reach about half the thickness past the painted hip lines: pull (m) moves both hip ends in by that much,
     or (eave left, eave right, ridge left, ridge right) to fit a painted roof whose two ends differ. end_fringe: the
     hip ends' own fringe (default as the slopes'); corner: the share of the eave at each end over which the long
-    slopes' fringe tapers away (a roof whose painted ends sweep up)."""
+    slopes' fringe tapers away (a roof whose painted ends sweep up). strands=True: mat is a strand_mat, and every
+    slope, end and fringe gets UVs in metres down its slope, so the straws run down it. lump = (along the slope,
+    across, scale): the lumps' noise smoothed that many grid cells each way and scaled to that standard deviation
+    (default round lumps, 1.2 cells: seen from behind they shade into a blotchy pattern; long, low ridges down the
+    slope read as bundles of straw)."""
     ex0, ex1, ey0, ey1 = eave
     rx0, rx1 = ridge
     pe0, pe1, pr0, pr1 = pull if isinstance(pull, (tuple, list)) else (pull,) * 4
@@ -1338,7 +1460,12 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
     nu, nv = 48, 14
 
     def lumps(n_u):
-        noise = ndimage.gaussian_filter(rng.normal(0, 1, (nv + 1, n_u + 1)), 1.2)
+        raw = rng.normal(0, 1, (nv + 1, n_u + 1))
+        if lump is None:
+            noise = ndimage.gaussian_filter(raw, 1.2)
+        else:
+            noise = ndimage.gaussian_filter(raw, lump[:2])
+            noise = noise / max(1e-6, noise.std()) * lump[2]
         tips = ndimage.gaussian_filter(rng.normal(0, 1, n_u + 1), 0.7)
         return noise, tips
 
@@ -1355,7 +1482,11 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
                 taper = min(1.0, u / corner, (1 - u) / corner) if corner else 1.0
                 z -= fringe * (0.6 + 0.8 * abs(tips[iu])) * taper
             return (x, y, z)
-        return K.sheet(f, nu, nv, mat, name=name, smooth=True, thickness=thickness)
+        ob = K.sheet(f, nu, nv, mat, name=name, smooth=True, thickness=thickness)
+        if strands:
+            L = math.hypot(ym - ey0, zr - ze)
+            uv_metres(ob, nu, nv, lambda u, v: ((1 if front else -1) * f(u, v)[0], L * v))
+        return ob
 
     def end(left):
         n_u = 24
@@ -1369,7 +1500,12 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
             if v < 0.09:
                 z -= (fringe if end_fringe is None else end_fringe) * (0.6 + 0.8 * abs(tips[iu]))
             return (x0 + (r - x0) * v, y, z)
-        return K.sheet(f, n_u, nv, mat, name=name + "_end", smooth=True, thickness=thickness)
+        ob = K.sheet(f, n_u, nv, mat, name=name + "_end", smooth=True, thickness=thickness)
+        if strands:
+            x0, r = (ex0, rx0) if left else (ex1, rx1)
+            L = math.hypot(r - x0, zr - ze)
+            uv_metres(ob, n_u, nv, lambda u, v: ((1 if left else -1) * f(u, v)[1], L * v))
+        return ob
     slope(True)
     slope(False)
     if ends:
@@ -1816,7 +1952,9 @@ def house_weaver(K):
     exclude_where(K, (1035, 590, 1345, 1080), not_wall, grow=1)
     white = K.tile((200, 560, 440, 900), size=1.0, vary=0.05, soften=0.2)
     indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
-    thatch_m = K.tile((500, 120, 800, 380), size=0.6, vary=0.06, soften=0.05)    # its strands kept
+    # straws running down every slope from the painted front slope's middle, where they run straight down (a tile of
+    # the slope, box-projected, showed its lumps and light patches as a blotchy pattern on the back)
+    thatch_m = strand_mat(K, [(650, 60, 850, 400)], size=1.0, vary=0.05, gain=1.3)
     earth = clean_tile(K, (200, 1092, 1300, 1130), vary=0.1, soften=0.0, thresh=40, strip=True)          # the earth strip, stacked square
     brown = K.colour((495, 560, 520, 700), vary=0.06)
     timber = K.colour((560, 600, 568, 750), vary=0.08)
@@ -1827,7 +1965,8 @@ def house_weaver(K):
     K.box(P.x(150), P.x(1665), -0.9, D + 0.25, 0.0, P.z(1090), earth, bevel=0.04, name="ground")
     eave = (P.x(5), P.x(1495), -0.62, D + 0.62)
     ridge = (P.x(375), P.x(1125))
-    hip_thatch(K, eave, ridge, P.z(436), P.z(30), thatch_m, thickness=0.26, shag=0.05, fringe=0.09, pull=0.14)
+    hip_thatch(K, eave, ridge, P.z(436), P.z(30), thatch_m, thickness=0.26, shag=0.05, fringe=0.09, pull=0.14,
+               strands=True, lump=(3.0, 1.2, 0.15))
     K.tube([P.pt(375, 26, D / 2), P.pt(1125, 26, D / 2)], P.m(16), K.colour((600, 15, 900, 38), vary=0.06),
            segments=10, name="ridge_pole")
     # the workshop alcove, lined with its dark mud plaster, and its floor
@@ -1918,7 +2057,12 @@ def house_weaver(K):
     iron = K.colour((0.04, 0.03, 0.03), vary=0.05)
     dark = K.colour((0.04, 0.03, 0.03), vary=0.0)
     for side in (-1, 1):
+        n0 = len(K.parts)
         side_window(K, body, side, D * 0.55, P.z(820), P.z(640), 0.6, timber, iron, dark)
+        for ob in K.parts[n0:]:                    # its frame 1 cm proud, not 3: from the front the frame stood out
+            if ob.name.startswith("window_frame"):  # past the painted wall as a dark sliver
+                for v in ob.data.vertices:
+                    v.co.x -= side * 0.02 if (v.co.x - (X0 if side < 0 else X1)) * side > 0.005 else 0.0
 
 
 def wall_disc(K, x, y, z, r, thick, mat, facing="-y", name="disc", wobble=0.08):
@@ -2711,6 +2855,240 @@ CALF_SHED = [(938, 645), (985, 630), (1000, 619), (1055, 619), (1070, 635), (114
              (938, 670)]
 
 
+def heap_hay_pixels(rgb):
+    """Hay in a heap (golden to brown, saturated, red over green over blue) and the dark ink in it, not the khaki mud
+    wall painted behind (hay_pixels keeps the wall's darker patches: tufts cut with it showed pale paper bits)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    hay = (r > g) & (g > b) & ((mx - mn) > 0.45 * mx) & (r > 90) & (r - b > 70)
+    hay = ndimage.binary_opening(hay, iterations=1)
+    lab, n = ndimage.label(hay)
+    if n:
+        sizes = ndimage.sum(hay, lab, range(1, n + 1))
+        hay = np.isin(lab, 1 + np.nonzero(sizes >= 300)[0])
+    return hay | ((mx < 90) & ndimage.binary_dilation(hay, iterations=2))
+
+
+def quilt_image(K, boxes, size_px=384, patch=(48, 48), keep=None, turn=True, even=0.5, soften=0.0, cover=0.97):
+    """A seamless size_px square of a painted material with no repeat inside it: patches (w, h px) cut from random
+    places in the boxes where keep(rgb) holds (and the cut-out is opaque) over `cover` of the patch, turned (turn=True:
+    stone, plaster, hay; False: only mirrored, so wood keeps its grain) and flipped at random, each pulled `even` of
+    the way to the boxes' mean brightness (a crop in a sunbeam's edge otherwise shows as light and dark blocks), laid
+    on a grid at half their size and feathered into each other, wrapping round."""
+    import zlib
+    from PIL import Image
+    rng = np.random.default_rng(zlib.crc32(repr((boxes, size_px, patch, turn)).encode()))
+    a = np.asarray(K.paint.img.convert("RGBA")).astype(np.float32)
+    good = np.zeros(a.shape[:2], bool)
+    for x0, y0, x1, y1 in boxes:
+        sub = a[y0:y1, x0:x1]
+        ok = sub[..., 3] > 250
+        if keep is not None:
+            ok &= keep(sub[..., :3].astype(np.uint8))
+        good[y0:y1, x0:x1] |= ok
+    integ = np.pad(good.astype(np.int32).cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+    pw, ph = patch
+    cand = []
+    for x0, y0, x1, y1 in boxes:
+        for py in range(y0, y1 - ph + 1, 3):
+            for px in range(x0, x1 - pw + 1, 3):
+                s = integ[py + ph, px + pw] - integ[py, px + pw] - integ[py + ph, px] + integ[py, px]
+                if s >= cover * pw * ph:
+                    cand.append((px, py))
+    if not cand:
+        raise ValueError(f"quilt_image: no clean {pw}x{ph} patch in {boxes}")
+    mean = a[..., :3][good].mean(axis=0)
+    p = max(pw, ph) if turn else None
+    win = np.outer(np.hanning(ph + 2)[1:-1], np.hanning(pw + 2)[1:-1]) + 1e-4
+    acc = np.zeros((size_px, size_px, 3))
+    wt = np.zeros((size_px, size_px, 1))
+    for y in range(0, size_px, max(2, ph // 2)):
+        for x in range(0, size_px, max(2, pw // 2)):
+            px, py = cand[int(rng.integers(0, len(cand)))]
+            t = a[py:py + ph, px:px + pw, :3]
+            if even:
+                t = t - (t.reshape(-1, 3).mean(axis=0) - mean) * even
+            w_ = win
+            if turn and pw == ph:
+                k = int(rng.integers(0, 4))
+                t, w_ = np.rot90(t, k), np.rot90(win, k)
+            if rng.uniform() < 0.5:
+                t, w_ = t[:, ::-1], w_[:, ::-1]
+            if rng.uniform() < 0.5:
+                t, w_ = t[::-1], w_[::-1]
+            ys, xs = (y + np.arange(t.shape[0])) % size_px, (x + np.arange(t.shape[1])) % size_px
+            acc[np.ix_(ys, xs)] += t * w_[..., None]
+            wt[np.ix_(ys, xs)] += w_[..., None]
+    out = acc / np.maximum(wt, 1e-6)
+    if soften:
+        out = out * (1 - soften) + mean * soften
+    return Image.fromarray(out.clip(0, 255).astype(np.uint8))
+
+
+def _tile_nodes(m, img, sw, sh, offset_scale=0.77):
+    """K.tile's two box-projected samplings of a seamless image (sw x sh m), blended by a large soft noise."""
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    samples = []
+    for scale, offset in ((1.0, 0.0), (offset_scale, 0.381)):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.25
+        mapping = nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sh)
+        mapping.inputs["Location"].default_value = (offset, offset * 0.7, offset * 1.3)
+        nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+        nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        samples.append(tex.outputs["Color"])
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+    noise.inputs["Detail"].default_value = 2.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.4
+    ramp.inputs["From Max"].default_value = 0.6
+    nt.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(samples[0], mix.inputs["A"])
+    nt.links.new(samples[1], mix.inputs["B"])
+    return mix.outputs["Result"]
+
+
+def image_tile(K, pil, size, vary=0.05, key=None):
+    """A material like K.tile from a PIL image (quilt_image), size m across, box-projected and sampled twice."""
+    key = ("lh_imgtile", key or zlib_key(pil), size, vary)
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(f"{K.name}_imgtile{len(K._mats)}")
+    img = _image(seamless(pil, 0.15), m.mat.name)
+    col = _tile_nodes(m, img, size, size * pil.height / pil.width)
+    if vary:
+        col = _vary(m, col, vary, 3.0 / size)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def zlib_key(pil):
+    import zlib
+    return zlib.crc32(pil.tobytes()) ^ (pil.width << 16) ^ pil.height
+
+
+def facing_mat(K, src, tile, size, axis_x=0.0, squeeze=1.0, lo=0.35, hi=0.65, both=False, vary=0.05, key=None):
+    """A part's own material that is the painting where it faces the camera and a tile where it turns away: faces
+    whose normal points to the front (both=True: or to the back) by more than `hi` (the cosine) show src, a K.source
+    image of the painting, pushed straight through from the front (squeezed about axis_x); below `lo` they show the
+    tile (a PIL image, size m across, box-projected). A round post or a heap pushed straight through drags its
+    painted edge round its sides in streaks; this keeps the painting on the faces that look at it. Keep the part off
+    the front bake (front_exclude), which would paint its flanks anyway."""
+    key = ("lh_facing", key or zlib_key(src), zlib_key(tile), size, round(axis_x, 4), squeeze, lo, hi, both, vary)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(f"{K.name}_facing{len(K._mats)}")
+    nt = m.nt
+
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    x = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["X"], axis_x), squeeze), axis_x)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(op("ADD", op("DIVIDE", x, P.W), 0.5), vec.inputs[0])
+    nt.links.new(op("DIVIDE", sep.outputs["Z"], P.H), vec.inputs[1])
+    ptex = nt.nodes.new("ShaderNodeTexImage")
+    ptex.image = _image(src, f"{m.mat.name}_src")
+    ptex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], ptex.inputs["Vector"])
+    tcol = _tile_nodes(m, _image(seamless(tile, 0.15), f"{m.mat.name}_tile"), size, size * tile.height / tile.width)
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], nsep.inputs[0])
+    face = op("ABSOLUTE", nsep.outputs["Y"]) if both else op("MULTIPLY", nsep.outputs["Y"], -1.0)
+    ramp = nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = lo
+    ramp.inputs["From Max"].default_value = hi
+    nt.links.new(face, ramp.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(tcol, mix.inputs["A"])
+    nt.links.new(ptex.outputs["Color"], mix.inputs["B"])
+    col = mix.outputs["Result"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / size)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def hay_heap(K, cx, cy, half_w, half_d, z0, height, mat, lump=0.1, name="hay", n_a=36, n_h=14,
+             prof=((1.05, 0.0), (1.0, 0.07), (0.95, 0.22), (0.86, 0.42), (0.71, 0.62), (0.5, 0.8), (0.25, 0.94),
+                   (0.0, 1.0))):
+    """A loose heap of hay on the ground at z0: rings from its foot to its top, each an ellipse half_w x half_d at the
+    foot narrowing up the dome profile (radius share, height share), pushed in and out by a few broad lumps and smaller
+    ones, so it is lumpy and tapered from every side, not a block. Returns surf(a, h) -> (point, outward normal) on
+    it (a: radians round from +x, -pi/2 the front; h: 0 foot .. 1 top), to seat straw on."""
+    import bmesh
+    from kitlib import _obj
+    ph = K.rng.uniform(0, 2 * math.pi, 8)
+    rs, hs = [p[0] for p in prof], [p[1] for p in prof]
+
+    def bump(a, h):
+        return (0.5 * math.sin(2 * a + ph[0]) * math.cos(1.6 * math.pi * h + ph[1])
+                + 0.35 * math.sin(3 * a + ph[2] + 2.0 * h) + 0.25 * math.sin(5 * a + ph[3]) * math.sin(3 * math.pi * h + ph[4])
+                + 0.15 * math.sin(8 * a + ph[5] + 5.0 * h))
+
+    def radius(a, h):
+        r = float(np.interp(h, hs, rs))
+        return r * (1 + lump * bump(a, h) * min(1.0, 0.3 + h / 0.2))
+
+    def point(a, h):
+        r = radius(a, h)
+        return Vector((cx + half_w * r * math.cos(a), cy + half_d * r * math.sin(a), z0 + height * h))
+    bm = bmesh.new()
+    rings = []
+    for k in range(n_h):
+        h = k / n_h
+        rings.append([bm.verts.new(point(2 * math.pi * i / n_a, h)) for i in range(n_a)])
+    top = bm.verts.new((cx, cy, z0 + height))
+    for r0, r1 in zip(rings, rings[1:]):
+        for i in range(n_a):
+            j = (i + 1) % n_a
+            bm.faces.new([r0[i], r0[j], r1[j], r1[i]])
+    for i in range(n_a):
+        bm.faces.new([rings[-1][i], rings[-1][(i + 1) % n_a], top])
+    bm.faces.new(list(reversed(rings[0])))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=True)
+    K.parts.append(ob)
+
+    def surf(a, h):
+        p = point(a, h)
+        d = 0.02
+        t1 = point(a + d, h) - point(a - d, h)
+        t2 = point(a, min(1.0, h + d)) - point(a, max(0.0, h - d))
+        n = t1.cross(t2).normalized()
+        if n.dot(p - Vector((cx, cy, z0 + height * 0.3))) < 0:
+            n = -n
+        return p, n
+    return surf
+
+
+CALF_SHED_HEAPS = ((1315, 300, 455, 2.2, 1.1), (1120, 280, 555, 1.85, 1.0), (975, 210, 700, 1.62, 0.66))
+
+
 @model("cattle_shed", "lane", kind="building", atlas=2048, leaves=2048)
 def cattle_shed(K):
     """A cattle shed: a hipped thatch held down with bamboo battens on four rough wooden posts, a mud back wall
@@ -2721,41 +3099,63 @@ def cattle_shed(K):
     K.front_min = 0.1
     halo_exclude(K, [(0, 0, 1657, 894)])
     K.figure(CALF_SHED, y=1.15, name="calf")
-    # the thatch between its two battens, stacked square (the bare strip box-projected round the hip ends wove into
-    # a basket-like diamond pattern)
-    thatch_m = strip_tile(K, (300, 113, 700, 196), soften=0.2, size=1.2, mirror=False)
-    # the mud wall where it is evenly lit (the crop in the sunbeam's edge and the eave's shadow repeated as blocks)
-    wall = clean_tile(K, (300, 620, 680, 700), size=1.6, soften=0.3, thresh=20)   # below the handprints
-    earth = K.tile((1250, 490, 1420, 565), size=0.9, vary=0.1, soften=0.55)       # a floor of trodden straw
+    # the thatch: straws running down every slope, hip end and fringe (UVs down the slopes), from the painted bands
+    # between the battens where they run straight down; long low ridges, not round lumps (a strip tile stacked
+    # square showed its seams as rows, and round lumps shaded into a diamond lattice from behind)
+    thatch_m = strand_mat(K, [(700, 120, 1000, 192), (620, 212, 1040, 268)], size=1.0, vary=0.05, strip=14, low=0.15,
+                          even=0.8, fade=12)
+    # the mud wall: patches of its evenly lit plaster from anywhere below and between the handprints, quilted (one
+    # crop of it, squared by stacking, repeated its blotches in rows every 34 cm on the back)
+    not_print = lambda rgb: ~((rgb[..., 0].astype(np.int32) > rgb[..., 1] * 1.25) & (rgb[..., 0] > 120))
+    wall = image_tile(K, quilt_image(K, [(285, 350, 820, 715)], size_px=416, patch=(40, 40), keep=not_print,
+                                     even=0.8), size=1.6, vary=0.05, key="shed_wall")
+    hay_img = quilt_image(K, [(1215, 465, 1430, 560), (1005, 565, 1115, 615), (885, 775, 1000, 870),
+                              (1375, 715, 1470, 795)], size_px=384, patch=(36, 36), keep=heap_hay_pixels, even=0.5,
+                          cover=0.9)
+    hay = image_tile(K, hay_img, size=1.4, vary=0.06, key="shed_hay")
     bamboo = K.colour((600, 200, 900, 208), vary=0.08)
-    zf = P.z(872)
-    K.box(P.x(110), P.x(1570), -0.25, D + 0.3, 0.0, zf, earth, bevel=0.02, name="floor")
+    # no floor: the cut-out paints none (its foot is torn off below the manger and the heaps), so the shed stands on
+    # the lane's own ground; every part starts at the posts' painted foot (the record's lift sets it down)
+    zf = P.z(885)
     # the roof
     ze, zr = P.z(285), P.z(16)
     eave = (P.x(12), P.x(1648), -0.55, D + 0.55)
     ridge = (P.x(175), P.x(1510))
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.22, shag=0.04, fringe=0.12, pull=0.12)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.22, shag=0.04, fringe=0.12, pull=0.12, strands=True,
+               lump=(3.0, 1.2, 0.15))
     K.tube([P.pt(175, 16, D / 2), P.pt(1510, 16, D / 2)], P.m(10), bamboo, segments=8, name="ridge_pole")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
+    # the battens lie on the mat's top face (half its thickness out from the surface: at the surface line they were
+    # buried, and the back ones showed only as a pale scratch where the lumps dipped), at their painted heights
+    sin_s = (zr - ze) / math.hypot(zr - ze, D / 2 + 0.55)
     for py, x0, x1 in ((103, 118, 1557), (205, 60, 1607)):
-        y = fy(800, py) - 0.12
+        y = fy(800, py) - 0.11 / sin_s - 0.005
         K.tube([P.pt(x0, py, y), P.pt(x1, py, y)], P.m(8), bamboo, segments=8, name="batten")
         K.tube([P.pt(x0, py, D - y), P.pt(x1, py, D - y)], P.m(8), bamboo, segments=8, name="batten_back")
-    # rafters under the hip ends and a beam along the posts, front and back
+    # rafters under the slopes (inside the hip ends: the outer ones poked through them as pale scratches) and a beam
+    # along the posts, front and back
     for y in (0.0, D + 0.1):
         K.tube([P.pt(120, 300, y), P.pt(1560, 300, y)], P.m(12), bamboo, segments=8, name="plate")
-    for x in np.linspace(P.x(200), P.x(1480), 8):
+    for x in np.linspace(P.x(300), P.x(1380), 7):
         K.tube([(x, -0.3, ze + 0.02), (x, D / 2, zr - 0.15), (x, D + 0.3, ze + 0.02)], P.m(6), bamboo, segments=6,
                name="rafter")
-    # the posts, front as painted and the same at the back corners
+    # the posts, front as painted and the same at the back corners: the painting on the faces that look to the front
+    # and back, a tile of the posts' lit middles on their sides (pushed straight through, the shaded edge and a knot
+    # ran round the sides as long dark ovals); kept off the front bake, which would paint their flanks anyway
+    grain = np.concatenate([np.asarray(P.img.crop(b).convert("RGB")).astype(np.float32)
+                            for b in ((150, 380, 174, 840), (843, 380, 867, 840), (1500, 380, 1524, 840))], axis=0)
+    from PIL import Image as _I
+    wood_img = _I.fromarray(quilt(grain, 256, K.rng, patch=24, turn=False).clip(0, 255).astype(np.uint8))
     for x0, x1, top in ((130, 195, 310), (825, 885, 300), (1480, 1540, 300)):
         cx = (x0 + x1) / 2
-        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, top, x1, 880)],
-                        exclude=[(860, 700, 900, 880)] if x0 == 825 else (), inset=3)
+        src = K.source(keep=[(x0, top, x1, 880)], exclude=[(860, 700, 900, 880)] if x0 == 825 else (), inset=3)
+        m = facing_mat(K, src, wood_img, 0.5, axis_x=P.x(cx), squeeze=0.9, lo=0.3, hi=0.6, both=True,
+                       key=("post", x0))
+        K.front_exclude.append((x0 - 4, 336, x1 + 4, 894))
         prof = [(P.m((x1 - x0) / 2 * f), P.z(py)) for f, py in ((1.05, 885), (0.95, 800), (1.0, 650), (0.92, 500),
                                                                 (1.0, 380), (0.95, top))]
         for y in (0.0, D + 0.1):                       # (the back ones stand clear of the back wall's face)
-            K.lathe(prof, m, segments=12, centre=(P.x(cx), y, 0.0), wobble=0.06, scale_y=0.9, name="post")
+            K.lathe(prof, m, segments=14, centre=(P.x(cx), y, 0.0), wobble=0.06, scale_y=0.9, name="post")
     # the back wall
     zw = ze + (zr - ze) * 0.4
     bw = K.box(P.x(258), P.x(1555), D - 0.2, D, zf, zw, wall, name="back_wall")
@@ -2763,68 +3163,102 @@ def cattle_shed(K):
         K.cut(bw, P.x(x) - 0.2, P.x(x) + 0.2, D - 0.08, D + 0.05, P.z(420), P.z(360))
         K.box(P.x(x) - 0.2, P.x(x) + 0.2, D - 0.1, D - 0.08, P.z(420), P.z(360), K.colour((0.05, 0.03, 0.02)),
               name="vent_back")
-    # the manger: a long wooden trough on stumpy legs, straw in it
-    mw = K.tile((300, 742, 700, 778), size=0.8, vary=0.05)
+    # the manger: a long wooden trough on stumpy legs, hay in it (its planks' face, cleaned of the seams' ink: the
+    # rim and the face's line in one crop striped the legs)
+    mw = clean_tile(K, (260, 759, 800, 776), soften=0.3, thresh=25, strip=True)
+    leg_m = K.colour((300, 759, 700, 776), vary=0.12, scale=12.0)
     my0, my1 = D - 0.75, D - 0.22
     trough = K.box(P.x(228), P.x(825), my0, my1, P.z(800), P.z(720), mw, bevel=0.01, name="manger")
     K.cut(trough, P.x(245), P.x(808), my0 + 0.07, my1 - 0.07, P.z(760), P.z(700))
     K.box(P.x(245), P.x(808), my0 + 0.07, my1 - 0.07, P.z(762), P.z(758), K.colour((0.25, 0.15, 0.07), vary=0.1),
           name="manger_floor")
+    noise = ndimage.gaussian_filter(K.rng.normal(0, 1, (7, 41)), 1.0)
+    noise = noise / max(1e-6, noise.std())
+    K.sheet(lambda u, v: (P.x(245) + 0.02 + (P.x(808) - P.x(245) - 0.04) * u, my0 + 0.09 + (my1 - my0 - 0.18) * v,
+                          P.z(752) + 0.02 * noise[int(round(v * 6)), int(round(u * 40))] * math.sin(math.pi * v) ** 0.5),
+            40, 6, hay, name="manger_hay", thickness=0.03)
     for x in (250, 525, 800):
         for y in (my0 + 0.06, my1 - 0.06):
-            K.block(P.x(x), y, (zf + P.z(800)) / 2, 0.1, 0.1, P.z(800) - zf, mw, bevel=0.01, name="manger_leg")
-    # hay: the big heaps behind the calf and the one by the post, straw in the manger and on the floor
-    # (heaps on the floor up to their painted tops, in their own hay: a projection smears round a heap's sides, and
-    # the old heaps hung half a metre above the floor)
-    # (mounds on the floor, widest at the foot like the painted ones, so the painted hay lands on them and not on the
-    # wall behind, which from the side showed as flat hay painted on the plaster; the front bake paints their faces
-    # towards the camera, their own material is a tile of the painted hay: projected, it ran down their sides in
-    # vertical streaks like a beehive)
-    hm = K.tile((1250, 490, 1420, 565), size=0.6, vary=0.06, soften=0.1)
-    # each heap its painted dome outline carried straight back with rounded edges: its front face takes the painting,
-    # its sides and top face away from the camera and take the hay tile (a turned dome took the painting all over its
-    # flanks, which from the side ran in vertical streaks like a beehive)
-    heaps = ((1315, 300, 455, D - 0.8), (1120, 280, 555, 1.85), (975, 210, 700, 1.4))
-    for px, w, top, y in heaps:
+            K.block(P.x(x), y, (zf + P.z(800)) / 2, 0.1, 0.1, P.z(800) - zf, leg_m, bevel=0.01, name="manger_leg")
+    # hay: three heaps behind the calf, each lumpy and tapered, wider than tall at its foot, its front the painted
+    # heap (straight from the front where it faces the camera), its sides, back and top a quilted tile of the painted
+    # hay; straw wisps seated on it all round (a dome pushed through by the front bake streaked its flanks like a
+    # beehive; the outline carried straight back read as a rounded block from the side)
+    calf_free = []
+    from PIL import ImageDraw as _D
+    cm = _I.new("L", P.img.size, 0)
+    _D.Draw(cm).polygon(CALF_SHED, fill=255)
+    cm = np.asarray(cm) > 127
+    a = np.asarray(P.img).copy()
+    a[cm, 3] = 0                                       # the calf is its own card: its pixels never paint the hay
+    saved, P.img = P.img, _I.fromarray(a, "RGBA")
+    try:
+        hay_src = K.source(keep=[(870, 440, 1480, 880)], inset=1)
+    finally:
+        P.img = saved
+    heap_m = facing_mat(K, hay_src, hay_img, 1.4, lo=0.45, hi=0.75, key="heaps")
+    dome = ((1.0, 0.0), (0.98, 0.2), (0.9, 0.45), (0.72, 0.7), (0.45, 0.88), (0.15, 0.98), (0.0, 1.0))
+    surfs = []
+    for px, w, top, y, depth in CALF_SHED_HEAPS:
         sz = P.z(top) - zf
         R = P.m(w) / 2
-        dome = ((1.0, 0.0), (0.98, 0.2), (0.9, 0.45), (0.72, 0.7), (0.45, 0.88), (0.15, 0.98))
-        right = [(P.x(px) + R * a_, zf + sz * b_) for a_, b_ in dome]
-        left = [(P.x(px) - R * a_, zf + sz * b_) for a_, b_ in reversed(dome)]
-        dd = min(2 * R, 1.1)
-        K.prism(right + [(P.x(px), zf + sz)] + left, y - dd / 2, y + dd / 2, hm, bevel=0.08, name="hay")
-    K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), hay_pixels, CALF_SHED))
-    K.leaves_only((220, 690, 830, 870), straw_clean)
+        surfs.append(hay_heap(K, P.x(px), y, R, depth / 2, zf, sz, heap_m, lump=0.09, name="hay",
+                              prof=((1.04, 0.0), (1.0, 0.05)) + dome[1:]))     # (its foot spread a little)
+        K.front_exclude.append(("poly", [(px + w / 2 * a_ * s_, P.py(zf + sz * b_)) for s_ in (1, -1)
+                                         for a_, b_ in (dome if s_ > 0 else tuple(reversed(dome)))]))
+    K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), heap_hay_pixels, CALF_SHED))
+    hay_ok = heap_hay_pixels(np.asarray(P.img.convert("RGB")))
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
-    # tufts of hay on the heaps' faces where they are painted (never out in the air above or round them)
+    # tufts on the heaps' fronts where they are painted, a little proud of the surface
     for i in range(160):
         cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
         if cx + 55 > calf[0] and cx - 55 < calf[2] and cy + 45 > calf[1]:
             continue
-        on = [(px, w, top, y) for px, w, top, y in heaps if abs(cx - px) < w * 0.45 and cy > top + 15]
+        on = [k for k, (px, w, top, y, depth) in enumerate(CALF_SHED_HEAPS) if abs(cx - px) < w * 0.45 and cy > top + 15]
         if not on:
             continue
-        px, w, top, y = on[0]
-        sz = P.z(top) - zf
-        R = P.m(w) / 2
-        u = abs(cx - px) / (w / 2)
-        h = (P.z(cy) - zf) / sz                               # how far up the mound: its radius there
-        depth = min(R, 0.55) * K.rng.uniform(0.9, 1.05)          # on the heap's front face
-        blob_card(K, (cx - 50, cy - 40, cx + 50, cy + 40), (P.x(cx), y - depth * K.rng.uniform(0.6, 1.0), P.z(cy)),
-                  yaw=K.rng.uniform(-60, 60), pitch=K.rng.uniform(-25, 25), name="hay_tuft", rag=0.3)
-    for i in range(10):
-        cx = K.rng.uniform(260, 790)
-        K.card_from_painting((cx - 50, 690, cx + 50, 745), (P.x(cx), K.rng.uniform(my0 + 0.12, my1 - 0.12), P.z(730)),
-                             yaw=K.rng.uniform(-40, 40), name="manger_straw")
+        k = on[0]
+        px, w, top, y, depth = CALF_SHED_HEAPS[k]
+        h = (P.z(cy) - zf) / (P.z(top) - zf)
+        r = float(np.interp(h, [d[1] for d in dome], [d[0] for d in dome]))
+        dx = (cx - px) / (w / 2 * max(0.05, r))
+        yf = y - depth / 2 * r * math.sqrt(max(0.0, 1 - min(1.0, dx * dx)))
+        blob_card(K, (cx - 50, cy - 40, cx + 50, cy + 40), (P.x(cx), yf - 0.07, P.z(cy)),
+                  yaw=K.rng.uniform(-50, 50), pitch=K.rng.uniform(-25, 25), name="hay_tuft", rag=0.3,
+                  normal=(0.0, -0.8, 0.6))
+    # wisps round the sides, backs and tops, seated on the surface and leaning out with it (painted tufts from
+    # wherever the hay is clean)
+    spots = []
+    for i in range(4000):
+        if len(spots) >= 60:
+            break
+        cx, cy = K.rng.uniform(900, 1450), K.rng.uniform(470, 850)
+        if cx + 40 > calf[0] and cx - 40 < calf[2] and cy + 35 > calf[1]:
+            continue
+        if hay_ok[int(cy) - 30:int(cy) + 30, int(cx) - 40:int(cx) + 40].mean() > 0.75:
+            spots.append((cx, cy))
+    for k, surf in enumerate(surfs):
+        for i in range(22 if k < 2 else 14):
+            a_ = K.rng.uniform(math.radians(-20), math.radians(200))    # the sides and back; the top below
+            h = K.rng.uniform(0.08, 0.92)
+            if i % 4 == 0:
+                a_, h = K.rng.uniform(0, 2 * math.pi), K.rng.uniform(0.75, 0.95)
+            p, n = surf(a_, h)
+            cx, cy = spots[int(K.rng.integers(0, len(spots)))]
+            yaw = math.degrees(math.atan2(n.x, -n.y))
+            tilt = math.degrees(math.asin(max(-1.0, min(1.0, n.z))))
+            blob_card(K, (cx - 40, cy - 30, cx + 40, cy + 30), tuple(p + n * 0.05), yaw=yaw,
+                      pitch=-tilt * 0.75 + K.rng.uniform(-15, 15), name="hay_wisp", rag=0.32, normal=tuple(n))
+    K.leaves_only((220, 690, 830, 870), straw_clean)
     for i in range(16):
         cx = K.rng.uniform(840, 878) if i % 2 else K.rng.uniform(1436, 1470)
         y = K.rng.uniform(-0.2, D - 0.3)
-        K.card_from_painting((cx - 50, 820, cx + 50, 870), (P.x(cx) + K.rng.uniform(-1.8, 0.2), y, zf + 0.01),
+        K.card_from_painting((cx - 50, 820, cx + 50, 870), (P.x(cx) + K.rng.uniform(-1.8, 0.2), y, zf + 0.016),
                              yaw=K.rng.uniform(-90, 90), pitch=-82, name="floor_straw")
     # the rope hanging from the rafters
     rope = K.colour((0.42, 0.28, 0.15), vary=0.1)
     K.tube([P.pt(1383, 290, 0.9), P.pt(1383, 460, 0.9)], P.m(3), rope, segments=5, name="rope")
-    drop_ground_faces(K)
+    drop_ground_faces(K, below=zf + 0.004)
 
 
 JAR = [(0.86, 0.0), (1.0, 0.05), (1.0, 0.72), (0.93, 0.82), (0.74, 0.87), (0.76, 0.89), (0.8, 0.9), (0.8, 1.0),

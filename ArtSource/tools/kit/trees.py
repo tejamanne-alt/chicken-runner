@@ -766,6 +766,55 @@ def strip_tile(K, box, soften=0.35, vary=0.08, name=None, blur=0.0, quilt=False)
     return m
 
 
+def bark_patch(K, box, dest, side=192, ps=40, contrast=1.0):
+    """A seamless square of the painted bark for a bark tile, put into an empty corner of the painting at dest (px):
+    the crop's ink lines filled from the bark round them, its light levelled from top to bottom (a crop lighter at
+    one end banded a tall trunk once a tile), quilted from feathered patches. Returns its box, for bark_mix's
+    tile_box."""
+    P = K.paint
+    a = np.asarray(P.crop(box).convert("RGB")).astype(np.float32)
+    ink = (a @ np.array([0.3, 0.59, 0.11], np.float32)) < 62
+    if ink.any() and (~ink).any():
+        _, (iy, ix) = ndimage.distance_transform_edt(ink, return_indices=True)
+        a = a[iy, ix]
+    rowm = ndimage.gaussian_filter1d(a.mean(axis=1), 6, axis=0)
+    a = a / np.maximum(rowm[:, None, :], 1.0) * a.reshape(-1, 3).mean(0)
+    h, w = a.shape[:2]
+    rng = np.random.default_rng(zlib.crc32(repr(box).encode()))
+    acc = np.zeros((side, side, 3))
+    wsum = np.zeros((side, side, 1))
+    yy, xx = np.mgrid[0:ps, 0:ps]
+    feather = (np.minimum(np.minimum(yy, ps - 1 - yy), np.minimum(xx, ps - 1 - xx)) + 1.0)[..., None] / (ps / 2)
+    for _ in range(int(7 * (side / ps) ** 2)):
+        sx, sy = int(rng.integers(0, w - ps + 1)), int(rng.integers(0, h - ps + 1))
+        patch = a[sy:sy + ps, sx:sx + ps]
+        if rng.uniform() < 0.5:
+            patch = patch[:, ::-1]
+        if rng.uniform() < 0.5:
+            patch = patch[::-1]
+        dx, dy = int(rng.integers(-ps // 2, side)), int(rng.integers(-ps // 2, side))
+        for oy in (0, -side, side):                        # wrapped round, so the square tiles seamlessly
+            for ox in (0, -side, side):
+                x0, y0 = dx + ox, dy + oy
+                X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(side, x0 + ps), min(side, y0 + ps)
+                if X1 <= X0 or Y1 <= Y0:
+                    continue
+                sl = (slice(Y0 - y0, Y1 - y0), slice(X0 - x0, X1 - x0))
+                acc[Y0:Y1, X0:X1] += patch[sl] * feather[sl]
+                wsum[Y0:Y1, X0:X1] += feather[sl]
+    sq = np.where(wsum > 1e-6, acc / np.maximum(wsum, 1e-6), a.reshape(-1, 3).mean(0))
+    if contrast != 1.0:                                 # (the grain kept clear through the tile's own softening)
+        mu = sq.reshape(-1, 3).mean(0)
+        sq = mu + (sq - mu) * contrast
+    img = np.asarray(P.img).copy()
+    dx, dy = dest
+    assert (img[dy:dy + side, dx:dx + side, 3] == 0).all(), "the bark patch must go onto empty painting"
+    img[dy:dy + side, dx:dx + side, :3] = sq.clip(0, 255).astype(np.uint8)
+    img[dy:dy + side, dx:dx + side, 3] = 255
+    P.img = Image.fromarray(img, "RGBA")
+    return (dx, dy, dx + side, dy + side)
+
+
 def bark_box(mask, near=None, side=(28, 150)):
     """A box (px) of clean bark for a tile: the square inside the wood mask, round its thickest point (or the
     thickest point near `near` (px, py)), cut well inside its painted outline."""
@@ -862,14 +911,14 @@ def earth_patch(K, cx_px, rx_px, ry, box, y=0.0, z=0.0, h=0.04, segments=36, nam
 
 
 def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rings=8, name="earth", wobble=0.08,
-          rise=0.6, keep_boxes=()):
+          rise=0.6, keep_boxes=(), soften=0.45, blur=1.0, power=0.7):
     """The patch of earth a tree stands on, as painted: a low mound textured all over with a tile of the painted
     earth (tile_box, px), its rim on the ground at the painted band's front edge (py_rim: the model's foot) and its
     middle `rise` x as high as the band's top (py_top), so from the front it fills the painted band and from the side
     and above it is a gentle rise of red earth, not a flat plain disc. Returns height(x, y) (metres) of its surface,
     for setting stones and roots on it."""
     P = K.paint
-    soil = strip_tile(K, tile_box, soften=0.45, blur=1.0, quilt=True)
+    soil = strip_tile(K, tile_box, soften=soften, blur=blur, quilt=True)
     # the white cut-out halo along the painted ground's edge (and its pale pink blend into the earth) is not
     # projected onto the mound's rim (a white streak)
     clear_sky(K, (0, py_top - 25, P.w, P.h), exclude=keep_boxes)
@@ -884,13 +933,13 @@ def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rin
     prof = [(rx, 0.0)]
     for k in range(1, rings + 1):
         u = 1 - k / rings
-        prof.append((rx * u, h * (1 - u * u) ** 0.7))
+        prof.append((rx * u, h * (1 - u * u) ** power))
     K.lathe(prof, soil, segments=segments, centre=(P.x(cx_px), y, z0), scale_y=ry / rx, wobble=wobble, name=name)
     x0 = P.x(cx_px)
 
     def height(x, yy):
         u2 = ((x - x0) / rx) ** 2 + ((yy - y) / ry) ** 2
-        return z0 + (h * (1 - u2) ** 0.7 if u2 < 1 else 0.0)
+        return z0 + (h * (1 - u2) ** power if u2 < 1 else 0.0)
     return height
 
 
@@ -1173,6 +1222,24 @@ class Crown:
                 gaps = np.isin(lab, 1 + np.nonzero(sizes >= gmin)[0])
             dgap = ndimage.distance_transform_edt(~gaps) if gaps.any() else np.full(gaps.shape, 1e9)
             keep_off = 0.75 * max(size_px)
+            if getattr(self, "gap_exact", False):
+                # each turned card kept only if all it can show from the front lies on painted solid (its turned
+                # box's outline over no sky or halo): a margin round every gap left the crown hollow in the middle,
+                # where the sky is painted between the limbs
+                from PIL import ImageDraw
+                hole = ~solid
+
+                def fits(corners):
+                    xs, zs = [c[0] for c in corners], [c[1] for c in corners]
+                    bx0, by0 = int(max(0, min(xs) - 1)), int(max(0, min(zs) - 1))
+                    bx1, by1 = int(min(P.w, max(xs) + 2)), int(min(P.h, max(zs) + 2))
+                    if bx1 <= bx0 or by1 <= by0:
+                        return False
+                    im = Image.new("L", (bx1 - bx0, by1 - by0), 0)
+                    ImageDraw.Draw(im).polygon([(x - bx0, z - by0) for x, z in corners], fill=255)
+                    return not (hole[by0:by1, bx0:bx1] & (np.asarray(im) > 127)).any()
+                return self.cards_rotated(int(round(n * 1.6 / 1.3)), size_px, "volume", yaw=yaw, pitch=pitch,
+                                          region=region, mask=mask, name=name, squash=squash, footprint_ok=fits)
 
             def away(px, py, m=mask):
                 if dgap[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))] < keep_off:
@@ -1310,7 +1377,7 @@ class Crown:
         return placed
 
     def cards_rotated(self, n, size_px, layer="volume", yaw=40.0, pitch=25.0, region=None, mask=None, name="leaf",
-                      squash=1.0):
+                      squash=1.0, footprint_ok=None):
         """The earlier cards: n cards turned (rotated) about their centres: layer "volume" (all through the depth),
         "front" (the shell facing the camera: the painting) or "back" (the shell behind)."""
         K, P = self.K, self.P
@@ -1352,6 +1419,19 @@ class Crown:
                 continue
             qx, qy = (l + r_) / 2, (t + b_) / 2
             out = Vector((P.x(qx) - P.x(cx), (yy - self.y0) * 1.3, P.z(qy) - P.z(cy) + P.m(self.rzu) * 0.25))
+            if footprint_ok is not None:
+                # (its turn drawn first: what it covers from the front, its turned box's corners, must be allowed)
+                yw = K.rng.uniform(-yaw, yaw)
+                pt = K.rng.uniform(-pitch, pitch) if pitch_k is None else pitch_k
+                R = Matrix.Rotation(math.radians(yw), 3, "Z") @ Matrix.Rotation(math.radians(pt), 3, "X")
+                hw_, hh_ = (r_ - l) / 2, (b_ - t) / 2
+                cs = [R @ Vector((u * hw_, 0.0, v * hh_)) for u, v in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+                if not footprint_ok([(qx + c.x, qy - c.z) for c in cs]):
+                    continue
+                blob_card(K, (l, t, r_, b_), (P.x(qx), yy, P.z(qy)), yaw=yw, pitch=pt, name=name,
+                          normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1))
+                placed += 1
+                continue
             blob_card(K, (l, t, r_, b_), (P.x(qx), yy, P.z(qy)), yaw=K.rng.uniform(-yaw, yaw),
                       pitch=K.rng.uniform(-pitch, pitch) if pitch_k is None else pitch_k, name=name,
                       normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1))
@@ -1675,7 +1755,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                  crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
                  crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360), sky_exclude=(), bark_tile=None,
                  bark_exclude=(), fuse_faces=8500, trunk_rows=None, trunk_depth=0.85, wood_extra=None, prefit=False,
-                 seg_hide=False, gap_min=None, ground_z=None):
+                 seg_hide=False, gap_min=None, ground_z=None, gap_exact=False):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves. (Options for a tree with sky painted between its limbs, the shrine's:
     trunk_rows lofts the trunk through its painted rows [(py, x_left, x_right)] instead of a tube; prefit: the limbs
@@ -1710,6 +1790,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     crown.avoid_gaps = True          # (sky painted between the limbs under the crown: no turned card shows in it)
     if gap_min is not None:
         crown.gap_min = gap_min
+    crown.gap_exact = gap_exact
     clear_sky(K, crown_box, sky_exclude)
     # the hand-traced strokes made no thicker than the painting is solid round them: a limb's tube may not reach
     # over the sky painted between the limbs (from the front, bark where the painting shows sky)
@@ -1776,7 +1857,13 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                 rq.append(min(r * 0.9, max(3.0, dsolid[int(np.clip(py, 0, P.h - 1)),
                                                         int(np.clip(P.px(x), 0, P.w - 1))] - 1)))
             if len(q) >= 2:
-                wood.append(K.tube(q, [P.m(v) for v in rq[:len(q)]], bark, segments=12, name="limb_turned"))
+                rr_ = [P.m(v) for v in rq[:len(q)]]
+                if seg_hide and len(q) < len(pts):
+                    # (cut short where it would show: it tapers to a tip there, not a sawn-off stub under the crown)
+                    m_ = min(6, len(rr_) - 1)
+                    for j in range(m_):
+                        rr_[-1 - j] *= 0.25 + 0.75 * j / m_
+                wood.append(K.tube(q, rr_, bark, segments=12, name="limb_turned"))
     # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
     for pts in roots:
         q, rr = [], []
@@ -1990,35 +2077,172 @@ def strand(K, top, length, mat, radius, sway=0.06, name="strand"):
 
 
 SHRINE_TRUNK = [(905, 1395, 245), (905, 1150, 225), (905, 900, 212), (918, 700, 195), (940, 520, 165),
-                (945, 460, 172), (932, 400, 168), (918, 320, 158), (910, 280, 140)]    # its top measured (alpha runs)
+                (945, 460, 172), (932, 400, 168), (918, 320, 158), (910, 280, 140)]    # (its foot: where roots leave)
+# the trunk as painted, row by row (py, left, right px): measured off the painting's alpha where sky is painted beside
+# it (the gaps either side of the tower, the two windows over it between the limbs), widening behind the shrine's
+# roof, then on down behind the shrine to the ground (unseen from the front there)
+SHRINE_TRUNK_ROWS = [(300, 850, 958), (330, 847, 959), (360, 841, 960), (392, 838, 963), (410, 830, 970),
+                     (425, 812, 975), (436, 792, 990), (446, 771, 1040), (452, 771, 1090), (460, 776, 1108),
+                     (468, 780, 1104), (476, 782, 1101), (484, 784, 1099), (492, 786, 1098), (500, 786, 1093),
+                     (508, 786, 1087), (516, 785, 1082), (524, 785, 1079), (532, 783, 1080), (540, 782, 1083),
+                     (548, 780, 1086), (556, 777, 1089), (570, 768, 1098), (600, 742, 1115), (640, 708, 1130),
+                     (680, 685, 1140), (712, 668, 1142), (728, 665, 1144), (744, 671, 1142), (760, 673, 1145),
+                     (776, 671, 1152), (795, 664, 1160), (830, 662, 1162),
+                     (900, 664, 1162), (1100, 666, 1168), (1300, 668, 1172), (1405, 668, 1175)]
+# its limbs, traced off the painting (fit_limb then fits each to the painted edges where sky is painted beside it)
 SHRINE_LIMBS = [
-    [(860, 300, 70), (823, 273, 60), (783, 220, 50), (740, 160, 38), (700, 110, 26)],
-    [(950, 300, 70), (943, 273, 60), (970, 220, 50), (1000, 150, 36), (1030, 90, 22)],
-    [(760, 420, 70), (690, 393, 58), (557, 353, 46), (423, 327, 34), (330, 320, 22)],
-    [(1050, 420, 70), (1103, 380, 58), (1237, 340, 46), (1397, 313, 34), (1500, 300, 22)],
-    [(760, 620, 80), (690, 585, 64), (570, 527, 52), (450, 493, 44), (330, 480, 38), (200, 470, 28), (90, 470, 16)],
-    [(1050, 620, 80), (1103, 593, 64), (1210, 540, 54), (1317, 507, 46), (1423, 487, 40), (1530, 467, 30),
-     (1650, 462, 20), (1740, 465, 12)],
+    # up into the crown, either side of the windows over the tower
+    [(875, 345, 55), (860, 300, 60), (823, 273, 60), (783, 220, 50), (740, 160, 38), (700, 110, 26)],
+    [(930, 345, 55), (950, 300, 62), (943, 273, 60), (970, 220, 50), (1000, 150, 36), (1030, 90, 22)],
+    # left of the sky painted left of the tower: from the trunk's foot up to the left, then out under the crown
+    [(790, 572, 50), (765, 542, 46), (740, 512, 42), (712, 482, 38), (690, 455, 34), (668, 425, 32), (648, 398, 32),
+     (615, 380, 34), (575, 372, 34), (530, 360, 32), (470, 348, 28), (423, 335, 26), (330, 320, 22)],
+    # over the sky painted right of the tower, up to the right
+    [(1040, 470, 40), (1080, 445, 40), (1120, 417, 40), (1160, 393, 40), (1200, 373, 40), (1240, 356, 40),
+     (1300, 337, 36), (1397, 313, 34), (1500, 300, 22)],
+    # the two low limbs the threads are tied round, out to the sides under the crown's tiers
+    [(780, 640, 70), (720, 610, 58), (680, 590, 52), (650, 566, 50), (600, 548, 45), (550, 531, 41), (500, 513, 35),
+     (450, 503, 28), (400, 502, 25), (350, 503, 24), (300, 490, 18), (250, 472, 14), (160, 465, 12), (90, 470, 10)],
+    [(1060, 640, 70), (1100, 595, 55), (1150, 563, 42), (1200, 552, 38), (1250, 547, 36), (1300, 542, 36),
+     (1350, 523, 28), (1400, 508, 24), (1450, 503, 25), (1500, 500, 26), (1560, 490, 20), (1650, 475, 16),
+     (1740, 468, 10)],
 ]
+# where the painted skeins of thread hang (under the low limbs, beside the trunk), and the empty corners of the
+# painting their cards are cut from (so no leaf card of the crown ever carries a strand of them)
+SHRINE_SKEINS = [((370, 470, 772, 800), (40, 880)), ((1068, 470, 1350, 790), (1520, 880))]
+
+
+def shrine_rows(every=4, ink=3.0):
+    """SHRINE_TRUNK_ROWS every `every` px, bottom row first, each side pulled in by the game's ink line (drawn
+    outside the solid)."""
+    t = np.array(SHRINE_TRUNK_ROWS, np.float64)
+    pys = list(np.arange(t[0, 0], t[-1, 0], every)) + [t[-1, 0]]
+    rows = [(float(py), float(np.interp(py, t[:, 0], t[:, 1])) + ink, float(np.interp(py, t[:, 0], t[:, 2])) - ink)
+            for py in pys]
+    return rows[::-1]
+
+
+def loft_outline(shape, rows):
+    """What loft_trunk draws from the front through rows [(py, left, right)] (bottom first): its outline, the top
+    rounded off as loft_trunk rounds it."""
+    from PIL import ImageDraw
+    top_py = rows[-1][0]
+    left, right = [], []
+    for py, a, b in rows:
+        cx, hw = (a + b) / 2, (b - a) / 2
+        t = float(np.clip(1 - abs(py - top_py) / max(3.0, hw * 0.7), 0.0, 1.0))
+        hw *= 1 - 0.4 * t * t
+        left.append((cx - hw, py))
+        right.append((cx + hw, py))
+    im = Image.new("L", (shape[1], shape[0]), 0)
+    ImageDraw.Draw(im).polygon(left + right[::-1], fill=255)
+    return np.asarray(im) > 127
+
+
+def wrap_projected(K, axis_x, axis_y, keep, squeeze=0.93, front_deg=64.0, inset=3, name=None):
+    """K.projected for a round thing turned about a vertical axis at (axis_x, axis_y) metres: the painting wrapped
+    round it, not pushed straight through (which drags one painted column round its sides): exactly the straight
+    projection over the front front_deg either side, then the painted half laid evenly round the sides and back
+    (as market_props.wrapped)."""
+    key = ("trees_wrap", round(axis_x, 4), round(axis_y, 4), squeeze, front_deg, tuple(tuple(b) for b in keep), inset)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(name or f"{K.name}_wrap{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    ox = _math(nt, "SUBTRACT", sep.outputs["X"], axis_x)
+    oy = _math(nt, "SUBTRACT", axis_y, sep.outputs["Y"])                  # towards the camera is +
+    r = _math(nt, "SQRT", _math(nt, "ADD", _math(nt, "MULTIPLY", ox, ox), _math(nt, "MULTIPLY", oy, oy)), 0.0)
+    th = _math(nt, "ARCTAN2", ox, oy)                                     # 0 at the front, +-pi at the back
+    a = _math(nt, "ABSOLUTE", th, 0.0)
+    a0 = math.radians(front_deg)
+    near = _math(nt, "SINE", _math(nt, "MINIMUM", a, a0), 0.0)
+    far = _math(nt, "MULTIPLY", _math(nt, "SUBTRACT", math.pi, a), math.sin(a0) / (math.pi - a0))
+    c = _math(nt, "LESS_THAN", a, a0)
+    fabs = _math(nt, "ADD", _math(nt, "MULTIPLY", near, c), _math(nt, "MULTIPLY", far, _math(nt, "SUBTRACT", 1.0, c)))
+    f = _math(nt, "MULTIPLY", fabs, _math(nt, "SIGN", th, 0.0))
+    x = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "MULTIPLY", r, f), squeeze), axis_x)
+    u = _math(nt, "ADD", _math(nt, "DIVIDE", x, P.W), 0.5)
+    v = _math(nt, "DIVIDE", sep.outputs["Z"], P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(K.source(keep, (), inset), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
+def _shrine_masks(P):
+    """The shrine's peepal measured off the painting: its limbs fitted (the low ones against the painting with the
+    gaps between their hanging strands closed: their underside is where it was traced), its trunk rows, the outline
+    of all that wood from the front, and the painted skeins (everything painted in the skeins' boxes that is not that
+    wood: the strands, their knots and ink, the leaves hanging among them)."""
+    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    solid = (P.rgba[..., 3] > 0.5) & ~((mn > 175) & (mx - mn < 45))
+    strands = ndimage.binary_closing(solid, structure=np.ones((1, 15), bool)) | solid
+    limbs = [fit_limb(pts, strands if k >= 4 else solid) for k, pts in enumerate(SHRINE_LIMBS)]
+    rows = shrine_rows()
+    trunk_sil = loft_outline((P.h, P.w), rows)
+    wood_sil = trunk_sil | raster_tubes((P.h, P.w), limbs)
+    # (not the painted ink line along the wood either: the game draws its own there, round the solid)
+    skein = solid & ~ndimage.binary_dilation(wood_sil, iterations=3)
+    skein &= box_mask(solid.shape, [b for b, _ in SHRINE_SKEINS])
+    lab, n = ndimage.label(skein)
+    if n:
+        sizes = ndimage.sum(skein, lab, range(1, n + 1))
+        skein = np.isin(lab, 1 + np.nonzero(sizes >= 12)[0])
+    return limbs, rows, trunk_sil, wood_sil, skein
 
 
 @model("shrine_tree", "lane", kind="prop", atlas=2048, leaves=2048)
 def shrine_tree(K):
     """A small white wayside shrine under a great peepal: a lime-washed cell with a deep niche (its deity, a brass
-    bell, a marigold garland round the opening), two lamp niches in its face, a heavy cornice, a three-tiered tower
-    with finials; behind it the peepal's trunk, its limbs wound with red and orange threads, and its golden crown;
-    a painted kalash by the door."""
+    bell, a marigold garland round the opening), two lamp niches in its face and one in each side, a heavy moulded
+    cornice, a three-tiered tower with finials; behind it the peepal's fluted trunk, its limbs wound with red and
+    orange threads hanging in skeins, and its golden crown; a painted kalash beside it on the beaten earth."""
     P = K.paint
     rng = K.rng
     yt = 0.55                                     # the trunk's depth: the shrine stands against its front
     yb0, yb1 = -1.55, 0.25                        # the shrine's front and back
+    z0 = P.z(1405)                                # the painted foot (the earth's front edge): the game sets it down
+    # ---- the beaten earth: a low mound of the painted earth round the shrine and the trunk's foot (its rim the
+    # painted strip's front edge, its front edge the shrine's face), so from the front it is the painted strip
+    # either side of the shrine and from the side and above a gentle rise of earth, not a flat disc
+    height = mound(K, 905, 700, 1.77, 1405, 1383, (480, 1387, 630, 1402), y=0.22, rise=1.0,
+                   keep_boxes=[(630, 1300, 1215, 1412), (1205, 1260, 1310, 1400)], soften=0.25, blur=0.5, power=0.35)
     # ---- the shrine
     wall = K.tile((680, 1150, 770, 1340), vary=0.05, soften=0.45)
     tower_mat = K.tile((795, 715, 860, 790), vary=0.05, soften=0.4)
     cornice = K.tile((660, 815, 1180, 845), vary=0.05, soften=0.4)
-    body = K.box(P.x(640), P.x(1205), yb0, yb1, 0.0, P.z(910), wall, name="shrine_body")
-    K.box(P.x(620), P.x(1222), yb0 - 0.05, yb1 + 0.05, P.z(910), P.z(880), cornice, bevel=0.01, name="moulding")
-    K.box(P.x(600), P.x(1245), yb0 - 0.12, yb1 + 0.12, P.z(880), P.z(808), cornice, bevel=0.015, name="cornice")
+    body = K.box(P.x(640), P.x(1205), yb0, yb1, z0, P.z(910), wall, name="shrine_body")
+    # its roof: a slab and a heavy cornice moulded round all four sides in the profile painted at its ends (a cove
+    # out from under the slab, a fascia, a rounded soffit back to a band over the wall), as deep out front and back as
+    # at the ends; the game's ink line is drawn outside it
+    prof = [(910, 632, 1212), (893, 632, 1212), (886, 628, 1216), (880, 618, 1226), (877, 605, 1238),
+            (875, 598, 1245), (853, 598, 1245), (850, 603, 1240), (844, 612, 1232), (834, 620, 1224),
+            (823, 628, 1215), (818, 637, 1207), (815, 645, 1200), (797, 645, 1200)]
+    bm = bmesh.new()
+    rings = []
+    for py, xl, xr in prof:
+        d = P.m(640 - xl)
+        x0, x1 = P.x(xl + 3), P.x(xr - 3)
+        rings.append([bm.verts.new(v) for v in ((x0, yb0 - d, P.z(py)), (x1, yb0 - d, P.z(py)),
+                                                 (x1, yb1 + d, P.z(py)), (x0, yb1 + d, P.z(py)))])
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(4):
+            j = (k + 1) % 4
+            bm.faces.new([r0[k], r0[j], r1[j], r1[k]])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    _add(K, bm, cornice, "cornice", smooth=False)
     # the niche: a deep opening, dark inside, its deity on a pedestal, the bell hanging in its mouth
     K.cut(body, P.x(815), P.x(1025), yb0 - 0.1, yb0 + 0.75, P.z(1356), P.z(945))
     dark = K.colour((830, 1000, 860, 1080), vary=0.08)
@@ -2047,7 +2271,7 @@ def shrine_tree(K):
     for x0, x1 in ((785, 815), (1025, 1055)):
         K.box(P.x(x0), P.x(x1), yb0 - 0.04, yb0 + 0.12, P.z(1370), P.z(915), frame, bevel=0.006, name="door_post")
     K.box(P.x(785), P.x(1055), yb0 - 0.04, yb0 + 0.12, P.z(945), P.z(915), frame, bevel=0.006, name="lintel")
-    K.box(P.x(780), P.x(1060), yb0 - 0.18, yb0 + 0.1, 0.0, P.z(1356), wall, bevel=0.01, name="threshold")
+    K.box(P.x(780), P.x(1060), yb0 - 0.18, yb0 + 0.1, z0, P.z(1356), wall, bevel=0.01, name="threshold")
     # the marigold garland round the opening (strings of flowers: a rope of them, with leaf tassels)
     marigold = K.colour((760, 930, 775, 1060), vary=0.25, scale=60)
     leaf = K.colour((0.06, 0.16, 0.03), vary=0.1)
@@ -2060,18 +2284,30 @@ def shrine_tree(K):
                name="garland_string")
         K.lathe([(P.m(7), 0), (P.m(9), P.m(8)), (0.0, P.m(16))], leaf, segments=8,
                 centre=(P.x(x), gy, P.z(1100)), name="garland_leaf")
-    # the two lamp niches in its face, a clay lamp burning in each
+    # the two lamp niches in its face, a clay lamp burning in each, and one in each side wall (a wayside shrine's
+    # sides are not blank walls)
     clay = K.colour((1230, 1320, 1280, 1370), vary=0.08)
     flame = K.colour((0.95, 0.6, 0.05), vary=0.05)
+    niche = K.colour((690, 1060, 700, 1090), vary=0.05)
     for x0, x1 in ((682, 740), (1105, 1163)):
         K.cut(body, P.x(x0), P.x(x1), yb0 - 0.1, yb0 + 0.16, P.z(1138), P.z(1045))
-        K.box(P.x(x0), P.x(x1), yb0 + 0.12, yb0 + 0.18, P.z(1138), P.z(1045), K.colour((690, 1060, 700, 1090),
-                                                                                         vary=0.05), name="lamp_niche")
+        K.box(P.x(x0), P.x(x1), yb0 + 0.12, yb0 + 0.18, P.z(1138), P.z(1045), niche, name="lamp_niche")
         cx = (x0 + x1) / 2
         K.lathe([(P.m(10), 0.0), (P.m(20), P.m(7)), (P.m(22), P.m(12)), (0.0, P.m(9))], clay, segments=16,
                 centre=(P.x(cx), yb0 + 0.06, P.z(1138)), name="lamp")
         K.lathe([(0.0, 0.0), (P.m(5), P.m(6)), (P.m(4), P.m(14)), (0.0, P.m(26))], flame, segments=8,
                 centre=(P.x(cx), yb0 + 0.06, P.z(1126)), name="flame")
+    ys = yb0 + 0.75
+    for xw, s in ((P.x(640), 1), (P.x(1205), -1)):
+        # (the lamp well inside its niche: from the front nothing of it shows past the wall)
+        K.cut(body, min(xw - s * 0.1, xw + s * 0.24), max(xw - s * 0.1, xw + s * 0.24), ys - 0.115, ys + 0.115,
+              P.z(1138), P.z(1045))
+        K.box(min(xw + s * 0.2, xw + s * 0.26), max(xw + s * 0.2, xw + s * 0.26), ys - 0.115, ys + 0.115,
+              P.z(1138), P.z(1045), niche, name="lamp_niche")
+        K.lathe([(P.m(10), 0.0), (P.m(20), P.m(7)), (P.m(22), P.m(12)), (0.0, P.m(9))], clay, segments=16,
+                centre=(xw + s * 0.12, ys, P.z(1138)), name="lamp")
+        K.lathe([(0.0, 0.0), (P.m(5), P.m(6)), (P.m(4), P.m(14)), (0.0, P.m(26))], flame, segments=8,
+                centre=(xw + s * 0.12, ys, P.z(1126)), name="flame")
     # the tower: three tiers stepping in, small domes on each, a front bay with its door, kalasha finials on top
     ty0, ty1 = yb0 + 0.25, yb1 - 0.35
     tc = (ty0 + ty1) / 2
@@ -2098,59 +2334,142 @@ def shrine_tree(K):
     for px in (862, 892, 922, 952, 984):
         K.lathe([(P.m(r), P.z(py)) for r, py in ((9, 472), (11, 462), (7, 452), (4, 445), (6, 440), (0.5, 430))],
                 tower_mat, segments=12, centre=(P.x(px), tc, 0.0), name="finial")
-    # ---- the peepal behind it (the painted skeins of thread hanging from its limbs go on cards with its leaves)
-    rgb = (P.rgba[..., :3] * 255).astype(np.int32)
-    r, g, b, mx, mn = chan(rgb)
-    skein = (r > 150) & (r - b > 110) & (g < 0.8 * r) & (P.rgba[..., 3] > 0.5)
-    skein = ndimage.binary_dilation(skein, iterations=1) & (P.rgba[..., 3] > 0.5)
-    skein &= box_mask(skein.shape, [(370, 470, 800, 800), (1020, 490, 1350, 790)])
+    # the two yalis crouching at the vault's ends, carved: their fronts the painting, round solids
+    for poly in ([(828, 443), (842, 442), (848, 450), (850, 458), (857, 462), (857, 474), (830, 474), (824, 466),
+                  (822, 452)],
+                 [(1002, 443), (1016, 442), (1022, 452), (1020, 466), (1014, 474), (990, 474), (990, 462), (996, 458),
+                  (998, 450)]):
+        xs_, ys_ = [q[0] for q in poly], [q[1] for q in poly]
+        carved = K.projected(axis_x=P.x((min(xs_) + max(xs_)) / 2), squeeze=0.9,
+                             keep=[(min(xs_) - 3, min(ys_) - 3, max(xs_) + 3, max(ys_) + 3)], inset=2)
+        poly_solid(K, poly, ty0 + 0.16, carved, depth=0.8, name="yali")
+    # ---- the peepal behind it
+    limbs, rows, trunk_sil, wood_sil, skein = _shrine_masks(P)
+    tr = np.array(rows[::-1], np.float64)                  # (top row first: increasing py, for np.interp)
+
+    def trunk_at(py):
+        a, b_ = float(np.interp(py, tr[:, 0], tr[:, 1])), float(np.interp(py, tr[:, 0], tr[:, 2]))
+        return (a + b_) / 2, (b_ - a) / 2
+
+    def stems(K, bark):
+        # the trunk round its back and sides as a peepal's is: stems grown together, each a rounded rib winding up
+        # from a buttress spread on the ground into the limbs, so from behind and the sides it is a fluted, braided
+        # trunk, not a plain column (those towards the sides end under the shrine's roof, unseen from the front)
+        obs = []
+        # (each rib's axis on the trunk's surface, so it stands out by its whole radius and its flanks fold away:
+        # sunk halfway into the trunk, ribs read as a smooth column; none so near the sides that it shows past the
+        # shrine from the front)
+        for th, top, rad0 in ((36, rng.uniform(800, 840), rng.uniform(44, 50)), (62, rng.uniform(430, 520),
+                              rng.uniform(55, 66)), (90, rng.uniform(470, 560), rng.uniform(58, 68)),
+                              (118, rng.uniform(430, 520), rng.uniform(55, 66)), (144, rng.uniform(800, 840),
+                              rng.uniform(44, 50)), (49, rng.uniform(920, 1020), rng.uniform(40, 48)),
+                              (104, rng.uniform(900, 1000), rng.uniform(40, 48)), (131, rng.uniform(940, 1040),
+                              rng.uniform(40, 48))):
+            th = math.radians(th + rng.uniform(-3, 3))
+            ph = rng.uniform(0, 6.28)
+            turn = rng.choice([-1, 1]) * rng.uniform(0.25, 0.4)      # (each winding a little round: braided stems)
+            pts, rr = [], []
+            pys = list(np.linspace(1405, top, 20))
+            for i, py in enumerate(pys):
+                cx, hw = trunk_at(py)
+                f = i / (len(pys) - 1)
+                a = th + turn * f * (0.5 if abs(math.cos(th)) > 0.7 else 1.0) + 0.08 * math.sin(py / 110 + ph)
+                out = 0.98 + 0.35 * max(0.0, 1 - f / 0.18) * abs(math.sin(th))    # the buttress flaring at its foot
+                pts.append((P.x(cx) + P.m(hw) * out * math.cos(a), yt + P.m(hw) * 0.65 * out * math.sin(a), P.z(py)))
+                rr.append(P.m(rad0 * (1.1 - 0.5 * f)))
+            obs.append(K.tube(pts, rr, bark, segments=10, name="stem"))
+        return obs
+    # (the tower's finials and yalis, painted over the trunk, are modelled: no leaf card carries them out to the
+    # crown's front)
+    lum = P.rgba[..., :3] @ np.array([0.3, 0.59, 0.11], np.float32) * 255
+    tower_top = ndimage.binary_dilation((lum > 140) & (P.rgba[..., 3] > 0.5)
+                                        & box_mask((P.h, P.w), [(815, 425, 1030, 482)]), iterations=2)
+    vis = [[p for p in limbs[0] if p[1] >= 273], [p for p in limbs[1] if p[1] >= 273],
+           [p for p in limbs[2] if p[0] >= 557], [p for p in limbs[3] if p[0] <= 1240],
+           [p for p in limbs[4] if p[0] >= 200], [p for p in limbs[5] if p[0] <= 1650]]
     crown, trunk_ob = _peepal_tree(
-        K, (0, 0, 1844, 790), SHRINE_TRUNK, SHRINE_LIMBS, [], None, (300, 200, 1600, 800), P.m(1780) * 0.36,
-        (440, 10, 790),
-        exclude_wood=[SHRINE_TRUNK[3:-2] + [(905, 340, 120)], SHRINE_LIMBS[0][:2], SHRINE_LIMBS[1][:2],
-                      SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
-        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=6,
-        crown_extra_keep=skein, bark_tile=(835, 300, 900, 400), root_dirs=(55, 125),
-        bark_exclude=[(590, 420, 1260, 1412), (760, 420, 1085, 820)], fuse_faces=7000,
-        sky_exclude=[(760, 420, 1085, 820)])
-    # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
+        K, (0, 0, 1844, 790), SHRINE_TRUNK, limbs, [], None, (300, 200, 1600, 800), P.m(1780) * 0.36,
+        (440, 10, 790), exclude_wood=vis,
+        crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]) | ndimage.binary_dilation(trunk_sil)
+        | tower_top,
+        y0=yt, ground_roots=6, bark_tile=bark_patch(K, (840, 290, 965, 420), (1640, 1205), contrast=1.4),
+        root_dirs=(55, 125),
+        bark_exclude=[(590, 420, 1260, 1412), (760, 420, 1085, 820)], fuse_faces=7600,
+        sky_exclude=[(760, 420, 1085, 820)], trunk_rows=rows, trunk_depth=0.65, wood_extra=stems, prefit=True,
+        seg_hide=True, gap_min=500, gap_exact=True, ground_z=lambda x, y: height(x, y) - z0)
+    for v in trunk_ob.data.vertices:              # (nothing below the painted foot: buried roots lie on the ground)
+        if v.co.z < z0:
+            v.co.z = z0
+    limb_ys = crown.limb_ys
+    # ---- the threads tied round its limbs and trunk, hanging in skeins
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
     orange = K.colour((0.85, 0.3, 0.03), vary=0.12)
-    rgb_ = (P.rgba[..., :3] * 255).astype(np.int32)
-    _, _, _, mx_, mn_ = chan(rgb_)
-    dsol = ndimage.distance_transform_edt((P.rgba[..., 3] > 0.5) & ~((mn_ > 175) & (mx_ - mn_ < 45)))
-    for limb_pts, segs in ((SHRINE_LIMBS[4], [(1, 2), (3, 4)]), (SHRINE_LIMBS[5], [(2, 3)])):
-        for i0, i1 in segs:
-            a, b = limb_pts[i0], limb_pts[i1]
-            # (round the limb as modelled: no wider than the painting is solid there, or the loops showed as
-            # zigzags in the sky painted above the limb)
-            rr = min((a[2] + b[2]) / 2, min(dsol[int(a[1]), int(a[0])], dsol[int(b[1]), int(b[0])],
-                                            dsol[int((a[1] + b[1]) / 2), int((a[0] + b[0]) / 2)]) - 2)
+    for k, spans in ((4, [(395, 425), (505, 560)]), (5, [(1225, 1300)])):
+        for xa, xb in spans:
+            idx = [i for i, p in enumerate(limbs[k]) if xa <= p[0] <= xb]
+            if len(idx) < 2:
+                continue
+            a, b_ = limbs[k][idx[0]], limbs[k][idx[-1]]
+            rr = min(limbs[k][i][2] for i in idx)
             for mat in (red, orange):
-                wrap_limb(K, (P.x(a[0]), yt, P.z(a[1])), (P.x(b[0]), yt, P.z(b[1])), P.m(max(6.0, rr)), mat,
-                          5, P.m(2.5))
+                wrap_limb(K, (P.x(a[0]), limb_ys[k][idx[0]], P.z(a[1])), (P.x(b_[0]), limb_ys[k][idx[-1]], P.z(b_[1])),
+                          P.m(rr), mat, 5, P.m(2.5))
     for py in range(600, 770, 18):
-        ring_tube(K, P.x(905), yt, P.z(py), P.m(212), P.m(212), rng.choice([red, orange]), P.m(2.5),
-                  tilt=(rng.uniform(-0.05, 0.05), rng.uniform(0.0, 0.08)), wobble=0.03, name="thread")
-    # the painted skeins in front of the trunk: cards covering every painted skein pixel, sheared into depth
+        # (round the trunk's front as painted, and out over the ribs grown on its back)
+        cx, hw = trunk_at(py)
+        hd = P.m(hw) * 0.65
+        ring_tube(K, P.x(cx), yt + P.m(30), P.z(py), P.m(hw + 2), hd + P.m(33), rng.choice([red, orange]),
+                  P.m(2.5), tilt=(rng.uniform(-0.05, 0.05), rng.uniform(0.0, 0.08)), wobble=0.02, name="thread")
+    # the painted skeins on cards sheared into depth, hanging just in front of the trunk or the limb they are tied
+    # to; cut from copies of them in the painting's empty corners (a leaf card of the crown reaching over them
+    # carried strands out to the crown's front)
+    pts4 = np.array([(p[0], p[1]) for p in limbs[4] + limbs[5]])
+    rad4 = np.array([p[2] for p in limbs[4] + limbs[5]])
+    y4 = np.array(list(limb_ys[4]) + list(limb_ys[5]))
+
     def skein_y(px, py):
-        # hanging just in front of the trunk where it is behind them, else in front of the limb they are tied to
-        R, dx = P.m(212), P.m(px - 905)
-        front = math.sqrt(R * R - dx * dx) if abs(dx) < R * 0.97 else P.m(45)
-        return yt - max(front, P.m(45)) - 0.05 - rng.uniform(0, 0.05)
-    cover_cards(K, skein, (80, 110), skein_y, slope=(0.5, 0.15), name="skein", normal=(0.0, -0.6, 0.8))
-    # ---- the kalash by the door: a painted pot of water, mango leaves and a coconut in its mouth
-    pot = K.projected(axis_x=P.x(1253), squeeze=0.93, keep=[(1214, 1300, 1296, 1392)])
-    prof = [(28, 1393), (36, 1385), (42, 1360), (40, 1330), (30, 1310), (18, 1302), (20, 1296), (16, 1292)]
-    K.lathe([(P.m(r), P.z(py)) for r, py in prof], pot, segments=24, centre=(P.x(1253), yb0 + 0.1, 0.0), name="kalash")
-    coconut = K.colour((0.35, 0.16, 0.05), vary=0.1)
-    K.lathe([(P.m(r), P.z(py)) for r, py in ((14, 1296), (16, 1290), (12, 1280), (4, 1272), (0.5, 1268))], coconut,
-            segments=12, centre=(P.x(1253), yb0 + 0.1, 0.0), name="coconut")
-    K.leaves_only((1215, 1265, 1300, 1300), plant_pixels)
-    for yaw in (0, 60, -60, 120):
-        K.card_from_painting((1215, 1265, 1300, 1300), (P.x(1257), yb0 + 0.1, P.z(1282)), yaw=yaw, name="mango_leaves")
-    # ---- the beaten earth it stands on
-    earth(K, 905, 520, 2.4, (500, 1393, 1600, 1400), y=yt * 0.4, h=0.03)
+        cx, hw = trunk_at(py)
+        if abs(px - cx) < hw * 0.97:
+            front = P.m(hw) * 0.65 * math.sqrt(1 - ((px - cx) / hw) ** 2)
+            return yt - max(front, P.m(45)) - 0.04 - rng.uniform(0, 0.05)
+        i = int(np.argmin(np.hypot(pts4[:, 0] - px, pts4[:, 1] - py)))
+        return y4[i] - P.m(rad4[i]) - 0.04 - rng.uniform(0, 0.05)
+    a = np.asarray(P.img).copy()
+    for (x0, y0, x1, y1), (dx, dy) in SHRINE_SKEINS:
+        src = skein[y0:y1, x0:x1]
+        dst = a[dy:dy + (y1 - y0), dx:dx + (x1 - x0)]
+        assert (dst[..., 3] == 0).all(), "the skeins' copy must land on empty painting"
+        dst[...] = np.where(src[..., None], a[y0:y1, x0:x1], 0)
+    P.img = Image.fromarray(a, "RGBA")
+    for (x0, y0, x1, y1), (dx, dy) in SHRINE_SKEINS:
+        dbox = (dx, dy, dx + (x1 - x0), dy + (y1 - y0))
+        sub = np.zeros((P.h, P.w), bool)
+        sub[dy:dy + (y1 - y0), dx:dx + (x1 - x0)] = skein[y0:y1, x0:x1]
+        K.leaves_only(dbox, mask_rule(sub, dbox))
+        target = skein & box_mask(skein.shape, [(x0, y0, x1, y1)])
+        cover_cards(K, target, (80, 110), skein_y, slope=(0.5, 0.15), name="skein", normal=(0.0, -0.6, 0.8),
+                    uv_shift=(dx - x0, dy - y0))
+    # ---- the kalash beside it: a painted pot of water, mango leaves and a coconut in its mouth, standing on the
+    # earth where the mound rises to its painted foot (beside the shrine's wall)
+    xk = P.x(1257)
+    yk = next((float(yy) for yy in np.linspace(-1.6, 0.2, 361) if height(xk, yy) >= P.z(1393)), -1.0)
+    pot = wrap_projected(K, xk, yk, [(1210, 1300, 1302, 1393)])
+    prof = [(9, 1398), (11, 1393), (19, 1386), (31, 1378), (39, 1365), (41, 1352), (38, 1340), (29, 1331),
+            (18, 1325), (19, 1320), (23, 1316), (22, 1312), (16, 1310)]
+    K.lathe([(P.m(r), P.z(py)) for r, py in prof], pot, segments=24, centre=(xk, yk, 0.0), name="kalash")
+    coco = wrap_projected(K, xk, yk, [(1238, 1276, 1277, 1310)])
+    K.lathe([(P.m(r), P.z(py)) for r, py in ((13, 1310), (13, 1304), (10, 1296), (6, 1288), (2, 1281), (0.5, 1279))],
+            coco, segments=14, centre=(xk, yk, 0.0), name="coconut")
+
+    def mango(rgb):
+        r_, g_, b2 = rgb[..., 0].astype(np.int32), rgb[..., 1].astype(np.int32), rgb[..., 2].astype(np.int32)
+        green = (g_ > r_ + 5) & (g_ > b2 + 15)
+        dark = rgb.max(-1) < 90
+        return green | (dark & ndimage.binary_dilation(green, iterations=2))
+    K.leaves_only((1210, 1275, 1310, 1322), mango)
+    for s in (0.9, -0.9):                         # (two copies sheared opposite ways: a spray, from the front the painting)
+        sheared_card(K, (1205, 1270, 1315, 1327), yk, (s, 0.0), name="mango_leaves", n=16, rag=0.0,
+                     normal=(0.0, -0.3, 1.0))
 
 
 def _trace_field_tree_1(K):

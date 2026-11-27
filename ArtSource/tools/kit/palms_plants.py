@@ -243,6 +243,53 @@ def axis_material(K, ok, centre_px, squeeze=0.88, inset=3, name=None, shift_px=N
     return straight_material(K, Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA"), name)
 
 
+def wrap_material(K, ok, axis_px, squeeze=0.93, front_deg=64.0, inset=2, name=None):
+    """The painting inside `ok` wrapped round an upright round part about the vertical axis at axis_px (not pushed
+    straight through it, which drags the painted columns at its outline round its sides as bands): up to front_deg
+    either side of the front exactly the straight projection, beyond that the painted half (short of its outline)
+    laid evenly round the sides and the back (as market_props.wrapped, from a mask)."""
+    P = K.paint
+    m = Mat(name or f"{K.name}_wrap{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    ax = P.x(axis_px)
+    ox = op("SUBTRACT", sep.outputs["X"], ax)
+    oy = op("SUBTRACT", 0.0, sep.outputs["Y"])                   # towards the camera is +
+    r = op("SQRT", op("ADD", op("MULTIPLY", ox, ox), op("MULTIPLY", oy, oy)))
+    th = op("ARCTAN2", ox, oy)                                    # 0 at the front, +-pi at the back
+    a = op("ABSOLUTE", th)
+    a0 = math.radians(front_deg)
+    near = op("SINE", op("MINIMUM", a, a0))
+    far = op("MULTIPLY", op("SUBTRACT", math.pi, a), math.sin(a0) / (math.pi - a0))
+    c = op("LESS_THAN", a, a0)
+    f = op("MULTIPLY", op("ADD", op("MULTIPLY", near, c), op("MULTIPLY", far, op("SUBTRACT", 1.0, c))),
+           op("SIGN", th))
+    x = op("ADD", op("MULTIPLY", op("MULTIPLY", r, f), squeeze), ax)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(op("ADD", op("DIVIDE", x, P.W), 0.5), vec.inputs[0])
+    nt.links.new(op("DIVIDE", sep.outputs["Z"], P.H), vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(Image.fromarray(filled(K, ok, inset).clip(0, 255).astype(np.uint8), "RGBA"),
+                       f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[("wrap", len(K._mats))] = m
+    return m
+
+
 def patch_decal(K, box, keep_fn, base_box, feather=10):
     """A decal of the painting inside box (a patch of bare brick, a crack) whose pixels outside keep_fn(rgb) fade
     into the colour of the plain surface (median of base_box), so the patch has no straight edge on the wall."""
@@ -1685,7 +1732,7 @@ def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, fo
 
 
 # ====================================================================== torn leaves: strip cards
-def fringe(K, m, allow=None, grow=2, ink=75):
+def fringe(K, m, allow=None, grow=2, ink=75, gap=0):
     """The cut-out's fringe round a card mask m: the opaque pixels within `grow` px of m that m leaves out (the pale
     halo outside the painted ink line, the grey between ink and halo). They are painted over in the painting (P.img,
     P.rgba: the leaves texture and the front projection) with the ink beside them and returned, so the cards
@@ -1696,6 +1743,20 @@ def fringe(K, m, allow=None, grow=2, ink=75):
     fr = op & ~m & ndimage.binary_dilation(m, iterations=grow)
     if allow is not None:                 # (not the stem, fruit or stone beside the leaves)
         fr &= allow
+    # (gap > 0: not the haze in a narrow slit between two strips, leaf on both sides within gap px. Left open, the
+    # slits read red on the difference map, a row of specks along every tear; inked they read as the painted ink
+    # line between two strips, which is how the slit looks at the game's scale: off by default)
+    H, W = m.shape
+    pad = np.pad(m, gap)
+    between = np.zeros_like(m)
+    for dy, dx in (((0, 1), (1, 0), (1, 1), (1, -1)) if gap else ()):
+        pos = np.zeros_like(m)
+        neg = np.zeros_like(m)
+        for d in range(1, gap + 1):
+            pos |= pad[gap + dy * d:gap + dy * d + H, gap + dx * d:gap + dx * d + W]
+            neg |= pad[gap - dy * d:gap - dy * d + H, gap - dx * d:gap - dx * d + W]
+        between |= pos & neg
+    fr &= ~between
     if not fr.any():
         return fr
     mx = a[..., :3].max(2)
@@ -1746,6 +1807,31 @@ def leaf_owners(mask, spines, rgb, ink=75, share=0.12, n=240):
     if (own >= 0).any():
         _, (iy, ix) = ndimage.distance_transform_edt(own < 0, return_indices=True)
         own = np.where(mask, own[iy, ix], -1)
+    # a piece of a leaf cut off from its midrib in the painting (its join hidden behind another leaf) would float
+    # in the air from the side: it goes to the leaf it touches most, at whose depth it lies on that leaf
+    eight = np.ones((3, 3), bool)
+    for _ in range(2):
+        for k in range(len(spines)):
+            lab_k, nk = ndimage.label(own == k, structure=eight)
+            if nk < 2:
+                continue
+            pts = spline(spines[k], n)
+            xi = np.clip(np.round(pts[:, 0]).astype(int), 0, W - 1)
+            yi = np.clip(np.round(pts[:, 1]).astype(int), 0, H - 1)
+            on = np.bincount(lab_k[yi, xi], minlength=nk + 1)
+            on[0] = 0
+            main = int(np.argmax(on)) if on.max() > 0 else int(np.argmax(np.bincount(lab_k.ravel())[1:]) + 1)
+            for lb, sl in enumerate(ndimage.find_objects(lab_k), start=1):
+                if lb == main or sl is None:
+                    continue
+                sl2 = tuple(slice(max(0, a_.start - 3), a_.stop + 3) for a_ in sl)
+                piece = lab_k[sl2] == lb
+                ring = ndimage.binary_dilation(piece, iterations=2) & ~piece
+                nb = own[sl2][ring]
+                nb = nb[(nb >= 0) & (nb != k)]
+                if len(nb):
+                    sub = own[sl2]
+                    sub[piece] = int(np.bincount(nb).argmax())
     return own
 
 
@@ -1778,14 +1864,15 @@ class SpineFrame:
         return self.t[idx].reshape(np.shape(px)), c.reshape(np.shape(px))
 
 
-def leaf_depth(R, d, fold, roll=0.0, wave=0.0, phase=0.0, power=1.5, cycles=1.6):
+def leaf_depth(R, d, fold, roll=0.0, wave=0.0, phase=0.0, power=1.5, cycles=1.6, twist=0.0):
     """y(t, c metres) of a banana leaf: its midrib arching d x R to the front (d < 0) or back by its tip, the blade
     either side of it going back (fold > 0) or forward by fold x its distance from the midrib, tilted by roll, the
-    slope waving along the leaf by +-wave (the torn strips flutter, not one flat sheet)."""
+    slope waving along the leaf by +-wave (the torn strips flutter, not one flat sheet), the tilt growing by twist
+    towards the tip."""
     def f(t, cm):
         tt = np.clip(t, 0.0, 1.0)
         y = d * R * (1 - (1 - tt) ** power)
-        return y + roll * cm + (fold + wave * np.sin(2 * np.pi * cycles * tt + phase)) * np.abs(cm)
+        return y + (roll + twist * tt) * cm + (fold + wave * np.sin(2 * np.pi * cycles * tt + phase)) * np.abs(cm)
     return f
 
 
@@ -1794,13 +1881,16 @@ class StripCard:
     (its midrib, each strip, its ink, nothing between the strips), each vertex at its painted (x, z) and at the depth
     of the leaf's shape there (its station along the painted midrib and its distance across it): from the front
     exactly the painted leaf, every strip to its torn tip and every gap open (the leaves texture's mask cuts the
-    strips; the cells keep other leaves' pixels seen through the gaps off this one); from the side and above the
-    leaf's arch, its blade sloping away from the midrib and its strips fluttering. xform (Vector -> Vector) moves a
-    copy round the plant (copies are trimmed cell by cell to where the painting hides them, see trim)."""
+    strips); from the side and above the leaf's arch, its blade sloping away from the midrib and its strips
+    fluttering. A cell that would also show another leaf's pixels (where leaves cross) is split into sub-cells
+    `sub` px across, so the card carries no scraps of its neighbours into its own depth (they float as confetti
+    from the side); the cell beside it takes the split edge's vertices (no T-junction cracks). xform (Vector ->
+    Vector) moves a copy round the plant (copies are trimmed cell by cell to where the painting hides them: trim)."""
 
-    def __init__(self, K, own, frame, depth, cell=5, grow=2, xform=None):
+    def __init__(self, K, own, frame, depth, show, cell=6, sub=2, grow=1, xform=None):
         P = K.paint
-        self.K, self.P, self.cell = K, P, cell
+        self.K, self.P, self.cell, self.sub = K, P, cell, sub
+        f = self.f = cell // sub
         H, W = own.shape
         reg = ndimage.binary_dilation(own, iterations=grow) if grow else own.copy()
         ys, xs = np.nonzero(reg)
@@ -1810,58 +1900,90 @@ class StripCard:
         x0, y0 = int(xs.min()) // cell * cell, int(ys.min()) // cell * cell
         nx, ny = (int(xs.max()) - x0) // cell + 1, (int(ys.max()) - y0) // cell + 1
         self.x0, self.y0, self.nx, self.ny = x0, y0, nx, ny
-        self.occ = np.zeros((ny, nx), bool)
-        self.occ[(ys - y0) // cell, (xs - x0) // cell] = True
-        gx = np.clip(x0 + np.arange(nx + 1) * cell, 0, W).astype(float)
-        gy = np.clip(y0 + np.arange(ny + 1) * cell, 0, H).astype(float)
+        occ = np.zeros((ny, nx), bool)
+        occ[(ys - y0) // cell, (xs - x0) // cell] = True
+        fy, fx = np.nonzero(show & ~reg)                    # other leaves' pixels the card would show
+        ok = (fy >= y0) & (fy < y0 + ny * cell) & (fx >= x0) & (fx < x0 + nx * cell)
+        mixed = np.zeros((ny, nx), bool)
+        mixed[(fy[ok] - y0) // cell, (fx[ok] - x0) // cell] = True
+        mixed &= occ
+        focc = np.zeros((ny * f, nx * f), bool)
+        focc[(ys - y0) // sub, (xs - x0) // sub] = True
+        self.coarse = occ & ~mixed
+        self.fine = focc & np.repeat(np.repeat(mixed, f, 0), f, 1)
+        gx = np.clip(x0 + np.arange(nx * f + 1) * sub, 0, W).astype(float)
+        gy = np.clip(y0 + np.arange(ny * f + 1) * sub, 0, H).astype(float)
         self.VX, self.VY = np.meshgrid(gx, gy)
         t, c = frame.coords(self.VX, self.VY)
-        Y = ndimage.gaussian_filter(depth(t, c / P.ppm), 1.0, mode="nearest")   # no step where the station jumps
+        Y = ndimage.gaussian_filter(depth(t, c / P.ppm), f * 1.0, mode="nearest")   # no step where t jumps
         self.T = t
         pos = np.stack([P.x(self.VX), Y, P.z(self.VY)], -1)
         if xform is not None:
             pos = np.array([[tuple(xform(Vector(p))) for p in row] for row in pos])
         self.pos = pos
-        self.reg = reg
+        self.show = show
 
-    def texels(self, show):
-        """The leaf's pixels the cards show (reg & show): their cells and 3D positions (bilinear in the cell)."""
-        ys, xs = np.nonzero(self.reg & show)
-        ci, cj = (ys - self.y0) // self.cell, (xs - self.x0) // self.cell
-        fu = ((xs + 0.5) - self.VX[ci, cj]) / self.cell
-        fv = ((ys + 0.5) - self.VY[ci, cj]) / self.cell
-        p = self.pos
-        q = (p[ci, cj] * ((1 - fu) * (1 - fv))[:, None] + p[ci, cj + 1] * (fu * (1 - fv))[:, None]
-             + p[ci + 1, cj] * ((1 - fu) * fv)[:, None] + p[ci + 1, cj + 1] * (fu * fv)[:, None])
-        return ci, cj, q
+    def _fine_kept(self):
+        f = self.f
+        return np.repeat(np.repeat(self.coarse, f, 0), f, 1) | self.fine
 
-    def trim(self, show, ok, base_t=0.2, need=1.0):
+    def trim(self, ok, base_t=0.2):
         """Keeps only the cells whose shown texels all pass ok(positions) -> bool (a copy: where the painting hides
         it from the front), then only the cells joined to the leaf's base. Returns the share of texels kept."""
-        ci, cj, q = self.texels(show)
-        if len(ci) == 0:
+        sub, f = self.sub, self.f
+        kept = self._fine_kept()
+        y1, x1 = self.y0 + kept.shape[0] * sub, self.x0 + kept.shape[1] * sub
+        S = self.show[self.y0:y1, self.x0:x1]
+        ys, xs = np.nonzero(S)
+        fi, fj = ys // sub, xs // sub
+        sel = kept[fi, fj]
+        ys, xs, fi, fj = ys[sel], xs[sel], fi[sel], fj[sel]
+        if len(ys) == 0:
             return 0.0
-        good = ok(q)
-        tot = np.zeros(self.occ.shape)
-        bad = np.zeros(self.occ.shape)
-        np.add.at(tot, (ci, cj), 1)
-        np.add.at(bad, (ci, cj), ~good)
-        keep = self.occ & (bad <= (1 - need) * tot)
-        lab, n = ndimage.label(keep)
+        fu = ((xs + 0.5) % sub) / sub
+        fv = ((ys + 0.5) % sub) / sub
+        p = self.pos
+        q = (p[fi, fj] * ((1 - fu) * (1 - fv))[:, None] + p[fi, fj + 1] * (fu * (1 - fv))[:, None]
+             + p[fi + 1, fj] * ((1 - fu) * fv)[:, None] + p[fi + 1, fj + 1] * (fu * fv)[:, None])
+        bad = ~ok(q)
+        ci, cj = fi // f, fj // f
+        cbad = np.zeros(self.coarse.shape, bool)
+        coarse_px = self.coarse[ci, cj]
+        cbad[ci[bad & coarse_px], cj[bad & coarse_px]] = True
+        fbad = np.zeros(self.fine.shape, bool)
+        fbad[fi[bad & ~coarse_px], fj[bad & ~coarse_px]] = True
+        tot = len(ys)
+        self.coarse &= ~cbad
+        self.fine &= ~fbad
+        kept = self._fine_kept()
+        lab, n = ndimage.label(kept)
         tc = (self.T[:-1, :-1] + self.T[1:, 1:]) / 2
-        base = np.unique(lab[keep & (tc < base_t)])
+        base = np.unique(lab[kept & (tc < base_t)])
         keep = np.isin(lab, base[base > 0])
-        self.occ = keep
-        return float(tot[keep].sum() / max(1.0, tot.sum()))
+        self.fine &= keep
+        self.coarse &= keep.reshape(self.coarse.shape[0], f, self.coarse.shape[1], f).any(axis=(1, 3))
+        left = self._fine_kept()[fi, fj] & ~bad
+        return float(left.sum() / max(1, tot))
 
     def mean_y(self):
-        cs = self.pos[:-1, :-1][self.occ]
-        return float(cs[:, 1].mean()) if len(cs) else 0.0
+        f = self.f
+        cs = self.pos[:-1:f, :-1:f][self.coarse]
+        fs = self.pos[:-1, :-1][self.fine]
+        allp = np.vstack([cs, fs]) if len(fs) else cs
+        return float(allp[:, 1].mean()) if len(allp) else 0.0
+
+    def centre(self):
+        f = self.f
+        allp = np.vstack([self.pos[:-1:f, :-1:f][self.coarse], self.pos[:-1, :-1][self.fine]])
+        return allp.mean(0) if len(allp) else np.zeros(3)
 
     def build(self, name="leaf", normal=None):
-        if self.empty or not self.occ.any():
+        if self.empty or not (self.coarse.any() or self.fine.any()):
             return None
-        P = self.P
+        P, f = self.P, self.f
+        used = np.zeros(self.pos.shape[:2], bool)
+        for i, j in zip(*np.nonzero(self.fine)):
+            used[i:i + 2, j:j + 2] = True
         bm = bmesh.new()
         uvl = bm.loops.layers.uv.new("UVMap")
         verts = {}
@@ -1870,11 +1992,26 @@ class StripCard:
             if (i, j) not in verts:
                 verts[(i, j)] = bm.verts.new(tuple(self.pos[i, j]))
             return verts[(i, j)]
-        for i, j in zip(*np.nonzero(self.occ)):
-            q = [(i, j), (i, j + 1), (i + 1, j + 1), (i + 1, j)]
-            f = bm.faces.new([vert(a, b) for a, b in q])
-            for lp, (a, b) in zip(f.loops, q):
-                lp[uvl].uv = (self.VX[a, b] / P.w, 1 - self.VY[a, b] / P.h)
+
+        def face(loop):                      # (i, j) fine-lattice corners, counter-clockwise seen from the front
+            fc = bm.faces.new([vert(a, b_) for a, b_ in loop])
+            for lp, (a, b_) in zip(fc.loops, loop):
+                lp[uvl].uv = (self.VX[a, b_] / P.w, 1 - self.VY[a, b_] / P.h)
+        for i, j in zip(*np.nonzero(self.fine)):
+            face([(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)])
+        for ci, cj in zip(*np.nonzero(self.coarse)):
+            i, j = ci * f, cj * f
+            loop = []
+            for k in range(f):
+                loop.append((i + k, j))
+            for k in range(f):
+                loop.append((i + f, j + k))
+            for k in range(f):
+                loop.append((i + f - k, j + f))
+            for k in range(f):
+                loop.append((i, j + f - k))
+            loop = [v for n_, v in enumerate(loop) if n_ % f == 0 or used[v]]   # corners, and split edges' vertices
+            face(loop)
         ob = _obj(name, bm, None)
         ob["kit_normal"] = list(normal) if normal is not None else [0.0, -0.35, 1.0]
         self.K.cards_parts.append(ob)
@@ -1896,7 +2033,8 @@ def torn_mask(rgb, opaque, ink=75, speck=6):
     return keep
 
 
-def torn_crown(K, leaves, heart_px, R_px, mask, copies=10, turn=(50, 180), cell=6, copy_cell=6, need_share=0.4):
+def torn_crown(K, leaves, heart_px, R_px, mask, copies=10, turn=(50, 180), cell=(6, 3), copy_cell=(8, 4),
+               need_share=0.4):
     """A crown of torn banana leaves as strip cards (StripCard), each painted leaf where it is painted, and copies of
     them turned round the back of the heart, each trimmed to the cells the painting hides from the front (they lie
     over painted leaves, behind them), so from the front the crown is exactly the painting, gaps open, and from the
@@ -1913,10 +2051,10 @@ def torn_crown(K, leaves, heart_px, R_px, mask, copies=10, turn=(50, 180), cell=
     front_y = np.full(mask.shape, np.inf, np.float32)      # how deep the front cards are, pixel by pixel
     depths = []
     for k, (sp, d, fold, roll) in enumerate(leaves):
-        dep = leaf_depth(R, d, fold, roll, wave=0.22, phase=rng.uniform(0, 6.28))
+        dep = leaf_depth(R, d, fold, roll, wave=0.22, phase=rng.uniform(0, 6.28), twist=roll)
         depths.append(dep)
         o = own == k
-        card = StripCard(K, o, frames[k], dep, cell=cell)
+        card = StripCard(K, o, frames[k], dep, mask, cell=cell[0], sub=cell[1])
         mid = spline(sp, 9)[4]
         y_mid = dep(np.array(0.5), np.array(0.0))
         out = Vector((P.x(mid[0]) - xc, float(y_mid) * 1.2, P.z(mid[1]) - zc + P.m(60)))
@@ -1931,14 +2069,18 @@ def torn_crown(K, leaves, heart_px, R_px, mask, copies=10, turn=(50, 180), cell=
         px = np.clip(P.px(q[:, 0]).astype(int), 0, P.w - 1)
         py = np.clip(P.py(q[:, 2]).astype(int), 0, P.h - 1)
         return painted[py, px] & (q[:, 1] > front_y[py, px] + 0.012)
-    order = [k % len(leaves) for k in range(copies)]
-    rng.shuffle(order)
+    # copies spread round the back half in plan, each aimed at its own bearing (theta from +x towards the back):
+    # trimmed copies that only have to hide go straight back, edge-on from the front, and the crown is a Y from above
+    spread = [k for k in range(len(leaves)) if abs(leaves[k][0][-1][0] - heart_px[0]) > 120] or list(range(len(leaves)))
     made = 0
-    for k in order:
-        sp, d, fold, roll = leaves[k]
+    for i in range(copies):
+        theta = 18.0 + 144.0 * (i + 0.5) / copies + rng.uniform(-6, 6)
         best = None
-        for attempt in range(14):
-            deg = rng.uniform(*turn) * rng.choice([-1, 1])
+        for attempt in range(12):
+            k = spread[(i + attempt) % len(spread)] if attempt % 3 else int(rng.integers(len(leaves)))
+            sp, d, fold, roll = leaves[k]
+            orig = 180.0 if sp[-1][0] < heart_px[0] else 0.0
+            deg = theta - orig + rng.uniform(-8, 8)
             s = rng.uniform(0.82, 1.0)
             d2 = -d * rng.uniform(0.6, 1.0)
             dep = leaf_depth(R, d2, fold * rng.choice([-1, 1]), -roll, wave=0.25, phase=rng.uniform(0, 6.28))
@@ -1948,18 +2090,17 @@ def torn_crown(K, leaves, heart_px, R_px, mask, copies=10, turn=(50, 180), cell=
             def xf(v, ca=ca, sa=sa, s=s):
                 dx, dy, dz = (v.x - xc) * s, v.y * s, (v.z - zc) * s
                 return Vector((xc + dx * ca - dy * sa, dx * sa + dy * ca, zc + dz))
-            card = StripCard(K, own == k, frames[k], dep, cell=copy_cell, xform=xf)
+            card = StripCard(K, own == k, frames[k], dep, mask, cell=copy_cell[0], sub=copy_cell[1], xform=xf)
             if card.empty:
-                break
-            share = card.trim(mask, hidden)
+                continue
+            share = card.trim(hidden)
             if card.mean_y() < R * 0.1:
                 continue
             if best is None or share > best[0]:
                 best = (share, card, deg)
         if best is not None and best[0] >= need_share:
             card = best[1]
-            cs = card.pos[:-1, :-1][card.occ]
-            m = cs.mean(0)
+            m = card.centre()
             out = Vector((m[0] - xc, m[1] * 1.2, m[2] - zc + P.m(60)))
             card.build(name="leaf_back", normal=tuple(out.normalized()))
             made += 1
@@ -1978,7 +2119,7 @@ def row_solid(K, rows, mat, y=0.0, segments=16, ink=1.0, depth=1.0, name="rows")
     rings = []
     for py, l, r in rows:
         hw = max((r - l + 1) / 2 * 0.5, (r - l + 1) / 2 - ik)
-        cx, rw = P.x((l + r) / 2), P.m(hw)
+        cx, rw = P.x((l + r + 1) / 2), P.m(hw)          # (pixel l spans l..l+1: the run's middle is (l + r + 1) / 2)
         rings.append([bm.verts.new((cx + rw * math.cos(2 * math.pi * k / segments),
                                     y + rw * depth * math.sin(2 * math.pi * k / segments), P.z(py)))
                       for k in range(segments)])
@@ -2037,11 +2178,8 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
     opaque = P.rgba[..., 3] > 0.5
     # ---- the pseudostem
     st_ok = opaque & not_ink(rgb, 45) & box_mask(opaque.shape, [stem_box]) & ~box_mask(opaque.shape, [bunch_box])
-    sy = [r_[0] for r_ in stem_rows]
-    sx = [(r_[1] + r_[2]) / 2 for r_ in stem_rows]
-    o = np.argsort(sy)
-    mat = axis_material(K, st_ok, lambda py: float(np.interp(py, np.array(sy)[o], np.array(sx)[o])), squeeze=0.86,
-                        inset=2)
+    sx = [(r_[1] + r_[2] + 1) / 2 for r_ in stem_rows]
+    mat = wrap_material(K, st_ok, float(np.median(sx)), squeeze=0.9, inset=2)    # the sheaths wrapped round it
     row_solid(K, stem_rows, mat, segments=18, name="pseudostem")
     # ---- the leaves
     lines = Image.new("L", (P.w, P.h), 0)
@@ -2070,22 +2208,46 @@ def banana_torn(K, stem_rows, leaves, heart, R_px, ped, bunch_rows, fingers, bac
     o = np.argsort(by_)
     fmat = axis_material(K, bunch_ok, lambda py: float(np.interp(py, np.array(by_)[o], np.array(bxs)[o])),
                          squeeze=0.86, inset=1)
-    row_solid(K, bunch_rows, fmat, y=yb, segments=16, name="bunch")
-    for (tx, ty), (bx_, by2), hw in fingers:          # the top hand's tips standing above the body, as painted
-        K.tube([P.pt(bx_, by2, yb - P.m(4)), P.pt((bx_ * 2 + tx) / 3, (by2 * 2 + ty) / 3, yb - P.m(5)),
-                P.pt((bx_ + tx * 2) / 3, (by2 + ty * 2) / 3, yb - P.m(4)), P.pt(tx, ty, yb - P.m(2))],
-               [P.m(max(1.5, hw - ik)) * f for f in (0.9, 1.0, 0.85, 0.4)], fmat, segments=8, name="banana")
-    back_fingers(K, bunch_rows, back_hands, yb, fmat)
+    core_d = 0.55                     # the body flattened front to back: the fingers stand out of it
+    row_solid(K, bunch_rows, fmat, y=yb, segments=16, depth=core_d, name="bunch")
+    by_s, bx_s = np.array(by_)[o], np.array(bxs)[o]
+    bhw = np.array([(r_[2] - r_[1]) / 2 - ik for r_ in bunch_rows])[o]
+
+    def surface_y(px, py):            # the body's front surface there
+        cx_, hw_ = float(np.interp(py, by_s, bx_s)), float(np.interp(py, by_s, bhw))
+        return yb - P.m(core_d * math.sqrt(max(0.0, hw_ * hw_ - (px - cx_) ** 2)))
+    for (tx, ty), (bx_, by2), hw in fingers:   # each painted banana, lying on the front of the body
+        rr = max(1.5, hw - ik)
+        pts, rad = [], []
+        for t_, fr in ((0.0, 0.6), (0.3, 1.0), (0.65, 0.9), (1.0, 0.4)):
+            px_, py_ = bx_ + (tx - bx_) * t_, by2 + (ty - by2) * t_
+            pts.append(P.pt(px_, py_, surface_y(px_, py_) - P.m(rr) * 0.25))
+            rad.append(P.m(rr) * fr)
+        K.tube(pts, rad, fmat, segments=8, name="banana")
+    back_fingers(K, bunch_rows, back_hands, yb, fmat, per=10, arc=(10, 170))
     # ---- the foot
     leafm = torn_mask(rgb, opaque)
     stone_ok = opaque & not_ink(rgb) & box_mask(opaque.shape, [b_ for *_, b_ in rocks]) & ~leafm
     stone = masked_material(K, stone_ok, inset=1)
-    for poly, yy, dep in rock_polys:
-        poly_solid(K, poly, yy, stone, depth=dep, segments=16, name="rock")
+    for poly, yy, dep in rock_polys:            # traced on the painted ink's outer edge: in by the game's outline
+        c_ = np.mean(np.array(poly, float), axis=0)
+        inset = []
+        for q in np.array(poly, float):
+            v_ = q - c_
+            inset.append(tuple(q - v_ / max(1e-6, np.linalg.norm(v_)) * ik * 0.5))
+        poly_solid(K, inset, yy, stone, depth=dep, segments=16, name="rock")
     for px, py, w, h, yy, _ in rocks:
         rock(K, px, py, w, h, yy, stone)
     allow = box_mask(opaque.shape, grass) & ~box_mask(opaque.shape, [b_ for *_, b_ in rocks])
-    gm = leafm & box_mask(opaque.shape, grass)
+    # the blades only: greener than red (the beige stone tops and the olive stem in the boxes are not grass)
+    blade = opaque & ~halo(rgb) & (g > r) & (g > b + 8)
+    srows = sorted(stem_rows)
+    stem_m = poly_mask(opaque.shape, [[(l_ + 1, py) for py, l_, r_ in srows]
+                                      + [(r_, py) for py, l_, r_ in srows[::-1]]])
+    tips = opaque & (mx < 100) & ndimage.binary_dilation(blade, iterations=12) & ~stem_m   # their long inked tips
+    tips[min(b_[1] for *_, b_ in rocks):] = False                    # (not the stones' outline)
+    blade |= tips | (opaque & (mx < 90) & ndimage.binary_dilation(blade, iterations=2))
+    gm = blade & box_mask(opaque.shape, grass)
     gm |= fringe(K, gm, allow)                 # the blades to their thin tips, their pale fringe inked
     for bx_ in grass:
         K.leaves_only(bx_, mask_rule(gm, bx_))
@@ -2137,9 +2299,9 @@ H52_LEAVES = [
 # the torn leaves (spines traced on their painted midribs, base -> tip), each (spine, d, fold, roll): the midrib's
 # arch to the front (d < 0) or back by its tip (x R), the blade's slope away from the midrib (> 0 back), its tilt
 H52_TORN = [
-    ([(232, 345), (230, 300), (222, 250), (211, 200), (198, 150), (180, 100), (160, 55), (137, 15)], 0.3, 0.5, 0.1),
+    ([(232, 345), (230, 300), (222, 250), (211, 200), (198, 150), (180, 100), (160, 55), (137, 15)], 0.3, 0.8, 0.3),
     ([(234, 345), (237, 300), (243, 250), (252, 210), (265, 170), (282, 133), (300, 100), (330, 45), (380, 10)],
-     -0.2, -0.45, -0.1),
+     -0.2, -0.75, -0.3),
     ([(230, 358), (224, 328), (213, 300), (198, 272), (180, 244), (150, 213), (100, 184), (50, 174), (12, 163)],
      -0.1, 0.55, 0.0),
     ([(238, 350), (245, 330), (270, 280), (300, 232), (330, 208), (355, 197), (400, 175), (450, 170), (492, 173)],
@@ -2153,19 +2315,29 @@ H52_TORN = [
 
 # the pseudostem's painted outline row by row (py, left, right), from its foot up: the sheath tips stand out where
 # they are painted (435-450 and 520-545 on the left, 530-550 on the right)
-H52_STEM = [(716, 202, 258), (711, 202, 258), (700, 202, 258), (690, 202, 257), (680, 202, 256), (670, 202, 255), (660, 201, 254),
-            (650, 200, 252), (640, 200, 251), (632, 203, 250), (620, 203, 250), (600, 204, 250), (580, 203, 249),
-            (560, 204, 250), (550, 204, 253), (545, 203, 254), (540, 203, 255), (535, 202, 255), (530, 200, 256),
-            (525, 198, 248), (520, 197, 246), (515, 207, 246), (500, 208, 246), (480, 208, 246), (460, 206, 247),
-            (450, 205, 249), (445, 203, 250), (440, 202, 251), (435, 201, 251), (430, 212, 251), (420, 212, 250),
-            (410, 212, 251), (400, 211, 253), (395, 209, 254), (390, 207, 256), (385, 205, 257), (380, 203, 257),
-            (375, 200, 258), (370, 199, 258), (362, 214, 250)]
+H52_STEM = [(716, 202, 258), (711, 202, 258), (700, 202, 258), (690, 202, 257), (680, 202, 256), (670, 202, 255),
+            (660, 198, 254), (650, 198, 252), (640, 197, 251), (633, 197, 250), (628, 203, 250), (620, 203, 250),
+            (600, 204, 250), (580, 203, 249), (560, 204, 250), (550, 204, 253), (545, 203, 254), (540, 203, 255),
+            (535, 202, 255), (530, 200, 256), (525, 198, 248), (520, 197, 246), (517, 200, 246), (515, 207, 246),
+            (500, 208, 246), (480, 208, 246), (460, 206, 247), (450, 205, 249), (445, 203, 250), (440, 202, 251),
+            (435, 201, 251), (432, 204, 251), (430, 212, 251), (420, 212, 250), (410, 212, 251), (400, 211, 253),
+            (395, 209, 254), (390, 207, 256), (385, 205, 257), (380, 203, 257), (375, 200, 258), (370, 199, 258),
+            (362, 214, 250)]
 # the bunch's painted outline row by row, from its top down (its top hand's tips stand above it: fingers)
 H52_BUNCH = [(400, 296, 314), (404, 284, 330), (408, 268, 334), (412, 265, 334), (416, 266, 336), (420, 266, 338),
              (424, 264, 336), (428, 262, 338), (432, 262, 341), (436, 264, 341), (440, 265, 340), (444, 268, 339),
              (448, 272, 337), (452, 272, 336), (456, 270, 343), (460, 270, 343), (464, 272, 342), (468, 274, 342),
              (472, 278, 346), (476, 282, 346), (480, 279, 343), (484, 280, 342), (488, 282, 338), (492, 288, 324),
              (495, 298, 318)]
+
+
+# the painted bananas, traced: (tip, base, half-width incl. its ink); the left hands point up-left, the right up-right
+H52_FINGERS = [((279, 395), (294, 418), 6.0), ((267, 409), (287, 422), 5.5), ((265, 426), (287, 447), 7.0),
+               ((275, 421), (295, 445), 7.0), ((289, 417), (303, 439), 6.5), ((273, 452), (290, 472), 7.0),
+               ((287, 450), (299, 470), 6.5), ((299, 444), (312, 465), 6.5), ((282, 479), (308, 490), 6.0),
+               ((302, 472), (313, 487), 5.5), ((320, 390), (312, 420), 6.0), ((330, 399), (318, 426), 6.0),
+               ((337, 419), (317, 437), 5.0), ((339, 431), (323, 455), 6.0), ((324, 435), (313, 457), 6.5),
+               ((342, 456), (325, 477), 6.0), ((344, 474), (324, 489), 6.0), ((333, 465), (323, 480), 4.5)]
 
 
 @model("h5_2", "plants", kind="prop", atlas=2048, leaves=1024)
@@ -2176,15 +2348,14 @@ def h5_2(K):
         K, H52_STEM, H52_TORN, (234, 350), 250,
         [[(250, 378, 6.5), (256, 370, 6.5), (262, 365, 6.5), (268, 364, 6.5), (274, 365, 6.5), (280, 369, 6.5),
           (285, 375, 6.5), (290, 383, 6.5), (295, 392, 6.5), (299, 402, 6.5), (302, 414, 6)],
-         [(304, 482, 5.5), (310, 492, 5.5), (318, 500, 5.5), (323, 508, 5.5), (325, 518, 5.2), (324, 528, 5),
+         [(306, 482, 5.5), (313, 490, 5.5), (319, 497, 5.5), (323, 506, 5.5), (325, 516, 5.2), (324, 527, 5),
           (323, 537, 4.2), (323, 545, 2.5)]],
-        H52_BUNCH, [((280, 396), (289, 417), 6.0), ((319, 393), (313, 418), 5.5), ((331, 398), (322, 420), 4.5)],
-        (430, 452, 474),
+        H52_BUNCH, H52_FINGERS, (420, 438, 456, 474),
         [(210, 718, 20, 13, -0.04, (198, 700, 222, 720)), (268, 716, 28, 16, -0.035, (253, 698, 283, 718)),
          (240, 716, 48, 18, 0.045, (128, 682, 202, 720))],
         [([(127, 714), (132, 703), (142, 695), (150, 688), (160, 685), (172, 688), (182, 692), (190, 698), (198, 707),
            (200, 713), (196, 717), (180, 719), (160, 719), (140, 718), (128, 716)], -0.03, 0.75)],
-        [(160, 615, 215, 708), (255, 620, 302, 708)], (0, 0, 504, 450), [(195, 372, 262, 450)],
+        [(160, 615, 215, 716), (255, 620, 302, 716)], (0, 0, 504, 450), [(195, 372, 262, 450)],
         [([(268, 352), (285, 362), (300, 395), (304, 440), (306, 460)], 16)], (190, 355, 265, 715),
         (262, 388, 346, 498), copies=12)
 
