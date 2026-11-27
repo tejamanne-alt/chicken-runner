@@ -1318,7 +1318,7 @@ def straw_clean(rgb):
 
 
 def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch",
-               pull=0.0):
+               pull=0.0, end_fringe=None):
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
     ragged fringe `fringe` m deep. The mat's thickness stands half outside the surface, so seen from the front the
@@ -1361,7 +1361,7 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
             iu, iv = int(round(u * n_u)), int(round(v * nv))
             z = ze + (zr - ze) * v + shag * noise[iv, iu]
             if v < 0.09:
-                z -= fringe * (0.6 + 0.8 * abs(tips[iu]))
+                z -= (fringe if end_fringe is None else end_fringe) * (0.6 + 0.8 * abs(tips[iu]))
             return (x0 + (r - x0) * v, y, z)
         return K.sheet(f, n_u, nv, mat, name=name + "_end", smooth=True, thickness=thickness)
     slope(True)
@@ -2857,7 +2857,7 @@ def shop_provisions(K):
     K.sheet(awning, 320, 8, tin, name="awning", smooth=False, thickness=0.008)
     for x0, x1 in ((100, 135), (1375, 1410)):
         cx = (x0 + x1) / 2
-        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 405, x1, 1110)], inset=3)
+        m = projected_solid(K, [(x0, 405, x1, 1110)], axis_x=P.x(cx), squeeze=0.9, inset=3)   # (no halo stripe)
         K.lathe([(P.m(18), P.z(1112)), (P.m(16), P.z(800)), (P.m(17), P.z(600)), (P.m(15), P.z(405))], m, segments=10,
                 centre=(P.x(cx), ya + 0.1, 0.0), wobble=0.05, name="pole")
         K.box(P.x(cx) - 0.04, P.x(cx) + 0.04, ya + 0.05, 0.0, P.z(410), P.z(400), timber, name="awning_bearer")
@@ -2986,7 +2986,7 @@ def shop_tailor_cycle(K):
     # the corner poles, front as painted and at the back
     for x0, x1 in ((68, 102), (1340, 1376)):
         cx = (x0 + x1) / 2
-        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 300, x1, 1118)], inset=3)
+        m = projected_solid(K, [(x0, 300, x1, 1118)], axis_x=P.x(cx), squeeze=0.9, inset=3)   # (no halo stripe)
         for y in (-0.35, D + 0.3):
             K.lathe([(P.m(18), P.z(1118)), (P.m(16), P.z(800)), (P.m(17), P.z(550)), (P.m(15), P.z(300))], m,
                     segments=10, centre=(P.x(cx), y, 0.0), wobble=0.05, name="pole")
@@ -3134,7 +3134,8 @@ def shop_tea_stall(K):
     # painted roof's ends)
     eave = (P.x(15) + 0.15, P.x(1450) - 0.15, -0.6, D + 0.6)
     ridge = (P.x(232) + 0.15, P.x(1228) - 0.15)
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12)
+    # (the hip ends' fringe short: the painted roof's ends lift clear of the poles)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.18, shag=0.04, fringe=0.12, end_fringe=0.0)
     K.box(P.x(228), P.x(1232), D / 2 - 0.12, D / 2 + 0.12, P.z(55), P.z(10), beam, bevel=0.01, name="ridge_beam")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
     # frond cards for the ragged eave, front and back, as ragged blobs inside the leaf rule's box (a card reaching
@@ -3153,7 +3154,7 @@ def shop_tea_stall(K):
     # the poles
     for x0, x1 in ((105, 150), (1315, 1355)):
         cx = (x0 + x1) / 2
-        m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 270, x1, 1115)], inset=3)
+        m = projected_solid(K, [(x0, 270, x1, 1115)], axis_x=P.x(cx), squeeze=0.9, inset=3)   # (no halo stripe)
         for y in (-0.45, D + 0.35):
             K.lathe([(P.m(22), P.z(1115)), (P.m(19), P.z(800)), (P.m(20), P.z(550)), (P.m(17), P.z(265))], m,
                     segments=10, centre=(P.x(cx), y, 0.0), wobble=0.05, name="pole")

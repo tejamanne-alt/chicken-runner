@@ -20,46 +20,13 @@ slabs) and the prints (decals: cards of the painting).
 import math
 
 import bmesh
-import bpy
 import cv2
 import numpy as np
 from mathutils import Vector
 from PIL import Image
 from scipy import ndimage
 
-from kitlib import Mat, _image, _obj, _vary
-from kitlib import model as _kit_model
-
-
-# ====================================================================== registering: the atlas's aspect
-def square_uv_aspect(K):
-    """Blender's island packer scales every UV island by the aspect of the active material's image before packing
-    and back after, so with a wide painting as the first part's image (a projected material) the islands it does not
-    turn come out stretched (a 7 m strip's top sheet 30:1 in the atlas: smeared along one axis). An unlinked square
-    image made the active node of every part's material keeps the packing true; it is not wired to anything."""
-    img = bpy.data.images.get("kit_square_aspect") or bpy.data.images.new("kit_square_aspect", 8, 8)
-    seen = set()
-    for ob in K.parts:
-        for m in ob.data.materials:
-            if m is None or not m.use_nodes or m.name in seen:
-                continue
-            seen.add(m.name)
-            n = m.node_tree.nodes.new("ShaderNodeTexImage")
-            n.image = img
-            n.name = "square_aspect"
-            m.node_tree.nodes.active = n
-
-
-def model(name, folder, kind="prop", **kw):
-    """kitlib's @model, with the atlas packed true (square_uv_aspect) once the parts are built."""
-    def wrap(fn):
-        def build(K):
-            fn(K)
-            square_uv_aspect(K)
-        build.__doc__, build.__name__ = fn.__doc__, fn.__name__
-        _kit_model(name, folder, kind, **kw)(build)
-        return fn
-    return wrap
+from kitlib import Mat, _image, _obj, _vary, model
 
 
 # ====================================================================== helpers: masks and outlines

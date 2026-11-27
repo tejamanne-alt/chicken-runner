@@ -712,11 +712,10 @@ def tufts(K, boxes, ys, yaws=None, name="grass", depth=0.35, nx=10, nz=5):
             wrap_card(K, b, ax, r, y0=yy, depth=depth, back=True, nx=max(4, nx // k + 2), nz=nz, name=name)
             # and the tuft side-on through its middle (edge-on from the front): from the side and above it is a
             # tuft, not a hollow ring
-            d = P.m(r) * depth
-            X, zb_, zt_ = P.x(ax), P.z(b[3]), P.z(b[1])
-            K.card([(X, yy - d, zb_), (X, yy + d, zb_), (X, yy + d, zt_), (X, yy - d, zt_)],
-                   [(b[0] / P.w, 1 - b[3] / P.h), (b[2] / P.w, 1 - b[3] / P.h), (b[2] / P.w, 1 - b[1] / P.h),
-                    (b[0] / P.w, 1 - b[1] / P.h)], name=name, normal=(1.0, 0.0, 0.6))
+            # (a ragged card, three quarters as deep as the tuft is wide: no straight edge where a box cuts a blade)
+            cyb = (b[1] + b[3]) / 2
+            bx_ = (ax - r * 0.75, b[1], ax + r * 0.75, b[3])
+            blob_card(K, bx_, (P.x(ax), yy, P.z(cyb)), yaw=90.0, rough=0.25, n=14, name=name, normal=(1.0, 0.0, 0.6))
 
 
 # ====================================================================== palms
@@ -1318,7 +1317,7 @@ def palmyra(K, fans, heart_px, crown_r_px, skirt_box, skirt_r_px, trunk_pts, pet
                 (P.x(foot[0]) + math.cos(a) * r0 * 1.15, math.sin(a) * r0 * 1.15, P.z(foot[1]))],
                [r0 * 0.3, r0 * 0.2, r0 * 0.07], bark, segments=8, name="root")
     # ---- the skirt of dead leaf-bases: a solid core and the painted ragged skirt wrapped round it, front and back
-    sk_ok = opaque & ~halo(rgb) & (r >= g - 2) & box_mask(opaque.shape, [skirt_box])
+    sk_ok = opaque & ~halo(rgb) & (r >= g - 2) & (mx < 165) & box_mask(opaque.shape, [skirt_box])   # dark leaf-bases
     skirt_mat = masked_material(K, sk_ok, inset=1)
     sx0, sy0, sx1, sy1 = skirt_box
     scx = (sx0 + sx1) / 2
@@ -2125,11 +2124,11 @@ def h6_4(K):
                            & not_ink(rgb, 80), inset=0)
     pr, br = 8.4, 7.9                           # painted half-width (10 px with its ink) less the game's outline
     yb = -P.m(pr + br) * 0.9
-    pole(K, (86, 552), (86, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
-    pole(K, (380, 548), (382, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
-    for a, b_ in (((28, 96), (428, 104)), ((28, 266), (412, 263)), ((38, 413), (422, 412))):
+    pole(K, (87.5, 552), (85, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
+    pole(K, (378, 548), (379, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
+    for a, b_ in (((28, 94), (428, 102)), ((28, 264), (412, 261)), ((38, 411), (422, 410))):
         pole(K, a, b_, br, bam, y=yb, nodes=(0.4,))
-    for px, py in ((86, 97), (382, 103), (86, 265), (379, 263), (86, 412), (376, 412)):
+    for px, py in ((86, 95), (379, 101), (86, 263), (378, 261), (87, 410), (378, 410)):
         lashing(K, (P.x(px), yb * 0.5, P.z(py)), P.m(pr + br) * 0.75, rope, P.m(2.2))
     # ---- the jasmine: woody stems from the ground up through the trellis, its leaves and flowers on cards
     for pts, y in (([(237, 548, 4), (230, 500, 3.5), (212, 450, 3), (190, 400, 2.6), (165, 340, 2.2), (150, 290, 2),
@@ -2531,17 +2530,24 @@ def h7_5(K):
     exclude_front(K, ndimage.binary_dilation(rim, iterations=2), block=3)
     # the ferns: fronds on cards in clumps round the boulder, the painted clumps in front, more round the back
     fern = opaque & ~halo(rgb) & ~(rock_ok & ~fernish)
+    # not the boulder's own painted outline (on a fern card it would be a dark arc seen from the side)
+    pm_ = poly_mask(opaque.shape, [poly])
+    rim_ = ndimage.binary_dilation(pm_, iterations=4) & ~ndimage.binary_erosion(pm_, iterations=8)
+    fern &= ~(rim_ & (mx < 80) & ~ndimage.binary_dilation(fernish, iterations=2))
     fern = ndimage.binary_opening(fern, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(fern, (0, 0, P.w, P.h)))
     hw = P.m(205)
     front_clumps = [(10, 90, 150, 250), (60, 140, 230, 300), (130, 170, 280, 320), (230, 180, 330, 300),
                     (290, 210, 400, 300), (380, 150, 520, 320), (450, 50, 600, 230), (500, 150, 640, 330),
                     (20, 200, 140, 330), (560, 200, 643, 320)]
-    for box in front_clumps:                     # each painted clump wrapped round its own root: exact from the front
-        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    for box in front_clumps:                     # each painted clump a ragged card facing us: exact from the front,
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2          # and a turned one into the clump's depth
         dx = (P.x(cx) - P.x(320)) / hw
         ybase = -math.sqrt(max(0.0, 1 - min(1.0, dx * dx))) * 0.36 - 0.06
-        tufts(K, [box], [ybase + rng.uniform(-0.02, 0.02)], depth=0.3, name="fern")
+        blob_card(K, box, (P.x(cx), ybase, P.z(cy)), yaw=0.0, rough=0.2, n=16, name="fern", normal=(dx, -0.5, 1))
+        w2, h2 = (box[2] - box[0]) * 0.32, (box[3] - box[1]) * 0.45
+        blob_card(K, (cx - w2, cy - h2, cx + w2, cy + h2), (P.x(cx), ybase + 0.05, P.z(cy)),
+                  yaw=rng.choice([-1, 1]) * rng.uniform(60, 80), rough=0.25, name="fern", normal=(dx, -0.5, 1))
     # more clumps all round the back and sides of the boulder, standing on the moss just clear of the stone
     whole = [(10, 90, 150, 322), (60, 140, 230, 322), (380, 150, 520, 322), (450, 50, 600, 322), (500, 150, 640, 330),
              (20, 200, 140, 330), (560, 200, 643, 322)]

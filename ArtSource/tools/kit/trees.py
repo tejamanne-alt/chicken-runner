@@ -870,6 +870,8 @@ def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rin
     for setting stones and roots on it."""
     P = K.paint
     soil = strip_tile(K, tile_box, soften=0.45, blur=1.0, quilt=True)
+    # the white cut-out halo along the painted ground's edge is not projected onto the mound's rim (a white streak)
+    clear_sky(K, (0, py_top - 25, P.w, P.h))
     rx, z0 = P.m(rx_px), P.z(py_rim)
     h = max(0.005, (P.z(py_top) - z0) * rise)
     prof = [(rx, 0.0)]
@@ -2368,6 +2370,22 @@ def blades_cover(K, mask, bases, n, w_px, len_px=(60, 400), profile="strap", tri
     return out, cover
 
 
+def blade_depth(blades, y_of):
+    """depth(px, py): the depth of the built blade passing nearest to painted (px, py) (the cards carrying what the
+    solid blades leave of the painting sit on their own blade, not loose in the air beside it)."""
+    pts = []
+    for k, (bp, wd) in enumerate(blades):
+        n = len(bp)
+        for i, (x, y) in enumerate(bp):
+            pts.append((x, y, y_of(i / max(1, n - 1), x, y, k)))
+    a = np.array(pts, np.float64)
+
+    def depth(px, py):
+        d = (a[:, 0] - px) ** 2 + (a[:, 1] - py) ** 2
+        return float(a[int(np.argmin(d)), 2])
+    return depth
+
+
 def place_blades(K, blades, mat, y_of, rolls=35.0, thick=0.18, fold=0.22, name="blade"):
     """Builds the blades found by blades_cover in 3D: y_of(t, px, py, k) gives each point's depth (k: the blade)."""
     P = K.paint
@@ -2414,9 +2432,8 @@ def field_tree_4(K):
     rest = plant & ~stumpish & ~ndimage.binary_erosion(cover, iterations=1)
     rest = ndimage.binary_opening(rest, iterations=1) | (rest & (mx < 90))
     K.leaves_only((0, 0, 512, 410), mask_rule(rest, (0, 0, 512, 410)))
-    cover_cards(K, rest & ~box_mask(rest.shape, [(220, 300, 330, 410)]), (40, 40),
-                lambda px, py: rng.choice([-1, 1]) * shape.extent(px, py) * rng.uniform(0.3, 0.9),
-                slope=(0.9, 0.4), name="blade_tips", n_max=600)
+    cover_cards(K, rest & ~box_mask(rest.shape, [(220, 300, 330, 410)]), (40, 40), blade_depth(found, y_of),
+                slope=(0.5, 0.3), name="blade_tips", n_max=600)
     # the mound of red earth and its stones
     ground = mound(K, 266, 149, 1.3, 430, 402, (280, 416, 340, 428))
     stone = K.tile((172, 405, 192, 418), vary=0.08)
@@ -2587,9 +2604,8 @@ def field_tree_6(K):
     rest = ag & ~ndimage.binary_erosion(cover, iterations=1)
     rest = ndimage.binary_opening(rest, iterations=1) | (rest & (mx < 90))
     K.leaves_only((0, 60, 195, 225), mask_rule(rest, (0, 60, 195, 225)))
-    cover_cards(K, rest & ~box_mask(rest.shape, [(80, 185, 145, 225)]), (30, 30),
-                lambda px, py: rng.choice([-1, 1]) * shape.extent(px, py) * rng.uniform(0.3, 0.9),
-                slope=(0.9, 0.4), name="agave_tips", n_max=400)
+    cover_cards(K, rest & ~box_mask(rest.shape, [(80, 185, 145, 225)]), (30, 30), blade_depth(found, y_of),
+                slope=(0.5, 0.3), name="agave_tips", n_max=400)
     # ---- the rosettes
     ros = opaque & ~halo & box_mask(opaque.shape, [(140, 172, 220, 238), (205, 192, 260, 238), (298, 172, 370, 236)])
     ros_mat = masked_material(K, ros, inset=1)
@@ -2597,7 +2613,7 @@ def field_tree_6(K):
                                (300, 236, 24, 40, 0.35), (150, 236, 22, 36, 0.3)):
         rosette(K, cx, bot, rr, hh, ros_mat, y=y)
     # ---- the mound of red earth, stones
-    ground = mound(K, 206, 172, 0.8, 243, 212, (60, 226, 140, 238), rise=0.35)
+    ground = mound(K, 206, 172, 0.8, 243, 212, (60, 226, 140, 238), rise=0.75)
     stone = K.colour((75, 215, 95, 225), vary=0.1)
     for px, w, h, y in ((38, 22, 10, -0.2), (90, 26, 12, -0.25), (128, 26, 14, -0.3), (262, 14, 8, -0.3),
                         (290, 18, 10, -0.25), (60, 20, 10, 0.3), (170, 22, 12, 0.35), (280, 20, 10, 0.4)):
@@ -2718,9 +2734,11 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
             return ~((mn > 175) & (mx - mn < 45))
     # (only the wood thicker than an ink line: the leaves' own outlines, traced as wood too, stay on the cards)
     # (and only the wood modelled as tubes, min_r_px and up)
+    # the twigs too thin to model as tubes go on the cards with the leaves (missing, they showed as red twig tips)
     k_open = max(2, int(math.ceil(min_r_px)))
-    leafpix = leaf_mask_of(K, box, leaf_rule) & ~ndimage.binary_dilation(
-        ndimage.binary_opening(mask, iterations=k_open), iterations=2)
+    thick_w = ndimage.binary_opening(mask, iterations=k_open)
+    leafpix = (leaf_mask_of(K, box, leaf_rule) | (mask & ~thick_w & box_mask(mask.shape, [box]))) & \
+        ~ndimage.binary_dilation(thick_w, iterations=2)
     K.leaves_only(box, mask_rule(leafpix, box))
     cp = card_px or (cw * 0.14, cw * 0.12)
     nv, nf, nb, nt = n_cards

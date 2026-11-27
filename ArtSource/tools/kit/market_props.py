@@ -1821,11 +1821,11 @@ def roof_house_b_1(K):
     X, Z = P.x, P.z
     D = 5.0
     # tiles from clean, fully opaque patches (the cut-out's plaster is speckled with transparent holes)
-    blue = ftile(K, (160, 350, 250, 460), vary=0.12, soften=0.0)
-    white = ftile(K, (220, 495, 310, 555), vary=0.1, soften=0.15)
+    blue = ftile(K, (160, 350, 250, 460), vary=0.2, soften=0.25)
+    white = ftile(K, (220, 495, 310, 555), vary=0.16, soften=0.25)
     pier = ftile(K, (135, 60, 198, 140), vary=0.1, soften=0.45)
     red = ftile(K, (420, 635, 500, 695), vary=0.1, soften=0.2)
-    ledge = ftile(K, (135, 60, 198, 140), vary=0.1, soften=0.6, size=2.2)      # the roof deck, wide
+    ledge = ftile(K, (135, 60, 198, 140), vary=0.18, soften=0.45, size=2.2)    # the roof deck, wide
     tiles = K.tile((300, 205, 560, 285), vary=0.05)
     wood = K.tile((95, 380, 112, 520), P.m(17), vary=0.06)
     green = K.colour((290, 380, 320, 470), vary=0.06)
@@ -1860,6 +1860,8 @@ def roof_house_b_1(K):
             (X(843), D + 0.004, Z(325))], K.decal((692, 325, 843, 605)), name="back_door")
     for side in (-1, 1):
         side_window(K, upper, side, D * 0.55, Z(470), Z(360), 0.8, green, iron, dark)
+    for x0, x1 in ((330, 445), (1110, 1225)):
+        back_window(K, upper, x0, x1, 360, 465, D, green, iron, dark, nbars=4)
     # the verandah: turned pillars on their blocks, the beam, rafters, the tiled lean-to roof
     yp = -1.45
     for cx in (103, 552, 962, 1413):

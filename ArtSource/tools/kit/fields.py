@@ -296,23 +296,30 @@ def proj_tiles(K, keep, exclude, side, top, side_size=None, top_size=None, lo=0.
     return m
 
 
-def brick_bond(K, boxes, mortar, brick=(62, 26), joint=6, nx=4, ny=4, seed=0):
+def brick_bond(K, boxes, mortar, brick=(62, 26), joint=6, nx=4, ny=4, seed=0, source=None):
     """A tile of brickwork in stretcher bond laid from the painting's own bricks: each brick a painted brick (one of
     `boxes`, the painted bricks with their ink outline, chosen at random, mirrored now and then) on a bed of mortar
     (`mortar`, 0-255 RGB, a little mottled); nx bricks across, ny courses up, every other course set over by half a
-    brick. Periodic, so it tiles with no seam and no blending: a mortar joint runs along its bottom edge."""
+    brick. Periodic, so it tiles with no seam and no blending: a mortar joint runs along its bottom edge. source: a
+    PIL image of the painted wall with its joints taken out (delined()): each brick is then a patch of it cut at random
+    (the painted bricks' own blotches, never twice the same), `boxes` unused."""
     rng = np.random.default_rng(seed)
     bw, bh = brick[0] + joint, brick[1] + joint
     W, H = nx * bw, ny * bh
     base = np.array(mortar, np.float32)[None, None, :] * (1 + 0.05 * ndimage.gaussian_filter(rng.normal(0, 1, (H, W)),
                                                                                           2.0)[..., None] * 4)
     out = Image.fromarray(base.clip(0, 255).astype(np.uint8))
-    crops = [K.paint.crop(b).convert("RGB") for b in boxes]
+    crops = [K.paint.crop(b).convert("RGB") for b in boxes] if source is None else None
     for r in range(ny):
         y = r * bh + joint // 2
         off = (bw // 2) * (r % 2)
         for c in range(nx + 1):
-            im = crops[int(rng.integers(len(crops)))].resize(brick, Image.LANCZOS)
+            if source is None:
+                im = crops[int(rng.integers(len(crops)))].resize(brick, Image.LANCZOS)
+            else:
+                sx = int(rng.integers(0, source.width - brick[0] + 1))
+                sy = int(rng.integers(0, source.height - brick[1] + 1))
+                im = source.crop((sx, sy, sx + brick[0], sy + brick[1])).convert("RGB")
             if rng.uniform() < 0.5:
                 im = im.transpose(Image.FLIP_LEFT_RIGHT)
             im = Image.fromarray((np.asarray(im).astype(np.float32) * rng.uniform(0.92, 1.06)).clip(0, 255)
@@ -1904,11 +1911,11 @@ def pump_house(K):
     # the walls' brick: ten painted courses (a joint along its bottom edge), sampled once so the courses never
     # ghost, lined up with the painted courses so they run on round the corners; the plinth's stone without the
     # grass painted at its foot
-    wall = P.crop((158, 109, 238, 309)).convert("RGB")       # (laid with its mirror image: twice the run, no seam)
-    run = Image.new("RGB", (wall.width * 2, wall.height))
-    run.paste(wall, (0, 0))
-    run.paste(wall.transpose(Image.FLIP_LEFT_RIGHT), (wall.width, 0))
-    brick = pattern_tile(K, run, P.m(160), z0=P.z(309), vary=0.06, key="brick")
+    # (laid in stretcher bond, each brick a patch of the painted wall's own blotched brick, its ink joints filtered
+    # out; the joints the painted dark brown, the courses as high as painted and lined up with them)
+    wall = delined(P.crop((158, 109, 238, 309)), 5)
+    brick = pattern_tile(K, brick_bond(K, [], (92, 48, 30), brick=(48, 18), joint=2, nx=6, ny=8, seed=3,
+                                       source=wall), P.m(6 * 50), z0=P.z(309), vary=0.05, key="brick")
     plinth = K.tile((150, 320, 250, 343), soften=0.2, vary=0.04)
     coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
     body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")
