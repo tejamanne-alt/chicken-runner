@@ -1764,12 +1764,12 @@ def stall_potter(K):
     black = ktile(K, (250, 60, 330, 120), vary=0.05, soften=0.2)
     under = ktile(K, (230, 175, 330, 225), vary=0.05, soften=0.2)
     rib = K.colour((0.25, 0.2, 0.15), vary=0.08)
-    ax = Vector((-0.356, 0.45, 1.0)).normalized()
-    axc = Vector((-0.5, 0.4, 1.0)).normalized()
-    apex = None
+    # tipped forward and to the left, as painted: its top faces the customers, the finial at the top left, the
+    # pole running down behind the canopy to its foot at the back of the bank
     base = Vector((P.x(470), bank.y1 + 0.1, bank.top))
-    t = (Z(20) - base.z) / ax.z
-    apex = base + ax * t
+    apex_z = Z(118)
+    apex = Vector((P.x(295), base.y - (apex_z - base.z) * 0.45, apex_z))
+    ax = axc = (apex - base).normalized()
     R, H = P.m(282), P.m(125)
     n0 = collect(K)
     rib_umbrella(K, 0.0, 0.0, 0.0, R, H, 0.0, black, under, rib, ribs=8, phase=0.3, tears=0.0)
