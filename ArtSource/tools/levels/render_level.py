@@ -188,6 +188,7 @@ RUNNING_LINE = cs_number("Editor/ZoneArtBuilder.cs", "RunningLine", 0.9)
 SIDE_LANE = {"image": "ArtSource/cutouts/ground/side_lane_mud.png", "length": 8.0}
 # Kit boxes drawn only as colliders: always (the mango tree's branch), or where the piece's art was drawn over them
 HIDDEN_BOXES = ("branch",)
+STONE_BOXES = ("bank",)            # Kit.Canal's granite kerbs: looks only, the lane's ground ends at the same edges
 COVERED_BOXES = ("wall", "haystack", "buffalo", "body", "bed", "stack")
 LADDER_REST = 2.43                 # Kit.StandLadder: on the parapet's coping, Roof + 0.08
 KID_RUN_FRAME = int(arg("--kid-frame", "4"))
@@ -506,12 +507,13 @@ class Level:
         if vk == "box":
             rec = Rec(role="platform", mode="box", w=v["w"], h=v["h"], d=v.get("d", 1.2), flat=False,
                       color=tuple(v.get("color") or (0.6, 0.6, 0.6)), **common)
-            if abs(rec.z) <= rec.d / 2 + 0.05:
+            if abs(rec.z) <= rec.d / 2 + 0.05 and piece not in STONE_BOXES:
                 bed = (rec.x - rec.w / 2, rec.x + rec.w / 2, rec.y + rec.h)
                 # the kid runs under the mango tree's branch (she climbs it, she does not stand on it); the rooster, who
                 # runs on whatever is highest under him, flutters up onto it
                 (self.rooster_beds if piece in HIDDEN_BOXES else self.beds).append(bed)
-            self.solids.append({"x0": rec.x - rec.w / 2, "x1": rec.x + rec.w / 2, "z0": rec.z - rec.d / 2,
+            if piece not in STONE_BOXES:
+                self.solids.append({"x0": rec.x - rec.w / 2, "x1": rec.x + rec.w / 2, "z0": rec.z - rec.d / 2,
                                 "z1": rec.z + rec.d / 2, "top": rec.y + rec.h, "piece": piece})
             # Kit: a box is only a collider (its renderer off) where its piece's art was drawn over it (a house's wall in
             # RoofRow, a haystack's stack, the buffalo's body), and the mango tree's branch always
@@ -537,8 +539,10 @@ class Level:
         platform_item = any(q.get("kind") == "box" for q in it.get("visuals", []))
         first_art = next((i for i, q in enumerate(it.get("visuals", []))
                           if q.get("kind", "art") in ("art", "water", "decal")), 0)
-        if is_obstacle(it) and vi == first_art:
-            role = "obstacle"                 # (Kit.Puddle's water is a flat puddle_water card, laid as a decal)
+        if is_obstacle(it) and (vi == first_art or (vk == "art" and abs(v.get("z", 0.0)) < 0.3)):
+            # the obstacle's own visual (Kit.Puddle's water is a flat puddle_water card, laid as a decal), and any other
+            # art of it on the running line (Kit.Hens: a card per bird)
+            role = "obstacle"
         elif vk == "decal":
             role = "decal"
         elif platform_item:
@@ -1443,7 +1447,7 @@ def blender_main():
         ob = new_object(rec.name, cube)
         ob.matrix_world = M
         ob.material_slots[0].link = "OBJECT"
-        ob.material_slots[0].material = prim_material(rec.color)
+        ob.material_slots[0].material = STONE_MAT if (rec.piece in STONE_BOXES and STONE_MAT) else prim_material(rec.color)
         rec.parts.append((None, ob, M, M.inverted_safe()))
         rec.objs.append(ob)
         rec.aabb = np.array([[rec.x - rec.w / 2, rec.z - rec.d / 2, rec.y], [rec.x + rec.w / 2, rec.z + rec.d / 2, rec.y + rec.h]])
@@ -1466,7 +1470,12 @@ def blender_main():
     else:
         GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 6.0, 40.0, road=road_tex)
     water_tex = cutout("canal_water")
-    WATER_MAT = ground_material("water", water_tex, 2.5, (0.82, 0.92, 1.0), 0.05, 6.0, 40.0) if water_tex else GROUND_MAT
+    # GameBuilder: the canals' water is the light painted tile (white tint), else the old dark one tinted lighter
+    light_water = cutout("canal_water_light")
+    WATER_MAT = (ground_material("water", light_water or water_tex, 2.5, (1.0, 1.0, 1.0) if light_water else (0.82, 0.92, 1.0),
+                                 0.05, 6.0, 40.0) if (light_water or water_tex) else GROUND_MAT)
+    # ... and their granite kerbs (Kit.Canal's "Bank" boxes), the granite tile through the ground shader
+    STONE_MAT = ground_material("stone", cutout("granite"), 1.2, (1.0, 0.97, 0.92), 0.05, 6.0, 40.0) if cutout("granite") else None
     # GameBuilder: the hand pump's puddle is the same water, lighter and bluer, in a smaller tile
     PUDDLE_MAT = ground_material("puddle", water_tex, 1.2, (0.95, 1.05, 1.25), 0.03, 6.0, 40.0) if water_tex else GROUND_MAT
     disc.materials.append(PUDDLE_MAT)
