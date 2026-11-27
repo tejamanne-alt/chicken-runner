@@ -111,6 +111,24 @@ Geometry (metres; every call returns the part, a Blender object):
   model.
 - Trunks of many tubes leave seams and ink in their crotches: `K.fuse` them.
 
+## The modules (all 179 pieces)
+
+| Module | Pieces |
+| --- | --- |
+| `lane_houses.py` | the 19 lane buildings: houses, huts, shops, the panchayat office, the cattle shed, the doorway |
+| `lane_props.py` | pot stack, bicycle, bullock cart, rope cot, clothesline, hand pump, sacks, baskets, pots, shrine stone, lamp pillar, tulsi planter, dung, the six kolams |
+| `market_props.py` | tanks, vessels, lantern, baskets, mats, bunting, kite, coconut cart; mandapam, chariot shed, tank wall, parapet, the four rooftop houses |
+| `stalls_cdef.py`, `stalls_ghx.py` | the 27 shandy stalls |
+| `fields.py` | bunds, canal bank and bridge, the four D9 canal pieces, the kavalai, watch hut, threshing shed, shrine, granary, hut with pen, pump house, well, sluice, haystacks, scarecrow |
+| `trees.py` | the mango trees, peepal platform, shrine tree, the six D11 field trees, neem, tamarind, drumstick |
+| `palms_plants.py` | palmyras, coconut palms, banana, papaya, sugarcane, pumpkin trellis, bushes, flower beds, colocasia, grass, the ruined pillar, the mossy boulder |
+| `ground_crops.py` | the seven D12 crop strips, paddy, sugarcane rows, and the 19 ground details |
+
+Many modules carry helpers worth reusing (`trees.Wood`/`Crown`/`blob_card` for any tree, `market_props.figures` for
+overlapping people or animals, `stalls_ghx.Turned` for a piece painted three-quarters on, `fields.channel_bank`,
+`lane_props.earth`). Paintings drawn in perspective are modelled true and level; where that loses a painted side face
+or top, the model's front differs from its painting there, and nowhere else.
+
 ## Examples
 
 - `lane_props.py`: `pot_stack` (turned shapes with `projected`, a ground patch with pebbles and grass cards).
