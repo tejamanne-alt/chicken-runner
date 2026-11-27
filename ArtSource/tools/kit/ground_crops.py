@@ -285,14 +285,21 @@ def filled_source(P, ok):
     return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
 
 
-def wrapped(K, axis_x, axis_y=0.0, squeeze=0.93, src=None, keep=None, inset=4, dz=0.0, src_axis_x=None):
+def wrapped(K, axis_x, axis_y=0.0, squeeze=0.93, src=None, keep=None, inset=4, dz=0.0, src_axis_x=None, oblique=0.0,
+            image=None, side=None):
     """The painting wrapped round a turned thing (a nut, a stem, a stook) about a vertical axis at (axis_x, axis_y):
     each point samples the painting at the same height, at the painted x its angle round the axis would show from the
     front (front half as painted, back half mirrored; exactly as painted out to 45 degrees round, then at an even
     pace on round the side), so the sides carry the painted surface evenly instead of the edge column smeared round
-    them (as a straight projection does)."""
+    them (as a straight projection does). oblique (k): a painting drawn from above: the height sampled is the
+    painting's slope k along the thing's depth (z + k * y over its front half, exactly where the painting shows it,
+    and mirrored over its back half). image: a Blender image of src already made (many things sharing one source).
+    side=(pil, size): round the sides (50 to 75 degrees from the front and from the back), a box-projected tile of
+    pil (one tile `size` metres) instead: where the front and the mirrored back meet, the painting's slanting
+    strokes would meet in chevrons."""
     P = K.paint
-    src = src if src is not None else K.source(keep, (), inset)
+    if image is None:
+        src = src if src is not None else K.source(keep, (), inset)
     m = Mat(f"{K.name}_wrap{len(K._mats)}")
     nt = m.nt
     coord = nt.nodes.new("ShaderNodeTexCoord")
@@ -320,15 +327,39 @@ def wrapped(K, axis_x, axis_y=0.0, squeeze=0.93, src=None, keep=None, inset=4, d
     x = op("ADD", op("MULTIPLY", op("MULTIPLY", op("SIGN", dx), rho), g),
            axis_x if src_axis_x is None else src_axis_x)
     u = op("ADD", op("DIVIDE", x, P.W), 0.5)
-    v = op("DIVIDE", op("ADD", sep.outputs["Z"], dz), P.H)
+    z = op("ADD", sep.outputs["Z"], dz)
+    if oblique:
+        z = op("ADD", z, op("MULTIPLY", op("SUBTRACT", axis_y, op("ABSOLUTE", dy)), oblique))
+    v = op("DIVIDE", z, P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(src, f"{m.mat.name}_img")
+    tex.image = image if image is not None else _image(src, f"{m.mat.name}_img")
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
-    m.set_colour(tex.outputs["Color"])
+    col = tex.outputs["Color"]
+    if side is not None:
+        pil, size = side
+        t2 = nt.nodes.new("ShaderNodeTexImage")
+        t2.image = pil if not isinstance(pil, Image.Image) else _image(pil, f"{m.mat.name}_side")
+        t2.projection = "BOX"
+        t2.projection_blend = 0.3
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (1 / size, 1 / size, 1 / size)
+        nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs[0], t2.inputs["Vector"])
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.inputs["From Min"].default_value = math.radians(50)
+        mr.inputs["From Max"].default_value = math.radians(75)
+        nt.links.new(ang, mr.inputs["Value"])
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(mr.outputs["Result"], mix.inputs["Factor"])
+        nt.links.new(col, mix.inputs["A"])
+        nt.links.new(t2.outputs["Color"], mix.inputs["B"])
+        col = mix.outputs["Result"]
+    m.set_colour(col)
     K._mats[("wrap", len(K._mats))] = m
     return m
 
@@ -452,21 +483,23 @@ def merged_stones(P, ms, inside=0.7):
     return ms
 
 
-def lying_stone(K, hull, k, zg, mat, p=2.4, name="stone"):
+def lying_stone(K, hull, k, zg, mat, p=2.0, ink=0.0, name="stone"):
     """A stone lying on the ground (z = zg), built so that seen along the painting's slope k its outline is the
     painted one (hull, px, convex): every column of the painted outline is a section of the stone across its depth,
     its foot at the painted bottom set back by its painted rise / k, its back as far behind the stone's middle line
     (through its painted left and right ends) as its foot is in front of it, and its height whatever puts its top,
     seen along the slope, on the painted top. Each section is a rounded superellipse (p) standing flat on the
-    ground; the ends round in to the painted left and right ends."""
+    ground; the ends round in to the painted left and right ends. ink (px): the painted outline is drawn round the
+    top and the ends, where the game draws its own ink round the stone, so those are pulled in by that much; the foot
+    stays on the painted foot (the game's ink does not reach below the ground)."""
     P = K.paint
     pts = np.array(hull, float)
     c = pts.mean(0)
     d = pts - c
     pts = c + d * (1 + 0.5 / np.maximum(np.linalg.norm(d, axis=1), 1.0))[:, None]    # pixel centres to edges
-    xl, xr = pts[:, 0].min(), pts[:, 0].max()
-    vl = pts[pts[:, 0] < xl + 1.0, 1].mean()
-    vr = pts[pts[:, 0] > xr - 1.0, 1].mean()
+    xl, xr = pts[:, 0].min() + ink, pts[:, 0].max() - ink
+    vl = np.mean(hull_span(pts, xl))
+    vr = np.mean(hull_span(pts, xr))
     yl, yr = (P.z(vl) - zg) / k, (P.z(vr) - zg) / k
     n = max(8, int((xr - xl) / 6))
     m = 10
@@ -482,10 +515,13 @@ def lying_stone(K, hull, k, zg, mat, p=2.4, name="stone"):
             cols.append([bm.verts.new((x, yc, zg))] * (m + 1))
             continue
         vt, vb = hull_span(pts, xp)
-        b = max(yc - (P.z(vb) - zg) / k, 0.001)
-        T = P.z(vt) - zg - k * yc
-        if T < k * b * 1.05:                                  # never deeper than the painted top allows
-            b = max(T / (k * 1.05), 0.001)
+        vt = min(vt + ink, vb - 0.5)
+        yf, ytop = (P.z(vb) - zg) / k, (P.z(vt) - zg) / k
+        # the section runs from the painted foot back as far behind the middle line as the foot is in front of it,
+        # but never so far back that the painted top leaves it no height (a long stone lying slantwise)
+        yb = max(min(2 * yc - yf, yf + 0.85 * (ytop - yf)), yf + 0.002)
+        ym, b = (yf + yb) / 2, (yb - yf) / 2
+        T = P.z(vt) - zg - k * ym
         lo, hi = 0.0, max(T, 1e-4) * 2
         for _ in range(40):
             a = (lo + hi) / 2
@@ -493,7 +529,7 @@ def lying_stone(K, hull, k, zg, mat, p=2.4, name="stone"):
                 hi = a
             else:
                 lo = a
-        cols.append([bm.verts.new((x, yc + b * t, zg + lo * s)) for s, t in zip(ss, ts)])
+        cols.append([bm.verts.new((x, ym + b * t, zg + lo * s)) for s, t in zip(ss, ts)])
     for i in range(n):
         for j in range(m):
             q = [cols[i][j], cols[i + 1][j], cols[i + 1][j + 1], cols[i][j + 1]]
@@ -523,7 +559,7 @@ def stone_source(P, inner, tile):
     return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
 
 
-def stones(K, k, dark=95, ink=85, min_px=25, p=2.4):
+def stones(K, k, dark=95, ink=85, min_px=25, p=2.0):
     """Every painted stone lying on the ground: the painting looks down on them along a slope k (metres up per metre
     back), so each stone stands as far back as its painted foot is above the lowest one (rise / k) and is shaped
     so that, seen along that slope, its outline is its painted one (lying_stone). The model stays level and true;
@@ -534,11 +570,24 @@ def stones(K, k, dark=95, ink=85, min_px=25, p=2.4):
     K.front_projection = False
     K.oblique = k
     ms = merged_stones(P, stone_masks(P, dark=dark, ink=ink, min_px=min_px))
-    lowest = max(np.nonzero(m)[0].max() for m, _ in ms) + 1
+    # each stone's whole painted outline, ink line and all: every opaque pixel goes to the nearest stone (an ink line
+    # two stones share is split between them)
+    lab = np.zeros((P.h, P.w), np.int32)
+    for i, (m, _) in enumerate(ms):
+        lab[m & (lab == 0)] = i + 1
+    dist, (iy, ix) = ndimage.distance_transform_edt(lab == 0, return_indices=True)
+    near = np.where(alpha_mask(P) & (dist <= 6), lab[iy, ix], 0)
+    hulls = []
+    for i in range(len(ms)):
+        ys, xs = np.nonzero(near == i + 1)
+        h = cv2.convexHull(np.stack([xs, ys], 1).astype(np.int32))[:, 0, :]
+        hulls.append([(float(x) + 0.5, float(y) + 0.5) for x, y in h])
+    lowest = np.nonzero(near)[0].max() + 1
     zg = P.z(lowest)
+    ink_px = P.ppm * min(0.012, max(0.003, 0.0025 * max(P.W, P.H)))   # the game's ink round a piece this size
     rgb = P.rgba[..., :3] * 255
     clean = halo_free(P)
-    for m, hull in ms:
+    for (m, _), hull in zip(ms, hulls):
         ok = ndimage.binary_erosion(m, iterations=4)
         inner = ok if ok.sum() > 20 else m
         # the quilt from the stone's mid tones only (its painted light and shade are light, not its material: mixed
@@ -554,7 +603,7 @@ def stones(K, k, dark=95, ink=85, min_px=25, p=2.4):
         except RuntimeError:                                  # too small a stone for a patch: its painted face
             tile = Image.new("RGB", (8, 8), tuple(int(v) for v in med))
             side = None
-        ob, ends = lying_stone(K, hull, k, zg, None, p=p)      # its material once its ends are known
+        ob, ends = lying_stone(K, hull, k, zg, None, p=p, ink=ink_px)    # its material once its ends are known
         ob.data.materials.append(slope_material(K, stone_source(P, inner, tile), k, ends, side=side).mat)
 
 
@@ -1503,106 +1552,349 @@ def crop_strip_1(K):
             [75, 150, 190, 250, 310, 370, 435, 500, 570, 640, 735, 810, 880, 960, 1040, 1110], 70, 72, 18)
 
 
-# stooks of crop_strip_2: (axis px, top of the ears py, tie py, painted foot py, foot radius px); a tie of None is a
-# stook thatched to a point (a spike of straw at its top) instead of tied under a fan of ears
-STOOKS = [(150, 8, 45, 158, 54), (236, 38, 60, 142, 42), (305, 28, 50, 126, 38), (450, 10, 42, 140, 56),
-          (545, 50, None, 122, 28), (606, 10, 45, 150, 54), (750, 38, None, 132, 48), (863, 38, 55, 138, 41),
-          (912, 18, 40, 118, 34), (964, 28, 50, 140, 46), (1042, 10, 45, 150, 50)]
+# stooks of crop_strip_2: (axis px, top py, tie py, painted foot py (the lowest point of the hem), foot radius px,
+# half-width of the fan of ears px); top is the top of the ears, or, with a tie of None (a stook thatched to a point),
+# the top of the spike of straw at its tip
+STOOKS = [(150, 8, 45, 159, 54, 30), (236, 38, 60, 143, 42, 20), (310, 28, 50, 123, 38, 18),
+          (450, 10, 42, 140, 56, 24), (546, 52, None, 128, 28, 0), (609, 10, 45, 158, 54, 28),
+          (751, 39, None, 138, 48, 0), (865, 38, 55, 136, 41, 18), (910, 18, 40, 128, 34, 20),
+          (964, 28, 50, 156, 46, 23), (1045, 10, 45, 163, 50, 30)]
+# the painted hills of stubble of crop_strip_2: (left px, right px, top py, foot py); a foot hidden behind another
+# hill is put where the hills of its row stand, one hidden behind a stook behind that stook
+STUBBLE = [(35, 49, 133, 172), (61, 74, 126, 160), (79, 91, 142, 178), (83, 95, 122, 152), (113, 128, 139, 177),
+           (165, 177, 144, 179), (220, 235, 136, 178), (246, 259, 130, 161), (271, 285, 149, 184),
+           (285, 301, 129, 162), (308, 319, 121, 149), (317, 330, 146, 185), (328, 340, 136, 167),
+           (343, 355, 122, 150), (360, 375, 149, 183), (371, 379, 134, 163), (377, 393, 128, 158),
+           (389, 400, 126, 153), (400, 410, 126, 153), (405, 420, 146, 182), (417, 430, 131, 165),
+           (350, 357, 106, 132), (364, 371, 104, 130), (377, 385, 103, 129), (392, 400, 106, 132),
+           (449, 463, 150, 185), (454, 462, 120, 150), (463, 474, 130, 165), (474, 484, 127, 153),
+           (494, 509, 149, 188), (500, 507, 109, 135), (511, 519, 111, 138), (513, 523, 121, 151),
+           (535, 545, 117, 143), (535, 550, 139, 169), (572, 587, 142, 180), (616, 629, 146, 181),
+           (659, 671, 149, 187), (665, 672, 100, 122), (685, 691, 100, 126), (687, 697, 128, 156),
+           (702, 709, 100, 114), (696, 710, 134, 167), (710, 722, 149, 190), (726, 734, 139, 150),
+           (747, 760, 134, 169), (761, 777, 150, 187), (777, 791, 130, 159), (795, 808, 140, 170),
+           (800, 807, 100, 126), (809, 822, 146, 187), (812, 820, 102, 128), (825, 835, 123, 150),
+           (842, 857, 131, 168), (859, 873, 145, 183), (885, 898, 132, 167), (906, 922, 146, 183),
+           (927, 941, 131, 160), (955, 969, 138, 178), (1021, 1035, 139, 176),
+           (1068, 1080, 141, 177), (1110, 1123, 137, 173), (1115, 1129, 127, 158), (1141, 1155, 130, 167)]
+# the painted back edge of crop_strip_2's field where it shows (px, py): low at the ends, where the field rounds off
+FIELD_BACK = [(7, 168), (20, 161), (33, 154), (50, 152), (58, 149), (78, 143), (84, 141), (345, 107), (410, 107),
+              (500, 107), (515, 107), (655, 107), (720, 107), (790, 106), (830, 106), (1098, 137), (1120, 146),
+              (1141, 155), (1155, 160), (1170, 165), (1183, 172)]
 
 
-def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=1.0):
+def painted_widths(a, ax, tip, foot, rf):
+    """A stook's painted half-width (px) on rows from its tie (or tip) down towards its foot, where its edge meets
+    the sky on either side (the mean of both sides, or the one that does): [(py, half-width), ...]. a: the painting's
+    opaque pixels (bool HxW)."""
+    h, w = a.shape
+    out = []
+    for f in np.arange(0.05, 0.8, 0.05):
+        py = int(round(tip + f * (foot - tip)))
+        res = []
+        for d in (-1, 1):
+            x, n = ax, 0
+            while 0 <= x < w and a[py, x] and n < rf * 1.3:
+                x += d
+                n += 1
+            if 0 <= x < w and not a[py, x]:
+                res.append(n)
+        if res:
+            out.append((py, float(np.mean(res))))
+    return out
+
+
+def stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, fan=30, k=0.0, widths=()):
     """A stook of harvested paddy: a cone of sheaves stood ears-up, its foot flared, tied near the top under a fan
-    of ears (or thatched to a point), at (x, y) with its foot at z0, scaled; built on the painted one at ax (its
-    painted heights top, tie, foot px, its foot radius rf px)."""
+    of ears (or thatched to a point), centred at (x, y) on the ground at z0, built on the painted one at ax (its
+    painted top, tie and foot py, its foot radius rf px, its fan of ears `fan` px either side). k: the painting's
+    slope: it is painted from above, so its painted heights are its real ones plus k times how far back they are;
+    its fan of ears (cards) is sheared so that, seen along the slope, every copy lies on the painted fan. widths:
+    its painted half-widths [(py, px), ...] (painted_widths): its bell follows them (less the game's ink)."""
     P = K.paint
-    s = scale
-    h = P.m(foot - (tie if tie else top)) * s
-    R = P.m(rf) * s
+    R = P.m(rf)
+    peak = P.z(tie if tie else top + 13) - z0 - k * y           # the tie (or the tip under its spike), seen along k
+    h = peak
     if tie:
-        rt = P.m(10) * s
+        rt = P.m(10)
         prof = [(R * 0.94, 0.0), (R, h * 0.05), (R * 0.93, h * 0.2), (R * 0.77, h * 0.42), (R * 0.52, h * 0.66),
                 (R * 0.3, h * 0.86), (rt * 1.2, h * 0.97), (rt, h)]
     else:
         prof = [(R * 0.92, 0.0), (R, h * 0.06), (R * 0.9, h * 0.25), (R * 0.72, h * 0.5), (R * 0.42, h * 0.78),
                 (R * 0.12, h * 0.97), (0.0, h)]
+    meas = sorted((P.z(py) - z0 - k * y, P.m(w - 2.5)) for py, w in widths)     # less the fringe and the ink
+    meas = [(z, r) for z, r in meas if 0.12 * h < z < 0.95 * h]
+    if meas:                                                  # the painted bell where it shows against the sky
+        lo, hi = meas[0][0], meas[-1][0]
+        prof = ([(r, z) for r, z in prof if z < lo - 0.03 * h] + [(r, z) for z, r in meas]
+                + [(r, z) for r, z in prof if z > hi + 0.03 * h])
     K.lathe([(r, z0 + z) for r, z in prof], straw, segments=20, centre=(x, y, 0.0), wobble=0.04, name="stook")
     if tie:
         # the tie: a twist of straw rope; above it the ears fan out
-        rt = P.m(10) * s
-        K.lathe([(rt * 1.05, z0 + h - P.m(4) * s), (rt * 1.35, z0 + h), (rt * 1.05, z0 + h + P.m(4) * s)], band,
+        K.lathe([(rt * 1.05, z0 + h - P.m(4)), (rt * 1.35, z0 + h), (rt * 1.05, z0 + h + P.m(4))], band,
                 segments=14, centre=(x, y, 0.0), cap=False, name="tie")
-        ht = P.m(tie - top) * s
+        ht = P.m(tie - top)
         K.lathe([(rt, z0 + h), (rt * 1.25, z0 + h + ht * 0.3), (rt * 0.9, z0 + h + ht * 0.6), (0.0, z0 + h + ht * 0.75)],
                 straw, segments=10, centre=(x, y, 0.0), wobble=0.1, name="ears")
         # the fan of ears: the painted fan, and two turned copies of it, standing on the tie
-        box = (ax - 34, top - 3, ax + 34, tie + 3)
-        for k, yaw in enumerate((0, 60, 120)):
+        box = (ax - fan - 4, top - 3, ax + fan + 4, tie + 3)
+        zc = z0 + h + P.m(tie + 3 - (top - 3)) / 2 - P.m(3)
+        for kk, yaw in enumerate((0, 60, 120)):
             yy = K.rng.uniform(-8, 8)
-            K.card_from_painting(box, (x, y + (0.0 if k == 0 else 0.002), z0 + h + P.m(tie + 3 - (top - 3)) * s / 2 - P.m(3) * s),
-                                 yaw=yaw + (yy if k else 0), scale=s, name="ears", normal=(0, -0.2, 1))
+            ob = K.card_from_painting(box, (x, y + (0.0 if kk == 0 else 0.002), zc), yaw=yaw + (yy if kk else 0),
+                                      name="ears", normal=(0, -0.2, 1))
+            if ob is not None and k:
+                for v in ob.data.vertices:                    # every point at its painted height along the slope
+                    v.co.z -= k * (v.co.y - y)
     else:
-        K.tube([(x, y, z0 + h * 0.95), (x + 0.005, y, z0 + h + P.m(14) * s)], [P.m(3) * s, P.m(1.5) * s], band,
+        K.tube([(x, y, z0 + h * 0.95), (x + 0.005, y, z0 + h + P.m(13))], [P.m(3), P.m(1.5)], band,
                segments=6, name="spike")
+
+
+def slope_earth(K, src, k, grain, size, detail=0.8, name="earth"):
+    """The top of a field painted from above: the painting projected along its slope k (x, z + k * y -> painting),
+    from src (the painting with what stands on the field filled in with the earth round it, so ground the painter
+    could not see, behind a stook or a hill of stubble, carries on the painted earth's own tone), with the grain of
+    a quilt of the painted earth (grain, PIL, one tile `size` metres, box-projected) laid over it: `detail` of its
+    difference from its own mean colour."""
+    P = K.paint
+    m = Mat(f"{K.name}_{name}{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], k)), P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(src, f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    t2 = nt.nodes.new("ShaderNodeTexImage")
+    t2.image = _image(grain, f"{m.mat.name}_grain")
+    t2.projection = "BOX"
+    t2.projection_blend = 0.3
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1 / size, 1 / size, 1 / size)
+    nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs[0], t2.inputs["Vector"])
+    mean = np.asarray(grain.convert("RGB")).reshape(-1, 3).mean(0) / 255.0
+    mean = np.where(mean <= 0.04045, mean / 12.92, ((mean + 0.055) / 1.055) ** 2.4)      # the image's linear colour
+    sub = nt.nodes.new("ShaderNodeMix")
+    sub.data_type = "RGBA"
+    sub.blend_type = "SUBTRACT"
+    sub.inputs["Factor"].default_value = detail
+    nt.links.new(tex.outputs["Color"], sub.inputs["A"])
+    sub.inputs["B"].default_value = tuple(float(c) for c in mean) + (1.0,)
+    add = nt.nodes.new("ShaderNodeMix")
+    add.data_type = "RGBA"
+    add.blend_type = "ADD"
+    add.inputs["Factor"].default_value = detail
+    nt.links.new(sub.outputs["Result"], add.inputs["A"])
+    nt.links.new(t2.outputs["Color"], add.inputs["B"])
+    m.set_colour(add.outputs["Result"])
+    K._mats[("earth", len(K._mats))] = m
+    return m
+
+
+def oblique_bed(K, x0, x1, top_py, base_py, back, band, top, k, name="bed"):
+    """A strip of field lying level under its crop, painted from above along the slope k: one closed slab from the
+    painted band's foot (base_py) up to the field's top (top_py, the painted front edge of the top), its front on
+    y = 0, reaching back to back(x) metres (where its painted back edge shows, back edge py / k; rounding off at the
+    ends as painted). Its front the painted band, its cut ends and the curved back the band carried round them at
+    its painted scale, its top a quilt of the painted earth (top) under the painting projected along the slope."""
+    P = K.paint
+    front_m = K.projected(squeeze=1.0, keep=[band], inset=2)
+    left = side_band(K, band[0] + 6, 1, 0.0, band)
+    right = side_band(K, band[2] - 6, -1, 0.0, band)
+    top_z, zb = P.z(top_py), P.z(base_py)
+    X0, X1 = P.x(x0), P.x(x1)
+    nx = max(8, int((X1 - X0) / 0.08))
+    ny = 24
+
+    def height(x, y):
+        h = 0.006 * math.sin(x * 9.1 + y * 3.3) * math.sin(y * 13.0 + 1.0)
+        return h * min(1.0, y / 0.06)                         # no lift at the front edge
+    bm = bmesh.new()
+    xs = [X0 + (X1 - X0) * i / nx for i in range(nx + 1)]
+    g = []
+    for j in range(ny + 1):
+        row = []
+        for x in xs:
+            y = back(x) * j / ny
+            row.append(bm.verts.new((x, y, top_z + height(x, y))))
+        g.append(row)
+    for j in range(ny):
+        for i in range(nx):
+            bm.faces.new([g[j][i], g[j][i + 1], g[j + 1][i + 1], g[j + 1][i]]).material_index = 0
+
+    def wall(tops, mat=None):
+        bots = [bm.verts.new((v.co.x, v.co.y, zb)) for v in tops]
+        for q in range(len(tops) - 1):
+            f = bm.faces.new([bots[q], bots[q + 1], tops[q + 1], tops[q]])
+            if mat is not None:
+                f.material_index = mat
+            else:                                             # the curved back: by which way it faces
+                d = tops[q + 1].co - tops[q].co
+                nxx, nyy = d.y, -d.x                           # outward normal of the wall in plan
+                f.material_index = 1 if abs(nyy) >= abs(nxx) else (2 if nxx < 0 else 3)
+    wall(g[0], 1)                                              # front, x increasing: faces -y
+    wall(g[ny][::-1])                                          # back: faces +y, turning to the ends
+    wall([g[j][0] for j in range(ny, -1, -1)], 2)              # left end: faces -x
+    wall([g[j][nx] for j in range(ny + 1)], 3)                 # right end: faces +x
+    ob = _obj(name, bm, top, smooth=False)
+    for m in (front_m, left, right):
+        ob.data.materials.append(m.mat)
+    K.parts.append(ob)
+    return top_z
 
 
 @model("crop_strip_2", "fields", kind="prop", atlas=2048, leaves=2048)
 def crop_strip_2(K):
-    """A harvested paddy field: a strip of dry earth 1.5 m deep, stubble standing in rows all over it (each hill of
-    cut stalks a short, striped bundle) and stooks of the cut paddy stood on it (cones of sheaves, ears up, tied under
-    a fan of ears), the ones painted further back further back."""
+    """A harvested paddy field painted from above: a level strip of dry earth (1.5 m deep in the middle, rounding off
+    at the ends as painted), stubble standing all over it (each hill of cut stalks a short, striped bundle) and stooks
+    of the cut paddy stood on it (cones of sheaves, ears up, tied under a fan of ears). The painting looks down on the
+    field along a slope of 0.35 (its top, 1.5 m deep, painted 86 px deep): every stook and hill of stubble stands on the
+    level field as far back as it is painted up (depth = painted rise / 0.35), at its real height, and the audit
+    compares the front along that slope."""
     P = K.paint
-    depth = 1.5
+    k = 0.35
+    K.oblique = k
     clean = halo_free(P)
+    painted = alpha_mask(P)                                   # the outline as painted, its pale fringe and all
     clean_front(K, clean)
-    top_py = 172
-    field_bed(K, 8, 1182, top_py, depth, top=bed_top(K, (20, 150, 1170, 200), tol=34))
-    K.front_exclude = [(0, 0, P.w, top_py - 2)]       # everything on the field is set back: it carries its own paint
+    top_py, base_py = 193, 209
     z0 = P.z(top_py)
-    straw_src = filled_source(P, ndimage.binary_erosion(clean, iterations=3) & (np.arange(P.h)[:, None] < 160))
-    ears = np.zeros((P.h, P.w), bool)
-    for ax, top, tie, foot, rf in STOOKS:
-        if tie:
-            ears[max(0, top - 3):tie + 3, ax - 34:ax + 34] = True
-    card_mask(K, ears & clean)
-    band = K.colour((140, 40, 160, 50), vary=0.08, pct=30)
-    feet = [f for _, _, _, f, _ in STOOKS]
-    lo, hi = min(feet), max(feet)
+    rows = np.arange(P.h)[:, None]
 
-    def depth_of(foot):
-        return -depth / 2 + 0.25 + (hi - foot) / max(1, hi - lo) * (depth - 0.75)
-    placed = []                                               # (x, y, foot radius) of every stook, for the stubble
-    for ax, top, tie, foot, rf in STOOKS:
-        y = depth_of(foot)
-        dz = P.z(foot) - z0                                   # how far it is set down from where it is painted
-        straw = wrapped(K, P.x(ax), axis_y=y, squeeze=0.9, src=straw_src, dz=dz)
-        stook(K, ax, top, tie, foot, rf, P.x(ax), y, z0, straw, band)
-        placed.append((P.x(ax), y, P.m(rf)))
-    # more stooks further back, each behind a painted one and no bigger, so from the front they stay hidden behind
-    # it (the painting's gaps stay open) and from the side the field is stooked all through
-    for ax, top, tie, foot, rf in STOOKS:
-        y0 = depth_of(foot)
-        if y0 > depth / 2 - 0.55:
-            continue
-        y = min(depth / 2 - 0.3, y0 + 0.45 + K.rng.uniform(0, 0.2))
-        x = P.x(ax) + K.rng.uniform(-0.03, 0.03)
-        straw = wrapped(K, x, axis_y=y, squeeze=0.9, src=straw_src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
-        sc = K.rng.uniform(0.82, 0.92)
-        stook(K, ax, top, tie, foot, rf, x, y, z0, straw, band, scale=sc)
-        placed.append((x, y, P.m(rf) * sc))
-    # the stubble: hills of cut stalks in rows over the whole field
-    stub = K.tile((163, 140, 178, 176), vary=0.1, soften=0.1)
-    rows = [-depth / 2 + 0.1 + k * 0.24 for k in range(6)]
-    for k, y in enumerate(rows):
-        x = P.x(20) + K.rng.uniform(0, 0.25)
-        while x < P.x(1170):
-            yy = y + K.rng.uniform(-0.04, 0.04)
-            ok = all(math.hypot(x - sx, yy - sy) > sr + 0.06 for sx, sy, sr in placed)
-            if ok:
-                r = K.rng.uniform(0.034, 0.046)
-                hh = K.rng.uniform(0.13, 0.22) * (1.0 if k < 2 else 0.85)
-                K.lathe([(r, z0 - 0.01), (r * 0.97, z0 + hh * 0.5), (r * 0.94, z0 + hh), (0.0, z0 + hh)], stub,
-                        segments=7, centre=(x, yy, 0.0), wobble=0.08, name="stubble")
-            x += K.rng.uniform(0.24, 0.34)
+    def depth(py):                                            # how far back a foot painted at py stands
+        return (P.z(py) - z0) / k
+    # what stands on the field (stooks, their ears, stubble) wears its own painting; the field's top wears the
+    # painted earth along the slope (slope_earth), so the projection from the front paints only the bed's front
+    K.front_exclude = [(0, 0, P.w, top_py - 1)]
+    standing = np.zeros((P.h, P.w), bool)
+    for x0, x1, t, b in STUBBLE:
+        standing[max(0, t - 3):b + 2, max(0, x0 - 3):x1 + 3] = True       # with its painted outline
+    stook_poly = []
+    for ax, top, tie, foot, rf, fan in STOOKS:
+        tip = tie if tie else top + 13
+        wid = painted_widths(painted, ax, tip, foot, rf)
+        pts = [(ax - fan - 4, top - 3), (ax + fan + 4, top - 3)] if tie else [(ax - 4, top - 1), (ax + 4, top - 1)]
+        right, left = [(ax + 12, tip)], [(ax - 12, tip)]
+        for py in range(tip + 4, foot - 7, 4):                 # its bell as painted, where it shows, and a cone below
+            lin = 12 + (rf + 6 - 12) * (py - tip) / max(1, foot - 8 - tip)
+            w = max([lin] + [ww + 4 for pp, ww in wid if abs(pp - py) <= 3])
+            right.append((ax + w, py))
+            left.append((ax - w, py))
+        right += [(ax + rf + 6, foot - 8), (ax + rf * 0.7, foot + 2)]
+        left += [(ax - rf - 6, foot - 8), (ax - rf * 0.7, foot + 2)]
+        pts += right + left[::-1]
+        stook_poly.append(pts)
+        im = Image.new("L", (P.w, P.h), 0)
+        ImageDraw.Draw(im).polygon(pts, fill=255)
+        standing |= np.asarray(im) > 127
+    # the field: level, front on y = 0, back where its painted back edge shows, and behind every stook
+    fx = np.array([p[0] for p in FIELD_BACK], float)
+    fy = np.array([depth(p[1]) for p in FIELD_BACK])
+    need = []
+    for ax, top, tie, foot, rf, fan in STOOKS:
+        R = P.m(rf)
+        # how wide the stook stands against the sky where the field's back edge is painted: a bulge of the back edge
+        # round its foot stays hidden behind it from the front
+        wid = [w for py, w in painted_widths(painted, ax, tie if tie else top + 13, foot, rf) if 88 <= py <= 112]
+        cover = P.m(min(wid)) - 0.03 if wid else R * 0.8
+        need.append((P.x(ax), depth(foot) + R * 0.94, R, cover))
+
+    def back(x):
+        b = float(np.interp(P.px(x), fx, fy))
+        for sx, sy, R, cover in need:
+            d = abs(x - sx)
+            if d < R:                                         # the stook's foot always stands on the field
+                b = max(b, sy + math.sqrt(R * R - d * d) + 0.05)
+            if d < cover:                                     # and a smooth bulge round it, hidden behind it
+                b = max(b, sy + (R + 0.08) * math.cos(math.pi / 2 * d / cover) ** 0.5)
+        return b
+    band = (12, top_py, 1178, base_py - 2)
+    # the earth as painted, with the stooks and stubble standing on it filled in from the earth round them
+    earth = clean & ~standing & (rows > 100) & (rows < top_py + 4)
+    earth &= ~((lum(P) < 105) & (rows > 165))                 # not the ink line along the bank's front edge
+    rgb8 = np.asarray(P.img.convert("RGB"))
+    filled = cv2.inpaint(np.ascontiguousarray(rgb8[..., ::-1]), (~earth).astype(np.uint8) * 255, 6, cv2.INPAINT_TELEA)
+    earth_src = Image.fromarray(np.ascontiguousarray(filled[..., ::-1]), "RGB")
+    grain, gsize = quilt(K, colour_ok(P, (20, 105, 1170, 200), tol=34, extra=~standing), soften=0.25)
+    oblique_bed(K, 8, 1182, top_py, base_py, back, band, slope_earth(K, earth_src, k, grain, gsize), k)
+    # the stooks: each standing on the field as far back as its painted foot is up, at its real height
+    straw_ok = ndimage.binary_erosion(clean, iterations=4) & (rows < 168) & ~standing
+    for pts in stook_poly:
+        im = Image.new("L", (P.w, P.h), 0)
+        ImageDraw.Draw(im).polygon(pts, fill=255)
+        straw_ok |= ndimage.binary_erosion(np.asarray(im) > 127, iterations=2) & ndimage.binary_erosion(clean, iterations=4)
+    for x0, x1, t, b in STUBBLE:                                # not the stubble painted in front of them
+        straw_ok[max(0, t - 3):b + 2, max(0, x0 - 2):x1 + 2] = False
+    straw_src = filled_source(P, straw_ok)
+    straw_img = _image(straw_src, f"{K.name}_straw_src")
+    # the stooks' sides: a quilt of their straw from the middle of each painted stook, where the straws run down
+    # (not turned, so they still run down)
+    mids = np.zeros((P.h, P.w), bool)
+    for ax, top, tie, foot, rf, fan in STOOKS:
+        tip = tie if tie else top + 13
+        mids[tip + 12:foot - 18, ax - int(rf * 0.3):ax + int(rf * 0.3)] = True
+    straw_tile, straw_size = quilt(K, mids & straw_ok, out=192, patch=20, overlap=6, soften=0.2, turn=False)
+    straw_side = (_image(straw_tile, f"{K.name}_straw_side"), straw_size)
+    band_m = K.colour((140, 40, 160, 50), vary=0.08, pct=30)
+    placed = []                                               # (x, y, foot radius) of every stook
+    for ax, top, tie, foot, rf, fan in STOOKS:
+        R = P.m(rf)
+        y = depth(foot) + R * 0.94
+        straw = wrapped(K, P.x(ax), axis_y=y, squeeze=0.8, image=straw_img, oblique=k, side=straw_side)
+        widths = painted_widths(painted, ax, tie if tie else top + 13, foot, rf)
+        stook(K, ax, top, tie, foot, rf, P.x(ax), y, z0, straw, band_m, fan=fan, k=k, widths=widths)
+        placed.append((P.x(ax), y, R))
+    # the stubble: every painted hill where it is painted, as far back as its foot is up, at its real height; each
+    # wears its own painted stripes (wrapped round it, along the slope)
+    stub_ok = np.zeros((P.h, P.w), bool)
+    for x0, x1, t, b in STUBBLE:
+        stub_ok[t + 1:b - 1, x0 + 2:x1 - 1] = True
+    stub_ok &= ndimage.binary_erosion(clean, iterations=1)
+    stub_src = filled_source(P, stub_ok)
+    stub_img = _image(stub_src, f"{K.name}_stub_src")
+    ink = 1.5                                                 # the game's ink round each hill takes the painted one's place
+    hills = []
+    for x0, x1, t, b in STUBBLE:
+        r = P.m((x1 - x0) / 2 - ink)
+        x = P.x((x0 + x1) / 2)
+        y = depth(b) + r
+        h = P.z(t + ink) - z0 - k * (y + r)
+        hills.append((x, y, r, h))
+        for sx, sy, sr in placed:                             # a hill never stands inside a stook
+            if math.hypot(x - sx, y - sy) < sr + r:
+                print(f"crop_strip_2: the hill at {(x0 + x1) / 2:.0f} px stands in the stook at {P.px(sx):.0f} px")
+    for x, y, r, h in hills:
+        mat = wrapped(K, x, axis_y=y, squeeze=0.9, image=stub_img, oblique=k)
+        K.lathe([(r * 0.92, z0 - 0.01), (r * 0.95, z0 + h * 0.5), (r, z0 + h), (0.0, z0 + h)], mat,
+                segments=8, centre=(x, y, 0.0), wobble=0.06, name="stubble")
+    # the fans of ears only on the ears' cards
+    ears = np.zeros((P.h, P.w), bool)
+    for ax, top, tie, foot, rf, fan in STOOKS:
+        if tie:
+            im = Image.new("L", (P.w, P.h), 0)
+            mid = tie - 0.45 * (tie - top)                    # the fan flares out from the tie
+            ImageDraw.Draw(im).polygon([(ax - 11, tie + 3), (ax + 11, tie + 3), (ax + fan + 4, mid),
+                                        (ax + fan + 4, top - 3), (ax - fan - 4, top - 3), (ax - fan - 4, mid)], fill=255)
+            ears |= np.asarray(im) > 127
+    card_mask(K, ears & haze_free(P))                         # not the pale haze between the ears
 
 
 # ====================================================================== plants as cards carrying solid parts

@@ -1116,35 +1116,552 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
                     bevel=zs * 0.3, jitter=0.002, name="stone")
 
 
+# ---------------------------------------------------------------- drying trays painted from above, built level
+# chilli_mat and papad_mat paint one drying tray from above, in perspective: its back pole drawn higher up (and
+# shorter), the mat's top seen from above. They are built true, level and square on the ground, every part at its real
+# depth, and the painting is projected along its slope (K.oblique: painted v = z + k * y), so the painted top lands on
+# the real top and the audit compares the front along that slope.
+# The slope, measured on papad_mat, whose papads are round: lying flat, each is painted as an ellipse k times as high as
+# it is wide. The two drawn whole and flat: 0.56 (the top one, 112, 72) and 0.51 (front left, 71, 93); the back one,
+# propped on the back pole, 0.65 (tilted 6 degrees). k = 0.55. The tray's depth follows from its painted rise (front
+# pole's centre at row 122, back pole's at 17: 0.185 m): 0.34 m deep by 0.38 m between its side poles, a near-square
+# drying tray. chilli_mat is the same tray painted from the same place (its poles within a pixel of papad_mat's), so
+# it takes the same k. Neither painting shows legs, stones or bricks: the tray lies on the ground.
+TRAY_K = 0.55
+
+
+class LevelTray:
+    """A drying tray painted from above (see above), true and level on the ground: the front pole (painted thicker)
+    and the back pole on the ground, as long as each other; the two side poles laid across them at the painted front
+    corners (let into the front pole, resting on the back one), their cut ends showing at the front as painted; the
+    woven mat on the ground between. on(px, py, z): the point at height z that the painting's (px, py) lands on."""
+
+    def __init__(self, K, k=TRAY_K, front_py=123.5, back_py=17.0, rf_px=7.0, r_px=4.3, ends=(8.0, 239.0),
+                 sides=(15.5, 231.5)):
+        P = K.paint
+        K.oblique = k
+        K.front_min = 0.1                      # the level tops (and a heap's gentle back) take the painting fully
+        self.K, self.P, self.k = K, P, k
+        self.rf, self.r = P.m(rf_px), P.m(r_px)
+        self.zg = P.z(front_py) - self.rf      # the ground: the front pole's centre on its painted one (record's lift)
+        self.yb = (P.z(back_py) - self.zg - self.r) / k      # the back pole's centre, at its real depth
+        self.zs = self.zg + 3 * self.r         # the side poles' centres: resting on the back pole
+        self.zm = self.zg + 0.002              # the mat's top, lying on the ground
+        self.x0, self.x1 = P.x(ends[0]), P.x(ends[1])
+        self.xl, self.xr = P.x(sides[0]), P.x(sides[1])
+
+    def on(self, px, py, z):
+        return Vector((self.P.x(px), (self.P.z(py) - z) / self.k, z))
+
+    def row(self, y, z):
+        return self.P.py(z + self.k * y)
+
+
+def slope_projected(K, keep=None, exclude=(), inset=2, halo=3, name=None):
+    """K.projected along the painted slope K.oblique (object x, z + oblique * y -> painting u, v), from the painting
+    without its pale halo: the own material of goods lying on a tray painted from above (papads, chillies), so their
+    sides and undersides carry the colours the bake's front projection lands on their tops."""
+    k = float(K.oblique)
+    key = ("slope", round(k, 4), tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude),
+           inset, halo)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(name or f"{K.name}_slope{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], k)), P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(clean_source(K, keep, exclude, inset, halo), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
+def _lying(K, box, k, soften):
+    """The painting inside box, of a surface painted lying down along the slope k (a mat's weave, a heap of goods):
+    stretched front to back by 1 / k (the painting foreshortens it so), mirror-stacked into a square and made seamless;
+    returns (image, metres across)."""
+    from PIL import Image
+    crop = K.paint.crop(box).convert("RGB")
+    crop = crop.resize((crop.width, max(1, round(crop.height / k))), Image.BICUBIC)
+    a = np.asarray(crop).astype(np.float32)
+    if soften:
+        a = a * (1 - soften) + np.median(a.reshape(-1, 3), axis=0) * soften
+    h, w = a.shape[:2]
+    if w >= h:
+        sq = np.concatenate([a if i % 2 == 0 else a[::-1] for i in range(max(1, round(w / h)))], axis=0)
+    else:
+        sq = np.concatenate([a if i % 2 == 0 else a[:, ::-1] for i in range(max(1, round(h / w)))], axis=1)
+    im = seamless(Image.fromarray(sq.clip(0, 255).astype(np.uint8)), 0.25)
+    return im, K.paint.m(im.width)
+
+
+def weave_tile(K, weave_box, k=TRAY_K, vary=0.08):
+    """The tray mat's woven underside: the painted weave (weave_box px, clear of goods and poles), laid flat at its real
+    shape, sampled twice at different scales and turned, blended by a large soft noise, so it never repeats in a
+    grid."""
+    key = ("weave", tuple(weave_box))
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(f"{K.name}_weave")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    im, sw = _lying(K, weave_box, k, 0.2)
+    img = _image(im, f"{m.mat.name}_img")
+    outs = []
+    for scale, offset, rot in ((1.0, 0.0, 0.0), (0.73, 0.37, 90.0)):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.3
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sw)
+        mp.inputs["Location"].default_value = (offset, offset * 0.6, offset * 1.3)
+        mp.inputs["Rotation"].default_value = (0.0, 0.0, math.radians(rot))
+        nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs[0], tex.inputs["Vector"])
+        outs.append(tex.outputs["Color"])
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.8 / sw
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    rng = nt.nodes.new("ShaderNodeMapRange")
+    rng.inputs["From Min"].default_value = 0.4
+    rng.inputs["From Max"].default_value = 0.6
+    nt.links.new(noise.outputs["Fac"], rng.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(outs[0], mix.inputs["A"])
+    nt.links.new(outs[1], mix.inputs["B"])
+    col = mix.outputs["Result"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / sw)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def weave_fill(K, a, goods, weave_box, left, right, front_row, back_row, patch=12, overlap=4):
+    """The painted weave laid over the whole painting's frame (a: its RGB), quilted from random patches of the weave
+    painted between the goods (not turned: the weave keeps its painted foreshortening and lie, only flipped left to
+    right), each feathered into its neighbours, and from weave_box: to put in place of the goods where the mat is
+    shown without them."""
+    P = K.paint
+    yy, xx = np.mgrid[0:P.h, 0:P.w].astype(np.float32)
+
+    def edge(line):
+        (x0, r0), (x1, r1) = line
+        return x0 + (yy - r0) * (x1 - x0) / (r1 - r0)
+    ok = (xx > edge(left) + 1) & (xx < edge(right) - 1) & (yy > back_row + 1) & (yy < front_row - 1)
+    ok &= ~ndimage.binary_dilation(goods, iterations=2) & (P.rgba[..., 3] > 0.9)
+    x0, y0, x1, y1 = [int(v) for v in weave_box]
+    ok[y0:y1, x0:x1] = True
+    ii = np.pad(ok.astype(np.int32).cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+    p = patch
+    while True:
+        S = ii[p:, p:] - ii[:-p, p:] - ii[p:, :-p] + ii[:-p, :-p]
+        vy, vx = np.nonzero(S == p * p)
+        if len(vy) >= 12 or p <= 6:
+            break
+        p -= 1
+    if len(vy) == 0:
+        return np.broadcast_to(np.median(a[ok] if ok.any() else a.reshape(-1, 3), axis=0), a.shape).copy()
+    ov = max(2, min(overlap, p // 3))
+    step = p - ov
+    ny, nx = -(-P.h // step) + 1, -(-P.w // step) + 1
+    acc = np.zeros((ny * step + p, nx * step + p, 3), np.float32)
+    wsum = np.zeros(acc.shape[:2], np.float32)
+    ramp = np.minimum(1.0, (np.arange(p) + 0.5) / ov)
+    wgt = np.outer(np.minimum(ramp, ramp[::-1]), np.minimum(ramp, ramp[::-1]))
+    for gy in range(ny):
+        for gx in range(nx):
+            i = int(K.rng.integers(len(vy)))
+            pt = a[vy[i]:vy[i] + p, vx[i]:vx[i] + p]
+            if K.rng.uniform() < 0.5:
+                pt = pt[:, ::-1]
+            acc[gy * step:gy * step + p, gx * step:gx * step + p] += pt * wgt[..., None]
+            wsum[gy * step:gy * step + p, gx * step:gx * step + p] += wgt
+    return (acc / np.maximum(wsum, 1e-6)[..., None])[:P.h, :P.w]
+
+
+def mat_mirrored(K, left, right, front_row, back_row, goods, weave_box, heap=None):
+    """The tray mat's own top, for where the bake's front projection does not land (the strip the front pole hides,
+    the back corners past the painted ones, the painted side poles kept off it): the painting along the slope, like the
+    projection, but reflected back into the painted mat wherever it would leave it (across the painted side poles'
+    inner edges, left = ((x, row), (x, row)) and right likewise, the front pole's top edge front_row and the back
+    pole's bottom edge back_row): the painted mat and its goods carried on to the real tray's edges, continuous with
+    the projection where they meet, never the painted poles drawn on the mat or one row smeared. The goods painted on
+    the mat (goods: a bool mask of their pixels) are not reflected onto it: in their place the painted weave
+    (weave_box) is laid in the painting's own frame, as it is painted round them. heap = (z0, z1): above z0..z1 (a
+    heap of the goods, hidden behind the ones on top of it) the painting itself, goods and all."""
+    from PIL import Image
+    k = float(K.oblique)
+    key = ("matmirror", tuple(left), tuple(right), front_row, back_row, round(k, 4), tuple(weave_box), heap)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(f"{K.name}_matmirror")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    # painted pixel column and row the slope ray lands on
+    u = op("MULTIPLY", op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5), P.w)
+    row = op("MULTIPLY", op("SUBTRACT", 1.0, op("DIVIDE", op("ADD", sep.outputs["Z"],
+                                                            op("MULTIPLY", sep.outputs["Y"], k)), P.H)), P.h)
+    row = op("SUBTRACT", front_row, op("ABSOLUTE", op("SUBTRACT", row, front_row)))      # reflect at the front
+    row = op("ADD", back_row, op("ABSOLUTE", op("SUBTRACT", row, back_row)))             # and at the back
+
+    def edge(line):
+        (x0, r0), (x1, r1) = line
+        return op("ADD", x0, op("MULTIPLY", op("SUBTRACT", row, r0), (x1 - x0) / (r1 - r0)))
+    xl, xr = edge(left), edge(right)
+    u = op("ADD", xl, op("ABSOLUTE", op("SUBTRACT", u, xl)))                              # reflect at the left
+    u = op("SUBTRACT", xr, op("ABSOLUTE", op("SUBTRACT", u, xr)))                         # and at the right
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(op("DIVIDE", u, P.w), vec.inputs[0])
+    nt.links.new(op("SUBTRACT", 1.0, op("DIVIDE", row, P.h)), vec.inputs[1])
+    full = clean_source(K, None, (), 0, 3)
+    a = np.asarray(full.convert("RGB")).astype(np.float32)
+    weave = weave_fill(K, a, goods, weave_box, left, right, front_row, back_row)
+    f = ndimage.gaussian_filter(ndimage.binary_dilation(goods, iterations=2).astype(np.float32), 1.2)[..., None]
+    mat_only = Image.fromarray((a * (1 - f) + weave * f).clip(0, 255).astype(np.uint8))
+    col = None
+    for im in ((mat_only, full) if heap else (mat_only,)):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = _image(im, f"{m.mat.name}_img{len(nt.nodes)}")
+        tex.extension = "EXTEND"
+        nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+        if col is None:
+            col = tex.outputs["Color"]
+            continue
+        rng = nt.nodes.new("ShaderNodeMapRange")
+        rng.inputs["From Min"].default_value = heap[0]
+        rng.inputs["From Max"].default_value = heap[1]
+        nt.links.new(sep.outputs["Z"], rng.inputs["Value"])
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+        nt.links.new(col, mix.inputs["A"])
+        nt.links.new(tex.outputs["Color"], mix.inputs["B"])
+        col = mix.outputs["Result"]
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def bamboo(K, axis, hc, zc, r, a0, box=(30, 114, 214, 127), vary=0.06):
+    """A bamboo pole's own material, wrapped round it: a strip along the painted front pole's lit middle (its node
+    marks and mottling, box px), its shading across evened out (the toon light shades the pole), laid along the pole
+    and round it about its own axis (axis 'x' or 'y', through (hc, zc): the other horizontal coordinate and the
+    height; a0 the painted strip's start along it, so the nodes round the back meet the painted ones). So the nodes
+    run round the pole as rings from every side, never as stripes along it."""
+    key = ("bamboo", axis, round(hc, 4), round(zc, 4), round(r, 4), round(a0, 4), tuple(box))
+    if key in K._mats:
+        return K._mats[key]
+    from PIL import Image
+    P = K.paint
+    a = np.asarray(P.crop(box).convert("RGB")).astype(np.float32)
+    a = a - a.mean(axis=1, keepdims=True) + a.reshape(-1, 3).mean(axis=0)
+    # round the pole the bamboo is even: its highlights and mottling blurred across (the node rings, which run across
+    # the strip, stay sharp), and pulled a little to its median
+    a = ndimage.gaussian_filter(a, (2.0, 0.6, 0))
+    a = a * 0.8 + np.median(a.reshape(-1, 3), axis=0) * 0.2
+    a = np.concatenate([a, a[::-1]], axis=0)
+    im = seamless(Image.fromarray(a.clip(0, 255).astype(np.uint8)), 0.12)
+    L = P.m(im.width)
+    turns = max(1, round(2 * math.pi * r / P.m(im.height)))
+    m = Mat(f"{K.name}_bamboo{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, x, y):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((x, y)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    along, across = (sep.outputs["X"], sep.outputs["Y"]) if axis == "x" else (sep.outputs["Y"], sep.outputs["X"])
+    s = op("DIVIDE", op("SUBTRACT", along, a0), L)
+    th = op("ARCTAN2", op("SUBTRACT", sep.outputs["Z"], zc), op("SUBTRACT", across, hc))
+    t = op("MULTIPLY", th, turns / (2 * math.pi))
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(s, vec.inputs[0])
+    nt.links.new(t, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(im, f"{m.mat.name}_img")
+    tex.extension = "REPEAT"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    col = tex.outputs["Color"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / L)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def level_tray(K, T, weave_box, goods, height=None, hmax=0.0):
+    """The tray T built level on the ground: four bamboo poles crossing at the corners (lashed with cane wraps where
+    the painting shows them), the woven mat on the ground between them, its top wearing the painting (projected along
+    the slope by the bake; mat_mirrored where the projection does not reach), its underside the painted weave;
+    height(px, py) -> 0..1 raises it into a heap of goods hmax high (where the painting has them). Returns
+    surf_z(x, y): the height of the mat's top at a plan point."""
+    P, k = K.paint, T.k
+    pale_halo(K)
+    # the painted side poles converge (the perspective the slope does not undo) and so do the corners where they
+    # cross the back pole: projected, they would lie on the level mat beside the real poles, a second pole drawn on
+    # it. Kept off the projection where they leave the real poles; the painted mat (reflected) and the poles' bamboo
+    # show there.
+    K.front_exclude += [
+        ("poly", [(0, 96), (26, 96), (41, 30), (43, 27), (49, 27), (49, 0), (0, 0)]),
+        ("poly", [(247, 96), (219.5, 96), (201, 30), (199, 27), (196, 27), (196, 0), (247, 0)])]
+    # the poles
+    zf, zb = T.zg + T.rf, T.zg + T.r
+    K.tube([(T.x0, 0.0, zf), (T.x1, 0.0, zf)], T.rf, bamboo(K, "x", 0.0, zf, T.rf, P.x(30)), segments=16,
+           name="pole_front")
+    K.tube([(T.x0, T.yb, zb), (T.x1, T.yb, zb)], T.r, bamboo(K, "x", T.yb, zb, T.r, P.x(30)), segments=12,
+           name="pole_back")
+    for xs in (T.xl, T.xr):
+        K.tube([(xs, -T.rf - T.r * 0.15, T.zs), (xs, T.yb + T.r * 0.7, T.zs)], T.r,
+               bamboo(K, "y", xs, T.zs, T.r, -T.rf), segments=12, name="pole_side")
+    # cane wraps where the poles cross: round the front pole at the painted bands (21-28 px, 215-222 px), round the
+    # back pole as far in from the side poles, round the side poles in front of the back pole and behind the front one
+    cane = K.colour((22, 114, 27, 126), vary=0.12, pct=55)
+    for px in (21.5, 24.0, 26.5, 216.0, 218.5, 221.0):
+        ring(K, P.x(px), 0.0, zf, T.rf * 1.04, T.rf * 0.16, cane, axis="x", n=12, name="lashing")
+    for d in (6.0, 8.5, 11.0):
+        for xs, sgn in ((T.xl, 1), (T.xr, -1)):
+            ring(K, xs + sgn * P.m(d), T.yb, zb, T.r * 1.06, T.r * 0.2, cane, axis="x", n=10, name="lashing")
+    for xs in (T.xl, T.xr):
+        for y in (T.rf + T.r * 0.9, T.rf + T.r * 1.5, T.yb - T.r * 1.8, T.yb - T.r * 2.4):
+            ring(K, xs, y, T.zs, T.r * 1.06, T.r * 0.2, cane, axis="y", n=10, name="lashing")
+    # the mat: lying on the ground between the poles; a heap of goods raises it where the painting has them. Its
+    # top at a plan point (x, y) shows the painted row its slope ray meets: the heap is found there (a few steps).
+    # Behind a crest that only finds the rays themselves (the painted rows would be smeared down a slope as shallow
+    # as the view): the heap falls away there as heaped goods do, at 40 degrees, out of the painting's sight.
+    zm = T.zm
+    xa, xb = T.xl, T.xr
+    nu, nv = (56, 60) if height is not None else (10, 8)
+    xs, ys = np.linspace(xa, xb, nu + 1), np.linspace(0.0, T.yb, nv + 1)
+    Z = np.full((nv + 1, nu + 1), zm)
+    back = np.zeros((nv + 1, nu + 1), bool)
+    if height is not None:
+        dy, fall = ys[1] - ys[0], math.tan(math.radians(40))
+        for i, x in enumerate(xs):
+            px = P.px(x)
+            for j, y in enumerate(ys):
+                z = zm
+                for _ in range(14):
+                    z = 0.5 * z + 0.5 * (zm + hmax * height(px, T.row(y, z)))
+                Z[j, i] = z
+            col, anchor = Z[:, i].copy(), None
+            for j in range(1, nv + 1):
+                grazing = (col[j] - col[j - 1]) / dy < -0.35 * k
+                if anchor is None and grazing:
+                    anchor = j - 1
+                if anchor is not None:
+                    steep = Z[anchor, i] - fall * (ys[j] - ys[anchor])
+                    if not grazing and col[j] >= steep:
+                        anchor = None
+                    else:
+                        Z[j, i] = max(zm, min(col[j], steep))
+                        back[j, i] = True
+
+    def surf_z(x, y):
+        fi = min(nu - 1e-6, max(0.0, (x - xa) / (xb - xa) * nu))
+        fj = min(nv - 1e-6, max(0.0, y / T.yb * nv))
+        i, j = int(fi), int(fj)
+        u, v = fi - i, fj - j
+        return float(Z[j, i] * (1 - u) * (1 - v) + Z[j, i + 1] * u * (1 - v) + Z[j + 1, i] * (1 - u) * v
+                     + Z[j + 1, i + 1] * u * v)
+    surf_z.back = [(xs[i], ys[j], Z[j, i]) for j, i in zip(*np.nonzero(back)) if Z[j, i] > zm + 0.3 * hmax]
+    own = mat_mirrored(K, ((26, 96), (41, 30)), ((219.5, 96), (201, 30)), 111.0, 24.0, goods, weave_box,
+                       (zm + 0.002, zm + 0.004) if height is not None else None)
+    K.sheet(lambda u, v: (xa + (xb - xa) * u, T.yb * v, float(Z[int(round(v * nv)), int(round(u * nu))])), nu, nv,
+            own, name="mat", smooth=True)
+    # its woven underside, on the ground
+    weave = weave_tile(K, weave_box)
+    K.sheet(lambda u, v: (xb - (xb - xa) * u, T.yb * v, T.zg + 0.0006), 8, 6, weave, name="mat_under", smooth=False)
+    return surf_z
+
+
+def lying_papad(K, T, cx, mid_py, R_px, ratio, roll, z_rest, mat, wobble=0.0025, name="papad"):
+    """A papad drying on the level tray T: a thin, slightly wavy disc R_px across, painted as an ellipse centred on
+    (cx, mid_py) and `ratio` times as high as wide. Lying flat it would be k as high; more means it is tilted up at the
+    back, less down, by t (sin t + k cos t = ratio, where it rests on the edge of one under it); roll (degrees) raises
+    its right side (the painted ellipse turned). Its lowest edge rests at z_rest (on the mat, or on the papads under
+    it), and where it reaches the back pole it rides up over it, as a stiff papad would."""
+    P, k = K.paint, T.k
+    R = P.m(R_px)
+    A = math.hypot(1.0, k)
+    t = math.asin(max(-1.0, min(1.0, ratio / A))) - math.atan2(k, 1.0)
+    M = Matrix.Rotation(-math.radians(roll), 3, "Y") @ Matrix.Rotation(t, 3, "X")
+    ex, ey, ez = M @ Vector((1, 0, 0)), M @ Vector((0, 1, 0)), M @ Vector((0, 0, 1))
+    zc = z_rest + R * (abs(math.sin(t)) + abs(math.sin(math.radians(roll))))
+    c = T.on(cx, mid_py, zc)
+    ph = K.rng.uniform(0, 6.28, 3)
+    n, nr = 32, 4
+    bm = bmesh.new()
+    mid = bm.verts.new(c + ez * 0.0012)
+    rings = []
+    for j in range(1, nr + 1):
+        v = j / nr
+        ring_v = []
+        for i in range(n):
+            a = 2 * math.pi * i / n
+            rr = R * v * (1 + 0.03 * math.sin(5 * a + ph[0]) + 0.018 * math.sin(9 * a + ph[1]))
+            h = wobble * v * v * math.sin(3 * a + ph[2]) * 0.5 + 0.0012 * (1 - v)
+            ring_v.append(bm.verts.new(c + ex * rr * math.cos(a) + ey * rr * math.sin(a) + ez * h))
+        rings.append(ring_v)
+    # ride up over the back pole: the lift it needs there, ramped in from the papad's middle
+    need = 0.0
+    for v in bm.verts:
+        dy = v.co.y - T.yb
+        if abs(dy) < T.r * 1.1:
+            top = T.zg + T.r + math.sqrt(max(0.0, (T.r * 1.1) ** 2 - dy * dy)) + 0.0012
+            need = max(need, top - v.co.z)
+    if need > 0:
+        y0, y1 = c.y, T.yb - T.r * 0.6
+        for v in bm.verts:
+            w = min(1.0, max(0.0, (v.co.y - y0) / max(1e-4, y1 - y0)))
+            v.co.z += need * w * w * (3 - 2 * w)
+    for i in range(n):
+        bm.faces.new([mid, rings[0][i], rings[0][(i + 1) % n]])
+    for r0, r1 in zip(rings, rings[1:]):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new([r0[i], r1[i], r1[j], r0[j]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    if bm.faces[0].normal.z < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=True)
+    mod = ob.modifiers.new("solid", "SOLIDIFY")
+    mod.thickness = 0.0016
+    mod.offset = -1
+    K.parts.append(ob)
+    return ob
+
+
 @model("chilli_mat", "market", kind="prop")
 def chilli_mat(K):
-    """Red chillies heaped to dry on a woven palm-leaf mat in a frame of four lashed bamboo poles, the tray propped
-    on bricks at the back (so it faces the sun, and the camera)."""
+    """Red chillies heaped to dry on a woven palm-leaf mat in a frame of four lashed bamboo poles, lying on the ground;
+    painted from above, built level (see LevelTray)."""
     P = K.paint
-    T = Tray(K, 124, 15, 0.26)
-    # a true rectangle (the painting draws the back pole shorter, in perspective: the front pole's length is kept)
-    poles = ((20, 124), (229, 124), (229, 15), (20, 15))
-    # where the chillies are: their heap rises off the mat
+    T = LevelTray(K)
+    # where the chillies are: their heap rises off the mat (inside the painted frame)
     a = P.rgba[..., :3] * 255
     red = (a[..., 0] > 130) & (a[..., 0] > 1.5 * a[..., 1]) & (a[..., 0] > 1.5 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
-    pile = ndimage.gaussian_filter(red.astype(np.float32), 6)
+    inside = np.zeros_like(red)
+    inside[24:111, 26:224] = True
+    pile = ndimage.gaussian_filter((red & inside).astype(np.float32), 6)
     pile = ndimage.gaussian_filter(np.clip(pile * 1.6, 0, 1), 4)
+    # a low mound, highest in the middle, thinning out towards the back pole over the painted rows up to it (so its
+    # back slope stays gentle: the painted chillies are spread over it no more than a quarter longer)
+    rows, cols = np.mgrid[0:P.h, 0:P.w].astype(np.float32)
+    t = np.clip((rows - 22.0) / 38.0, 0.0, 1.0)
+    pile *= (0.15 + 0.85 * t * t * (3 - 2 * t)) * (0.8 + 0.2 * np.exp(-((cols - 123) / 70.0) ** 2 - ((rows - 70) / 35.0) ** 2))
 
     def height(px, py):
-        return P.m(9) * float(pile[int(min(P.h - 1, max(0, py))), int(min(P.w - 1, max(0, px)))])
-    lash = [(0, 0.03), (0, 0.97), (0, 0.27), (0, 0.5), (0, 0.73), (1, 0.03), (1, 0.97), (1, 0.33), (1, 0.66),
-            (2, 0.06), (2, 0.94), (2, 0.5), (3, 0.06), (3, 0.94), (3, 0.5)]
-    drying_tray(K, T, poles, (29, 42, 40, 102), lashings=lash, height=height)
-    # the chillies on top of the heap: one along each painted chilli that stands out (its bright core), wearing its
-    # painted colours
+        return float(ndimage.map_coordinates(pile, [[min(P.h - 1.0, max(0.0, py))], [min(P.w - 1.0, max(0.0, px))]],
+                                             order=1)[0])
+    hmax = P.m(13)
+    # the goods on the mat: the chillies' red (not the weave's orange-brown lattice) and their olive stems
+    chillies = (a[..., 0] > 110) & (a[..., 1] < 0.5 * a[..., 0]) & (a[..., 2] < 0.45 * a[..., 0])
+    stems = (a[..., 1] > 60) & (a[..., 1] >= 0.85 * a[..., 0]) & (a[..., 2] < 0.6 * a[..., 1])
+    goods = ndimage.binary_closing((chillies | stems) & (P.rgba[..., 3] > 0.5), iterations=1) & inside
+    surf_z = level_tray(K, T, (24, 94, 39, 108), goods, height=height, hmax=hmax)
+    # the chillies on top of the heap: one along each painted chilli that stands out (its bright core), lying on the
+    # heap where its painted place lands along the slope, wearing its painted colours
     core = (a[..., 0] > 175) & (a[..., 0] > 2.2 * a[..., 1]) & (a[..., 0] > 2.2 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
-    chilli = K.projected(squeeze=1.0, keep=[(30, 15, 220, 118)], inset=1)
+    chilli = slope_projected(K, keep=[(30, 15, 220, 112)], inset=1)
+
+    def lying_at(px, py, lift):
+        # the point on the slope ray through (px, py) that lies `lift` above the heap under it
+        z = surf_z(P.x(px), T.on(px, py, T.zm).y) + lift
+        for _ in range(10):
+            z = 0.5 * z + 0.5 * (surf_z(P.x(px), T.on(px, py, z).y) + lift)
+        return T.on(px, py, z)
     for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
         r = P.m(min(5.0, max(3.6, w * 0.75)))
-        # lying on the heap, whole (half-buried ones read as scribbles of ink)
-        A = T.over(ax, ay, height(ax, ay) + r * 0.5)
-        B = T.over(bx, by, height(bx, by) + r * 0.3)
-        pod(K, tuple(A), tuple(B), r, r * 0.45, chilli, bend=tuple(T.n * r * 0.3), n=6, seg=6, name="chilli")
+        A = lying_at(ax, ay, r * 0.5)
+        B = lying_at(bx, by, r * 0.3)
+        pod(K, tuple(A), tuple(B), r, r * 0.45, chilli, bend=(0.0, 0.0, r * 0.3), n=6, seg=6, name="chilli")
+    # and lying down the back of the heap, out of the painting's sight (the heap's crest hides them along the slope),
+    # more of them, in a painted chilli's red
+    red_mat = K.colour(tuple(float(c) for c in np.median(P.rgba[core][:, :3], axis=0) ** 2.2), vary=0.18, scale=60.0)
+
+    def hidden(p):
+        return any(surf_z(p.x, p.y - t) > p.z + T.k * t + 0.001 for t in np.arange(0.004, 0.08, 0.003))
+    spots, rng, placed = surf_z.back, K.rng, 0
+    for _ in range(400):
+        if placed >= 24 or not spots:
+            break
+        x, y, z = spots[int(rng.integers(0, len(spots)))]
+        r = P.m(rng.uniform(3.2, 4.2))
+        L = P.m(rng.uniform(24, 38))
+        yaw = math.radians(rng.uniform(-50, 50))
+        d = Vector((math.cos(yaw), math.sin(yaw), 0.0)) * L / 2
+        A, B = Vector((x, y, 0)) - d, Vector((x, y, 0)) + d
+        A.z, B.z = surf_z(A.x, A.y) + r * 0.6, surf_z(B.x, B.y) + r * 0.4
+        if all(hidden(q + Vector((0, 0, r * 1.3))) for q in (A, B, A.lerp(B, 0.5))):
+            pod(K, tuple(A), tuple(B), r, r * 0.45, red_mat, bend=(0.0, 0.0, r * 0.3), n=6, seg=6, name="chilli")
+            placed += 1
+
+
+@model("papad_mat", "market", kind="prop")
+def papad_mat(K):
+    """Round papads laid out to dry, overlapping like scales, on a woven palm-leaf mat in a frame of four lashed
+    bamboo poles, lying on the ground; painted from above, built level (see LevelTray)."""
+    P = K.paint
+    T = LevelTray(K)
+    # (centre px, painted middle row, radius px, painted height / width, roll, layer), fitted to the painted outlines
+    # (each papad's ellipse scored along its dark rim); the stacking from which rim is drawn over which: the ones
+    # painted on top rest on the ones under them, the two at the back reach over the back pole and ride up on it
+    papads = ((89.5, 27.5, 25.0, 0.67, 0.0, 1), (140.5, 32.5, 35.5, 0.64, 7.3, 2), (65.0, 54.0, 28.5, 0.64, 0.0, 0),
+              (176.0, 56.5, 33.0, 0.475, 0.0, 0), (185.0, 90.5, 34.0, 0.56, 0.0, 0), (71.0, 93.5, 37.5, 0.52, 0.0, 2),
+              (135.0, 95.5, 37.0, 0.51, 0.0, 1), (112.1, 73.0, 37.9, 0.56, 0.0, 3))
+    yy, xx = np.mgrid[0:P.h, 0:P.w].astype(np.float32)
+    goods = np.zeros((P.h, P.w), bool)
+    for cx, my, r, ratio, roll, layer in papads:
+        goods |= ((xx - cx) / (r + 2)) ** 2 + ((yy - my) / (r * ratio + 2)) ** 2 < 1
+    level_tray(K, T, (179, 20, 198, 40), goods)
+    top = slope_projected(K, keep=[(24, 6, 224, 116)], inset=1)
+    for i, (cx, my, r, ratio, roll, layer) in enumerate(papads):
+        lying_papad(K, T, cx, my, r, ratio, roll, T.zm + 0.0018 + 0.0028 * layer, top, name=f"papad{i}")
 
 
 def papad(K, T, px, py, r_px, lift, mat, tilt=(0.0, 0.0), name="papad"):
@@ -1188,26 +1705,6 @@ def papad(K, T, px, py, r_px, lift, mat, tilt=(0.0, 0.0), name="papad"):
     mod.offset = 0
     K.parts.append(ob)
     return ob
-
-
-@model("papad_mat", "market", kind="prop")
-def papad_mat(K):
-    """Round papads laid out to dry, overlapping like scales, on a woven palm-leaf mat in a frame of four lashed
-    bamboo poles, the tray propped on bricks at the back."""
-    P = K.paint
-    T = Tray(K, 122.5, 13, 0.26)
-    # a true rectangle (the painting draws the back pole shorter, in perspective: the front pole's length is kept)
-    poles = ((19, 122.5), (229, 122.5), (229, 13), (19, 13))
-    lash = [(0, 0.03), (0, 0.97), (0, 0.27), (0, 0.5), (0, 0.73), (1, 0.03), (1, 0.97), (1, 0.33), (1, 0.66),
-            (2, 0.06), (2, 0.94), (2, 0.5), (3, 0.06), (3, 0.94), (3, 0.5)]
-    drying_tray(K, T, poles, (30, 42, 40, 102), lashings=lash)
-    top = K.projected(squeeze=1.0, inset=0)
-    # (centre px, radius px, layer): the ones painted on top rest on the ones under them
-    for (px, py), r, layer, tilt in (((91.5, 31), 26, 0, (3, -2)), ((140.5, 33.5), 35.5, 1, (-4, 3)),
-                                     ((68, 55.5), 30, 0, (2, 3)), ((174, 54.5), 34, 0, (-2, -3)),
-                                     ((182, 90), 34, 0, (3, 2)), ((71, 93), 37, 1, (-3, -2)),
-                                     ((139, 91.5), 36, 1, (4, -2)), ((112, 71.5), 36, 2, (-2, 4))):
-        papad(K, T, px, py, r, P.m(2.5) + layer * 0.004, top, tilt=tilt)
 
 
 def colour_pixels(rgb):

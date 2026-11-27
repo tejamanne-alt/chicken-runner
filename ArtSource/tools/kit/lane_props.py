@@ -495,7 +495,7 @@ def grass_pixels(rgb):
 
 
 def earth(K, cx_px, foot_py, low_py, rx_px, ry, box, grass=(), pebbles=(), pebble_box=None, name="earth", tilt=0.0,
-          dirt_box=None, dirt_exclude=()):
+          dirt_box=None, dirt_exclude=(), segments=36):
     """The patch of earth a prop stands on, as painted from a little above: a low mound whose top is level with the
     prop's foot (foot_py) and whose rim slopes down towards the camera to where the painted dirt ends (low_py), so
     the painted dirt in front of the prop lands on it. grass: boxes (px) of painted tufts, stood as cards round
@@ -514,7 +514,7 @@ def earth(K, cx_px, foot_py, low_py, rx_px, ry, box, grass=(), pebbles=(), pebbl
     # (no bottom: it lies on the ground, never seen, and would only take room in the atlas)
     ob = K.lathe([(rx, top - drop - 0.004), (rx * 1.0, top - drop), (rx * 0.965, top - drop * 0.45),
                   (rx * 0.92, top - drop * 0.08), (rx * 0.86, top), (rx * 0.45, top + 0.003), (0.0, top + 0.004)], dirt,
-                 segments=36, centre=(P.x(cx_px), 0.0, 0.0), scale_y=ry / rx, wobble=0.08, name=name, cap=False)
+                 segments=segments, centre=(P.x(cx_px), 0.0, 0.0), scale_y=ry / rx, wobble=0.08, name=name, cap=False)
     if tilt:
         for v in ob.data.vertices:
             v.co.z += tilt * v.co.y
@@ -1394,28 +1394,104 @@ def cushion(K, corners, thick, mat, n=14, name="cushion"):
     return ob
 
 
+def slope_proj(K, k, keep=None, exclude_polys=(), inset=2, name=None):
+    """The painting projected along the slope of a painting drawn from above (object x, z + k * y -> painting u, v),
+    as a part's own material: a top the painting shows from above (a cot's woven bed) wears its own painted
+    picture, whatever the bake's front weight. keep: boxes of the painting it may use; exclude_polys: polygons it
+    may not (a cushion lying on the bed); the gaps are filled from the nearest kept pixel."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    from scipy import ndimage
+    from kitlib import Mat, _image
+    key = ("slope", round(k, 4), tuple(tuple(b) for b in keep) if keep else None,
+           tuple(tuple(map(tuple, q)) for q in exclude_polys), inset)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    a = np.asarray(P.img).astype(np.float32)
+    m = Image.new("L", P.img.size, 0 if keep else 255)
+    d = ImageDraw.Draw(m)
+    for x0, y0, x1, y1 in keep or ():
+        d.rectangle((x0, y0, x1, y1), fill=255)
+    for q in exclude_polys:
+        d.polygon([tuple(map(float, v)) for v in q], fill=0)
+    ok = (a[..., 3] > 127) & (np.asarray(m) > 127)
+    if inset:
+        ok = ndimage.binary_erosion(ok, iterations=inset)
+    _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+    a = a[iy, ix]
+    a[..., 3] = 255
+    mat = Mat(name or f"{K.name}_slope{len(K._mats)}")
+    nt = mat.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, x, y):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((x, y)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], k)), P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA"), f"{mat.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    mat.set_colour(tex.outputs["Color"])
+    K._mats[key] = mat
+    return mat
+
+
 @model("rope_cot", "lane", kind="prop", atlas=2048)
 def rope_cot(K):
     """A charpai: four turned wooden legs with knobbed finials, joined at the square blocks on their tops by the
     frame's four rails, the coir rope woven across between them as the bed and wrapped round the rails, sagging a
-    little; a patchwork cushion is propped at its head. True, level and square on level ground: the painting draws it
-    from above and in perspective (its back legs inward and higher, the bed's top showing), which a real cot seen
-    from the front does not show; from the game's camera, a little above, its bed shows as painted."""
-    import numpy as np
-    from PIL import Image
+    little; a patchwork cushion is propped at its head. True, level and square on level ground. The painting draws
+    it from a little above (its far rail and back legs painted higher, the woven bed's top showing between the
+    rails): K.oblique carries that slope, so the painted bed lands on the real bed and the far rail on the far
+    rail, and everything that is painted higher because it stands further back stands further back, not up."""
     P = K.paint
     X, Z = P.x, P.z
+    # the slope: the far rail's top is painted 36 px above the near rail's (and the back finial 30, the back feet 22
+    # px above the front ones: a painter's perspective), the cot is 0.82 m deep from leg to leg
+    D = 0.82
+    k = P.m(38.5) / D
+    K.oblique = k
+    K.front_min = 0.1
     K.front_exclude.append((345, 50, 400, 112))          # the painted sparkle on the rope: light, not a thing
-    yF, yB = -0.4, 0.4
+    yF, yB = 0.0, D                                       # the front legs on the painting's own plane
     foot = 264
-    # the earth first: the atlas packer squashes every island by the first material's image aspect (the painting's,
-    # 1.9:1, when a projected leg came first), and the earth's tile is square
-    earth(K, 263, foot, 270, 255, 0.62, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
-          dirt_exclude=[(20, 200, 510, 262)],
-          grass=[(8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
-                 (420, 240, 462, 262), (490, 248, 510, 262)])
-    # the front legs as painted: (centre px, keep box, lathe profile (r px, py) from the foot up, block (x0, x1, top,
-    # bottom), finial profile); the back legs are the same turned legs, straight behind them
+
+    def Zs(py, y):
+        """The height of a point painted at py that stands y metres back (painted higher by k y)."""
+        return Z(py) - k * y
+    # the earth first (a square tile: the atlas packer follows the first material). The painted ground runs from
+    # the front legs' feet (264) to some 7 px in front of them and back to 236: a patch from 0.16 m in front of the
+    # front legs to 0.58 m behind them, its top level at the feet
+    n0 = len(K.parts)
+    earth(K, 263, foot, 266, 255, 0.25, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
+          dirt_exclude=[(20, 200, 510, 262)])
+    for ob in K.parts[n0:]:
+        for v in ob.data.vertices:
+            v.co.y += 0.23
+    # its grass, each tuft standing at the depth its painted foot gives
+    for box in ((8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
+                (420, 240, 462, 262), (490, 248, 510, 262)):
+        K.leaves_only(box, grass_pixels)
+        gx, gy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        yy = max(-0.1, (foot - box[3]) / (k * P.ppm))
+        for yaw in (0, 90):
+            K.card_from_painting(box, (X(gx), yy, Zs(gy, yy)), yaw=yaw, name="grass", normal=(0, -0.4, 1))
+    # the legs as painted at the front: (centre px, keep box, lathe profile (r px, py) from the foot up, block (x0,
+    # x1, top, bottom), finial profile); the back legs are the same turned legs, straight behind them
     legs = [
         (54, (26, 36, 84, 266),
          [(0, foot), (23, foot), (23, 246), (21.5, 238), (18.5, 232), (15.5, 228), (16.5, 224), (14.5, 220),
@@ -1440,32 +1516,36 @@ def rope_cot(K):
             hw = P.m(x1 - x0) / 2
             K.box(X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py), Z(t_py), blockm, bevel=0.008, name="block")
             decal_faces(K, (32, 102, 77, 152), X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py), Z(t_py),
-                        faces=("back", "left", "right"))
+                        faces=("back", "left", "right") if yy == yF else ("back", "left", "right"))
             K.lathe(prof(P, top), wood_y, segments=24, centre=(X(cx), yy, 0), name="finial")
-    # the frame's rails, wrapped in rope, all four level
-    wrap = K.tile((150, 114, 250, 146), vary=0.06, soften=0.15)
-    zr = Z(130)
+    # the frame's rails, wrapped in rope, all four level at the blocks' middle
+    wrap = K.tile((150, 120, 250, 146), vary=0.06, soften=0.15)
+    zr = Z(132.5)
+    rr = P.m(14.2)
     corners = {"FL": (X(54), yF, zr), "FR": (X(473.5), yF, zr), "BL": (X(54), yB, zr), "BR": (X(473.5), yB, zr)}
-    for a, b, r in (("FL", "FR", P.m(17)), ("BL", "BR", P.m(15)), ("FL", "BL", P.m(15)), ("FR", "BR", P.m(15))):
-        K.tube([corners[a], corners[b]], r, wrap, segments=12, name="rail")
-    # the woven bed between the rails, sagging a little in the middle; its weave un-foreshortened from the painting
+    for a, b in (("FL", "FR"), ("BL", "BR"), ("FL", "BL"), ("FR", "BR")):
+        K.tube([corners[a], corners[b]], rr, wrap, segments=14, name="rail")
+    # the woven bed between the rails, at their middle, sagging a little; it wears the painted weave itself,
+    # un-foreshortened, so from above it is a woven rope bed (the painting's own bed along the slope, stretched six
+    # times front to back, streaks), and the projection along the slope lays the painted bed on it from the front
+    from PIL import Image
     weave_src = P.crop((240, 97, 340, 113)).convert("RGB")
     weave_img = weave_src.resize((weave_src.width, weave_src.height * 3), Image.BICUBIC)
     weave = image_tile(K, weave_img, P.m(100) * 0.55, ("weave",), vary=0.06)
-    FL, FR, BL, BR = [np.array(corners[k]) for k in ("FL", "FR", "BL", "BR")]
+    x0b, x1b = X(54) + P.m(18), X(473.5) - P.m(18)
 
     def bed(u, v):
-        a = FL + (FR - FL) * u
-        b = BL + (BR - BL) * u
-        p = a + (b - a) * v
-        sag = 0.045 * math.sin(math.pi * u) * math.sin(math.pi * v) ** 0.8
-        p = p + np.array([0, 0, P.m(8) - sag])
-        return tuple(p)
+        x = x0b + (x1b - x0b) * u
+        y = rr * 0.6 + (D - rr * 1.2) * v
+        sag = 0.025 * math.sin(math.pi * u) * math.sin(math.pi * v) ** 0.8
+        return (x, y, zr + P.m(2) - sag)
     K.sheet(bed, 36, 14, weave, name="bed", thickness=0.014)
-    # the patchwork cushion at the head: its lower edge on the bed, propped back against the head's back post
-    pil = proj(K, X(150), 1.0, polys=[[(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]], inset=3)
-    cushion(K, [(X(108), yF + 0.16, Z(119)), (X(234), yF + 0.16, Z(112)), (X(170), yB - 0.08, Z(10)),
-                (X(66), yB - 0.08, Z(13))], 0.075, pil, name="cushion")
+    # the patchwork cushion at the head: its lower edge on the bed, leaning back towards the head's far corner
+    cushion_px = [(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]
+    pil = proj(K, X(150), 1.0, polys=[cushion_px], inset=3)
+    yb, yt = 0.15, 0.6
+    cushion(K, [(X(100), yb, Zs(115, yb)), (X(237), yb, Zs(100, yb)), (X(177), yt, Zs(5, yt)),
+                (X(62), yt, Zs(8, yt))], 0.09, pil, name="cushion")
 
 
 def octagon(K, prof_hw, cx_px, cy, mat, name="octagon"):
@@ -1733,189 +1813,365 @@ def grass_mask(P, boxes):
     return m
 
 
-# the painted spokes of the bicycle's wheels, traced off the painting: (hub end px, rim end px) of each
-BIKE_SPOKES = {
-    "front": [(93.6, 211, 151.2, 199.8), (93.6, 210.3, 139.5, 163.7), (93.2, 208.4, 127.1, 147.6),
-              (93.1, 208, 147.5, 182.1), (91.9, 206, 103.1, 132.9), (91.4, 205.4, 95.3, 131.1),
-              (88.3, 204, 58.3, 139.3), (85.6, 204.7, 34.8, 164.8), (84.6, 205.4, 74.1, 132.2),
-              (84, 206.1, 25.7, 188.8), (82.9, 208.2, 23.6, 219.4), (82.9, 208.3, 42, 154.1),
-              (82.5, 212.2, 30.7, 248.8), (82.7, 213, 43.6, 269.9), (83.8, 215.7, 67.6, 287.6),
-              (85.4, 217.2, 89.7, 291.5), (88.6, 218, 125.3, 276.1), (90.5, 217.2, 112.6, 285.1),
-              (91.6, 216.4, 147.9, 238.5), (93, 214.1, 142, 253.7)],
-    "rear": [(353.9, 205, 411.5, 249.7), (353.9, 205, 413.8, 170.5), (353.9, 204.8, 410.2, 162.8),
-             (353.8, 203.7, 420, 192.8), (351, 198.9, 349.5, 123.1), (350.7, 198.8, 366.8, 125.6),
-             (350.4, 198.6, 396.5, 143.8), (346.3, 198.3, 297.2, 149.9), (345.7, 198.6, 325, 128.2),
-             (342.1, 205.7, 291.6, 257.1), (342.4, 207.2, 301.6, 270.2), (344.3, 210.4, 323.9, 286.3),
-             (346, 211.6, 361.9, 290.6), (349.2, 211.8, 397.4, 270.2), (349.4, 211.8, 344.5, 291.7),
-             (351.4, 210.7, 384.2, 281.3), (352.4, 209.7, 419.5, 225)],
-}
+def ell_points(ell, n=48, grow=0.0):
+    """Points (px) round a painted ellipse ell = (cx, cy, a, b, tilt degrees), grown by `grow` px."""
+    cx, cy, a, b, th = ell
+    t = math.radians(th)
+    out = []
+    for k in range(n):
+        u = 2 * math.pi * k / n
+        ex, ey = (a + grow) * math.cos(u), (b + grow) * math.sin(u)
+        out.append((cx + ex * math.cos(t) - ey * math.sin(t), cy + ex * math.sin(t) + ey * math.cos(t)))
+    return out
+
+
+def poly_mask(P, polys):
+    """The painting's pixels inside any of the polygons [(px, py), ...], as an HxW bool mask."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    im = Image.new("L", (P.w, P.h), 0)
+    d = ImageDraw.Draw(im)
+    for q in polys:
+        d.polygon([(float(x), float(y)) for x, y in q], fill=255)
+    return np.asarray(im) > 127
+
+
+def stroke_mask(P, strokes, pad=1.5):
+    """The pixels under painted strokes [(points px, radius px), ...] (tubes, rods), widened by pad px."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+    im = Image.new("L", (P.w, P.h), 0)
+    d = ImageDraw.Draw(im)
+    for pts, r in strokes:
+        rr = r + pad
+        if len(pts) > 1:
+            d.line([(float(x), float(y)) for x, y in pts], fill=255, width=max(1, int(round(2 * rr))))
+        for x, y in pts:
+            d.ellipse((x - rr, y - rr, x + rr, y + rr), fill=255)
+    return np.asarray(im) > 127
+
+
+def spoke_disc(K, ell, plane_y, grow=0.0, n=48, name="spokes", normal=(0.0, -0.35, 1.0)):
+    """A spoked wheel's spokes as one card: a polygon round the painted rim's inner ellipse, every vertex at its
+    painted x, z and at the depth of the wheel's own plane (plane_y(x, z) -> y), showing the painting's own spokes
+    there (the card rule decides which pixels). From the front it is exactly the painted spokes; from every other
+    side a wheel full of spokes in its own plane."""
+    import bmesh
+    from kitlib import _obj
+    P = K.paint
+    bm = bmesh.new()
+    vs, uvs = [], []
+    for px, py in ell_points(ell, n, grow):
+        x, z = P.x(px), P.z(py)
+        vs.append(bm.verts.new((x, plane_y(x, z), z)))
+        uvs.append((min(1.0, max(0.0, px / P.w)), min(1.0, max(0.0, 1 - py / P.h))))
+    f = bm.faces.new(vs)
+    layer = bm.loops.layers.uv.new("UVMap")
+    for lp, uv in zip(f.loops, uvs):
+        lp[layer].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = list(normal)
+    K.cards_parts.append(ob)
+    return ob
+
+
+def loft(K, sections, mat, n=16, name="loft", smooth=True, sq=0.6):
+    """A closed solid through cross-sections [(centre, across, up, half_width, top, bottom), ...] (centre a point,
+    across and up unit vectors, the rest metres from the centre): each section a rounded box (superellipse sq),
+    capped at both ends (a saddle, a grip's end)."""
+    import bmesh
+    from mathutils import Vector
+    from kitlib import _obj
+    bm = bmesh.new()
+    rings = []
+    for c, ac, up, w, top, bot in sections:
+        c, ac, up = Vector(c), Vector(ac), Vector(up)
+        ring = []
+        for k in range(n):
+            a = 2 * math.pi * k / n
+            ca, sa = math.cos(a), math.sin(a)
+            u = math.copysign(abs(ca) ** sq, ca) * w
+            v = math.copysign(abs(sa) ** sq, sa) * (top if sa > 0 else bot)
+            ring.append(bm.verts.new(c + ac * u + up * v))
+        rings.append(ring)
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(n):
+            j = (k + 1) % n
+            bm.faces.new([r0[k], r0[j], r1[j], r1[k]])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = _obj(name, bm, mat, smooth=smooth)
+    K.parts.append(ob)
+    return ob
+
+
+def ground_edge(P, y_from, x_range, smooth=6):
+    """The painted ground's lower edge (py) along x: the lowest opaque pixel below y_from in each column, smoothed
+    (a running maximum, then a mean), as [(px, py), ...] for interp()."""
+    import numpy as np
+    from scipy import ndimage
+    a = P.rgba[..., 3] > 0.5
+    x0, x1 = x_range
+    low = np.full(P.w, np.nan)
+    for x in range(int(x0), int(x1)):
+        ys = np.flatnonzero(a[int(y_from):, x])
+        if ys.size:
+            low[x] = y_from + ys[-1] + 0.5
+    xs = np.arange(P.w)
+    ok = ~np.isnan(low)
+    low = np.interp(xs, xs[ok], low[ok])
+    low = ndimage.uniform_filter1d(ndimage.maximum_filter1d(low, 3), smooth)
+    return [(float(x), float(low[x])) for x in range(int(x0), int(x1), 3)]
+
+
+def front_rim(K, ob, top_py, edge):
+    """Shapes an earth patch (from earth()) so its rim hangs to the painted ground's lower edge [(px, py), ...]
+    along x (all round: the back of the rim shows below the front from the camera), its top level at top_py: a
+    patch of earth as thick as it is painted there."""
+    P = K.paint
+    top = P.z(top_py)
+    zmin = min(v.co.z for v in ob.data.vertices)
+    drop0 = top - zmin
+    for v in ob.data.vertices:
+        if v.co.z >= top:
+            continue
+        want = top - P.z(interp(edge, P.px(v.co.x)))
+        v.co.z = top - (top - v.co.z) * max(0.002, want) / max(1e-6, drop0)
+
+
+# the painted rims' inner edges, fitted to the painting's alpha (cx, cy, a, b, tilt deg; px)
+BIKE_RIMS = {"front": (87.08, 210.13, 61.08, 79.57, 6.04), "rear": (346.23, 207.46, 70.76, 81.33, -0.29)}
 
 
 @model("bicycle", "lane", kind="prop")
 def bicycle(K):
     """An old black roadster bicycle standing in the lane, turned a little from the camera, its front wheel steered
-    a little further: two big wheels (tyres, rims, hubs, wire spokes where they are painted), the frame of tubes with
-    its fork, head and stays, swept-back handlebar with grips and brake levers, a sprung leather saddle, mudguards
-    with a rear reflector, a carrier rack over the back wheel, the chain guard, cranks and pedals, and a side
-    stand."""
+    a little further: two big wheels (tyres, rims, hubs and the painting's own wire spokes as a spoked disc in each
+    wheel's plane), the frame of tubes with its fork (two blades straddling the wheel), head and stays, swept-back
+    handlebar with grips and brake levers and their rods, a sprung leather saddle, mudguards with their stays and a
+    rear reflector, a carrier rack over the back wheel, the chain guard, cranks and pedals, and a side stand folded
+    up along the far chain stay. Every thin part is traced off the painting's alpha (its radius less the game's ink
+    line)."""
     import numpy as np
     from mathutils import Vector
     P = K.paint
     X, Z = P.x, P.z
-    th = math.radians(32)                            # the frame's plane (and the back wheel's), turned from the camera
+    th = math.radians(27)                            # the frame's plane (and the back wheel's), turned from the camera
     c, s, t = math.cos(th), math.sin(th), math.tan(th)
     xref = X(218)
     yfun = lambda x: (xref - x) * t                  # the bike's own (turned) plane
     nrm = Vector((-s, -c, 0.0))                      # its side towards the camera
+    fwd = Vector((-c, s, 0.0))                       # towards the front wheel
+    INK = 1.1                                        # the game's ink line (px) round every solid
 
     def B(px, py, off=0.0):
         """A point as painted, `off` metres out of the bike's plane towards the camera (negative: the far side)."""
         x = X(px)
         return (x, yfun(x) - off / c, Z(py))
+
+    def R(w_px):
+        """The radius of a tube painted w_px wide (its ink line included)."""
+        return P.m(max(0.8, w_px / 2 - INK))
     frame = K.colour((150, 72, 240, 86), vary=0.1)
     tyre = K.colour((10, 190, 25, 230), vary=0.08)
     gold = K.colour((20, 190, 30, 215), vary=0.08, pct=85)
     fender_m = K.colour((60, 100, 140, 116), vary=0.08)
     dark = K.colour((0.03, 0.02, 0.015), vary=0.05)
-    spoke_m = K.colour((40, 170, 70, 200), vary=0.06, pct=85)
-    # the wheels as painted: hub (px), turn (the front one steered a little further than the frame), the rim's and
-    # the tyre's radius (px, upright: the painted ellipses' heights), mudguard arc (degrees, 0 = behind the hub)
-    wheels = [dict(name="front", hub=(88.0, 211.0), centre=(88.0, 211.0), turn=37.0, rim=85.0, tyre=91.5,
-                   guard=(-22, 110), gap=14.0),
-              dict(name="rear", hub=(348.0, 206.0), centre=(345.0, 207.5), turn=32.0, rim=89.0, tyre=94.0,
-                   guard=(-6, 150), gap=14.0)]
+    strokes = []                                     # every solid's painted stroke, kept off the spoke cards
+
+    def tube(pts_px, w_px, mat, segments=8, name="tube", plane=B, cap=True):
+        """A tube through painted points (px, py[, off]) painted w_px wide."""
+        strokes.append(([(p[0], p[1]) for p in pts_px], w_px / 2))
+        return K.tube([plane(*p) for p in pts_px], R(w_px), mat, segments=segments, name=name, cap=cap)
+    # the wheels as painted: centre (px), turn (the front one steered a little further than the frame), the rim's
+    # middle and the tyre's tube centre (px, upright: from the painted ellipses' heights), hub, mudguard arc
+    # (degrees, 0 = behind the hub) and its radius
+    wheels = [dict(name="front", centre=(86.5, 211.25), hub=(89.5, 209.5), turn=37.0, lean=3.6, rim=82.6, tyre=90.5,
+                   guard=(-21, 101), rf=[(-21, 107), (0, 106.5), (20, 106.5), (40, 106.5), (60, 105.5),
+                                         (80, 104), (90, 103.5), (104, 103.5)]),
+              dict(name="rear", centre=(346.0, 207.75), hub=(348.0, 206.5), turn=27.0, lean=0.0, rim=84.5, tyre=93.0,
+                   guard=(5, 165), rf=[(5, 107), (90, 107.5), (110, 106), (135, 105), (165, 105)])]
     a = P.m(6.5)                                      # the tyre's tube radius
     for w in wheels:
         C = Vector(B(*w["centre"]))
         tw = math.radians(w["turn"])
         cw, sw_, tw_ = math.cos(tw), math.sin(tw), math.tan(tw)
-        n_w = Vector((-sw_, -cw, 0.0))               # the axle
+        # the axle; the steered front wheel leans a little on its raked fork (its painted ellipse is tilted)
+        lam = math.radians(w["lean"])
+        n_w = Vector((-sw_, -cw, 0.0)) * math.cos(lam) + Vector((0, 0, math.sin(lam)))
         d_w = Vector((-cw, sw_, 0.0))                # forward, in the wheel's plane
+        up_w = n_w.cross(d_w).normalized()           # up, in the wheel's plane
+        if up_w.z < 0:
+            up_w = -up_w
 
-        def Bw(px, py, off=0.0, C=C, cw=cw, tw_=tw_):
-            x = X(px)
-            return (x, C.y + (C.x - x) * tw_ - off / cw, Z(py))
+        def plane_y(x, z, C=C, n=n_w):
+            return C.y - (n.x * (x - C.x) + n.z * (z - C.z)) / n.y
+
+        def Bw(px, py, off=0.0, cw=cw, plane_y=plane_y):
+            x, z = X(px), Z(py)
+            return (x, plane_y(x, z) - off / cw, z)
         w["C"], w["n"], w["d"], w["Bw"] = C, n_w, d_w, Bw
         Rt = P.m(w["tyre"])
         ring = [(Rt + a * math.cos(2 * math.pi * k / 12), a * 1.05 * math.sin(2 * math.pi * k / 12)) for k in range(13)]
-        axis_lathe(K, ring, tyre, tuple(C), tuple(n_w), segments=60, name="tyre", cap=False)
-        rr = P.m(w["rim"] - 1.5)                      # the painted rim is a gold band some 7 px wide
+        axis_lathe(K, ring, tyre, tuple(C), tuple(n_w), segments=64, name="tyre", cap=False)
+        rr = P.m(w["rim"])                            # the painted rim is a gold band some 7 px wide
         rim = [(rr + P.m(3.6) * math.cos(2 * math.pi * k / 8), P.m(3.0) * math.sin(2 * math.pi * k / 8))
                for k in range(9)]
-        axis_lathe(K, rim, gold, tuple(C), tuple(n_w), segments=60, name="rim", cap=False)
-        hub = [(0.0, -0.05), (P.m(4), -0.05), (P.m(9), -0.03), (P.m(5.5), -0.022), (P.m(5.5), 0.022), (P.m(9), 0.03),
-               (P.m(4), 0.05), (0.0, 0.05)]
+        axis_lathe(K, rim, gold, tuple(C), tuple(n_w), segments=64, name="rim", cap=False)
+        hub = [(0.0, -0.035), (P.m(3.5), -0.035), (P.m(6.5), -0.025), (P.m(4.2), -0.018), (P.m(4.2), 0.018),
+               (P.m(6.5), 0.025), (P.m(3.5), 0.035), (0.0, 0.035)]
         axis_lathe(K, hub, gold, Bw(*w["hub"]), tuple(n_w), segments=14, name="hub")
-        # the spokes, each where it is painted: from a hub flange (alternate sides) to the rim (its end carried on
-        # along the painted line until it meets the rim), laced as painted
-        cx0, cy0 = w["centre"]
-        for i, (hx, hy, ex, ey) in enumerate(BIKE_SPOKES[w["name"]]):
-            lo, hi = 0.5, 2.0
-            for _ in range(30):
-                f = (lo + hi) / 2
-                qx, qy = hx + (ex - hx) * f, hy + (ey - hy) * f
-                if math.hypot((qx - cx0) / cw, qy - cy0) < w["rim"] - 1.0:
-                    lo = f
-                else:
-                    hi = f
-            ex, ey = hx + (ex - hx) * lo, hy + (ey - hy) * lo
-            side = 1 if i % 2 else -1
-            K.tube([Bw(hx, hy, 0.02 * side), Bw(ex, ey, 0.003 * side)], P.m(1.15), spoke_m, segments=4, name="spoke")
-        # the mudguard over it
-        Rf = P.m(w["tyre"] + w["gap"])
+        strokes.append(([w["hub"]], 5.0))
+        # the spokes: the painting's own, on a card in the wheel's plane
+        cx_, cy_ = C.x, C.y
+        spoke_disc(K, BIKE_RIMS[w["name"]], plane_y, grow=2.5, name="spokes", normal=tuple((n_w * 0.5 + Vector((0, 0, 1))).normalized()))
+        # the mudguard over it: a U of thin sheet, its radius traced round the painted one (degrees, px)
         a0, a1 = w["guard"]
 
-        def fender(u, v, C=C, d=d_w, n=n_w, Rf=Rf, a0=a0, a1=a1):
-            ang = math.radians(a1 + (a0 - a1) * u)
-            p = C + d * (-math.cos(ang) * Rf) + Vector((0, 0, math.sin(ang) * Rf))
-            q = p + n * (0.032 * (2 * v - 1))
-            bulge = 0.009 * math.sin(math.pi * v)
-            return tuple(q + (p - C).normalized() * bulge)
-        K.sheet(fender, 44, 4, fender_m, name="mudguard", thickness=0.004)
-    grass_boxes = [(10, 285, 46, 302), (120, 280, 170, 302), (255, 275, 305, 300), (370, 280, 412, 302)]
-    card_mask_all(K, grass_mask(P, grass_boxes))
-    # the frame (the fork turns with the front wheel)
-    Bf = wheels[0]["Bw"]
-    tubes = [([B(128, 60), B(122, 112)], 7.5), ([B(136, 80.5), B(270, 80.5)], 6.0), ([B(134, 96), B(219, 208)], 6.5),
-             ([B(281, 70), B(230, 207)], 6.0), ([B(128, 64), B(131, 27)], 5.0), ([B(271, 56), B(272, 76)], 4.5)]
+        def fender(u, v, C=C, d=d_w, n=n_w, a0=a0, a1=a1, rf=w["rf"], up_w=up_w):
+            angd = a1 + (a0 - a1) * u
+            ang = math.radians(angd)
+            Rf = P.m(interp(rf, angd))
+            radial = d * (-math.cos(ang)) + up_w * math.sin(ang)
+            q = (2 * v - 1)
+            return tuple(C + radial * (Rf + 0.006 - 0.03 * q * q) + n * (0.024 * q))
+        K.sheet(fender, 48, 6, fender_m, name="mudguard", thickness=0.004)
+    # the frame (traced off the painting's alpha: every tube on its painted line, its painted width less the ink)
+    for pts, wpx in (([(129, 62), (123.5, 108)], 16.0),                         # head tube
+                     ([(136, 80.5), (200, 81), (270, 81.2)], 11.0),              # top tube
+                     ([(134, 96), (219, 208)], 11.2),                            # down tube
+                     ([(281, 70), (230, 207)], 11.0),                            # seat tube
+                     ([(135.5, 68), (135, 58), (137.5, 48), (137, 38), (134, 31)], 9.5),   # stem
+                     ([(282, 60), (280, 74)], 9.0)):                             # seat post
+        tube(pts, wpx, frame, segments=12)
     for side in (1, -1):
-        tubes += [([B(285, 86, 0.012 * side), B(321, 146, 0.03 * side), B(348, 206, 0.042 * side)], 4.0),
-                  ([B(228, 212, 0.03 * side), B(348, 206, 0.042 * side)], 4.3),
-                  ([Bf(122, 114, 0.025 * side), Bf(112, 148, 0.042 * side), Bf(99, 182, 0.044 * side),
-                    Bf(88, 211, 0.044 * side)], 4.4),
-                  ([Bf(92, 210, 0.036 * side), Bf(130, 210, 0.036 * side), Bf(168, 211, 0.03 * side)], 2.4)]
-    for pts, r in tubes:
-        K.tube(pts, P.m(r), frame, segments=10, name="tube")
+        tube([(281, 88, 0.012 * side), (312.7, 139.4, 0.03 * side), (337, 185, 0.04 * side),
+              (347.5, 206, 0.042 * side)], 9.4, frame, segments=8, name="seat_stay")
+        tube([(228, 213, 0.03 * side), (348, 207.5, 0.042 * side)], 10.0, frame, segments=8, name="chain_stay")
+    # the fork: two blades straddling the front wheel (the near one painted to the left), from the crown to the
+    # dropouts at the hub's ends; the front mudguard's stays
+    fw = wheels[0]
+    Cf, nf = fw["C"], fw["n"]
+
+    def Fk(px, py, side):
+        """A point on a fork blade: painted (px, py), at the depth of the wheel's plane moved along the axle."""
+        p = Vector(fw["Bw"](px, py))
+        return (p.x, p.y + nf.y * 0.045 * side, p.z)
+    for side, pts in ((1, [(113, 114), (112, 120), (106, 140), (101, 160), (96, 180), (87, 200), (84.5, 207)]),
+                      (-1, [(122, 114), (121, 120), (118, 140), (116, 160), (110, 180), (99.5, 200), (96, 207)])):
+        strokes.append((pts, 4.0))
+        K.tube([Fk(px, py, side) for px, py in pts], R(8.0), frame, segments=8, name="fork")
+    K.block(*fw["Bw"](118, 113), P.m(6), 0.085, P.m(8), gold, rot=(0, 0, -fw["turn"]), bevel=0.004, name="crown")
+    K.lathe(prof(P, [(0, 76), (10.5, 76), (10.5, 63), (0, 63)]), gold, segments=14, centre=(X(129), B(129, 0)[1], 0),
+            name="headset")
+    strokes.append(([(129, 63), (129, 76)], 10.5))
+    strokes.append(([(110, 113), (126, 113)], 5.0))
+    tube([(92, 211.5, 0.03), (130, 212, 0.03), (168, 212.5, 0.026)], 5.0, gold, segments=6, name="guard_stay",
+         plane=fw["Bw"])
+    tube([(84, 205, 0.04), (79.5, 190, 0.036), (77.8, 160, 0.03), (77.5, 130, 0.026)], 3.0, gold, segments=5,
+         name="guard_stay", plane=fw["Bw"])
     axis_lathe(K, [(0.0, -0.045), (P.m(8.5), -0.045), (P.m(8.5), 0.045), (0.0, 0.045)], gold, B(226, 212),
                tuple(nrm), segments=16, name="bb")
     # the handlebar, swept back, its grips and the brake levers with their rods (traced off the painting)
     bar = K.colour((0.3, 0.24, 0.22), vary=0.08)          # the painted bar's worn chrome, browned
-    K.lathe(prof(P, [(0, 31), (7, 31), (7, 22), (0, 22)]), bar, segments=12, centre=(X(132), B(132, 0)[1], 0),
-            name="bar_clamp")
-    bar_n = [B(131, 27), B(142, 26, 0.05), B(154, 22, 0.12), B(164, 19, 0.17), B(170, 21, 0.2)]
-    bar_f = [B(131, 27), B(118, 27, -0.06), B(104, 25, -0.14), B(94, 21, -0.2), B(90, 13, -0.23), B(96, 9, -0.25)]
-    K.tube(bar_n, P.m(4.0), bar, segments=8, name="bar")
-    K.tube(bar_f, P.m(4.0), bar, segments=8, name="bar")
+    K.lathe(prof(P, [(0, 42), (5.0, 42), (6.0, 38), (6.0, 26), (0, 26)]), bar, segments=12,
+            centre=(X(130.5), B(130.5, 0)[1], 0), name="bar_clamp")
+    # (the bar is symmetric and swept back: its near half, towards the camera, is the one painted to the left, its
+    # grip a little higher; the far half runs to the right)
+    tube([(131, 30), (140, 31, -0.05), (145, 28.5, -0.08), (150, 26, -0.11), (155, 24.5, -0.14), (162, 23, -0.17)],
+         10.0, bar, name="bar")
+    tube([(131, 30), (112, 30, 0.1), (98, 29, 0.2), (92.5, 26, 0.25), (91.5, 19, 0.27), (94.5, 13, 0.28),
+          (100, 11, 0.29)], 7.5, bar, name="bar")
     grip = K.colour((165, 22, 195, 38), vary=0.08)
-    K.tube([B(168, 21, 0.19), B(184, 28, 0.23), B(197, 36, 0.26)], P.m(6.8), grip, segments=10, name="grip")
-    K.tube([B(96, 10, -0.25), B(108, 11, -0.28), B(119, 14, -0.31)], P.m(5.8), grip, segments=10, name="grip")
-    for pts in ([B(140, 30, 0.06), B(152, 36, 0.1), B(166, 43, 0.13), B(178, 51, 0.15), B(184, 56, 0.16)],
-                [B(98, 28, -0.16), B(92, 38, -0.17), B(98, 49, -0.17), B(110, 56, -0.16)]):
-        K.tube(pts, P.m(2.5), bar, segments=6, name="lever")
-    K.tube([B(116, 58, -0.12), B(117, 80, -0.05), B(120, 104, -0.02)], P.m(1.8), bar, segments=5, name="brake_rod")
+    tube([(164, 26.5, -0.18), (172, 27.5, -0.2), (180, 29, -0.22), (188, 32.5, -0.24), (196, 33.5, -0.26)], 14.5,
+         grip, segments=10, name="grip")
+    tube([(100, 12, 0.29), (108, 14, 0.29), (116, 17, 0.29), (121, 19, 0.29)], 12.0, grip, segments=10, name="grip")
+    tube([(139, 36.5, -0.05), (147, 40, -0.07)], 8.0, bar, segments=8, name="lever_clamp")
+    tube([(143, 32, -0.06), (150, 37, -0.1), (155, 39.5, -0.12), (160.3, 40.9, -0.13), (168.5, 45, -0.15),
+          (175.7, 50.5, -0.165), (182.3, 56.8, -0.175)], 6.3, bar, segments=6, name="lever")
+    tube([(93, 33, 0.2), (99.3, 43.4, 0.2), (105.2, 50.2, 0.19), (112.3, 55.8, 0.17)], 4.4, bar, segments=6,
+         name="lever")
+    tube([(117, 34, 0.04), (118.5, 54, 0.035), (119.5, 66, 0.03), (118.5, 80, 0.03), (115.5, 86, 0.03),
+          (112.5, 98, 0.03), (110, 106, 0.03)], 4.5, bar, segments=5, name="brake_rod")
+    tube([(126.5, 32, -0.03), (126.5, 62, -0.03)], 3.8, bar, segments=5, name="brake_rod")
     # the red reflector at the back of the rear mudguard
     refl = K.colour((436, 155, 444, 168), vary=0.05)
-    K.block(*B(441, 161, 0.0), P.m(5), 0.035, P.m(16), refl, rot=(0, 0, -32), bevel=0.003, name="reflector")
-    # the saddle on its springs and post: as painted, a blunt, deep back and a narrow nose
+    K.block(*B(438.5, 161.5, 0.0), P.m(6), 0.035, P.m(13), refl, rot=(0, 0, -27), bevel=0.003, name="reflector")
+    # the saddle on its springs and post: as painted, a narrow nose and a broad, deep back, the leather's skirt
+    # hanging at its sides; its cross-sections square across the bike, so it is a saddle from above too
     leather = K.colour((250, 32, 320, 52), vary=0.1)
-    fwd = Vector((-c, s, 0.0))
-    sad = axis_lathe(K, [(P.m(r), P.m(t_)) for r, t_ in ((0, 0), (4, 1), (7, 6), (9, 14), (12, 26), (17, 40), (21, 52),
-                                                       (23, 62), (23.5, 70), (22, 77), (16, 82), (0, 84))],
-                     leather, B(245, 41), tuple(-fwd), segments=18, name="saddle")
-    cz = Z(41)
-    for v in sad.data.vertices:
-        v.co.z = cz + (v.co.z - cz) * 0.45
+    up = Vector((0, 0, 1))
+    secs = []
+    for px, top, bot, hw in ((244, 41.5, 44.5, 0.006), (246.5, 36, 48, 0.014), (252, 32.5, 54, 0.026),
+                             (262, 31.5, 59, 0.042), (274, 34.3, 61.5, 0.06), (286, 35.3, 61, 0.079),
+                             (296, 35, 58.5, 0.094), (303, 34.5, 57, 0.102), (308.5, 35.5, 56, 0.107),
+                             (311.5, 40, 53, 0.094)):
+        mid = (top + bot) / 2
+        secs.append((B(px, mid), tuple(nrm), tuple(up), hw, P.m(mid - top), P.m(bot - mid)))
+    loft(K, secs, leather, n=18, name="saddle", sq=0.55)
     springs = K.colour((290, 58, 310, 76), vary=0.08)
     for side in (1, -1):
-        base = Vector(B(304, 78, 0.03 * side))
+        base = Vector(B(305.5, 78, 0.03 * side))
         pts = []
         for k in range(40):
             ang = 2 * math.pi * k / 8
-            pts.append(tuple(base + fwd * (math.cos(ang) * P.m(6.5)) + nrm * (math.sin(ang) * P.m(6.5))
-                             + Vector((0, 0, P.m(24) * k / 39))))
+            pts.append(tuple(base + fwd * (math.cos(ang) * P.m(6.8)) + nrm * (math.sin(ang) * P.m(6.8))
+                             + Vector((0, 0, P.m(22) * k / 39))))
         K.tube(pts, P.m(1.7), springs, segments=5, name="spring", cap=False)
     for side in (1, -1):
-        K.tube([B(252, 49, 0.03 * side), B(272, 57, 0.03 * side), B(304, 57, 0.03 * side)], P.m(2.4), springs,
-               segments=6, name="saddle_frame")
-    # the carrier over the back wheel, on its struts
+        tube([(252, 50, 0.03 * side), (272, 58, 0.03 * side), (304, 57, 0.03 * side)], 6.0, springs, segments=6,
+             name="saddle_frame")
+    tube([(266, 62), (280, 66), (294, 69)], 10.0, springs, segments=8, name="seat_clamp")
+    # the carrier over the back wheel: its top rails level, a side rail below on each side, on its struts
     for off in (-0.06, 0.0, 0.06):
-        K.tube([B(306, 87, off), B(404, 86, off)], P.m(3.4 if off > 0 else 2.6), frame, segments=6, name="carrier_rail")
-    K.tube([B(312, 94, 0.062), B(398, 93, 0.062)], P.m(2.2), frame, segments=6, name="carrier_rail")
-    for x in (308, 340, 372, 402):
-        K.tube([B(x, 87, -0.065), B(x, 87, 0.065)], P.m(2.2), frame, segments=6, name="carrier_bar")
+        tube([(306, 86.5, off), (404, 86.5, off)], 6.0, frame, segments=6, name="carrier_rail")
     for side in (1, -1):
-        K.tube([B(393, 91, 0.06 * side), B(369, 150, 0.05 * side), B(349, 203, 0.046 * side)], P.m(2.6), frame,
-               segments=6, name="carrier_strut")
-    K.tube([B(310, 92), B(296, 104)], P.m(2.4), frame, segments=6, name="carrier_stay")
-    # the chain guard (its plate stands out on the camera side), the cranks and the pedals
+        tube([(310, 91, 0.062 * side), (402, 91, 0.062 * side)], 6.0, frame, segments=6, name="carrier_rail")
+    for px, py0, py1, wpx in ((329, 91, 97.5, 9), (352, 91, 96.5, 7), (377, 91, 103, 8), (392, 91, 100.5, 10)):
+        tube([(px, py0, 0.062), (px, py1, 0.062)], wpx, frame, segments=6, name="carrier_bracket")
+    for x in (308, 340, 372, 402):
+        tube([(x, 86, -0.065), (x, 86, 0.065)], 5.0, frame, segments=6, name="carrier_bar")
+    for side in (1, -1):
+        tube([(388, 92, 0.06 * side), (365, 156, 0.05 * side), (351, 197, 0.046 * side),
+              (348.5, 205, 0.045 * side)], 9.2, frame, segments=6, name="carrier_strut")
+    tube([(310, 92), (296, 104)], 9.0, frame, segments=6, name="carrier_stay")
+    tube([(283, 108, -0.045), (296, 106.5, 0.0), (309, 105, 0.045)], 7.0, frame, segments=6, name="stay_bridge")
+    # the chain guard on the near side: round the chainring, its upper and lower runs tapering to the back hub
     guard = K.colour((260, 186, 300, 200), vary=0.08)
-    outline = [(225 + 30 * math.cos(math.radians(a_)), 212 - 30 * math.sin(math.radians(a_))) for a_ in range(90, 271, 15)]
-    outline += [(255, 241), (300, 234), (334, 226), (338, 214), (334, 202), (300, 192), (255, 183)]
-    plate = K.prism([(X(x), Z(y)) for x, y in outline[::-1]], -0.002, 0.002, guard, name="chain_guard", bevel=0.001)
-    for v in plate.data.vertices:
-        v.co.y += yfun(v.co.x) - 0.05 / c
-    for side, (ex, ey) in ((1, (230, 252)), (-1, (222, 172))):
-        K.tube([B(226, 212, 0.06 * side), B(ex, ey, 0.065 * side)], P.m(3.5), gold, segments=8, name="crank")
-        K.block(*B(ex + 3, ey + 4 * side, 0.1 * side), P.m(30 if side > 0 else 12), 0.07, P.m(10 if side > 0 else 7),
-                dark, rot=(0, 0, -32), bevel=0.004, name="pedal")
-    # a side stand folded down on the far side, and the earth
-    K.tube([B(300, 212, -0.04), B(306, 260, -0.11), B(310, 302, -0.17)], P.m(2.8), frame, segments=6, name="stand")
-    earth(K, 220, 304, 310, 214, 0.45, (0.5, 0.24, 0.1), dirt_box=(5, 294, 440, 314),
-          dirt_exclude=[(55, 294, 125, 314), (310, 294, 385, 314)])
+    outline = [(226 + 31 * math.cos(math.radians(a_)), 212 - 31 * math.sin(math.radians(a_))) for a_ in range(90, 271, 15)]
+    outline += [(255, 242), (270, 240), (286, 237), (298, 233.5), (310, 231), (318, 229), (326, 225.5), (334, 221),
+                (339, 215), (341, 208), (339, 199), (334, 193), (328, 188.5), (318, 187), (310, 186), (304, 185.5),
+                (304, 205), (277, 205), (277, 183.4), (265, 182), (245, 181.5)]
+    upper = [(275, 183.2), (282, 183.5), (298, 185), (306, 185.6), (306, 201.5), (275, 201.5)]
+    for q, dy in ((outline, 0.0), (upper, 0.001)):
+        plate = K.prism([(X(x), Z(y)) for x, y in q[::-1]], -0.002, 0.002, guard, name="chain_guard", bevel=0.001)
+        for v in plate.data.vertices:
+            v.co.y += yfun(v.co.x) - 0.05 / c - dy
+    # the cranks and pedals: the near one as painted, the far one behind it (the painting shows none above)
+    for side in (1, -1):
+        tube([(226, 212, 0.06 * side), (231, 251, 0.065 * side)], 8.0, gold, segments=8, name="crank")
+    K.block(*B(234.5, 256, 0.115), 0.07, 0.1, P.m(10), dark, rot=(0, 0, -27), bevel=0.004, name="pedal")
+    K.block(*B(234.5, 256, -0.115), 0.07, 0.1, P.m(10), dark, rot=(0, 0, -27), bevel=0.004, name="pedal")
+    # the side stand, folded up along the far chain stay
+    tube([(236, 216, -0.06), (300, 212.5, -0.065)], 5.0, frame, segments=6, name="stand")
+    # the earth and its grass
+    grass_boxes = [(10, 285, 46, 302), (120, 280, 170, 302), (255, 275, 305, 300), (370, 280, 412, 302)]
+    n_parts = len(K.parts)
+    earth(K, 224, 303, 308, 222, 0.45, (0.5, 0.24, 0.1), dirt_box=(5, 294, 440, 314),
+          dirt_exclude=[(55, 294, 125, 314), (310, 294, 385, 314)], segments=96)
+    front_rim(K, K.parts[n_parts], 303, ground_edge(P, 296, (6, 442)))
     for box in grass_boxes:
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        for yaw, dy in ((0, -0.1), (70, 0.08), (-60, 0.2)):
+        for yaw, dy in ((0, -0.1), (90, -0.1)):            # a tuft and one card through it side-on
             K.card_from_painting(box, (X(bx), yfun(X(bx)) + dy, Z(by)), yaw=yaw, name="grass", normal=(0, -0.4, 1))
+    # one rule for all the cards: the grass blades, and inside each wheel only its painted spokes (not the rim and
+    # tyre, which are solid, nor the hub, fork, stays, struts or chain guard painted over them)
+    spokes = poly_mask(P, [ell_points(e, 64, 2.5) for e in BIKE_RIMS.values()])
+    spokes &= P.rgba[..., 3] > 0.5
+    spokes &= ~stroke_mask(P, strokes, pad=0.5)
+    spokes &= ~poly_mask(P, [outline, upper])
+    card_mask_all(K, grass_mask(P, grass_boxes) | spokes)
 
 
 @model("bullock_cart", "lane", kind="prop", atlas=2048)
@@ -1932,13 +2188,24 @@ def bullock_cart(K):
     ax = Vector((cphi, -sphi, 0.0))                  # along the cart, towards the pole (and the camera)
     nrm = Vector((sphi, cphi, 0.0))                  # across it, towards its far side
     O = Vector((X(304), 0.0, 0.0))                   # the axle's middle
+    W = 0.62                                         # the body's half width
+    # The painting is drawn from a little above: the far wheel, 1.71 m further back than the near one, stands 20 px
+    # higher on the painted ground (372 and 352), and the ground runs back to 345. That slope is the painting's
+    # oblique; the cart stays true and level, and what is further back stands further back.
+    kob = P.m(20) / (1.8 * cphi)
+    K.oblique = kob
+    K.front_min = 0.1
 
-    def C(px, py, off=0.0):
+    def yW(px, off):
+        s_ = (X(px) - O.x - nrm.x * off) / ax.x
+        return O.y + ax.y * s_ + nrm.y * off
+
+    def C(px, py, off=0.0, ref=-W):
         """The point painted at (px, py) on the plane `off` metres across the cart from its middle (negative:
-        the near side): its x and z as painted."""
-        x = X(px)
-        s_ = (x - O.x - nrm.x * off) / ax.x
-        return (x, O.y + ax.y * s_ + nrm.y * off, Z(py))
+        the near side): its x as painted, its height that of the point painted there on the plane `ref` (the near
+        side, where the body is painted; 0 for the pole down the middle), so the body is level and its far side
+        stands further back, painted higher along the slope."""
+        return (X(px), yW(px, off), Z(py) - kob * yW(px, ref))
     # the cart's own painted wood and blue boards, quilted into square tiles (a strip of one rail laid on a stake
     # or a beam runs into bands)
     wood = quilt_tile(K, (0, 90, 500, 240), keep=wood_pixels, patch_px=14, size_px=84, soften=0.2,
@@ -1949,7 +2216,6 @@ def bullock_cart(K):
     blue = quilt_tile(K, (90, 100, 480, 200), keep=blue_pixels, patch_px=12, size_px=72, soften=0.15)
     iron = K.colour((0.05, 0.05, 0.06), vary=0.08)
     straw_m = quilt_tile(K, (180, 25, 480, 90), keep=hay_pixels, patch_px=12, size_px=84, soften=0.1)
-    W = 0.62                                         # the body's half width
     # the body: floor, side panels, end boards
 
     def slab(p0, p1, z0, z1, off0, off1, mat, name):
@@ -1983,10 +2249,10 @@ def bullock_cart(K):
         K.quad(q, flower, name="flower")
     # the chassis beams under it, running forward into the pole
     for off in (-0.5, 0.5):
-        K.tube([C(18, 220, off), C(470, 216, off), C(560, 205, 0.06 * (1 if off > 0 else -1))], P.m(15), beam_m,
-               segments=6, name="beam")
-    K.tube([C(540, 202, 0.0), C(650, 194, 0.0), C(830, 186, 0.0)], [P.m(18), P.m(16), P.m(13)], beam_m, segments=8,
-           name="pole")
+        K.tube([C(18, 220, off, -0.5), C(470, 216, off, -0.5), C(560, 205, 0.06 * (1 if off > 0 else -1), 0.0)],
+               P.m(15), beam_m, segments=6, name="beam")
+    K.tube([C(540, 202, 0.0, 0.0), C(650, 194, 0.0, 0.0), C(830, 186, 0.0, 0.0)], [P.m(18), P.m(16), P.m(13)], beam_m,
+           segments=8, name="pole")
     # the rails along both sides on their knobbed stakes, and the cross bars
     for off in (-W - 0.03, W + 0.03):
         for py0, py1 in ((95, 112), (62, 78)):
@@ -2018,12 +2284,18 @@ def bullock_cart(K):
     # the wheels: iron tyre, felloe, twelve spokes, the heavy hub with its iron cap; the axle between them
     wheel_m = K.projected(axis_x=X(243), squeeze=0.95, keep=[(100, 90, 386, 372)], exclude=[(380, 60, 500, 240)],
                           inset=2)
-    for off, cx_px, phase in ((-0.9, 243, 0.25), (0.9, 365, 0.75)):
-        cen = Vector(C(304, 228, 0.0)) + nrm * off
-        cen.x = X(cx_px) if off < 0 else cen.x
+    # both wheels on one axle, level: the near one where it is painted (centre 243, 232), the far one 1.8 m along
+    # the axle, so it stands to the right and, being further back, is painted higher
+    axle_c = Vector((X(304), O.y, 0.0))
+    near_c = axle_c + nrm * (-0.9)
+    z_axle = Z(232) - kob * near_c.y
+    axle_c.z = z_axle
+    ro_px = 139
+    for off, phase in ((-0.9, 0.25), (0.9, 0.75)):
+        cen = axle_c + nrm * off
         mat = wheel_m if off < 0 else K.projected(axis_x=cen.x, squeeze=0.95, dx=X(243) - cen.x,
                                                    keep=[(100, 90, 386, 372)], exclude=[(380, 60, 500, 240)], inset=2)
-        ro, rt, ri, rh = P.m(138), P.m(134), P.m(112), P.m(38)
+        ro, rt, ri, rh = P.m(ro_px), P.m(ro_px - 4), P.m(ro_px - 26), P.m(38)
         w = 0.1
         axis_lathe(K, [(rt, -w / 2), (ro, -w / 2 * 0.9), (ro, w / 2 * 0.9), (rt, w / 2), (rt, -w / 2)], iron,
                    tuple(cen), tuple(nrm), segments=48, name="tyre", smooth=False, cap=False)
@@ -2041,17 +2313,20 @@ def bullock_cart(K):
             d = ax * math.cos(a_) + up * math.sin(a_)
             K.tube([tuple(cen + d * rh * 0.9), tuple(cen + d * (ri + 0.01))], [P.m(8), P.m(6)], mat, segments=6,
                    name="spoke")
-    K.tube([C(304, 228, -0.9), C(304, 228, 0.9)], 0.04, iron, segments=10, name="axle")
+    K.tube([tuple(axle_c + nrm * -0.9), tuple(axle_c + nrm * 0.9)], 0.04, iron, segments=10, name="axle")
     # the prop under the pole, the clamp holding it, the coils of rope
-    K.block(*C(776, 190, 0.0), P.m(46), 0.16, P.m(42), wood, rot=(0, 0, -18), bevel=0.01, name="clamp")
-    K.tube([C(778, 205, 0.0), C(783, 280, 0.0), C(788, 352, 0.0)], [P.m(15), P.m(14), P.m(12)], stake_m, segments=7,
-           name="prop")
+    z_ground = z_axle - P.m(ro_px)
+    K.block(*C(776, 190, 0.0, 0.0), P.m(46), 0.16, P.m(42), wood, rot=(0, 0, -18), bevel=0.01, name="clamp")
+    foot = Vector(C(788, 352, 0.0, 0.0))
+    foot.z = z_ground + P.m(1)
+    K.tube([C(778, 205, 0.0, 0.0), C(783, 280, 0.0, 0.0), tuple(foot)], [P.m(15), P.m(14), P.m(12)], stake_m,
+           segments=7, name="prop")
     rope = K.colour((515, 180, 540, 215), vary=0.1)
     for px0, n_ in ((514, 4), (694, 3)):
         for k in range(n_):
             px = px0 + 8 * k
-            cz = Z(196 - (px - 470) * 0.03)
-            c_ = Vector(C(px, 196, 0.0))
+            c_ = Vector(C(px, 196, 0.0, 0.0))
+            cz = Z(196 - (px - 470) * 0.03) - kob * c_.y
             c_.z = cz
             pts = []
             for i in range(17):
@@ -2065,7 +2340,26 @@ def bullock_cart(K):
             a_ = 2 * math.pi * i / 16
             pts.append(tuple(top + ax * (math.sin(a_) * P.m(w_)) + Vector((0, 0, -(1 - math.cos(a_)) * P.m(h_)))))
         K.tube(pts, P.m(3.5), rope, segments=6, name="hung_rope", cap=False)
-    earth(K, 420, 352, 362, 410, 0.9, (0.45, 0.22, 0.1),
-          grass=[(98, 318, 148, 358), (300, 336, 352, 372), (444, 322, 522, 352), (735, 318, 832, 355)],
-          pebbles=[(180, 362, 12), (560, 352, 10)], pebble_box=(170, 355, 190, 366),
+    # the earth: level under the wheels, from 1.2 m in front of the axle's middle to 1.6 m behind it (painted from
+    # 376 back to 345); its grass and pebbles each at the depth its painted foot gives
+    n0 = len(K.parts)
+    earth(K, 420, P.py(z_ground), P.py(z_ground) + 4, 412, 1.4, (0.45, 0.22, 0.1),
           dirt_box=(0, 345, 839, 381), dirt_exclude=[(100, 330, 500, 381)])
+    for ob in K.parts[n0:]:
+        for v in ob.data.vertices:
+            v.co.y += 0.2
+
+    def depth_of(py_foot):
+        return (P.py(z_ground) - py_foot) / (kob * P.ppm) + near_c.y
+    for box in ((98, 318, 148, 358), (300, 336, 352, 372), (444, 322, 522, 352), (735, 318, 832, 355)):
+        K.leaves_only(box, grass_pixels)
+        gx, gy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        yy = min(1.5, max(-1.1, depth_of(box[3])))
+        for yaw in (0, 90):
+            K.card_from_painting(box, (X(gx), yy, Z(gy) - kob * yy), yaw=yaw, name="grass", normal=(0, -0.4, 1))
+    stone = K.colour((170, 355, 190, 366), vary=0.12)
+    for px, py, sz in ((180, 362, 12), (560, 352, 10)):
+        r = P.m(sz) / 2
+        yy = min(1.5, max(-1.1, depth_of(py + sz / 2)))
+        K.block(X(px), yy, z_ground + r * 0.4, r * 2, r * 1.6, r * 1.1, stone, rot=(0, 0, 30), bevel=r * 0.4,
+                jitter=r * 0.08, name="pebble")

@@ -28,6 +28,9 @@ namespace ChickenRunner.EditorTools
             // How far the model's lowest point stands above its painting's bottom edge (the painted foot stands a
             // little above it, over its shadow): the model is set down by this much so it rests on the ground.
             public float lift;
+            // Set when the painting was drawn from above (metres painted up per metre back): the model's front then
+            // stands on the painting's plane and all its depth lies behind it, as a building's does.
+            public float oblique;
         }
 
         [Serializable]
@@ -159,8 +162,8 @@ namespace ChickenRunner.EditorTools
             float sx = size.x / entry.width, sy = size.y / entry.height;
             float sz = (sx + sy) * 0.5f;
             bool building = entry.kind == "building";
-            // A building's depth all lies behind its front; a rounded piece's half of it.
-            float reach = entry.depth * sz * (building ? 1f : 0.5f);
+            // A building's depth all lies behind its front, as does a piece painted from above; a rounded piece's half.
+            float reach = entry.depth * sz * (building || entry.oblique > 0f ? 1f : 0.5f);
             if (!flat && reach > roomBehind - 0.1f) sz *= Mathf.Max(0.15f, (roomBehind - 0.1f) / reach);
 
             // The models face Unity's +Z; turned round, their painted front faces the camera (-Z) as a card does.

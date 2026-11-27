@@ -368,18 +368,33 @@ def slope_source(K, fill=(), boxes=(), keep=None, inset=2, fill_tile=None, feath
         d.polygon([(float(x), float(y)) for x, y in poly], fill=255)
     for x0, y0, x1, y1 in boxes:
         d.rectangle([x0, y0, x1, y1], fill=255)
-    ok &= ~(np.asarray(m) > 127)
+    # and the ink line round them (just outside a traced outline)
+    holes = ndimage.binary_dilation(np.asarray(m) > 127, iterations=5)
+    ok &= ~holes
     if inset:
         ok = ndimage.binary_erosion(ok, iterations=inset)
     _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
     out = a[iy, ix]
     if fill_tile:
+        # the tile's grain on the colour of the top round each gap (the median of a ring of its painted pixels: the
+        # gap's own surroundings, not the painted shadow at one side of it), so the filled patch shows neither as a
+        # lighter or darker shape nor as streaks of the nearest pixels
         t = np.asarray(seamless(img.crop(tuple(int(v) for v in fill_tile)), 0.3)).astype(np.float32)
         reps = (h // t.shape[0] + 2, w // t.shape[1] + 2, 1)
-        tiled = np.tile(t, reps)[:h, :w]
+        tiled = np.tile(t, reps)[:h, :w, :3]
+        grain = tiled - tiled.reshape(-1, 3).mean(0)
+        okf = ok.astype(np.float32)
+        gaps, n = ndimage.label(holes & (a[..., 3] > 127))
+        filled = out[..., :3].copy()
+        for i in range(1, n + 1):
+            g = gaps == i
+            ring = ndimage.binary_dilation(g, iterations=12) & ok
+            if ring.sum() < 20:
+                continue
+            filled[g] = np.median(a[ring][:, :3], axis=0) + grain[g]
         wgt = np.asarray(Image.fromarray((ok * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(feather)))
-        wgt = np.maximum(wgt.astype(np.float32) / 255.0, ok.astype(np.float32))[..., None]
-        out[..., :3] = a[..., :3] * wgt + tiled[..., :3] * (1 - wgt)
+        wgt = np.maximum(wgt.astype(np.float32) / 255.0, okf)[..., None]
+        out[..., :3] = a[..., :3] * wgt + filled * (1 - wgt)
         out[..., :3] = np.where(ok[..., None], a[..., :3], out[..., :3])
     out[..., 3] = 255
     pil = Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA")
@@ -424,6 +439,81 @@ def slope_proj(K, fill=(), boxes=(), keep=None, inset=2, fill_tile=None, name=No
     m.set_colour(tex.outputs["Color"])
     K._mats[key] = m
     return m
+
+
+def dome_wrap(K, centre, tilt, keep, inset=2, name=None):
+    """A material for the top of a tilted dome (an umbrella's canopy) whose front the painting shows: the painting
+    projected along its slope, with every point of the dome's back half taken from its mirror image on the front
+    half (about the dome's own front-back plane). So the canopy wears the painted cloth all round, its creases and
+    mottling continuing over the back, with no tile repeating on it. centre: the rim's centre (x, y, z); tilt: how
+    far the dome leans back (degrees, as rib_umbrella); keep: the boxes px where the painted top is."""
+    from kitlib import Mat, _image
+    key = ("dome", tuple(round(c, 4) for c in centre), round(tilt, 3), tuple(tuple(b) for b in keep), inset)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(name or f"{K.name}_dome{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=None):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b) if b is not None else (a,)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    cx, cy, cz = centre
+    ct, st = math.cos(math.radians(tilt)), math.sin(math.radians(tilt))
+    dy = op("SUBTRACT", sep.outputs["Y"], cy)
+    dz = op("SUBTRACT", sep.outputs["Z"], cz)
+    ly = op("SUBTRACT", op("MULTIPLY", dy, ct), op("MULTIPLY", dz, st))      # into the dome's own frame
+    lz = op("ADD", op("MULTIPLY", dy, st), op("MULTIPLY", dz, ct))
+    ly = op("MULTIPLY", op("ABSOLUTE", ly), -1.0)                              # the back half from the front
+    dy2 = op("ADD", op("MULTIPLY", ly, ct), op("MULTIPLY", lz, st))
+    dz2 = op("SUBTRACT", op("MULTIPLY", lz, ct), op("MULTIPLY", ly, st))
+    v = op("DIVIDE", op("ADD", op("ADD", dz2, cz), op("MULTIPLY", op("ADD", dy2, cy), float(K.oblique))), P.H)
+    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(clean_source(K, keep, inset), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
+def clean_source(K, keep, inset=4, dark=0.72):
+    """The painting inside the keep boxes with its ink lines, torn holes and outline taken out (pixels much darker
+    than the cloth round them, and `inset` px in from the cut-out's edge) and filled from the cloth beside them, then
+    softened a little: the painted material itself, its mottling and creases, to wrap round the parts of a thing the
+    painting does not show (a point mapped onto the painted ink line would carry it over as a black blot)."""
+    from PIL import Image
+    from scipy import ndimage
+    a = np.asarray(K.paint.img).astype(np.float32)
+    ok = a[..., 3] > 127
+    kk = np.zeros_like(ok)
+    for x0, y0, x1, y1 in keep:
+        kk[int(y0):int(y1), int(x0):int(x1)] = True
+    ok &= kk
+    ok = ndimage.binary_erosion(ok, iterations=inset)
+    lum = a[..., :3] @ np.array([0.3, 0.59, 0.11])
+    okf = ok.astype(np.float32)
+    local = ndimage.gaussian_filter(lum * okf, 12) / np.maximum(ndimage.gaussian_filter(okf, 12), 1e-3)
+    ok &= ~ndimage.binary_dilation(ok & (lum < dark * local), iterations=2)
+    _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+    out = a[iy, ix]
+    sm = np.stack([ndimage.gaussian_filter(out[..., c], 3) for c in range(3)], -1)
+    out[..., :3] = np.where(ok[..., None], out[..., :3], sm)
+    out[..., 3] = 255
+    return Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA")
 
 
 def topped(K, outline, z0, z1, side, top, name="mat", drop_bottom=True):
@@ -2029,7 +2119,7 @@ def stall_e_2(K):
 
 
 def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs=10, phase=0.0, tears=0.18,
-                 name="brolly", runner=-0.05):
+                 name="brolly", runner=-0.05, shape=1.7, scallop=0.06, edge=None):
     """A big cloth market umbrella: a dome of cloth stretched over `ribs` ribs (scalloped between them, ragged and
     torn at its edge), the ribs and stretchers under it, the runner on the shaft; centred over (cx, cy), its rim at
     z_rim, R wide, H tall, tilted back `tilt` degrees. Returns the shaft's top (x, y, z) after the tilt and its
@@ -2039,7 +2129,7 @@ def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs
     rag = K.rng.uniform(0, 1, nu + 1)
 
     def dome(r):
-        return z_rim + H * (1 - (r / R) ** 1.7)
+        return z_rim + H * (1 - (r / R) ** shape)
 
     def f(u, v, drop=0.0):
         a = 2 * math.pi * u + phase
@@ -2049,7 +2139,9 @@ def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs
             iu = int(round(u * nu))
             if rag[iu] < tears:
                 r *= 1 - 0.08 * (tears - rag[iu]) / tears
-        z = dome(R * v) + 0.06 * between * v ** 4 - drop
+        z = dome(R * v) + scallop * between * v ** 4 - drop
+        if edge is not None and v > 0.8:                    # the cloth's own torn, hanging edge
+            z -= edge(a) * ((v - 0.8) / 0.2) ** 2
         return (cx + r * math.cos(a), cy + r * math.sin(a), z)
     parts.append(K.sheet(lambda u, v: f(u, v), nu, nv, top_mat, name=name + "_cloth", thickness=0.008))
     parts.append(K.sheet(lambda u, v: f(u, v, 0.014) if v > 0.06 else f(u, 0.06, 0.014), nu, nv, under_mat,
@@ -2077,7 +2169,7 @@ def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs
     return tuple(top), tuple(axis)
 
 
-def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="cage"):
+def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="cage", bar_r=0.0045):
     """A round brass birdcage: a solid base band, a floor, upright wires bent over into a dome, hoops, a ring on
     top."""
     K.lathe([(R * 1.02, z0), (R * 1.04, z0 + 0.01), (R * 1.03, z0 + 0.06), (R, z0 + 0.07)], mat, segments=32,
@@ -2088,7 +2180,7 @@ def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="ca
         a = 2 * math.pi * i / bars
         path = [(R, z0 + 0.07), (R, z_shoulder), (R * 0.86, z_shoulder + (z_top - z_shoulder) * 0.45),
                 (R * 0.55, z_shoulder + (z_top - z_shoulder) * 0.82), (R * 0.12, z_top)]
-        K.tube([(cx + r * math.cos(a), cy + r * sy * math.sin(a), z) for r, z in path], 0.0045, mat, segments=4,
+        K.tube([(cx + r * math.cos(a), cy + r * sy * math.sin(a), z) for r, z in path], bar_r, mat, segments=4,
                cap=False, name=name + "_bar")
     for z, r in ((z0 + 0.07, R), ((z0 + z_shoulder) / 2, R), (z_shoulder, R),
                  (z_shoulder + (z_top - z_shoulder) * 0.45, R * 0.86)):
@@ -2097,63 +2189,122 @@ def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="ca
     K.lathe([(R * 0.14, z_top - 0.01), (R * 0.12, z_top + 0.02)], mat, segments=12, centre=(cx, cy, 0.0),
             name=name + "_cap")
     rr = (z_top - z_shoulder) * 0.26
-    K.tube([(cx + rr * 0.9 * math.sin(2 * math.pi * k / 20), cy, z_top + 0.02 + rr + rr * math.cos(2 * math.pi * k / 20))
+    K.tube([(cx + rr * 0.9 * math.sin(2 * math.pi * k / 20), cy, z_top + 0.012 + rr + rr * math.cos(2 * math.pi * k / 20))
             for k in range(21)], 0.008, mat, segments=6, name=name + "_ring")
 
 
 # ====================================================================== stall E3: the parrot astrologer
 @model("stall_e_3", "market", kind="prop", atlas=2048)
 def stall_e_3(K):
-    """A parrot astrologer's pitch: a big, torn black cloth umbrella tilted back on its shaft, a straw mat spread over
-    a bank of earth, a brass birdcage with its feeding cup, fortune cards fanned out in front; the old astrologer
-    and his parrot are painted cut-outs."""
+    """A parrot astrologer's pitch: a big, torn black cloth umbrella leaning back on its shaft (set in a stone foot),
+    a straw mat spread on the ground, a brass birdcage with its feeding cup, fortune cards laid out in front; the old
+    astrologer and his parrot are painted cut-outs.
+
+    The painting looks down on the pitch: its slope (K.oblique 0.30) is measured off the round things drawn from above
+    (the cage's base ring, 127 px across, is drawn 38-46 px deep: 0.30-0.36; the feeding cup 0.31) and checked against
+    the mat (drawn 151 px deep; 0.30 makes it 2.07 m deep by 2.9 m wide, the proportions the painting's own vanishing
+    lines give it). Everything stands level at its real depth: the mat on the ground, the astrologer 0.64 m back on
+    it, the cage beside him, the umbrella leaning back over them from a stone foot behind him."""
+    import market_props as MP
+    from PIL import Image
     P = K.paint
     Z = P.z
-    K.front_min = 0.12
-    # ---------------------------------------------------------------- a low dais of folded straw mats
-    # (level and square: a bank of earth rising to the back, to lay the mat painted from above, was a wedge from the
-    # sides; the mat's painted top is the dais's front edge now, and the astrologer sits on a folded mat on it)
-    straw = ktile(K, (560, 560, 660, 600), vary=0.06)
-    zp = Z(668)
-    y0 = -0.84
-    K.box(P.x(15), P.x(700), y0, 0.7, 0.0, zp, straw, bevel=0.02, name="dais")
-    K.box(P.x(280), P.x(520), y0 + 0.03, -0.15, zp, Z(650), straw, bevel=0.025, name="folded_mat")
-
-    def bank(x, y):
-        return zp
-    # ---------------------------------------------------------------- the umbrella on its shaft
-    top_cloth = ktile(K, (300, 70, 420, 110), vary=0.06)
-    under = ktile(K, (390, 200, 470, 260), vary=0.05)
-    wood = K.colour((368, 200, 382, 290), vary=0.08)
-    yc = 0.95
-    tip, axis = rib_umbrella(K, P.x(378), yc, Z(205), P.m(368), P.m(196), 14.5, top_cloth, under, wood, ribs=10,
-                             phase=0.0)
-    ax = Vector(axis)
-    t = tip[2] / ax.z
-    base = Vector(tip) - ax * t
-    K.tube([tuple(base - ax * 0.15), tuple(Vector(tip))], P.m(7), wood, segments=8, name="shaft")
+    K.oblique = 0.30
+    K.front_min = 0.1
+    k = K.oblique
+    zm = 0.014                                            # the mat's top
+    yy = lambda py: yk(K, py, zm)                         # noqa: E731  depth of a point of the mat painted at py
+    # ---------------------------------------------------------------- the people, traced round their ink outline
+    man = [(359, 306), (350, 312), (345, 318), (341, 324), (338, 336), (337, 342), (338, 360), (343, 372),
+           (344, 390), (332, 396), (316, 402), (304, 408), (296, 420), (292, 432), (288, 444), (287, 456), (284, 468),
+           (278, 480), (275, 492), (274, 504), (268, 516), (267, 534), (269, 540), (250, 551), (236, 560), (229, 578),
+           (232, 597), (242, 621), (266, 636), (292, 646), (309, 653), (322, 656), (360, 645), (387, 646), (433, 651),
+           (460, 653), (479, 648), (486, 633), (492, 628), (511, 622), (529, 612), (536, 593), (536, 575), (526, 558),
+           (509, 550), (493, 541), (492, 528), (491, 516), (489, 504), (485, 492), (483, 480), (480, 468), (477, 456),
+           (476, 444), (473, 432), (470, 420), (467, 414), (461, 408), (451, 402), (434, 396), (420, 390), (421, 378),
+           (423, 366), (426, 354), (426, 336), (422, 324), (419, 318), (412, 312), (403, 306), (387, 302), (370, 302)]
+    parrot = [(96, 629), (104, 612), (116, 592), (129, 575), (141, 556), (151, 540), (159, 529), (167, 522), (179, 519),
+              (189, 523), (195, 532), (196, 543), (189, 558), (181, 573), (173, 586), (168, 597), (166, 603), (155, 607),
+              (140, 607), (128, 609), (112, 619), (102, 628)]
+    # ---------------------------------------------------------------- the straw mat, level on the ground
+    # its outline as painted (the painting's perspective narrows it to the back: its sides run to a vanishing point,
+    # which an oblique projection keeps as a taper), its top the painted mat and cards along the slope; under the cage
+    # and behind the astrologer, the mat's own straw
+    straw = ktile(K, (545, 600, 620, 632), vary=0.06)
+    top = slope_proj(K, fill=[man, parrot], boxes=[(80, 440, 216, 666)], fill_tile=(545, 600, 620, 632))
+    xl = lambda py: P.x(19 + 0.875 * (674 - py))         # noqa: E731  the painted mat's left edge
+    xr = lambda py: P.x(693 - 1.016 * (674 - py))        # noqa: E731  and its right edge
+    yf = yy(697)
+    outline = [(P.x(14), yf), (P.x(705), yf), (xr(674), yy(674)), (xr(545), yy(545)), (xl(545), yy(545)),
+               (xl(674), yy(674))]
+    topped(K, outline, 0.0, zm, straw, top, name="mat")
+    # ---------------------------------------------------------------- the astrologer, sitting on it
+    y_man = yy(653)
     # ---------------------------------------------------------------- the birdcage, its cup and the parrot
-    brass = K.colour((0.55, 0.34, 0.1), vary=0.08)
-    ccy = -0.38
-    birdcage(K, P.x(149), ccy, Z(668), P.m(64), Z(542), Z(486), brass, bars=16, sy=0.8)
-    K.lathe([(P.m(9), Z(640)), (P.m(14), Z(632)), (P.m(15), Z(622))], K.colour((0.12, 0.1, 0.08), vary=0.05),
-            segments=14, centre=(P.x(150), ccy, 0.0), name="cup")
-    K.figure([(99, 626), (112, 600), (128, 575), (148, 555), (163, 530), (178, 521), (191, 529), (193, 545),
-              (185, 560), (171, 580), (166, 600), (153, 615), (131, 621), (112, 631)], y=ccy, name="parrot")
-    # ---------------------------------------------------------------- the fortune cards fanned out in front
-    # the fortune cards fanned out flat along the dais's front edge (the front projection paints them on its edge)
-    card = K.colour((300, 676, 330, 690), pct=70, vary=0.1, scale=20)
-    fan = [(212, 64, -20), (255, 52, -14), (292, 46, -8), (328, 44, -4), (366, 40, 0), (403, 40, 0), (440, 40, 3),
-           (478, 44, 8), (515, 48, 13), (552, 52, 18)]
-    for k, (px_, w, rot) in enumerate(fan):
-        K.block(P.x(px_), y0 + 0.08 + 0.01 * (k % 2), zp + 0.003 + 0.002 * (k % 3), P.m(w), 0.14, 0.004, card,
-                rot=(0, 0, -rot * 0.8), name="fortune_card")
-    # ---------------------------------------------------------------- the astrologer
-    K.figure([(358, 318), (398, 305), (425, 320), (432, 360), (428, 400), (455, 405), (478, 430), (488, 480),
-              (490, 540), (520, 555), (535, 580), (530, 610), (512, 630), (480, 640), (430, 640), (380, 648),
-              (330, 652), (290, 640), (245, 612), (232, 580), (250, 560), (272, 545), (282, 480), (298, 420),
-              (330, 400), (345, 380), (342, 340)], y=y0 + 0.05, name="astrologer")
+    brass = K.colour((0.33, 0.21, 0.11), vary=0.08)           # the painted bars' brass (155, 126, 93)
+    band = ktile(K, (95, 644, 200, 654), vary=0.05)
+    yc = yy(644)                                          # its base ring's centre is painted at py 644
+    cx = P.x(149)
+    Rc = P.m(64)
+    birdcage(K, cx, yc, zm, Rc, zk(K, 537, yc), zk(K, 482, yc), brass, bars=18, sy=1.0, bar_r=0.0035)
+    K.lathe([(Rc * 1.03, zm), (Rc * 1.05, zm + 0.01), (Rc * 1.04, zm + 0.06), (Rc * 1.01, zm + 0.07)], band,
+            segments=32, centre=(cx, yc, 0.0), cap=False, name="cage_band")
+    z_cup = max(zm + 0.05, zk(K, 631, yc))
+    K.lathe([(P.m(9), zm + 0.02), (P.m(14), zm + 0.03), (P.m(15), z_cup)], K.colour((0.12, 0.1, 0.08), vary=0.05),
+            segments=14, centre=(P.x(150), yc, 0.0), name="cup")
+    # ---------------------------------------------------------------- the umbrella, leaning back over him
+    # Drawn from below (its underside and ribs show), so along the slope it leans back. Its dome was fitted to the
+    # painted outline (tilt 31.1 degrees, rim 369 px, 0.70 m high, profile 1.97, rim centre drawn at 2.05 m); its far
+    # rim hangs as torn as painted (edge: the drop that brings the rim down to the painted lower edge at each angle).
+    # The foot stands in a stone just behind the astrologer, so the shaft passes behind him.
+    t = math.radians(31.1)
+    ct, st = math.cos(t), math.sin(t)
+    R = P.m(369)                                          # out to the painted side tips
+    H = 0.698
+    Vc = 2.0478                                           # where the rim's centre is drawn (v, metres)
+    y_foot = y_man + 0.17
+    L = (Vc - zm - k * y_foot) / (ct + k * st)            # along the shaft from its foot to the rim's centre
+    y_rim, z_rim = y_foot + L * st, zm + L * ct
+    s_hub = (Z(172) - Vc) / (ct + k * st)                 # the runner (hub) where it is painted
+    alpha = np.asarray(P.img)[..., 3] > 127
+    xs_, lows = [], []
+    for px_ in range(12, 748, 4):
+        if 330 <= px_ <= 430:                             # the shaft and the astrologer's head
+            continue
+        ys_ = np.nonzero(alpha[:330, px_])[0]
+        if len(ys_) == 0:
+            continue
+        xs_.append(px_)
+        lows.append(ys_[-1])                              # the canopy's lowest painted point in the column
+    from scipy import ndimage
+    lows = ndimage.median_filter(np.array(lows, float), 3)
+
+    def edge(a):
+        sa, ca = math.sin(a), math.cos(a)
+        px_ = 378 + ca * R * P.ppm
+        v_rim = Vc + R * sa * (k * ct - st)
+        low = float(np.interp(px_, xs_, lows))
+        v_low = Z(low)
+        d = (v_rim - v_low) / (ct + k * st)
+        far = _smooth(-0.3, 0.02, sa)                     # the far rim is the painted lower edge; the near one is inside
+        return max(-0.06, min(0.16, d)) * far
+    top_cloth = dome_wrap(K, (P.x(378), y_rim, z_rim), math.degrees(t),
+                          [(0, 0, 100, 172), (100, 0, 180, 140), (180, 0, 366, 120), (366, 27, 391, 120),
+                           (391, 0, 560, 120), (560, 0, 650, 138), (650, 0, 758, 182)])
+    under = ktile(K, (195, 185, 255, 245), vary=0.05)
+    rib = K.colour((370, 140, 382, 160), vary=0.08)
+    tip, axis = rib_umbrella(K, P.x(378), y_rim, z_rim, R, H, math.degrees(t), top_cloth, under, rib, ribs=10,
+                             phase=0.0, runner=s_hub, shape=1.97, scallop=0.0, edge=edge, tears=0.0)
+    foot = Vector((P.x(378), y_foot, zm))
+    shaft = pole_tile(K, (372, 240, 381, 295))
+    K.tube([tuple(foot), tuple(Vector(tip))], P.m(7), shaft, segments=8, name="shaft")
+    stone = K.colour((0.2, 0.19, 0.17), vary=0.1, scale=12)
+    K.lathe([(0.15, zm), (0.16, zm + 0.03), (0.14, zm + 0.1), (0.05, zm + 0.12)], stone, segments=16,
+            centre=(foot.x, foot.y, 0.0), wobble=0.05, name="umbrella_foot")
+    # ---------------------------------------------------------------- the cut-outs: the astrologer and his parrot
+    MP.figures(K, [(man, y_man, "astrologer"), (parrot, yc, "parrot", 20.0)], exact=True)
     unify_cards(K)
+    slope_cards(K)
 
 
 def beam(K, a, b, w, h, mat, name="beam"):

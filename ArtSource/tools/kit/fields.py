@@ -507,6 +507,163 @@ def img_tile(K, img, size, soften=0.0, vary=0.0, key=None, name=None, mottle=0.0
     return m
 
 
+def relight(K, poly, ref_box, level=0.8, feather=2.0):
+    """The painting's shade taken off a face it draws in shadow (a side wall, a hip of the roof, a far post), which the
+    model has as a real face: inside poly (px) the painting is moved to the lit colour of the same material (ref_box,
+    its lit face) at `level` of its brightness, channel by channel (so the grey-violet of the painted shadow goes and
+    the plaster, stone or tile is its own colour), its painted detail kept. The game's toon light shades the face; the
+    painted light is not baked into it."""
+    from PIL import ImageDraw
+    P = K.paint
+    a = np.asarray(P.img).astype(np.float32)
+    mk = Image.new("L", P.img.size, 0)
+    ImageDraw.Draw(mk).polygon([tuple(q) for q in poly], fill=255)
+    m = np.asarray(mk) > 127
+
+    def med(sel):
+        px = a[sel & (a[..., 3] > 200)][:, :3]
+        lum = px @ np.array([0.3, 0.59, 0.11])
+        return np.median(px[lum > 40] if (lum > 40).sum() > 20 else px, axis=0)
+    ref = np.zeros_like(m)
+    x0, y0, x1, y1 = ref_box
+    ref[y0:y1, x0:x1] = True
+    gain = level * med(ref) / np.maximum(med(m), 1.0)
+    w = ndimage.gaussian_filter(m.astype(np.float32), feather)[..., None] if feather else m[..., None].astype(np.float32)
+    a[..., :3] = a[..., :3] * (1 + (gain[None, None, :] - 1) * w)
+    a = a.clip(0, 255).astype(np.uint8)
+    P.img = Image.fromarray(a, "RGBA")
+    P.rgba = a.astype(np.float32) / 255
+
+
+def deink(K, thr=28.0, size=7, edge=3, region=None):
+    """Takes the painted ink lines (outlines, joints, cracks: thin lines darker than the paint round them) and the
+    cut-out's rim out of what the front projection lays on the model, filling them from the paint round them. For a
+    painting drawn from above or in perspective, which a level model matches only to a few pixels: a line projected a
+    little off its edge reads as a dark stripe across a top seen from the side, and the game draws its own outline.
+    Call at the end of a builder (after the tiles are cut). region: boxes (px) to do it in only (round posts whose
+    painted outline would run down their sides as a dark seam), default all of it."""
+    P = K.paint
+    a = np.asarray(P.img).astype(np.float32)
+    rgb, al = a[..., :3], a[..., 3]
+    lum = rgb @ np.array([0.3, 0.59, 0.11])
+    op = al > 127
+    L = np.where(op, lum, 255.0)
+    ink = op & (ndimage.grey_closing(L, size=(size, size)) - L > thr) & (lum < 120)
+    bad = (ndimage.binary_dilation(ink, iterations=1) | (op & ~ndimage.binary_erosion(op, iterations=edge))) & op
+    if region is not None:
+        inside = np.zeros_like(op)
+        for x0, y0, x1, y1 in region:
+            inside[int(y0):int(y1), int(x0):int(x1)] = True
+        bad &= inside
+    good = op & ~bad
+    out, todo = rgb.copy(), bad.copy()
+    for s in (1.5, 3.0, 6.0, 12.0, 24.0):                  # normalised convolution, widening until all are filled
+        wsum = ndimage.gaussian_filter(good.astype(np.float32), s)
+        est = np.stack([ndimage.gaussian_filter(rgb[..., i] * good, s) for i in range(3)], -1)
+        est /= np.maximum(wsum, 1e-4)[..., None]
+        ok = todo & (wsum > 0.05)
+        out[ok] = est[ok]
+        todo &= ~ok
+    a = np.concatenate([out, al[..., None]], -1).clip(0, 255).astype(np.uint8)
+    P.img = Image.fromarray(a, "RGBA")
+    P.rgba = a.astype(np.float32) / 255
+
+
+def strip_fill(K, painted, model):
+    """Where a thing painted in front (a tray) reaches higher up the painting than the level model of it does, what
+    shows there on the model is what stands behind it: the painting inside the polygon `painted` (px) but outside
+    `model` (the model's own outline there, px) is replaced by the painting just above the polygon's upper edge,
+    reflected down about it, so the stone or brass behind runs on instead of the painted rim landing on it."""
+    from PIL import ImageDraw
+    P = K.paint
+    a = np.asarray(P.img).copy()
+    pm, mm = Image.new("L", P.img.size, 0), Image.new("L", P.img.size, 0)
+    ImageDraw.Draw(pm).polygon([tuple(q) for q in painted], fill=255)
+    ImageDraw.Draw(mm).polygon([tuple(q) for q in model], fill=255)
+    pm, mm = np.asarray(pm) > 127, np.asarray(mm) > 127
+    for x in range(P.w):
+        col = np.where(pm[:, x])[0]
+        if not len(col):
+            continue
+        top = col[0]
+        for y in col:
+            if mm[y, x]:
+                continue
+            src = 2 * top - y - 1
+            if src >= 0 and a[src, x, 3] > 127:
+                a[y, x] = a[src, x]
+    P.img = Image.fromarray(a, "RGBA")
+    P.rgba = a.astype(np.float32) / 255
+
+
+def quad_mapped(K, origin, deg, size, top, bottom, tile_img, tile_size, name=None):
+    """A material for a low box turned in plan (a tray, a slab) that the painting draws in its own perspective, more
+    steeply than the rest of the model's slope allows: the painting laid onto it by its own painted corners, not by
+    the front projection. origin, deg: the box's near corner and turn (as turn()); size (along, across, height);
+    top, bottom: the painted corners (px) of its top and of its foot, near, along, across, far (the far foot, hidden,
+    may be None: made a parallelogram). Each point of the box takes the painting at its place between its painted
+    corners (bilinear in plan, between foot and top by its height), so the painted rims land on the rims and the
+    painted floor on the floor; the faces turned away from the painting take a tile (tile_img, tile_size metres)."""
+    from kitlib import _bleed
+    P = K.paint
+    if bottom[3] is None:
+        bottom = list(bottom[:3]) + [(bottom[1][0] + bottom[2][0] - bottom[0][0], bottom[1][1] + bottom[2][1] - bottom[0][1])]
+    m = Mat(name or f"{K.name}_quad{len(K._mats)}")
+    nt = m.nt
+
+    def op(kind, a, b=None):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if v is None:
+                continue
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    c, s_ = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    X, Y = op("SUBTRACT", sep.outputs["X"], origin[0]), op("SUBTRACT", sep.outputs["Y"], origin[1])
+    pu = op("DIVIDE", op("ADD", op("MULTIPLY", X, c), op("MULTIPLY", Y, s_)), size[0])
+    qv = op("DIVIDE", op("SUBTRACT", op("MULTIPLY", Y, c), op("MULTIPLY", X, s_)), size[1])
+    pq = op("MULTIPLY", pu, qv)
+    t = nt.nodes.new("ShaderNodeClamp")
+    nt.links.new(op("DIVIDE", sep.outputs["Z"], size[2]), t.inputs["Value"])
+
+    def bil(quad, i, scale, off):
+        n0, r, l, b = (np.array(q, float) for q in quad)
+        c0, c1, c2, c3 = n0[i], r[i] - n0[i], l[i] - n0[i], b[i] - r[i] - l[i] + n0[i]
+        v = op("ADD", op("ADD", op("MULTIPLY", pu, c1), op("MULTIPLY", qv, c2)), op("ADD", op("MULTIPLY", pq, c3), c0))
+        return op("ADD", op("MULTIPLY", v, scale), off)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    for i, (scale, off) in enumerate(((1.0 / P.w, 0.0), (-1.0 / P.h, 1.0))):
+        lo, hi = bil(bottom, i, scale, off), bil(top, i, scale, off)
+        nt.links.new(op("ADD", lo, op("MULTIPLY", op("SUBTRACT", hi, lo), t.outputs[0])), vec.inputs[i])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(_bleed(P.img), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    tcol = _tile_socket(K, m, coord, (0, 0, tile_img.width, tile_img.height), tile_size, 0.0, 0.08, image=tile_img)
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sn = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], sn.inputs[0])
+    rng = nt.nodes.new("ShaderNodeMapRange")              # facing the painting (or up): the painting
+    rng.inputs["From Min"].default_value = 0.0
+    rng.inputs["From Max"].default_value = 0.25
+    nt.links.new(op("SUBTRACT", op("MULTIPLY", sn.outputs["Z"], 0.5), sn.outputs["Y"]), rng.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(tcol, mix.inputs["A"])
+    nt.links.new(tex.outputs["Color"], mix.inputs["B"])
+    m.set_colour(mix.outputs["Result"])
+    K._mats[("quad", len(K._mats))] = m
+    return m
+
+
 def turn(parts, deg, origin):
     """Turns parts built in a local frame (a thing painted three-quarters on, modelled level and square along its own
     axes) by deg about the vertical through the local origin, then sets that origin at origin (x, y): the thing turned
@@ -1551,7 +1708,7 @@ def block_pier(K, u0, u1, v0, v1, z0, z1, courses, mats, name="pier", along=None
 @fmodel("canal_piece_2", "fields", kind="prop", atlas=1024)
 def canal_piece_2(K):
     """A footbridge of two long stone slabs laid side by side on piers of rough-dressed stones, a pier under each end
-    of each slab. The painting looks down on it (K.oblique 0.283: the far piers' feet, the slabs' tops and the near
+    of each slab. The painting looks down on it (K.oblique 0.281: the far piers' feet, the slabs' tops and the near
     ends' top edges, fitted together with the outline) three-quarters on from the left, the slabs running away up to
     the right: it is modelled level and square, the slabs at their real length and the piers on the ground, and
     turned 50 degrees in plan, so the slabs' near ends and their long sides are real faces as painted; the painting,
@@ -1560,12 +1717,15 @@ def canal_piece_2(K):
     piers' blocks, each one of the painted blocks' shades."""
     P = K.paint
     # fitted to the painted outline and to 18 painted corners (the slabs' ends, the piers' feet) at once
-    K.oblique = 0.283
+    K.oblique = 0.281
     K.front_min = 0.03                                      # the tops (lit at 0.27 along the slope) take the painting
-    th, origin = 50.1, (-0.478, 0.176)                      # the turn; the front slab's near front corner
-    w, g = 0.652, 0.109                                     # each slab's width, the gap between them
-    L, ub, Lb = 3.286, -0.165, 3.426                        # the front slab's length; the back slab's start, length
-    zt, t = 0.734, 0.182                                    # the slabs' top, their thickness
+    th, origin = 49.95, (-0.476, 0.189)                     # the turn; the front slab's near front corner
+    g = 0.115                                               # the gap between the slabs
+    # each slab: its start along the slabs, length, width; its near and far piers: length along the slab, and how far
+    # they stop short of the slab's back edge (they stand flush with its front edge and its ends)
+    slabs = ((0.0, 3.290, 0.674, (0.599, 0.138), (0.450, 0.106)),
+             (-0.162, 3.433, 0.660, (0.594, 0.133), (0.414, 0.108)))
+    zt, t = 0.727, 0.189                                    # the slabs' top, their thickness
     zb = zt - t
     rot = ((250, 150), (600, 70))                           # the front slab's long side, as painted
     grain = turned_crop(K, *rot, (300, 108, 450, 132), centre=(330, 164))     # a clean patch of the slab's top
@@ -1585,16 +1745,19 @@ def canal_piece_2(K):
     stones = [img_tile(K, speckle(grain, base=sh, seed=i, amount=1.8), P.m(150), vary=0.1, key=("pier", i))
               for i, sh in enumerate(shades)]
     parts = []
-    for u0, v0, length in ((0.0, 0.0, L), (ub, w + g, Lb)):
-        parts.append(K.block(u0 + length / 2, v0 + w / 2, zb + t / 2, length, w, t, slab,
-                             rot=(0, 0, K.rng.uniform(-0.4, 0.4)), bevel=0.06, jitter=0.006, name="slab"))
+    v0 = 0.0
+    for u0, length, w, (nd, ni), (fd, fi) in slabs:
+        parts.append(K.block(u0 + length / 2, v0 + w / 2, zb + t / 2, length, w, t, slab, bevel=0.06, jitter=0.006,
+                             name="slab"))
         parts[-1].modifiers["bevel"].segments = 3          # a rounded edge, its upper face half dark
-        # the piers, flush with the slab's near (far) end and its front side as painted, three courses each (the
-        # painted courses), the middle one of two blocks along the slab, the others of two across it
-        for a0, a1, vi in ((u0, u0 + 0.59, 0.136), (u0 + length - 0.428, u0 + length, 0.106)):
+        # the piers, three courses each (the painted courses), the middle one of two blocks along the slab, the
+        # others of two across it
+        for a0, a1, vi in ((u0, u0 + nd, ni), (u0 + length - fd, u0 + length, fi)):
             parts += block_pier(K, a0 + 0.004, a1 - 0.004, v0 + 0.004, v0 + w - vi, 0.0, zb - 0.004, 3, stones,
                                 along=(False, True, False), gap=0.01, bevel=0.035)
+        v0 += w + g
     turn(parts, th, origin)
+    deink(K)                                                # the painted ink a few pixels off its edges: not projected
 
 
 def retint(crop, base):
@@ -1606,17 +1769,17 @@ def retint(crop, base):
 @fmodel("canal_piece_3", "fields", kind="prop", atlas=1024)
 def canal_piece_3(K):
     """Ghat steps down to the canal: three tiers of big dressed stone blocks, each tier set back and up from the one
-    below, a shallow stone washing tray on the ground before the lowest step and a brass pot standing on the lowest
-    step's right end. The painting looks down on it three-quarters on from the left (the steps' left end and their
-    risers both show, the risers running away up to the right): it is modelled level and square and turned 25
-    degrees in plan, so the left end and the risers are real faces. Stone on every face, block by block, each block
-    one of the painted blocks' shades; the treads and the tray drawn from above cannot show from the front of a level
-    model, so nothing is projected from the front but the pot."""
+    below (each standing on the ground, its lower course hidden behind the tier in front), a shallow stone washing
+    tray on the ground before the lowest step and a brass pot standing on the ground beside the lowest step's right
+    end. The painting looks down on it (K.oblique 0.292: the treads, the left end's foot and the tray, fitted with the
+    outline) three-quarters on from the left, the risers running away up to the right: it is modelled level and
+    square, the steps turned 34 degrees in plan and the tray 38, so the left end and the risers are real faces and
+    the painting, projected along its slope, lands on the risers, the treads, the left end and the pot.
+    Behind and underneath, stone block by block, each block one of the painted blocks' shades."""
     P = K.paint
-    K.front_exclude = [(0, 0, P.w, P.h)]
-    th, T = 25.0, 0.5                                       # the turn; each tread's depth
-    c, s = math.cos(math.radians(th)), math.sin(math.radians(th))
-    h0 = P.z(263)                                           # the lowest step: the pot stands on it as painted
+    K.oblique = k = 0.292
+    K.front_min = 0.03                                      # the treads (lit at 0.28 along the slope) take the painting
+    th, (ox, oy) = 33.84, (-0.529, 0.873)                   # the turn; the lowest step's front left foot
     # the blocks' own painted stone, its tones and blotches kept: the risers' tan-brown camouflage of light and dark
     # patches (clean patches of three painted risers, inside their ink lines, quilted with no direction in it) on
     # their faces and ends, the lit treads' paler stone on their tops; each block a little lighter or darker. The
@@ -1627,49 +1790,67 @@ def canal_piece_3(K):
     riser = strip_of([(215, 56, 335, 74), (232, 132, 330, 155), (140, 147, 212, 174)], 22)
     tread = strip_of([(240, 99, 330, 108), (155, 24, 240, 33)], 14)
     r_c, t_c = img_median(riser), img_median(tread)
-    stones = [two_tiles(K, (0, 0, 60, 1), (0, 0, 60, 1), lo=0.55, hi=0.8, side_size=P.m(riser.width),
+    # the risers' camouflage of big light and dark patches, as painted (three clean painted risers, their ink taken
+    # out, quilted into a tile with no direction in it): on the faces the painting does not reach (backs, right ends)
+    blotch = delined(strip_of([(232, 128, 338, 157), (80, 72, 188, 104), (132, 150, 208, 176)], 29), 5)
+    stones = [two_tiles(K, (0, 0, 60, 1), (0, 0, 60, 1), lo=0.55, hi=0.8, side_size=P.m(87),
                         top_size=P.m(tread.width),
-                        soften=0.0, vary=0.05, square=False, mottle=0.34, mottle_size=0.25,
-                        side_img=speckle(riser, sigma=4.0, seed=i, amount=1.8, base=r_c * f),
+                        soften=0.0, vary=0.05, square=False, mottle=0.2, mottle_size=0.4,
+                        side_img=quilt(blotch, 3, seed=i, contrast=1.25, base=r_c * f),
                         top_img=speckle(tread, sigma=4.0, seed=i + 7, amount=1.8, base=t_c * min(1.1, f * 1.04)))
-              for i, f in enumerate((1.0, 1.12, 0.88, 1.18, 0.82))]
-    # the tiers: (their courses' levels, the joints along each course from the bottom up, the right end), all from
-    # the ground (the lower courses of the upper tiers show at the left end and the back)
-    tiers = [([0.0, h0], [[0.61, 1.25, 1.85]], 2.43),
-             ([0.0, h0, h0 + 0.42], [[0.45, 1.15], [0.75, 1.48]], 1.83),
-             ([0.0, h0, h0 + 0.42, h0 + 0.84], [[0.5, 1.2], [0.2, 0.95], [0.84, 1.35]], 1.71)]
+              for i, f in enumerate((1.0, 1.1, 0.9, 1.15, 0.85))]
+    # the tiers (fitted): each tread's depth, the tier's courses from the ground with the joints along each course
+    # (the top course's where the painted blocks meet, the hidden lower courses breaking joint), its right end
+    H0, H1, H2 = 0.445, 0.680, 0.934
+    tiers = [(0.520, [0.0, H0], [[0.334, 1.376]], 1.788),
+             (0.550, [0.0, H0, H1], [[0.9], [0.644, 1.451]], 1.794),
+             (0.542, [0.0, H0, H2], [[0.55, 1.25], [0.839]], 1.778)]
     parts = []
-    for i, (levels, joints, u_r) in enumerate(tiers):
-        v0, v1 = i * T, (i + 1) * T
+    v0 = 0.0
+    for T, levels, joints, u_r in tiers:
         for (z0, z1), js in zip(zip(levels, levels[1:]), joints):
             xs = [0.0] + [j for j in js if j < u_r - 0.2] + [u_r]
             for a0, a1 in zip(xs, xs[1:]):
-                parts.append(K.block((a0 + a1) / 2, (v0 + v1) / 2, (z0 + z1) / 2, a1 - a0 - 0.016, v1 - v0 - 0.02,
-                                     z1 - z0 - 0.012, stones[int(K.rng.integers(len(stones)))],
-                                     rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.045, jitter=0.01, name="step"))
-    # the washing tray on the ground before the lowest step: a rim round a sunk floor
-    tray_px = P.crop((330, 255, 420, 285))
-    tray = img_tile(K, quilt(tray_px, 4, seed=11, contrast=1.3, base=img_median(tray_px) * 0.92), P.m(80), vary=0.08,
-                    key="tray")
-    ta0, ta1, tp0, tp1, tht, rim = 0.7, 1.8, -1.06, -0.06, 0.13, 0.09
-    parts.append(K.box(ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor"))
-    for a0, a1, p0, p1 in ((ta0, ta1, tp0, tp0 + rim), (ta0, ta1, tp1 - rim, tp1), (ta0, ta0 + rim, tp0, tp1),
-                           (ta1 - rim, ta1, tp0, tp1)):
-        parts.append(K.box(a0, a1, p0, p1, 0.0, tht, tray, bevel=0.02, name="tray_rim"))
-    ox, oy = P.x(130), -0.75                                # the lowest step's front left corner
+                parts.append(K.block((a0 + a1) / 2, v0 + T / 2, (z0 + z1) / 2, a1 - a0 - 0.014, T - 0.016,
+                                     z1 - z0 - 0.01, stones[int(K.rng.integers(len(stones)))],
+                                     rot=(0, 0, K.rng.uniform(-0.4, 0.4)), bevel=0.04, jitter=0.008, name="step"))
+        v0 += T
     turn(parts, th, (ox, oy))
-    # the brass pot standing on the lowest step at its right end, where it is painted
+    deink(K)                                                # the painted ink a few pixels off its edges: not projected
+    # the washing tray on the ground before the lowest step: a rim round a sunk floor, turned on its own. The painting
+    # draws it more steeply than the steps: it takes the painting by its own painted corners (its rims on its rims,
+    # its floor on its floor), and the front projection leaves it out
+    tray_px = P.crop((330, 255, 420, 285))
+    tray_q = quilt(tray_px, 4, seed=11, contrast=1.3, base=img_median(tray_px) * 0.92)
+    tw, td, tht, rim = 1.147, 1.124, 0.169, 0.09         # (its back corner set into the step's foot, as painted)
+    torg, tdeg = (0.404, 0.178), 37.55
+    tray = quad_mapped(K, torg, tdeg, (tw, td, tht), top=[(356, 319), (526, 270), (234, 246), (400, 208)],
+                       bottom=[(360, 343), (524, 296), (232, 292), None], tile_img=tray_q, tile_size=P.m(80))
+    # the model's tray (its outline along the slope) is lower at the back than the painted one: the stone and the
+    # brass behind run on down to it, and only the model's own tray is left out of the front projection
+    t_out = [(228, 259), (402, 220), (532, 270), (532, 302), (359, 341), (228, 291)]
+    strip_fill(K, [(226, 243), (400, 204), (532, 267), (530, 299), (360, 347), (226, 294)], t_out)
+    K.front_exclude = [("poly", [(225, 257), (402, 217), (535, 268), (535, 304), (359, 344), (225, 293)])]
+    tparts = [K.box(0.0, tw, 0.0, td, 0.0, 0.06, tray, bevel=0.015, name="tray_floor")]
+    for a0, a1, p0, p1 in ((0.0, tw, 0.0, rim), (0.0, tw, td - rim, td), (0.0, rim, rim, td - rim),
+                           (tw - rim, tw, rim, td - rim)):
+        tparts.append(K.box(a0, a1, p0, p1, 0.0, tht, tray, bevel=0.02, name="tray_rim"))
+    turn(tparts, tdeg, torg)
+    # the brass pot on the ground beside the lowest step's right end, as deep as its painted foot says (its foot ring's
+    # painted ellipse ends where the painted foot does); its painted side outline (less the ink) traced at the slope's
+    # height for its depth, a thick lip round its mouth, the painted brass projected through it along the slope
+    ax = P.x(500.5)
+    dz = P.z(257.5)                                         # the foot ring's centre, painted
+    yp = dz / k
     under = [(x, 215 + (x - 446) * 0.476, x + 10, 280) for x in range(436, 546, 10)]    # the tray's rim, painted
-    pot_m = K.projected(axis_x=P.x(497), squeeze=0.9, keep=[(440, 146, 558, 266)], exclude=under, inset=3)  # over it
-    up = (P.x(497) - ox + 0.5 * T * s) / c
-    yp = oy + up * s + 0.5 * T * c
-    prof = [(32, 262), (44, 255), (53, 238), (56, 215), (52, 198), (40, 186), (27, 178), (25, 170), (33, 163),
-            (37, 156), (35, 151)]
-    K.lathe([(P.m(r), P.z(y)) for r, y in prof], pot_m, segments=32, centre=(P.x(497), yp, 0), name="pot", cap=False)
-    K.lathe([(P.m(33), P.z(151)), (P.m(26), P.z(160)), (0.0, P.z(178))], K.colour((0.12, 0.07, 0.01), vary=0.1),
-            segments=32, centre=(P.x(497), yp, 0), name="pot_mouth", cap=False)
-    K.lathe([(0.0, P.z(262) - 0.005), (P.m(32), P.z(262) - 0.005), (P.m(32), P.z(262) + 0.002), (0.0, P.z(262) + 0.002)],
-            pot_m, segments=32, centre=(P.x(497), yp, 0), name="pot_foot")
+    pot_m = K.projected(axis_x=ax, squeeze=0.9, keep=[(440, 146, 558, 266)], exclude=under, inset=3, dz=dz)
+    prof = [(37, 257.5), (44, 252), (46, 246), (49, 240), (50, 234), (52, 228), (53, 222), (53.5, 216), (54, 210),
+            (54, 204), (53, 198), (48, 192), (41, 186), (31, 180), (26, 177), (22.5, 173), (23, 169), (30, 164),
+            (34, 160), (34, 157), (31, 155.5), (26, 156), (24, 159), (23, 166)]
+    pz = [(P.m(r), max(0.0, P.z(y) - dz)) for r, y in prof]
+    K.lathe(pz, pot_m, segments=32, centre=(ax, yp, 0), name="pot", cap=False)
+    K.lathe([(P.m(23.5), pz[-1][1]), (0.0, pz[-1][1] - 0.03)], K.colour((0.1, 0.06, 0.01), vary=0.1), segments=32,
+            centre=(ax, yp, 0), name="pot_mouth", cap=False)
 
 
 @fmodel("canal_piece_4", "fields", kind="prop", atlas=1024)
@@ -2080,18 +2261,20 @@ def hip_roof(K, x0, x1, y0, y1, z_eave, z_ridge, mat, ridge=0.0, tile_w=0.16, ti
 
 @fmodel("granary", "fields", kind="building", atlas=2048)
 def granary(K):
-    """A raised village granary: a lime-plastered store with a plank door, on a stone platform carried by six
-    staddle stones (each a rough pillar on a footing stone under a flat cap, so rats cannot climb in), under a
-    hipped roof of half-round country tiles with ridge and hip tiles and rafter ends showing under the eaves. A
-    square block: the shaded right side, the roof's right hip and the far staddle the painting shows in perspective
-    are not projected onto the front; the real sides are the same plaster, stone and tiles."""
+    """A raised village granary: a lime-plastered store with a plank door, on a stone platform carried by five
+    staddle stones (three along the front, two at the back corners; each a rough pillar on a footing stone under a
+    flat cap, so rats cannot climb in), under a hipped roof of half-round country tiles with ridge and hip tiles and
+    rafter ends showing under the eaves. The painting shows it three-quarters on, at eye level (the four painted
+    staddles' feet and the eaves' corners all level: no slope): it is built square and turned 26.6 degrees in plan
+    about the walls' front right corner (the turn from the painted eaves and ridge: front eave 390 px, right eave 155,
+    ridge 80, hips of one pitch), its front drawn out to its true width (1 / cos) so the turned front covers the
+    painted front; the right side, the roof's right hip and the back right staddle are real faces and take the
+    painting, the painted shade taken off them (the toon light shades them)."""
     P = K.paint
-    K.front_min = 0.2
-    D = 2.3
-    K.front_exclude = [(370, 196, 566, 345),                # the plastered right side
-                       (400, 340, 566, 400),                # the platform's right side
-                       (420, 400, 566, 568),                # the far staddle
-                       ("poly", [(318, 0), (566, 0), (566, 214), (404, 214), (400, 196)])]   # the right hip
+    K.front_min = 0.05
+    phi = 26.57
+    c, s_ = math.cos(math.radians(phi)), math.sin(math.radians(phi))
+    D = 2.173                                               # the walls' depth (the painted side wall, 120 px)
     # the lime plaster as painted, foot to wall plate: strips of the lit front wall (its damp brown blotches low down,
     # the clean cream above) side by side with a mirror, lined up with the wall's foot; the stone of the platform,
     # caps, footings and staddles the painted stone's grain (no painted ink, no streaks) in soft lighter and darker
@@ -2109,18 +2292,18 @@ def granary(K):
     pillar = img_tile(K, speckle(pl_px, sigma=4.0, amount=1.8, base=lit_median(K, (60, 410, 110, 520), 120)),
                       P.m(64), vary=0.06, mottle=0.3, mottle_size=0.22, key="pillar")
     tiles = K.tile((160, 100, 330, 180), soften=0.15, vary=0.04)
+    # everything is laid out in the painting's frame (x as painted for the front, y back from the front wall) and
+    # turned at the end: a point (x, y) lands at painted x + y sin(phi)
     xl, xr = P.x(82), P.x(370)
     body = K.box(xl, xr, 0.0, D, P.z(345), P.z(200) - 0.05, plaster, name="walls")
-    # the platform, the staddle stones under its corners and the middle of its long sides
-    K.box(P.x(50), P.x(402), -0.25, D + 0.25, P.z(388), P.z(345), stone_m, bevel=0.04, name="platform")
-    for x in (88, 206, 366):
-        for y in (0.0, D):
-            K.block(P.x(x), y, (P.z(378) + P.z(400)) / 2, P.m(86), 0.62, P.z(378) - P.z(400), stone_m, bevel=0.04,
-                    jitter=0.01, name="cap")
-            K.lathe([(P.m(27), P.z(530)), (P.m(25), P.z(470)), (P.m(23), P.z(420)), (P.m(25), P.z(400))], pillar,
-                    segments=8, centre=(P.x(x), y, 0), wobble=0.06, name="staddle", smooth=False)
-            K.block(P.x(x), y, P.z(542), P.m(88), 0.6, P.z(530) - P.z(555), stone_m, bevel=0.04, jitter=0.01,
-                    name="footing")
+    # the platform (front face 50 to 380 px, its right side to 515 px)
+    pf = 0.136
+    K.box(P.x(50) + pf * s_, P.x(380) + pf * s_, -pf, D + pf, P.z(388), P.z(345), stone_m, bevel=0.04, name="platform")
+    # the staddle stones: three under the front (where painted), two under the back corners (the right one painted,
+    # the left one hidden behind the front middle one); placed after the turn (round and square in plan, not drawn
+    # out with the front), each footing and cap square, as wide across the painting as painted (86, 88 px less ink)
+    yf, yb = 0.1, 2.04
+    staddles = [(P.x(px) - y * s_, y) for px, y in ((88, yf), (206, yf), (366, yf), (207, yb), (473, yb))]
     # the door in its frame
     K.cut(body, P.x(190), P.x(272), -0.05, 0.2, P.z(345), P.z(206))
     frame = K.colour((192, 210, 200, 340), vary=0.06)
@@ -2128,24 +2311,52 @@ def granary(K):
     for x0, x1 in ((190, 199), (263, 272)):
         K.box(P.x(x0), P.x(x1), -0.02, 0.12, P.z(345), P.z(206), frame, name="jamb")
     K.box(P.x(190), P.x(272), -0.02, 0.12, P.z(220), P.z(206), frame, name="frame_head")
-    # small vents high in the back wall and the right side
+    # small vents high in the back wall and the left side (the painted right side has none)
     dark = K.colour((0.05, 0.04, 0.03), vary=0.0)
     K.cut(body, P.x(200), P.x(250), D - 0.1, D + 0.05, P.z(240), P.z(222))
     K.box(P.x(200), P.x(250), D - 0.1, D - 0.08, P.z(240), P.z(222), dark, name="vent")
-    K.cut(body, xr - 0.1, xr + 0.05, D / 2 - 0.2, D / 2 + 0.2, P.z(240), P.z(222))
-    K.box(xr - 0.1, xr - 0.08, D / 2 - 0.2, D / 2 + 0.2, P.z(240), P.z(222), dark, name="vent")
-    # the roof: hipped, over a wall plate, with rafter ends under the eaves all round
+    K.cut(body, xl - 0.05, xl + 0.1, D / 2 - 0.2, D / 2 + 0.2, P.z(240), P.z(222))
+    K.box(xl + 0.08, xl + 0.1, D / 2 - 0.2, D / 2 + 0.2, P.z(240), P.z(222), dark, name="vent")
+    # the roof: hipped, over a wall plate, with rafter ends under the eaves all round; its eaves from the painted
+    # eave corners (front left 10, front right 400, back right 555 px), its ridge (80 px) from hips of one pitch
     plate = K.colour((0.22, 0.11, 0.05), vary=0.08)
     K.box(xl - 0.06, xr + 0.06, -0.06, D + 0.06, P.z(206), P.z(198), plate, name="wall_plate")
-    ov = P.m(72)
-    hip_roof(K, xl - ov, xr + ov, -ov, D + ov, P.z(198), P.z(22), tiles, ridge=P.m(74))
+    ov = 0.316                                              # the eaves' overhang front and back
+    xa = P.x(10) + ov * s_
+    xb = P.x(400) + ov * s_
+    hip_roof(K, xa, xb, -ov, D + ov, P.z(198), P.z(22), tiles, ridge=(xb - xa) - c * (D + 2 * ov))
     rafter = K.colour((0.3, 0.14, 0.06), vary=0.1)
     for x in (130, 226, 322):
         for y0, y1 in ((0.2, -ov + 0.08), (D - 0.2, D + ov - 0.08)):
             K.tube([(P.x(x), y0, P.z(203)), (P.x(x), y1, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
-    for y in (0.4, D / 2, D - 0.4):
-        for x0, x1 in ((xl + 0.2, xl - ov + 0.08), (xr - 0.2, xr + ov - 0.08)):
+    for y in (0.73, D - 0.73):                             # (the painted right eave's rafter end at 448 px)
+        for x0, x1 in ((xl + 0.2, xa + 0.08), (xr - 0.2, xb - 0.08)):
             K.tube([(x0, y, P.z(203)), (x1, y, P.z(203))], P.m(7), rafter, segments=8, name="rafter")
+    for (x0, y0), (x1, y1), (sx, sy) in ((((xl, 0.0), (xa, -ov), (1, 1))), (((xr, 0.0), (xb, -ov), (-1, 1))),
+                                         (((xl, D), (xa, D + ov), (1, -1))), (((xr, D), (xb, D + ov), (-1, -1)))):
+        K.tube([(x0 + sx * c * 0.15, y0 + sy * 0.15, P.z(203)), (x1 + sx * c * 0.12, y1 + sy * 0.12, P.z(203))],
+               P.m(7), rafter, segments=8, name="rafter")       # the hip rafters, their ends under the corners
+    # turned in plan about the walls' front right corner, the front first drawn out to its true width
+    M = (Matrix.Translation((xr, 0.0, 0.0)) @ Matrix.Rotation(math.radians(-phi), 4, "Z")
+         @ Matrix.Diagonal((1 / c, 1.0, 1.0, 1.0)) @ Matrix.Translation((-xr, 0.0, 0.0)))
+    for ob in with_cutters(list(K.parts)):
+        ob.data.transform(M)
+    cap_w, foot_w = P.m(83) / (c + s_), P.m(85) / (c + s_)
+    for x, y in staddles:
+        w = M @ Vector((x, y, 0.0))
+        K.block(w.x, w.y, (P.z(378) + P.z(400)) / 2, cap_w, cap_w, P.z(378) - P.z(400), stone_m, rot=(0, 0, -phi),
+                bevel=0.04, jitter=0.008, name="cap")
+        K.lathe([(P.m(27), P.z(530)), (P.m(25), P.z(470)), (P.m(22.5), P.z(420)), (P.m(24), P.z(400))], pillar,
+                segments=8, centre=(w.x, w.y, 0), wobble=0.05, name="staddle", smooth=False)
+        K.block(w.x, w.y, (P.z(530) + P.z(557)) / 2, foot_w, foot_w, P.z(530) - P.z(557), stone_m, rot=(0, 0, -phi),
+                bevel=0.04, jitter=0.008, name="footing")
+    # the painted shade off the faces the model has as real ones: the right side wall, the platform's right end,
+    # the back staddle, the roof's right hip (each to its lit painted material)
+    relight(K, [(368, 198), (494, 198), (494, 347), (368, 347)], (88, 222, 335, 340))
+    relight(K, [(378, 343), (520, 343), (520, 378), (378, 378)], (60, 350, 370, 372))
+    relight(K, [(426, 378), (522, 378), (522, 560), (426, 560)], (40, 378, 410, 560))
+    relight(K, [(318, 10), (334, 10), (560, 186), (560, 206), (402, 206), (398, 188)], (150, 100, 280, 170))
+    deink(K, region=[(30, 400, 540, 568)])                   # the staddles' painted outlines: not down their sides
 
 
 def place(parts, angle, pivot):

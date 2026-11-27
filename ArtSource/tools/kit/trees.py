@@ -1776,14 +1776,18 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                  crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
                  crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360), sky_exclude=(), bark_tile=None,
                  bark_exclude=(), fuse_faces=8500, trunk_rows=None, trunk_depth=0.85, wood_extra=None, prefit=False,
-                 seg_hide=False, gap_min=None, ground_z=None, gap_exact=False, top_tilt=0.0, top_u=None):
+                 seg_hide=False, gap_min=None, ground_z=None, gap_exact=False, top_tilt=0.0, top_u=None,
+                 copy_sag=0.05, root_copies=True):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves. (Options for a tree with sky painted between its limbs, the shrine's:
     trunk_rows lofts the trunk through its painted rows [(py, x_left, x_right)] instead of a tube; prefit: the limbs
     come already fitted to the painting (fit_limb), and the crown's cards leave out exactly their tubes' outline
     (raster_tubes); seg_hide: a turned limb copy also ends where the stretch between two of its points would show;
     gap_min: the smallest painted gap (px) the crown's turned cards keep away from; wood_extra(K, bark) -> more wood
-    to fuse; ground_z(x, y): the ground's height under the spreading roots.)"""
+    to fuse; ground_z(x, y): the ground's height under the spreading roots; copy_sag: how far (metres) a turned limb
+    copy sags in its middle (it is checked against the painting where it is drawn, not where it sags to: 0 keeps it
+    exactly where it was checked); root_copies False: no turned root copies here (the caller makes its own, through
+    wood_extra).)"""
     P = K.paint
     rng = K.rng
     if prefit:
@@ -1876,7 +1880,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                 y = dist * math.sin(a)
                 lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
                 y = y0 + float(np.clip(y, -lim, lim))
-                q.append((x, y, P.z(py) - 0.05 * math.sin(math.pi * i / max(1, len(pts) - 1))))
+                q.append((x, y, P.z(py) - copy_sag * math.sin(math.pi * i / max(1, len(pts) - 1))))
                 # no thicker than the painting is solid round where it shows from the front (a thick copy ending
                 # below a painted gap poked its rounded end up into the sky)
                 rq.append(min(r * 0.9, max(3.0, dsolid[int(np.clip(py, 0, P.h - 1)),
@@ -1905,7 +1909,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
             rr = [r * (1 - 0.3 * i / (n - 1)) for i, r in enumerate(rr)]
         wood.append(K.tube(q, rr, bark, segments=12, name="root"))
     xt = P.x(trunk[0][0])
-    for k, pts in enumerate(roots):
+    for k, pts in enumerate(roots if root_copies else ()):
         for phi in (rng.uniform(20, 160), rng.uniform(20, 160) if k % 2 else rng.choice([-1, 1]) * rng.uniform(0, 15)):
             a = math.radians(phi)
             q, rr = [], []
@@ -3666,79 +3670,337 @@ def h2_3(K):
               traced=bunch)
 
 
-class DiamondKatte:
-    """A square stone platform turned so a corner faces the camera (as painted, seen from a little above): corners
-    F (front), L, R painted at x_F, x_L, x_R px; level and square, its top at the front corner's painted height (the
-    painted top face recedes in perspective: from the front that face is not matched, and the things standing on it
-    stand on the level top)."""
+class ObliqueKatte:
+    """A square stone platform turned so a corner faces the camera, painted from above (h3_1's katte): built true,
+    level and square where it really stands, and seen along the painting's slope (K.oblique = k: a thing painted
+    higher stands further back, never higher up). Measured off the painting (a least-squares fit of the level box
+    to the painted bottom edges, the top's back edges and the coping's top and bottom lines): the walls' front
+    corner at x_F px with its foot painted py_F px down, the left and right corners at x_L, x_R px, the left one d_L
+    px behind the front one (the right one's depth follows from the right angle); the coping's top h px up, the
+    coping c px thick and lip px proud of the walls; the trunk (x_T px, r_T px round its foot) d_T px behind the
+    front corner.
 
-    def __init__(self, K, xL, xF, xR, zL_py, zF_py, cx_px=None):
+    For the tree standing on it, it also describes itself in the tree's painted space (x and z as painted, depth y
+    about the trunk; to_real sets that space where it really stands): there its top is the painted top, rising k
+    per metre back (top, y_on_top, clip, hy, X0, X1, as _peepal_tree asks of a katte)."""
+
+    def __init__(self, K, k, x_F, x_L, x_R, d_L, py_F, h, c, lip, x_T, d_T, r_T):
         P = K.paint
-        self.K, self.P = K, P
-        a_c, a_s = P.m(xF - xL), P.m(xR - xF)
-        self.F = Vector((P.x(xF), -(a_c * a_s) / math.hypot(a_c, a_s) * 0 - 0.0, 0))
-        # plan: F + u (L - F) + v (R - F); centre (L + R) / 2 at y = 0
-        L2 = Vector((P.x(xL), 0, 0))
-        R2 = Vector((P.x(xR), 0, 0))
-        dyL, dyR = a_s, a_c                                      # L - F has y = a sin, R - F has y = a cos
-        yF = -(dyL + dyR) / 2
-        self.F = Vector((P.x(xF), yF, 0))
-        self.L = Vector((P.x(xL), yF + dyL, 0))
-        self.R = Vector((P.x(xR), yF + dyR, 0))
+        self.K, self.P, self.k = K, P, k
+        y_F = P.z(py_F) / k
+        aL, aR, dL = P.m(x_L - x_F), P.m(x_R - x_F), P.m(d_L)
+        dR = -aL * aR / dL
+        self.F = Vector((P.x(x_F), y_F, 0.0))
+        self.L = self.F + Vector((aL, dL, 0.0))
+        self.R = self.F + Vector((aR, dR, 0.0))
         self.B = self.L + self.R - self.F
-        self.yF = yF
-        self.zF, self.zL = P.z(zF_py), P.z(zL_py)
-        self.hy = -yF
-        self.X0, self.X1 = P.x(xL), P.x(xR)
+        self.C = (self.L + self.R) / 2
+        self.h, self.c, self.lip = P.m(h), P.m(c), P.m(lip)
+        self.xT, self.yT, self.rT = P.x(x_T), y_F + P.m(d_T), P.m(r_T)
+        self.X0, self.X1 = self.L.x, self.R.x
+        self.hy = max(self.yT - y_F, self.B.y - self.yT)
 
+    # ---------------------------------------------------------------- the real platform
+    def span(self, x):
+        """The real depths its walls cover at x: (front, back)."""
+        F, L, R, B = self.F, self.L, self.R, self.B
+
+        def on(a, b):
+            t = (x - a.x) / (b.x - a.x) if abs(b.x - a.x) > 1e-9 else 0.0
+            return a.y + float(np.clip(t, 0.0, 1.0)) * (b.y - a.y)
+        return (on(F, L) if x <= F.x else on(F, R)), (on(L, B) if x <= B.x else on(B, R))
+
+    def depth_on_top(self, px, py):
+        """The real depth at which a point painted at (px, py) lies on the level top."""
+        return (self.P.z(py) - self.h) / self.k
+
+    def _box(self, z0, z1, mat, grow, name, bottom=True):
+        e1, e2 = (self.L - self.F).normalized(), (self.R - self.F).normalized()
+        cs = [self.F - (e1 + e2) * grow, self.L + (e1 - e2) * grow, self.B + (e1 + e2) * grow,
+              self.R + (e2 - e1) * grow]
+        bm = bmesh.new()
+        lo = [bm.verts.new((c.x, c.y, z0)) for c in cs]
+        hi = [bm.verts.new((c.x, c.y, z1)) for c in cs]
+        bm.faces.new(hi)
+        if bottom:
+            bm.faces.new(list(reversed(lo)))
+        for i in range(4):
+            j = (i + 1) % 4
+            bm.faces.new([lo[i], lo[j], hi[j], hi[i]])
+        return _add(self.K, bm, mat, name, smooth=False)
+
+    def build(self, wall_mat, coping_mat):
+        """The body from the ground up to under the coping (no bottom: it stands on the ground), and the coping slab
+        on it, proud of the walls all round; both level and square."""
+        self._box(0.0, self.h - self.c + 0.002, wall_mat, 0.0, "platform_body", bottom=False)
+        return self._box(self.h - self.c, self.h, coping_mat, self.lip, "platform_coping")
+
+    # ---------------------------------------------------------------- the tree's painted space
     def top(self, x, y):
-        """Its top is level (at the painted front corner's height); the painting's receding top face is perspective,
-        not a slope."""
-        return self.zF
+        """The top's height under (x, y) in the tree's painted space: the painted top, rising k per metre back."""
+        return self.h + self.k * (y + self.yT)
 
     def y_on_top(self, px, py, r_px=0.0, side=-1):
-        z = self.P.z(py) - self.P.m(r_px) * 0.6
-        t = float(np.clip((z - self.zF) / max(1e-6, self.zL - self.zF), 0.0, 1.0))
-        return self.yF * (1 - t) if side < 0 else -self.yF * (1 - t) * 0.9
-
-    def uv(self, x, y):
-        M = np.array([[self.L.x - self.F.x, self.R.x - self.F.x], [self.L.y - self.F.y, self.R.y - self.F.y]])
-        return np.linalg.solve(M, np.array([x - self.F.x, y - self.F.y]))
+        """The depth (in the tree's space) at which a thing painted at (px, py), its centre r px above the top, lies
+        on the top: further back the higher it is painted; no further back than the trunk's foot there (a root
+        painted high on the trunk's flare rises on it, in front), and on the platform."""
+        P = self.P
+        x = P.x(px)
+        y = (P.z(py) - P.m(r_px) * 0.6 - self.h) / self.k
+        dx = abs(x - self.xT)
+        if dx < self.rT:
+            y = min(y, self.yT - math.sqrt(self.rT ** 2 - dx ** 2) * 0.85)
+        f, b = self.span(x)
+        y = float(np.clip(y, f + P.m(r_px) + 0.01, max(f + P.m(r_px) + 0.01, b - P.m(r_px) - 0.01)))
+        return y - self.yT
 
     def clip(self, x, y, m=0.04):
-        u, v = np.clip(self.uv(x, y), m, 1 - m)
-        p = self.F + (self.L - self.F) * float(u) + (self.R - self.F) * float(v)
-        return p.x, p.y
+        """(x, y) of the tree's space kept on the platform, m metres in from its edges."""
+        e1, e2 = self.L - self.F, self.R - self.F
+        M = np.array([[e1.x, e2.x], [e1.y, e2.y]])
+        u, v = np.linalg.solve(M, np.array([x - self.F.x, y + self.yT - self.F.y]))
+        u = float(np.clip(u, m / e1.length, 1 - m / e1.length))
+        v = float(np.clip(v, m / e2.length, 1 - m / e2.length))
+        p = self.F + e1 * u + e2 * v
+        return p.x, p.y - self.yT
 
-    def solid(self, mat, scale, zbot, ztop, n=20, name="platform"):
-        """A closed solid over the diamond (scaled about its centre): its top at ztop(x, y), its bottom at
-        zbot(x, y) (functions, metres)."""
-        c = (self.L + self.R) / 2
-        F, L, R = [c + (v - c) * scale for v in (self.F, self.L, self.R)]
-        bm = bmesh.new()
+    def to_real(self, objs):
+        """Parts built in the tree's painted space set where they really stand: (x, y + y_T, z - k (y + y_T)). Seen
+        along the painting's slope they are exactly as painted; every texture coordinate their materials read is
+        taken back to the painted space (x, y - y_T, z + k y), so their projections and tiles land as before."""
+        k, yT = self.k, self.yT
+        M = Matrix(((1, 0, 0, 0), (0, 1, 0, yT), (0, -k, 1, -k * yT), (0, 0, 0, 1)))
+        mats = []
+        for ob in objs:
+            ob.data.transform(ob.matrix_world.inverted() @ M @ ob.matrix_world)
+            ob.data.update()
+            for m in ob.data.materials:
+                if m is not None and m not in mats:
+                    mats.append(m)
+        for m in mats:
+            nt = m.node_tree
+            for node in [n for n in nt.nodes if n.bl_idname == "ShaderNodeTexCoord"]:
+                links = [(l, l.to_socket) for l in nt.links if l.from_node == node and l.from_socket.name == "Object"]
+                if not links:
+                    continue
+                sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+                nt.links.new(node.outputs["Object"], sep.inputs[0])
+                comb = nt.nodes.new("ShaderNodeCombineXYZ")
+                nt.links.new(sep.outputs["X"], comb.inputs[0])
+                nt.links.new(_math(nt, "SUBTRACT", sep.outputs["Y"], yT), comb.inputs[1])
+                nt.links.new(_math(nt, "ADD", sep.outputs["Z"], _math(nt, "MULTIPLY", sep.outputs["Y"], k)),
+                             comb.inputs[2])
+                for l, to in links:
+                    nt.links.remove(l)
+                    nt.links.new(comb.outputs[0], to)
+        return mats
 
-        def at(u, v):
-            p = F + (L - F) * u + (R - F) * v
-            return p.x, p.y
-        top = [[bm.verts.new((*at(i / n, j / n), ztop(*at(i / n, j / n)))) for i in range(n + 1)] for j in range(n + 1)]
-        bot = [[bm.verts.new((*at(i / n, j / n), zbot(*at(i / n, j / n)))) for i in range(n + 1)] for j in range(n + 1)]
-        for j in range(n):
+
+def katte_mat(K, katte, tile, top=None, back=None, name=None):
+    """A material for h3_1's katte, level and square where it really stands and painted from above: on faces looking
+    up, the painting projected along its slope (object x, z + k y -> painting) wherever it shows the top's stone
+    (top = (keep, keep_mirror), bool HxW masks), and where it shows something else there (roots, stones, lamps, the
+    trunk) the lit stone from the opposite side of the square (turned half round about its middle: keep_mirror),
+    so the back half has the same stone and the same border line as the front. On walls turned to the back, the
+    painted front-right wall (back: its mask; lit, with its broken plaster), turned half round onto the back-left
+    wall and mirrored across the left-right diagonal onto the back-right one (the front-left wall is painted in
+    shade: light, not a material). Elsewhere (and wherever those miss) the tile (a kit material of the painted
+    stone); the front faces take the painting from the front in the bake."""
+    P, k = K.paint, katte.k
+    mat = tile.mat.copy()
+    mat.name = name or f"{K.name}_katte"
+    nt = mat.node_tree
+    emit = next(n for n in nt.nodes if n.bl_idname == "ShaderNodeEmission")
+    col = emit.inputs["Color"].links[0].from_socket
+    tile_col = col
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    X, Y, Z = sep.outputs["X"], sep.outputs["Y"], sep.outputs["Z"]
+    nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Normal"], nsep.inputs[0])
+
+    def image(mask, tag):
+        a = np.asarray(P.img).copy()
+        if mask.any():
+            _, (iy, ix) = ndimage.distance_transform_edt(~mask, return_indices=True)
+            a[..., :3] = a[iy, ix, :3]
+        a[..., 3] = np.where(mask, 255, 0)
+        img = _image(Image.fromarray(a, "RGBA"), f"{mat.name}_{tag}")
+        img.alpha_mode = "CHANNEL_PACKED"
+        return img
+
+    def sample(img, x, y):
+        u = _math(nt, "ADD", _math(nt, "DIVIDE", x, P.W), 0.5)
+        v = _math(nt, "DIVIDE", _math(nt, "ADD", Z, _math(nt, "MULTIPLY", y, k)), P.H)
+        vec = nt.nodes.new("ShaderNodeCombineXYZ")
+        nt.links.new(u, vec.inputs[0])
+        nt.links.new(v, vec.inputs[1])
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.extension = "CLIP"
+        nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+        return tex.outputs["Color"], tex.outputs["Alpha"]
+
+    def mix(a, b, f):
+        n = nt.nodes.new("ShaderNodeMix")
+        n.data_type = "RGBA"
+        nt.links.new(f, n.inputs["Factor"])
+        nt.links.new(a, n.inputs["A"])
+        nt.links.new(b, n.inputs["B"])
+        return n.outputs["Result"]
+
+    def facing(nx, ny, nz):
+        dot = _math(nt, "ADD", _math(nt, "ADD", _math(nt, "MULTIPLY", nsep.outputs["X"], nx),
+                                          _math(nt, "MULTIPLY", nsep.outputs["Y"], ny)),
+                    _math(nt, "MULTIPLY", nsep.outputs["Z"], nz))
+        r = nt.nodes.new("ShaderNodeMapRange")
+        r.interpolation_type = "SMOOTHSTEP"
+        r.inputs["From Min"].default_value = 0.5
+        r.inputs["From Max"].default_value = 0.85
+        nt.links.new(dot, r.inputs["Value"])
+        return r.outputs["Result"]
+    C = katte.C
+    # half turned: (2c - x); mirrored across the left-right diagonal (through C, along d)
+    xr, yr = _math(nt, "SUBTRACT", 2 * C.x, X), _math(nt, "SUBTRACT", 2 * C.y, Y)
+    d = (katte.R - katte.L).normalized()
+    px_, py_ = _math(nt, "SUBTRACT", X, C.x), _math(nt, "SUBTRACT", Y, C.y)
+    t2 = _math(nt, "MULTIPLY", _math(nt, "ADD", _math(nt, "MULTIPLY", px_, d.x), _math(nt, "MULTIPLY", py_, d.y)), 2.0)
+    xf = _math(nt, "SUBTRACT", _math(nt, "ADD", _math(nt, "MULTIPLY", t2, d.x), C.x), px_)
+    yf = _math(nt, "SUBTRACT", _math(nt, "ADD", _math(nt, "MULTIPLY", t2, d.y), C.y), py_)
+    if back is not None:
+        img = image(back, "wall")
+        e1 = (katte.L - katte.F).normalized()
+        e2 = (katte.R - katte.F).normalized()
+        r_col, r_a = sample(img, xr, yr)
+        f_col, f_a = sample(img, xf, yf)
+        col = mix(col, r_col, _math(nt, "MULTIPLY", r_a, facing(e1.x, e1.y, 0.0)))
+        col = mix(col, f_col, _math(nt, "MULTIPLY", f_a, facing(e2.x, e2.y, 0.0)))
+    if top is not None:
+        keep, keep_mirror = top
+        d_col, d_a = sample(image(keep, "direct"), X, Y)
+        m_col, m_a = sample(image(keep_mirror, "mirror"), xr, yr)
+        col = mix(col, mix(mix(tile_col, m_col, m_a), d_col, d_a), facing(0.0, 0.0, 1.0))
+    nt.links.new(col, emit.inputs["Color"])
+    return mat
+
+
+def katte_top_masks(K, stones, boxes):
+    """Where the painting shows h3_1's katte's stone (its top, coping and walls: pale cream, olive and the
+    shaded olive, not the brown roots and trunk), outside the stones' outlines and the lamps' and flowers' boxes;
+    and, stricter, clear of the lamps' glow and the shadows round the stones (for the half-turned copy)."""
+    P = K.paint
+    a = (P.rgba * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(a[..., :3])
+    al = a[..., 3] > 127
+    H, W = al.shape
+    stone = al & ((((g - b) > 38) & (mx > 150) & ((r - g) < 32)) | (((g - b) > 24) & ((r - g) < 16) & (mx > 90)))
+    stone &= np.arange(H)[:, None] > 1040
+    from PIL import ImageDraw
+    m = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(m)
+    for p in stones:
+        d.polygon(p, fill=255)
+    for bx in boxes:
+        d.rectangle(bx, fill=255)
+    objs = np.asarray(m) > 127
+
+    def clean(s):
+        lab, n = ndimage.label(s)
+        if n:
+            sizes = ndimage.sum(s, lab, range(1, n + 1))
+            s = np.isin(lab, 1 + np.nonzero(sizes > 3000)[0])
+        holes = ndimage.binary_fill_holes(s) & ~s          # (the painted ink lines and cracks on it stay)
+        hl, hn = ndimage.label(holes)
+        if hn:
+            hs = ndimage.sum(holes, hl, range(1, hn + 1))
+            s |= np.isin(hl, 1 + np.nonzero(hs < 600)[0])
+        return ndimage.binary_erosion(s, iterations=1)
+    keep = clean(stone & ~ndimage.binary_dilation(objs, iterations=5))
+    # (the copy for the back half: lit stone only, clear of the lamps' glow and the stones' shadows; the tree's
+    # shade painted over the top's left is light, not stone, and a second one turned onto the back looked a stain)
+    keep_mirror = clean(stone & (mx > 165) & ~ndimage.binary_dilation(objs, iterations=45))
+    return keep, keep_mirror, stone & ~objs
+
+
+def upright_crown(K, cards, crown, k, cap=0.08):
+    """A crown built in the painted space of a painting drawn from above, before to_real sets it where it really
+    stands (which lowers every point k x its depth, so a crown built round the painted dome leans towards the camera):
+    every card moved in depth only (so along the painting's slope the crown is unchanged) to keep its share of the
+    crown's depth where the upright crown has it, the painted dome k x its depth higher for a card in front of the
+    middle, lower for one behind. All the cards move together (the shells alone moved away from the cards inside and
+    left see-through gaps); less towards the painted outline, where a card at the crown's lower edge took the depth
+    of its fuller middle and stood out as a loose sliver."""
+    P = K.paint
+    for ob in cards:
+        me = ob.data
+        if not len(me.vertices):
+            continue
+        c = sum((vx.co for vx in me.vertices), Vector()) / len(me.vertices)
+        px, py = P.px(c.x), P.py(c.z)
+        d0 = d = c.y - crown.y0
+        s = d / max(1e-6, crown.extent(px, py))
+        for _ in range(6):
+            d = s * crown.extent(px, P.py(c.z - k * d))
+        t = min(1.0, crown.reach(px, py) / 0.5)
+        dd = float(np.clip((d - d0) * t * t * (3 - 2 * t), -cap, cap))
+        for vx in me.vertices:
+            vx.co.y += dd
+        me.update()
+
+
+def katte_root_copies(K, katte, bark, roots, foot, n_copies=2):
+    """Roots spreading round the trunk's foot over the katte's top, to the sides and back: each painted root (as
+    _peepal_tree lays it on the top) turned about the trunk where it really stands, at the real heights it has, and
+    kept only as far as it stays hidden from the painting's view behind what is painted there (foot: the painted
+    trunk, roots and stones, bool HxW): from along the painted slope a root lying further back shows higher up, and
+    where the painting shows the top or the sky beside the trunk it would stand out (it ends there, tapering)."""
+    P, k, rng = K.paint, katte.k, K.rng
+    xT, yT = katte.xT, katte.yT
+    H, W = foot.shape
+
+    def hidden(x, y, z, r):
+        # (its whole width and top, with the fused surface's few px of swell and the ink line, inside)
+        px, py, rp = P.px(x), P.py(z + k * y), r * P.ppm
+        return all(foot[int(np.clip(py + dy, 0, H - 1)), int(np.clip(px + dx, 0, W - 1))]
+                   for dx, dy in ((0, 0), (-rp - 6, 0), (rp + 6, 0), (0, -rp - 8), (-rp * 0.7 - 4, -rp * 0.7 - 4),
+                                  (rp * 0.7 + 4, -rp * 0.7 - 4)))
+    out = []
+    for pts in roots:
+        q = []
+        for i, (px, py, r) in enumerate(pts):
+            q.append([P.x(px), katte.y_on_top(px, py, r) if i else 0.0, P.z(py), P.m(r)])
+        q[0][1] = q[1][1] * 0.3
+        drop = q[-1][2] - (katte.top(q[-1][0], q[-1][1]) + q[-1][3] * 0.4)
+        if drop > 0:
+            n = len(q)
             for i in range(n):
-                bm.faces.new([top[j][i], top[j][i + 1], top[j + 1][i + 1], top[j + 1][i]])
-                bm.faces.new([bot[j][i], bot[j + 1][i], bot[j + 1][i + 1], bot[j][i + 1]])
-        ring = [(0, i) for i in range(n)] + [(i, n) for i in range(n)] + [(n, n - i) for i in range(n)] + \
-            [(n - i, 0) for i in range(n)]
-        for (a, b), (c2, d) in zip(ring, ring[1:] + ring[:1]):
-            bm.faces.new([top[a][b], bot[a][b], bot[c2][d], top[c2][d]])
-        return _add(K=self.K, bm=bm, mat=mat, name=name, smooth=False)
-
-    def build(self, side_mat, top_mat, coping_mat=None, coping=0.03, lip=0.015, n=20):
-        """The platform: its body, from the ground up to under the coping, and the coping slab on it, a little
-        proud of the walls, its top sloping as painted."""
-        half = (self.R - self.L).length / 2
-        self.solid(side_mat, 1.0, lambda x, y: 0.0, lambda x, y: self.top(x, y) - coping, n=n, name="platform_body")
-        self.solid(coping_mat or top_mat, 1.0 + lip / half, lambda x, y: self.top(x, y) - coping,
-                   lambda x, y: self.top(x, y), n=n, name="platform_coping")
+                q[i][2] -= drop * i / (n - 1)
+                q[i][3] *= 1 - 0.3 * i / (n - 1)
+        real = [(x, yp + yT, z - k * (yp + yT), r) for x, yp, z, r in q]
+        d0 = math.atan2(real[-1][1] - yT, real[-1][0] - xT)
+        for _ in range(n_copies):
+            turn = math.radians(rng.uniform(15, 165)) - d0
+            c, s_ = math.cos(turn), math.sin(turn)
+            pts2, rr = [], []
+            for i, (x, y, z, r) in enumerate(real):
+                dx, dy = x - xT, y - yT
+                x2, y2 = xT + dx * c - dy * s_, yT + dx * s_ + dy * c
+                x2, y2p = katte.clip(x2, y2 - yT, m=r + 0.01)
+                y2 = y2p + yT
+                z2 = max(z, katte.h + r * 0.4)
+                if i and not hidden(x2, y2, z2, r):
+                    break
+                pts2.append((x2, y2 - yT, z2 + k * y2))
+                rr.append(r * 0.95)
+            if len(pts2) < 2:
+                continue
+            if len(pts2) < len(real):
+                m_ = min(3, len(rr) - 1)
+                for j in range(m_):
+                    rr[-1 - j] *= 0.3 + 0.7 * j / m_
+            out.append(K.tube(pts2, rr, bark, segments=10, name="root_turned"))
+    return out
 
 
 NAGA_STONES = [
@@ -3751,14 +4013,14 @@ NAGA_STONES = [
     [(1135, 1080), (1155, 1085), (1160, 1110), (1158, 1130), (1175, 1150), (1180, 1172), (1110, 1175), (1100, 1160),
      (1120, 1140), (1125, 1110), (1125, 1090)],
 ]
-H31_TRUNK = [(880, 1160, 190), (880, 1050, 175), (880, 950, 152), (880, 850, 145), (885, 750, 135), (890, 650, 115),
+H31_TRUNK = [(880, 1160, 190), (880, 1050, 175), (880, 950, 149), (889, 860, 150), (878, 750, 122), (884, 650, 112),
              (895, 560, 100), (900, 500, 80), (905, 440, 50), (905, 400, 28)]
 H31_LIMBS = [
     [(830, 620, 55), (740, 600, 42), (660, 580, 34), (580, 560, 26), (500, 520, 18)],
     [(880, 560, 70), (860, 470, 55), (850, 380, 40), (860, 300, 30), (880, 220, 20)],
     [(960, 600, 60), (1030, 560, 48), (1090, 520, 38), (1150, 470, 28), (1220, 420, 20)],
     [(760, 760, 40), (690, 712, 32), (615, 685, 26), (520, 678, 20), (430, 672, 15)],
-    [(990, 790, 55), (1090, 770, 38), (1180, 748, 33), (1280, 690, 24), (1380, 678, 18)],
+    [(990, 795, 58), (1080, 785, 50), (1180, 745, 36), (1270, 707, 28), (1380, 678, 18)],
     [(1200, 725, 30), (1260, 650, 24), (1330, 610, 18), (1400, 600, 12)],
 ]
 H31_ROOTS = [
@@ -3774,85 +4036,122 @@ H31_ROOTS = [
 def h3_1(K):
     """A peepal on its square stone katte, a corner to the front: the massive fluted trunk on roots gripping the
     platform, red and yellow threads wound round it and round its right limb, four carved naga stones at its foot,
-    clay lamps burning and marigolds before them, and a broad crown of big heart-shaped leaves."""
+    clay lamps burning and marigolds before them, and a broad crown of big heart-shaped leaves.
+
+    The painting draws the katte from above: its top and walls recede, everything further back drawn higher. The
+    model is true, level and square where it really stands, seen along the painting's slope (K.oblique, measured
+    off the painted platform: ObliqueKatte). The tree, the threads, the stones and the flowers are built as painted
+    (x, z) at their depths in the painted space, then set where they really stand (to_real): a thing painted higher
+    because it stands further back goes further back, never up."""
     P = K.paint
     rng = K.rng
-    katte = DiamondKatte(K, 208, 800, 1582, 1150, 1290)
+    k = 0.226
+    K.oblique = k
+    katte = ObliqueKatte(K, k, x_F=803, x_L=224, x_R=1559, d_L=723, py_F=1452, h=135, c=28, lip=12,
+                         x_T=880, d_T=780, r_T=150)
     side = K.tile((1050, 1310, 1190, 1385), vary=0.06, soften=0.35)      # inside the wall: no edge lines
-    top = strip_tile(K, (1334, 1252, 1514, 1292), soften=0.3, quilt=True)     # its clean pale stone
-    coping = K.tile((560, 1262, 760, 1300), vary=0.06, soften=0.3)
-    # (the coping slab is the platform's top: its clean pale stone; the coping band's tile, all moss and ink lines,
-    # made the top a dark olive from every side)
-    katte.build(side, top, top, coping=P.m(45), lip=P.m(8))
-    # ---- the tree
-    zt = katte.top(0.0, 0.0)
-    trunk = [(880, P.py(zt) + 4, 200)] + H31_TRUNK          # its foot down onto the level top
-    # below the painted roots' tips the painting shows the receding top face: not projected onto the trunk's foot
-    # and the roots that now come down onto the level top
-    K.front_exclude.append((0, 1170, P.w, P.py(zt) - 2))
+    stone = strip_tile(K, (1334, 1252, 1514, 1292), soften=0.3, quilt=True)  # its clean pale stone
+    lamps = [(908, 970, 1185, 1212, 966), (1000, 1065, 1195, 1225, 1057), (1185, 1245, 1160, 1186, 1249)]
+    flowers = [(1095, 1178, 1185, 1215), (1030, 1140, 1062, 1160)]
+    keep, keep_mirror, stone_px = katte_top_masks(K, NAGA_STONES, [(x0 - 2, t - 30, x1 + 2, b + 4) for x0, x1, t, b, _ in lamps] +
+                                        [(x0 - 3, y0 - 3, x1 + 3, y1 + 3) for x0, y0, x1, y1 in flowers])
+    # the painted front-right wall and its coping band (lit), for the walls and coping turned to the back
+    from PIL import ImageDraw
+    wall_px = Image.new("L", (P.w, P.h), 0)
+    ImageDraw.Draw(wall_px).polygon([(808, 1340), (1000, 1306), (1200, 1266), (1400, 1231), (1562, 1204),
+                                     (1562, 1296), (1400, 1331), (1200, 1372), (1000, 1415), (808, 1456)], fill=255)
+    band_px = Image.new("L", (P.w, P.h), 0)
+    ImageDraw.Draw(band_px).polygon([(808, 1306), (1100, 1256), (1200, 1238), (1400, 1199), (1575, 1172),
+                                     (1575, 1200), (1400, 1227), (1200, 1262), (1000, 1302), (808, 1336)], fill=255)
+    opaque = P.rgba[..., 3] > 0.5
+    walls = katte_mat(K, katte, side, back=(np.asarray(wall_px) > 127) & opaque, name="h3_1_katte_walls")
+    top = katte_mat(K, katte, stone, top=(keep, keep_mirror), back=(np.asarray(band_px) > 127) & opaque,
+                    name="h3_1_katte_top")
+    katte.build(walls, top)
+    # ---- everything standing on it, in the tree's painted space (x, z as painted, depth y about the trunk)
+    parts0, cards0 = list(K.parts), list(K.cards_parts)
+    # the trunk's foot reaches below the painted top in front of it (set back where it stands, its front meets the
+    # level top there, its back runs into the platform)
+    trunk = [(880, 1205, 195), (880, 1160, 190)] + H31_TRUNK[1:]
+    # (what is painted at the trunk's foot, behind which a root turned round it may lie: not the stone, not the sky)
+    a = (P.rgba * 255).astype(np.int32)
+    foot = (a[..., 3] > 127) & ~((a[..., :3].min(2) > 175) & (np.ptp(a[..., :3], axis=2) < 45)) & ~stone_px
+    foot &= box_mask(foot.shape, [(0, 880, P.w, P.h)])
+    foot = ndimage.binary_erosion(foot, iterations=3)
+    # the roots and the low left limb fitted to the painting's alpha (centred in the painted run across them, their
+    # radius half of it less the ink line: traced by eye, their upper edges stood 10-20 px over the sky)
+    solid = (a[..., 3] > 127) & ~((a[..., :3].min(2) > 175) & (np.ptp(a[..., :3], axis=2) < 45))
+    roots = [fit_limb(pts, solid, every=8.0, ink=3.0, lo=3.0) for pts in H31_ROOTS]
+    limbs = list(H31_LIMBS)
+    limbs[3] = fit_limb(H31_LIMBS[3], solid, every=8.0, ink=3.0, lo=4.0)
     crown, trunk_ob = _peepal_tree(
-        K, (0, 0, 1743, 830), trunk, H31_LIMBS, H31_ROOTS, katte, (420, 480, 1420, 1200),
+        K, (0, 0, 1743, 830), trunk, limbs, roots, katte, (420, 480, 1420, 1200),
         P.m(1700) * 0.34, (430, 0, 830),
-        exclude_wood=[H31_TRUNK[1:], H31_LIMBS[3][:4], H31_LIMBS[4][:4], H31_LIMBS[0][:2], H31_LIMBS[2][:2]],
+        # (not the trunk's tip inside the crown: its round end left a hole in the leaves there)
+        exclude_wood=[H31_TRUNK[1:-1], limbs[3][:len(limbs[3]) * 4 // 5], H31_LIMBS[4][:4], H31_LIMBS[0][:2],
+                      H31_LIMBS[2][:2]],
         bark_exclude=[(0, 1170, 1743, 1468)],
-        n_cards=(300, 120, 70), card_px=(180, 160))
-    # ---- the threads round the trunk (they droop at the front) and round the right limb
+        n_cards=(300, 120, 70), card_px=(180, 160), copy_sag=0.0, root_copies=False, gap_exact=True,
+        wood_extra=lambda K_, bark: katte_root_copies(K_, katte, bark, roots, foot))
+    # (the crown upright where it really stands, its cards moved in depth: from along the slope it is unchanged)
+    upright_crown(K, [c for c in K.cards_parts if c not in cards0], crown, k)
+    # ---- the threads round the trunk: level rings, so seen from above their fronts dip as painted
     red = K.colour((0.6, 0.08, 0.02), vary=0.12)
     yellow = K.colour((0.85, 0.55, 0.06), vary=0.12)
-    tx = P.x(880)
-    for k, py in enumerate(np.linspace(905, 985, 9)):
-        rr = P.m(160 + (py - 900) * 0.25)
-        ring_tube(K, tx, 0.0, P.z(py), rr, rr, red if k % 3 else yellow, P.m(3),
-                  tilt=(rng.uniform(-0.01, 0.01), P.m(rng.uniform(5, 25))), wobble=0.02, name="thread")
-    a, b = H31_LIMBS[4][0], H31_LIMBS[4][2]
+    # (each as wide as the painted trunk where its sides are painted, less its own thickness and the ink line)
+    for i, py in enumerate(np.linspace(905, 972, 9)):
+        row = solid[int(py)]
+        l = r_ = 885
+        while row[l - 1]:
+            l -= 1
+        while row[r_ + 1]:
+            r_ += 1
+        tx, rr = P.x((l + r_) / 2), P.m((r_ - l) / 2 - 4)
+        ring_tube(K, tx, 0.0, P.z(py), rr, rr, red if i % 3 else yellow, P.m(3),
+                  tilt=(rng.uniform(-0.01, 0.01), -k * rr * rng.uniform(0.6, 1.0)), wobble=0.02, name="thread")
     for mat, n in ((red, 6), (yellow, 5)):
-        wrap_limb(K, (P.x(1060), 0.0, P.z(780)), (P.x(1170), 0.0, P.z(752)), P.m(40), mat, n, P.m(3))
-    for px in (1105, 1120, 1135, 1150, 1165):
-        strand(K, (P.x(px), -P.m(30), P.z(800)), P.m(rng.uniform(40, 110)), rng.choice([red, yellow]), P.m(3))
+        wrap_limb(K, (P.x(1060), 0.0, P.z(783)), (P.x(1170), 0.0, P.z(759)), P.m(44), mat, n, P.m(3))
+    # the skeins hanging from the right limb, each where it is painted (traced off the alpha: x, top, bottom px)
+    for px, t, b, dx in ((1112, 826, 866, 0), (1120, 836, 856, 0), (1127, 846, 882, 0), (1138, 846, 914, -4),
+                         (1150, 828, 866, 0), (1161, 828, 842, 0), (1178, 800, 884, -6)):
+        K.tube([(P.x(px), -P.m(22), P.z(t)), (P.x(px + dx * 0.5), -P.m(22), P.z((t + b) / 2)),
+                (P.x(px + dx), -P.m(22), P.z(b - 3))], P.m(3.2), red if px % 3 else yellow, segments=5, name="strand")
+    # (and a loop of them hanging under the limb by the trunk, as painted)
+    K.tube([(P.x(1042), -P.m(30), P.z(828)), (P.x(1060), -P.m(32), P.z(849)), (P.x(1080), -P.m(32), P.z(848)),
+            (P.x(1096), -P.m(30), P.z(832))], P.m(3.2), red, segments=5, name="strand")
     # the knot and tassels at the front of the trunk band
     for px in (930, 950, 965, 980):
         K.tube([(P.x(px), -P.m(165), P.z(960)), (P.x(px), -P.m(170), P.z(1000 + rng.uniform(0, 30)))], P.m(4),
                rng.choice([red, yellow]), segments=5, name="tassel")
-    # ---- the naga stones, the lamps and the flowers on the platform
-    # each stands on the level top, below where it is painted on the receding top face: it carries its own painted
-    # carving down with it (a projection of its painted place), and the painting is not projected onto it from the
-    # front where it now stands (nor onto the trunk's foot where it was painted)
-    def sunk(box, bot):
-        dz = P.z(bot) - zt
-        K.front_exclude.append(tuple(box))
-        K.front_exclude.append((box[0], box[1] + P.m(0) + dz * P.ppm, box[2], box[3] + dz * P.ppm))
-        return dz
+    # ---- the naga stones and the flowers: each at the depth where its painted foot lies on the top, carrying its
+    # own painted carving
     for poly in NAGA_STONES:
         bot = max(p[1] for p in poly)
         x0, x1, y0 = min(p[0] for p in poly), max(p[0] for p in poly), min(p[1] for p in poly)
         cx = (x0 + x1) / 2
-        y = katte.y_on_top(cx, bot, 0) + P.m(18)
-        dz = sunk((x0 - 4, y0 - 4, x1 + 4, bot + 4), bot)
-        carved = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, y0, x1, bot)], inset=2, dz=dz)
-        ob = poly_solid(K, poly, y, carved, depth=0.5, name="naga")
-        if ob is not None:
-            ob.data.transform(Matrix.Translation((0, 0, -dz - 0.004)))
-    clay = K.colour((1010, 1205, 1040, 1215), vary=0.08)
-    flame = K.colour((0.95, 0.6, 0.05), vary=0.05)
-    for x0, x1, top_py, bot_py, fx in ((908, 970, 1185, 1212, 960), (1000, 1065, 1195, 1225, 1058),
-                                       (1185, 1245, 1160, 1186, 1242)):
-        cx, rw = (x0 + x1) / 2, (x1 - x0) / 2
-        y = katte.y_on_top(cx, bot_py, 0)
-        zb = katte.top(P.x(cx), y)
-        hh = P.m(bot_py - top_py)
-        sunk((x0 - 4, top_py - 30, x1 + 4, bot_py + 4), bot_py)
-        K.lathe([(P.m(rw) * 0.45, 0.0), (P.m(rw) * 0.85, hh * 0.45), (P.m(rw), hh), (P.m(rw) * 0.88, hh * 0.95),
-                 (P.m(rw) * 0.5, hh * 0.7), (0.0, hh * 0.65)], clay, segments=18, centre=(P.x(cx), y, zb),
-                name="lamp")
-        K.lathe([(0.0, 0.0), (P.m(4), P.m(5)), (P.m(3.5), P.m(12)), (0.0, P.m(24))], flame, segments=10,
-                centre=(P.x(fx), y, zb + hh * 0.8), name="flame")
-    for x0, y0, x1, y1 in ((1095, 1178, 1185, 1215), (1030, 1140, 1062, 1160)):
+        y = katte.depth_on_top(cx, bot) + P.m((x1 - x0) / 2) * 0.5 - katte.yT
+        carved = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, y0, x1, bot)], inset=2)
+        poly_solid(K, poly, y, carved, depth=0.5, name="naga")
+    for i, (x0, y0, x1, y1) in enumerate(flowers):
         cx = (x0 + x1) / 2
-        dz = sunk((x0 - 3, y0 - 3, x1 + 3, y1 + 3), y1)
-        petals = K.projected(squeeze=1.0, keep=[(x0, y0, x1, y1)], inset=1, dz=dz)
+        petals = K.projected(squeeze=1.0, keep=[(x0, y0, x1, y1)], inset=1)
         poly = [(cx + (x1 - x0) / 2 * math.cos(t), (y0 + y1) / 2 + (y1 - y0) / 2 * math.sin(t))
                 for t in np.linspace(0, 2 * math.pi, 12, endpoint=False)]
-        ob = poly_solid(K, poly, katte.y_on_top(cx, y1, 0) + P.m(y1 - y0) * 0.3, petals, depth=0.9, name="flowers",
-                        segments=10)
-        if ob is not None:
-            ob.data.transform(Matrix.Translation((0, 0, -dz - 0.003)))
+        if i == 0:                                       # (on the top before the lamps)
+            y = katte.depth_on_top(cx, y1) + P.m((x1 - x0) / 2) * 0.9 - katte.yT
+        else:                                            # (on the big naga's coil)
+            nb = NAGA_STONES[2]
+            y = katte.depth_on_top(cx, max(p[1] for p in nb)) + P.m(70) * 0.5 - katte.yT
+        poly_solid(K, poly, y, petals, depth=0.9, name="flowers", segments=10)
+    katte.to_real([o for o in K.parts if o not in parts0] + [c for c in K.cards_parts if c not in cards0])
+    # ---- the clay lamps, set where they really stand: level bowls on the level top
+    clay = K.colour((1010, 1205, 1040, 1215), vary=0.08)
+    flame = K.colour((0.95, 0.6, 0.05), vary=0.05)
+    for x0, x1, top_py, bot_py, fx in lamps:
+        cx, rw = (x0 + x1) / 2, P.m((x1 - x0) / 2)
+        y = katte.depth_on_top(cx, bot_py) + rw * 0.45          # its painted foot: the front of its foot ring
+        hh = P.m(bot_py - top_py) - k * rw * 1.45                # painted height less its rim's ellipse
+        K.lathe([(rw * 0.45, 0.0), (rw * 0.85, hh * 0.45), (rw, hh), (rw * 0.88, hh * 0.95), (rw * 0.5, hh * 0.7),
+                 (0.0, hh * 0.65)], clay, segments=18, centre=(P.x(cx), y, katte.h - 0.002), name="lamp")
+        K.lathe([(0.0, 0.0), (P.m(4), P.m(5)), (P.m(3.5), P.m(12)), (0.0, P.m(24))], flame, segments=10,
+                centre=(P.x(fx), y, katte.h + hh * 0.8), name="flame")
