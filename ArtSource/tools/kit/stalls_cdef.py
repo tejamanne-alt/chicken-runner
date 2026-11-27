@@ -2333,10 +2333,12 @@ def stall_f_3(K):
     ty0, ty1 = -0.3, 0.18
     K.box(P.x(150), P.x(620), ty0, ty1, Z(532), Z(497), wood, bevel=0.006, name="table_top")
     K.panel((150, 497, 620, 532), ty0 - 0.003, name="table_front")
-    legs = [((182, 532), (150, 738)), ((312, 532), (342, 738)), ((563, 532), (563, 722))]
-    for (ax, ay), (bx, by) in legs:
-        for y in (ty0 + 0.06, ty1 - 0.06):
-            beam(K, P.pt(ax, ay, y), P.pt(bx, by, y), P.m(30), P.m(26), legw, name="leg")
+    # the trestle legs, traced: the front pair and the rear pair (painted further in and shorter), splayed
+    legs = [(((172, 532), (153, 752)), ((208, 532), (203, 752))), (((322, 532), (345, 752)), ((352, 532), (380, 752))),
+            (((603, 532), (603, 752)), ((567, 532), (567, 752)))]
+    for front_leg, rear_leg in legs:
+        for ((ax, ay), (bx, by)), y in ((front_leg, ty0 + 0.06), (rear_leg, ty1 - 0.06)):
+            beam(K, P.pt(ax, ay, y), (P.x(bx), y, 0.0), P.m(26), P.m(24), legw, name="leg")
     for y in (ty0 + 0.06, ty1 - 0.06):
         beam(K, P.pt(165, 668, y), P.pt(330, 668, y), P.m(16), P.m(22), wood, name="stretcher")
     beam(K, P.pt(247, 668, ty0 + 0.06), P.pt(247, 668, ty1 - 0.06), P.m(16), P.m(16), wood, name="stretcher_x")
@@ -2505,7 +2507,8 @@ def stall_f_4(K):
         orient(end, (c.x, c.y, cz), d)
     # ---------------------------------------------------------------- the rope baskets
     weave = ktile(K, (500, 700, 600, 730), vary=0.06)
-    ropes = K.projected(squeeze=1.0, keep=[(480, 500, 770, 690)], inset=1)
+    # the coir rope wears a tile of the painted coils (projected through, the heaps' tops carried the pale halo)
+    ropes = ktile(K, (575, 590, 640, 640), vary=0.06, soften=0.1)
     for cx, hw, rim, y in ((552, 70, 668, -0.55), (695, 70, 664, -0.5)):
         basket(K, P.x(cx), y, zS, [(P.m(hw * 0.8), 0.0), (P.m(hw * 0.97), Z(700) - zS), (P.m(hw), Z(rim) - zS)],
                K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(cx - hw, rim - 6, cx + hw, 748)], inset=2), sy=0.9)
@@ -2519,5 +2522,13 @@ def stall_f_4(K):
                                  (662, 574, 36, (-40, -10), -0.28)):
         coil(K, (P.x(cx), y, P.z(cy)), P.m(R), P.m(7), ropes, tilt=tilt)
     # ---------------------------------------------------------------- the old man on his seat
+    # ---------------------------------------------------------------- on the back wall: a coil of rope on a peg, and
+    # two spare brooms standing against it
+    yo = 0.8 + 0.05
+    K.tube([(P.x(400), 0.8, Z(250)), (P.x(400), yo + 0.06, Z(250) + 0.02)], 0.014, wall, segments=6, name="peg")
+    coil(K, (P.x(400), yo + 0.03, Z(250) - 0.2), 0.17, 0.022, ropes, tilt=(90, 0), turns=2.4)
+    fib = ktile(K, (120, 330, 170, 420), vary=0.06)
+    for x_px in (200, 610):
+        broom(K, (P.x(x_px), yo + 0.06, 0.62), (P.x(x_px) + 0.03, yo + 0.05, 1.45), 0.34, fib, handle, rope, 0.0)
     K.figure(SELLER_F4, y=-0.05, name="mat_seller")
     unify_cards(K)

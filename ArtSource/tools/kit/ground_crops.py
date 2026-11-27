@@ -10,9 +10,9 @@ the painting's own plants turned and crossed), and solid parts where they are th
 (Thin stalks, grain heads and cotton bolls stay cards, crossed so they have a side: the game draws an ink outline round
 every solid part, and a thin or small solid part would be all outline, and lose its painted fluff.)
 
-The ground pieces: stones (each a faceted stone on its painted outline, standing on the ground), a coconut (a turned,
-three-sided nut, its loose fibres as cards), a torn husk (a boat of fibre lying hollow side up), tufts and weeds (the
-painted tuft and turned copies of it round its foot, on a little mound of earth). Pieces painted from above lie flat in
+The ground pieces: stones (each a faceted stone on its painted outline, standing on the ground), a coconut (a
+nut lying along its painted axis, its loose fibres as cards), a torn husk (a boat of fibre lying hollow side up), tufts
+and weeds (the painted tuft and turned copies of it round its foot). Pieces painted from above lie flat in
 the game, face up (kind="flat", built standing like the painting, relief towards -y): dry leaves (thin curled
 sheets), twigs (tapered tubes along the painted ones, resting on one plane), cracked mud and a cart rut (thin relief
 slabs) and the prints (decals: cards of the painting).
@@ -152,7 +152,7 @@ def colour_ok(P, box, tol=38.0, erode=2, extra=None):
     rgb = P.rgba[..., :3] * 255
     med = np.median(rgb[m], axis=0)
     m &= np.linalg.norm(rgb - med, axis=-1) < tol
-    return ndimage.binary_erosion(m, iterations=erode)
+    return ndimage.binary_erosion(m, iterations=erode) if erode > 0 else m      # (iterations=0 erodes it all)
 
 
 def img_tile(K, pil, size, vary=0.0, name="tile"):
@@ -388,7 +388,7 @@ def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="ston
         c = np.array((P.x(top_px[0]), P.z(top_px[1]) - lift))
     else:
         c = pts.mean(0)
-    rings = [(0.96, 0.32), (0.86, 0.62), (0.68, 0.84), (0.4, 1.0)]
+    rings = [(0.97, 0.34), (0.86, 0.64), (0.64, 0.86), (0.32, 1.0)]      # rounded towards its front and back
     bm = bmesh.new()
 
     def ring(s, f, side):
@@ -432,7 +432,7 @@ def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
         ys, xs = np.nonzero(m)
         w = P.m(xs.max() - xs.min())
         y_c = P.m(lowest - bot) * back
-        placed.append((m, hull, bot, w, y_c, (xs.mean(), ys.mean() - 0.12 * (ys.max() - ys.min()))))
+        placed.append((m, hull, bot, w, y_c, (xs.mean(), ys.mean())))
     lo = min(p[4] - p[3] * depth / 2 for p in placed)
     hi = max(p[4] + p[3] * depth / 2 for p in placed)
     shift = (lo + hi) / 2
@@ -444,7 +444,7 @@ def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
         inner = ok if ok.sum() > 20 else m
         try:
             side = quilt(K, ndimage.binary_erosion(m, iterations=2) & halo_free(P), out=96, patch=12, overlap=4,
-                         soften=0.1)
+                         soften=0.35)
         except RuntimeError:                                  # too small a stone for a patch: its painted face only
             side = None
         mat = proj_material(K, filled_source(P, inner), name="stone", dz=lift, side=side)
@@ -919,23 +919,58 @@ def twigs(K):
     """A few dry twigs lying together: each a tapering, slightly crooked stick with its side shoots and stubs, the
     cut ends showing pale wood, all resting on the ground."""
     P = K.paint
-    clean_front(K, no_halo(P, width=2))
+    clean = halo_free(P)
+    clean_front(K, clean)
     bark = K.projected(squeeze=1.0, keep=[(0, 0, P.w, P.h)], inset=4)
-    R = P.m(9.0)
-    ground = R                                               # the plane the twigs lie on (their backs touch it)
+    body = ndimage.binary_opening(clean, iterations=1)
+
+    def snap(x, y, d, r0):
+        """The traced point moved across the twig to the middle of the painted twig there, and its radius the
+        painted half-width there (the traced line runs a few px off the painted one)."""
+        n = np.array((-d[1], d[0]))
+        ts = np.arange(-14, 14.5, 0.5)
+        q = np.array((x, y))[None, :] + n[None, :] * ts[:, None]
+        qi = np.clip(np.round(q).astype(int), 0, [P.w - 1, P.h - 1])
+        on = body[qi[:, 1], qi[:, 0]]
+        if not on.any():
+            return x, y, r0
+        # the run of the twig nearest the traced point
+        lab, nl = ndimage.label(on)
+        best = min(range(1, nl + 1), key=lambda k: np.abs(ts[lab == k]).min())
+        run = ts[lab == best]
+        if run[-1] - run[0] < 3:
+            return x, y, r0
+        mid = (run[0] + run[-1]) / 2
+        return x + n[0] * mid, y + n[1] * mid, (run[-1] - run[0]) / 2
+    radius_of = {}
     for pts in TWIGS:
-        # densify, with a little crook in depth so a twig is not a straight rod
+        # densify, snap onto the painted twig, with a little crook in depth so a twig is not a straight rod
         dense = []
         for (x0, y0, r0), (x1, y1, r1) in zip(pts, pts[1:]):
             for t in np.linspace(0, 1, 4, endpoint=False):
                 dense.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, r0 + (r1 - r0) * t))
         dense.append(pts[-1])
+        snapped = []
+        for i, (x, y, r) in enumerate(dense):
+            a, b = dense[max(0, i - 1)], dense[min(len(dense) - 1, i + 1)]
+            d = np.array((b[0] - a[0], b[1] - a[1]))
+            d = d / max(1e-6, np.linalg.norm(d))
+            snapped.append(snap(x, y, d, r))
+        rr = ndimage.uniform_filter1d(np.array([r for _, _, r in snapped]), 3)
+        xs = ndimage.uniform_filter1d(np.array([x for x, _, _ in snapped]), 3)
+        ys = ndimage.uniform_filter1d(np.array([y for _, y, _ in snapped]), 3)
+        radius_of[id(pts)] = list(zip(xs, ys, rr))
+    ground = P.m(max(r for d in radius_of.values() for _, _, r in d))   # the plane the twigs lie on (backs touch it)
+    for pts in TWIGS:
+        dense = radius_of[id(pts)]
         co = [(P.x(x), ground - P.m(r) * (1.0 + 0.08 * math.sin(i * 1.3)), P.z(y)) for i, (x, y, r) in enumerate(dense)]
-        K.tube(co, [P.m(r) * 0.9 for _, _, r in dense], bark, segments=10, name="twig")
+        K.tube(co, [P.m(r) for _, _, r in dense], bark, segments=10, name="twig")
     # the pale cut faces at the thick ends: a disc of bare wood capping each
     wood = K.colour((218, 8, 232, 22), vary=0.08)
-    for pts in (TWIGS[0], TWIGS[1][::-1], TWIGS[3], TWIGS[6], TWIGS[9]):
-        (x0, y0, r0), (x1, y1, _) = pts[0], pts[1]
+    for pts, rev in ((TWIGS[0], False), (TWIGS[1], True), (TWIGS[3], False), (TWIGS[6], False), (TWIGS[9], False)):
+        dense = radius_of[id(pts)]
+        dense = dense[::-1] if rev else dense
+        (x0, y0, r0), (x1, y1, _) = dense[0], dense[2]
         d = Vector((P.x(x0) - P.x(x1), 0, P.z(y0) - P.z(y1))).normalized()
         c = Vector((P.x(x0), ground - P.m(r0), P.z(y0))) + d * 0.0015
         K.tube([tuple(c - d * 0.001), tuple(c + d * 0.0012)], P.m(r0) * 0.86, wood, segments=10, name="cut")
@@ -1003,28 +1038,18 @@ def tuft(K, n=5):
     """A tuft of grass: the painted tuft where it is painted, and turned, slightly smaller copies of it stood round
     its foot, so it is a tuft from every side."""
     P = K.paint
-    mask = plant_mask(P)
+    mask = haze_free(P)
+    clean_front(K, mask)
     card_mask(K, mask)
     ys, xs = np.nonzero(mask)
     box = (xs.min() - 1, ys.min() - 1, xs.max() + 2, ys.max() + 2)
     foot = ((xs.min() + xs.max()) / 2, ys.max())
     K.card_from_painting(box, P.pt((box[0] + box[2]) / 2, (box[1] + box[3]) / 2, 0.0), name="tuft",
                          normal=(0, -0.4, 0.8))
-    yaws = [180 / n * (k + 0.5) + K.rng.uniform(-8, 8) for k in range(n)]
-    ring_cards(K, box, foot, yaws, y=P.m(4), scale=(0.78, 0.94), spread=P.m(box[2] - box[0]) * 0.08, name="tuft")
-    crown(K, foot, P.m(box[2] - box[0]) * 0.07, P.m(box[3] - box[1]) * 0.07)
-
-
-def crown(K, foot, r, h):
-    """The little mound of earth a tuft or weed grows from, under its foot (its painted foot stands a little above
-    the frame's foot), most of it behind the painted blades."""
-    P = K.paint
-    fx, fy = foot
-    earth = K.colour((0.085, 0.055, 0.03), vary=0.15, scale=40)
-    z0 = P.z(fy) + h * 0.12
-    R = max(r, z0 * 1.15)
-    K.lathe([(R, 0.0), (R * 0.85, z0 * 0.45), (R * 0.55, z0 * 0.85), (R * 0.25, z0), (0.0, z0 * 1.02)],
-            earth, segments=12, centre=(P.x(fx), R * 0.35, 0.0), wobble=0.15, name="mound")
+    # the turned copies between 35 and 145 degrees (never near face on: from the front they stay inside the painted
+    # fan, narrowed by their turn), on the painted foot; no mound (the painting has none)
+    yaws = [35 + 110 / max(1, n - 1) * k + K.rng.uniform(-6, 6) for k in range(n)]
+    ring_cards(K, box, foot, yaws, y=P.m(4), scale=(0.8, 0.92), spread=P.m(box[2] - box[0]) * 0.05, name="tuft")
 
 
 @model("tuft_1", "ground", kind="prop")
@@ -1056,7 +1081,7 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
     turned, so it is a flower from the side), its rosette of leaves round its foot as turned cards, the painted weed
     where it is painted."""
     P = K.paint
-    mask = plant_mask(P)
+    mask = haze_free(P)
     clean_front(K, mask)
     card_mask(K, mask)
     K.card_from_painting((0, 0, P.w, P.h), P.pt(P.w / 2, P.h / 2, 0.0), name="weed", normal=(0, -0.4, 0.8))
@@ -1073,8 +1098,7 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
         for yaw in (80, -80):
             K.card_from_painting(box, P.pt(cx, cy, P.m(3)), yaw=yaw + K.rng.uniform(-6, 6), name="flower",
                                  normal=(0, -0.3, 1))
-    ring_cards(K, rosette_box, foot, [45, 90, 135], y=P.m(3), scale=(0.8, 0.95), name="rosette")
-    crown(K, foot, P.m(rosette_box[2] - rosette_box[0]) * 0.05, P.m(rosette_box[3] - rosette_box[1]) * 0.1)
+    ring_cards(K, rosette_box, foot, [45, 90, 135], y=P.m(3), scale=(0.8, 0.92), name="rosette")
     for box, yaw in upper:
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, P.pt(cx, cy, P.m(4)), yaw=yaw, name="leaf", normal=(0, -0.3, 1))
@@ -1496,14 +1520,55 @@ def card_frame(K, box, centre, yaw, scale):
     return f
 
 
-def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", normal=(0, -0.3, 0.9)):
+def ragged_card(K, box_px, centre, yaw=0.0, scale=1.0, normal=None, name="leaf", n=7, rag=0.22):
+    """A card like K.card_from_painting, but its two sides ragged instead of straight (each a zigzag of n points
+    pulled in at random up to `rag` of its half-width; the foot and the top kept whole): the leaves the box cuts at
+    its sides end raggedly, not in a straight edge, seen from the side or above."""
+    from mathutils import Matrix
+    P = K.paint
+    x0, y0, x1, y1 = box_px
+    cx0, cy0, cx1, cy1 = max(0, x0), max(0, y0), min(P.w, x1), min(P.h, y1)
+    if cx1 - cx0 < 3 or cy1 - cy0 < 3:
+        return None
+    c = Vector(centre) + Vector((P.m((cx0 + cx1) / 2 - (x0 + x1) / 2), 0, -P.m((cy0 + cy1) / 2 - (y0 + y1) / 2))) * scale
+    x0, y0, x1, y1 = cx0, cy0, cx1, cy1
+    R = Matrix.Rotation(math.radians(yaw), 3, "Z")
+    pts = [(-1.0, -1.0), (1.0, -1.0)]
+    for k in range(1, n + 1):                                       # up the right side
+        pts.append((1.0 - rag * K.rng.uniform(0, 1) * (k % 2), -1.0 + 2.0 * k / (n + 1)))
+    pts += [(1.0, 1.0), (-1.0, 1.0)]
+    for k in range(n, 0, -1):                                       # down the left side
+        pts.append((-1.0 + rag * K.rng.uniform(0, 1) * (k % 2), -1.0 + 2.0 * k / (n + 1)))
+    hw, hh = P.m(x1 - x0) / 2 * scale, P.m(y1 - y0) / 2 * scale
+    bm = bmesh.new()
+    vs, uvs = [], []
+    for u, v in pts:
+        vs.append(bm.verts.new(c + R @ Vector((u * hw, 0, v * hh))))
+        px = x0 + (u + 1) / 2 * (x1 - x0)
+        py = y1 - (v + 1) / 2 * (y1 - y0)
+        uvs.append((px / P.w, 1 - py / P.h))
+    f = bm.faces.new(vs)
+    layer = bm.loops.layers.uv.new("UVMap")
+    for lp, uv in zip(f.loops, uvs):
+        lp[layer].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = list(normal) if normal is not None else [0.0, -0.35, 1.0]
+    K.cards_parts.append(ob)
+    return ob
+
+
+def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", normal=(0, -0.3, 0.9), ragged=False):
     """A plant: a card of the painting inside `box` stood with its foot (bottom middle) at `foot` (x, y, z metres),
-    turned and scaled; and its solid parts (features [(px, py, data)] painted inside the box) made by
-    make(K, frame, feature, yaw, scale) where the card puts them."""
+    turned and scaled (ragged: its sides ragged, for a plant behind the painted ones, seen from the side); and its
+    solid parts (features [(px, py, data)] painted inside the box) made by make(K, frame, feature, yaw, scale) where
+    the card puts them."""
     P = K.paint
     h = P.m(box[3] - box[1]) * scale
     centre = (foot[0], foot[1], foot[2] + h / 2)
-    c = K.card_from_painting(box, centre, yaw=yaw, scale=scale, name=name, normal=normal)
+    if ragged:
+        c = ragged_card(K, box, centre, yaw=yaw, scale=scale, name=name, normal=normal)
+    else:
+        c = K.card_from_painting(box, centre, yaw=yaw, scale=scale, name=name, normal=normal)
     if make is not None:
         fr = card_frame(K, box, centre, yaw, scale)
         for ft in features:
@@ -1545,7 +1610,7 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
             w = P.m(width_px) * cross_scale
             plant_card(K, (sx - width_px / 2, top_py, sx + width_px / 2, base_py),
                        (P.x(cx), fy + w * 0.5 + 0.01, min(P.z(base_py), z_foot)), 90 + K.rng.uniform(-6, 6),
-                       cross_scale, name=name)
+                       cross_scale, name=name, ragged=True)
     for y in rows[1:]:
         # planted on a grid (each plant behind a painted one: `at`), or every ~step_px along the row
         spots = ([a + K.rng.uniform(-0.06, 0.06) * step_px for a in at] if at is not None else None)
@@ -1563,7 +1628,7 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
                 # the crossed card square to the painting (give or take a little): turned further, its plant would
                 # show mirrored beside the painted ones from the front
                 plant_card(K, box, (fx, fy, z_foot), (90 + K.rng.uniform(-12, 12)) if k else base_yaw,
-                           s * (0.92 if k else 1.0), () if k else features, make, name=name)
+                           s * (0.92 if k else 1.0), () if k else features, make, name=name, ragged=True)
                 if not k:
                     feet.append((fx, fy, z_foot, base_yaw, s, sx))
             if spots is None:
@@ -1822,18 +1887,19 @@ def sugarcane(K):
     """A stand of sugarcane 1.5 m deep: tall jointed canes, yellow ringed with brown at every node, leaning a little
     every way, their long arching leaves in a tangle over the top."""
     P = K.paint
-    clean_front(K, plant_mask(P) | (np.arange(P.h)[:, None] > 466) & alpha_mask(P))
+    # the pale haze painted in the gaps between the canes is not part of the stand: off the projection and the cards
+    clean_front(K, haze_free(P))
     depth = 1.5
     rows = [-depth / 2 + 0.15 + k * 0.3 for k in range(5)]
-    bed_py = 464
-    field_bed(K, 100, 848, bed_py, depth, top=K.colour((0.12, 0.07, 0.035), vary=0.1, scale=3.0), ridges=0.05,
-              rows=rows)
+    # no bed: the painting has none, the canes stand on the ground from their painted feet
+    bed_py = lowest_row(P, 120, 830) - 2
     z0 = P.z(bed_py)
-    # the canes' rind: the painted canes' own bands (yellow, ringed brown at the nodes) as they run up three painted
-    # canes, carried round each cane (every cane takes one of the three, shifted up or down a little)
+    # the canes' rind: the painted canes' own bands (yellow, ringed brown at the nodes) as they run up three of the
+    # most clearly painted canes (no haze over them), carried round each cane (every cane takes one, shifted up or
+    # down a little)
     a = np.asarray(P.img).astype(np.float32)
     canes = []
-    for xr in (295, 326, 364):
+    for xr in (296, 172, 751):
         col = np.median(a[:, xr - 2:xr + 3, :3], axis=1)
         col[:300] = col[300]                                    # above the leaves' foot: as at its top
         img = np.repeat(col[:, None, :], P.w, axis=1)
@@ -1855,11 +1921,11 @@ def sugarcane(K):
             pts, rad = [], []
             for i in range(n + 1):
                 t = i / n
-                pts.append(P.pt(x + lean * t, bed_py + 2 + (top - bed_py - 2) * t, yy + dy * t))
+                pts.append(P.pt(x + lean * t, bed_py + (top - bed_py) * t, yy + dy * t))
                 rad.append(P.m(4.6) * (1.12 if (k == 0 and i % 2 == 0) else 1.0) * (1 - 0.15 * t))
             K.tube(pts, rad, canes[int(K.rng.integers(len(canes)))], segments=6, name="cane")
     # the leaves: the painted tangle in front, and rows of it behind, on top of the canes
-    card_mask(K, plant_mask(P) & (np.arange(P.h)[:, None] < 330))
+    card_mask(K, haze_free(P) & (np.arange(P.h)[:, None] < 330))
     crop_rows(K, 8, 946, 0, leafy_py + 30, rows[:1], P.z(leafy_py + 30), 12, 120, 90, yaw=35)
     crop_rows(K, 130, 830, 0, leafy_py + 30, [rows[0]] + rows[1:], P.z(leafy_py + 30), 0, 120, 90,
               scale=(0.85, 1.0), yaw=35, src=list(range(190, 770, 20)))

@@ -350,6 +350,8 @@ class Wood:
         """A path resampled every ~step x radius px and smoothed: [(x, y, z) metres], [radius metres]."""
         P = self.P
         pts, r = p["pts"], p["r"]
+        if getattr(self, "r_cap", None):
+            r = np.minimum(r, self.r_cap)
         if len(r) > 6:                                    # the distance map is noisy: a limb tapers smoothly
             r = ndimage.median_filter(r, size=7, mode="nearest")
             r = ndimage.uniform_filter1d(r, size=7, mode="nearest")
@@ -941,8 +943,10 @@ def loft_trunk(K, rows, mat, y=0.0, depth=0.85, max_depth_px=None, segments=20, 
         cx, hw = (a + b) / 2, max(1.0, (b - a) / 2)
         cap = max_depth_px(py) if callable(max_depth_px) else max_depth_px
         hd = hw * depth if cap is None else min(hw * depth, cap)
-        t = max(0.0, (i - (n - 1) * 0.85) / max(1.0, (n - 1) * 0.15))     # its top rounds off into the limbs
-        hw, hd = hw * (1 - 0.45 * t * t), hd * (1 - 0.45 * t * t)
+        # its top rounds off into the limbs, over the last ~half its width
+        top_py = float(arr[-1][0])
+        t = float(np.clip(1 - abs(py - top_py) / max(3.0, hw * 0.7), 0.0, 1.0))
+        hw, hd = hw * (1 - 0.4 * t * t), hd * (1 - 0.4 * t * t)
         yc = y(cx, py) if callable(y) else y
         ring = [bm.verts.new((P.x(cx) + P.m(hw) * math.cos(2 * math.pi * k / segments),
                               yc + P.m(hd) * math.sin(2 * math.pi * k / segments), P.z(py))) for k in range(segments)]
@@ -1219,17 +1223,22 @@ class Crown:
             c = int(np.clip(px, 0, W - 1))
             if not cols[c]:
                 continue
-            pt = float(top_row[c])
-            # the leaves it shows: a patch just under the painted top there
-            sy = pt + rng.uniform(0.2, 1.2) * size_px[1]
             w, h = size_px[0] * rng.uniform(0.8, 1.2), size_px[1] * rng.uniform(0.8, 1.2)
+            # from the front it is a thin line: kept inside the crown's painted outline (a margin below its top, and
+            # its whole width inside), and behind the front shell
+            pt = float(top_row[c]) + max(6.0, h * 0.22)
+            row = self.mask[int(np.clip(pt, 0, H - 1))]
+            if not row[int(np.clip(px - w * 0.55, 0, W - 1)):int(np.clip(px + w * 0.55, 0, W - 1)) + 1].all():
+                continue
+            # the leaves it shows: a patch just under the painted top there
+            sy = pt + rng.uniform(0.0, 1.0) * size_px[1]
             if not lm[int(np.clip(sy, 0, H - 1)), c]:
                 continue
             ext = self.extent(px, pt + size_px[1] * 1.5)
-            u = rng.uniform(-0.92, 0.92)
+            u = rng.uniform(-0.72, 0.92)
             yy = self.y0 + u * ext
             # its height: on a dome over the crown, the painted top where it is deepest, falling to front and back
-            z = P.z(pt) - P.m(h) * 0.25 - (1 - math.sqrt(max(0.0, 1 - u * u))) * ext * 0.8
+            z = P.z(pt) - (1 - math.sqrt(max(0.0, 1 - u * u))) * ext * 0.8
             ob = K.card_from_painting((px - w / 2, sy - h / 2, px + w / 2, sy + h / 2), (P.x(px), yy, z),
                                       yaw=rng.uniform(-90, 90), pitch=90 + rng.uniform(-4, 4), name=name,
                                       normal=(P.x(px) - P.x(self.c[0]), (yy - self.y0) * 1.3, ext * 2.0))
@@ -2540,7 +2549,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
                 root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=1.0, fuse_faces=9000,
                 rscale=0.95, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
                 min_r_px=0.0, trunk=None, tile_box=None, straight_py=None, foot=None, bark_mask=None,
-                leaf_all=False):
+                leaf_all=False, r_cap_px=None, bark_inset=2):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
     on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
     roots turned round the trunk as well; returns (wood, crown, bark material, thin parts). trunk = (py at the ground,
@@ -2550,6 +2559,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     P = K.paint
     rng = K.rng
     wood = Wood(K, mask, root_px, spur=spur, min_len=5)
+    wood.r_cap = r_cap_px                             # no limb thicker than this (clumped twigs traced as blobs)
     cw = crown_box[2] - crown_box[0]
     crown = Crown(K, crown_box, P.m(cw) * depth_ratio, crown_centre, core=core, dome=dome, dome_pow=dome_pow,
                   mask=crown_mask)
@@ -2582,7 +2592,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     if straight_py is None and trunk is not None:
         straight_py = trunk[1]
     wood.grow(spread, root_z_px=root_z_px, root_spread=0.9, ymax=ylim, seed_dy=seed)
-    bark = bark_mix(K, mask if bark_mask is None else bark_mask, tile_box=tile_box)
+    bark = bark_mix(K, mask if bark_mask is None else bark_mask, tile_box=tile_box, inset=bark_inset)
     voxel = P.H / voxel_div
     fuse_r = voxel * 2.5 * P.ppm                     # thinner wood stays clean tubes (a voxel remesh would bloat it)
     thick, thin = wood.tubes(bark, fuse_r_px=fuse_r, rscale=rscale, min_r_px=min_r_px)
@@ -2634,8 +2644,10 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
             r, g, b, mx, mn = chan(rgb)
             return ~((mn > 175) & (mx - mn < 45))
     # (only the wood thicker than an ink line: the leaves' own outlines, traced as wood too, stay on the cards)
-    leafpix = leaf_mask_of(K, box, leaf_rule) & ~ndimage.binary_dilation(ndimage.binary_opening(mask, iterations=2),
-                                                                         iterations=2)
+    # (and only the wood modelled as tubes, min_r_px and up)
+    k_open = max(2, int(math.ceil(min_r_px)))
+    leafpix = leaf_mask_of(K, box, leaf_rule) & ~ndimage.binary_dilation(
+        ndimage.binary_opening(mask, iterations=k_open), iterations=2)
     K.leaves_only(box, mask_rule(leafpix, box))
     cp = card_px or (cw * 0.14, cw * 0.12)
     nv, nf, nb, nt = n_cards
@@ -2839,6 +2851,7 @@ def pale_wood(rgb):
 DRUM_TRUNK = {"h2_2": [(300, 1052, 24), (298, 900, 21), (297, 750, 18), (298, 650, 16), (296, 590, 14)],
               "h2_4": [(232, 828, 16), (231, 760, 13), (230, 700, 12), (232, 600, 10.5), (232, 470, 9)]}
 DRUM_FOOT = {"h2_2": 1045, "h2_4": 795}
+DRUM_BARK = {"h2_2": (288, 700, 306, 800), "h2_4": (226, 610, 238, 700)}     # clean cream bark, mid trunk
 
 
 def _trace_drum(K, box, root, exclude=()):
@@ -2884,7 +2897,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     tx, ty, tr = tpts[0]
 
     def foot(bark):
-        rows = trunk_runs(full, ty, tpts[-1][1] + 6, tpts[-1][0], grow=1.35)
+        rows = trunk_runs(full, ty, tpts[-1][1] - 25, tpts[-1][0], grow=1.35)      # up into the fork
         out = [loft_trunk(K, rows, bark, y=0.0, depth=0.92, segments=16)]
         for k in range(5):                           # a few roots into the ground
             a = 2 * math.pi * (k + rng.uniform(-0.3, 0.3)) / 5
@@ -2897,7 +2910,8 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6, min_r_px=4.5, foot=foot, bark_mask=full)
+                                          dome_pow=0.6, min_r_px=2.0, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
+                                          bark_inset=1, tile_box=DRUM_BARK[K.name])
     # the pods: long, thin, ribbed green tubes hanging from the branches, and one more of each round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=1, flatten=0.85, lump=0.05, min_len=40,
               segments=7)

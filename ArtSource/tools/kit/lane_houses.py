@@ -37,7 +37,6 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True):
     w, h = a.shape[1], a.shape[0]
 
     def join(a, n, axis, roll_axis):
-        L = a.shape[1 - axis] if axis == 1 else a.shape[0]
         bw = max(2, (a.shape[axis]) // 5)
         sq = a.copy()
         for k in range(1, n):
@@ -918,10 +917,18 @@ def doorway_garland(K):
                                P.m(437 - 380) / 2), yaw=90 + K.rng.uniform(-25, 25), name="grass_side", rag=0.12)
 
 
-def hip_tin_roof(K, eave, ridge, ze, zr, mat, pitch=0.08, amp=0.018, cap=None, name="tin"):
+def corrugation(v, fade=0.14):
+    """How much of a tin sheet's corrugation is modelled at v (0 at the eave, 1 at the top): all of it along the
+    eave, where it makes the painted scalloped edge, fading out above. Corrugations modelled all the way up show
+    from the side as a band of ink: the game's outline hull pokes out of every ridge seen at a grazing angle. The
+    texture carries the corrugation over the rest of the sheet."""
+    return max(0.0, 1.0 - v / fade)
+
+
+def hip_tin_roof(K, eave, ridge, ze, zr, mat, pitch=0.08, amp=0.018, cap=None, name="tin", cap_r=(0.018, 0.03)):
     """A hipped roof of corrugated tin: eave = (x0, x1, y0, y1) m at height ze, the ridge (x0, x1) m at height zr
-    over the middle; four slopes whose corrugations run down the fall, hip caps on the four hip lines and a ridge
-    cap (mat `cap`)."""
+    over the middle; four slopes whose corrugations run down the fall (modelled along the eave, see corrugation()),
+    hip caps on the four hip lines and a ridge cap (mat `cap`, radii cap_r: slim, as painted)."""
     ex0, ex1, ey0, ey1 = eave
     rx0, rx1 = ridge
     ym = (ey0 + ey1) / 2
@@ -933,10 +940,10 @@ def hip_tin_roof(K, eave, ridge, ze, zr, mat, pitch=0.08, amp=0.018, cap=None, n
             x = xa + (xb - xa) * u
             y0 = ey0 if front else ey1
             y = y0 + (ym - y0) * v
-            z = ze + (zr - ze) * v + amp * math.sin(2 * math.pi * (x - ex0) / pitch)
+            z = ze + (zr - ze) * v + amp * corrugation(v) * math.sin(2 * math.pi * (x - ex0) / pitch)
             return (x, y, z)
         n = int((ex1 - ex0) / pitch * (4 if front else 3))
-        return K.sheet(f, n, 6, mat, name=name + ("_front" if front else "_back"), smooth=False, thickness=0.01)
+        return K.sheet(f, n, 7, mat, name=name + ("_front" if front else "_back"), smooth=False, thickness=0.01)
 
     def hip(left):
         def f(u, v):
@@ -945,15 +952,15 @@ def hip_tin_roof(K, eave, ridge, ze, zr, mat, pitch=0.08, amp=0.018, cap=None, n
             x0 = ex0 if left else ex1
             r = rx0 if left else rx1
             x = x0 + (r - x0) * v
-            z = ze + (zr - ze) * v + amp * math.sin(2 * math.pi * (y - ey0) / pitch)
+            z = ze + (zr - ze) * v + amp * corrugation(v) * math.sin(2 * math.pi * (y - ey0) / pitch)
             return (x, y, z)
         n = int((ey1 - ey0) / pitch * 3)
-        return K.sheet(f, n, 4, mat, name=name + "_hip", smooth=False, thickness=0.01)
+        return K.sheet(f, n, 7, mat, name=name + "_hip", smooth=False, thickness=0.01)
     parts += [slope(True), slope(False), hip(True), hip(False)]
     cap = cap or mat
     for (xa, ya), xr in (((ex0, ey0), rx0), ((ex0, ey1), rx0), ((ex1, ey0), rx1), ((ex1, ey1), rx1)):
-        K.tube([(xa, ya, ze + 0.02), (xr, ym, zr + 0.02)], 0.035, cap, segments=6, name="hip_cap")
-    K.tube([(rx0, ym, zr + 0.02), (rx1, ym, zr + 0.02)], 0.05, cap, segments=8, name="ridge_cap")
+        K.tube([(xa, ya, ze + 0.008), (xr, ym, zr + 0.008)], cap_r[0], cap, segments=6, name="hip_cap")
+    K.tube([(rx0, ym, zr - 0.005), (rx1, ym, zr - 0.005)], cap_r[1], cap, segments=8, name="ridge_cap")
     return parts
 
 
@@ -1104,7 +1111,7 @@ def hip_tin_courses(K, eave, ridge, ze, zr, mats, split=0.5, pitch=0.12, amp=0.0
             x = xa + (xb - xa) * (ua + (ub - ua) * u)
             y0 = ey0 if front else ey1
             y = y0 + (ym - y0) * vv
-            z = ze + (zr - ze) * vv + lift + amp * math.sin(2 * math.pi * (x - ex0) / pitch) + 0.004 * k
+            z = ze + (zr - ze) * vv + lift + amp * corrugation(vv) * math.sin(2 * math.pi * (x - ex0) / pitch) + 0.004 * k
             return (x, y - (lift if front else -lift) * 0.3, z)
         n = max(4, int((ex1 - ex0) * (x_cuts[1] - x_cuts[0]) / pitch * 4))
         return K.sheet(f, n, 3, mat, name=name, smooth=False, thickness=0.008)
@@ -1121,7 +1128,7 @@ def hip_tin_courses(K, eave, ridge, ze, zr, mats, split=0.5, pitch=0.12, amp=0.0
             y = ya + (yb - ya) * u
             x0 = ex0 if left else ex1
             r = rx0 if left else rx1
-            z = ze + (zr - ze) * v + amp * math.sin(2 * math.pi * (y - ey0) / pitch)
+            z = ze + (zr - ze) * v + amp * corrugation(v) * math.sin(2 * math.pi * (y - ey0) / pitch)
             return (x0 + (r - x0) * v, y, z)
         return K.sheet(f, int((ey1 - ey0) / pitch * 3), 3, mats[0 if left else 1], name=name + "_hip", smooth=False,
                        thickness=0.008)
@@ -1129,7 +1136,7 @@ def hip_tin_courses(K, eave, ridge, ze, zr, mats, split=0.5, pitch=0.12, amp=0.0
     hip(False)
     cap = mats[0]
     for (xa, ya), xr in (((ex0, ey0), rx0), ((ex0, ey1), rx0), ((ex1, ey0), rx1), ((ex1, ey1), rx1)):
-        K.tube([(xa, ya, ze + 0.03), (xr, ym, zr + 0.05)], 0.035, cap, segments=6, name="hip_cap")
+        K.tube([(xa, ya, ze + 0.015), (xr, ym, zr + 0.02)], 0.02, cap, segments=6, name="hip_cap")
 
 
 @model("house_plank_sheet", "lane", kind="building", atlas=2048)
@@ -1182,7 +1189,9 @@ def house_plank_sheet(K):
     for a, b, c, d in ((1.45, 2.15, P.z(720), P.z(700)), (1.45, 2.15, P.z(420), P.z(400)), (1.45, 1.5, P.z(720), P.z(400)),
                        (2.1, 2.15, P.z(720), P.z(400))):
         K.box(X1 + 0.02, X1 + 0.06, a, b, c, d, frame, bevel=0.004, name="side_window_frame")
-    K.box(X1 + 0.015, X1 + 0.03, 1.5, 2.1, P.z(700), P.z(420), dark, name="side_window")
+    K.box(X1 + 0.015, X1 + 0.035, 1.5, 2.1, P.z(700), P.z(420), brown, name="side_window")    # boarded up
+    for zz in (P.z(640), P.z(480)):
+        K.box(X1 + 0.035, X1 + 0.05, 1.52, 2.08, zz - 0.03, zz + 0.03, frame, bevel=0.004, name="side_window_batten")
     for a0, a1 in ((X0 + 1.45, X0 + 1.5), (X0 + 2.25, X0 + 2.3)):
         K.box(a0, a1, D + 0.02, D + 0.07, zg, P.z(380), frame, bevel=0.004, name="back_door_frame")
     K.box(X0 + 1.45, X0 + 2.3, D + 0.02, D + 0.07, P.z(380), P.z(350), frame, bevel=0.004, name="back_door_frame")
@@ -1788,8 +1797,10 @@ def house_weaver(K):
         K.box(P.x(1072), P.x(1098), y - 0.025, y + 0.025, P.z(1074), P.z(820), wheel, name="wheel_leg")
     K.box(P.x(1060), P.x(1110), yr - 0.55, yr - 0.2, P.z(1090), P.z(1074), wheel, name="wheel_base")
     # the back and the sides: a plank back door, small barred windows
-    door = K.colour((0.2, 0.1, 0.045), vary=0.1)
+    door = strip_tile(K, (527, 790, 546, 985), soften=0.15)          # planks: the loom's leg, side by side
     K.box(P.x(700), P.x(880), D - 0.02, D + 0.03, P.z(925), P.z(560), door, name="back_door")
+    for py in (610, 860):                                              # its two battens
+        K.box(P.x(706), P.x(874), D + 0.03, D + 0.05, P.z(py + 14), P.z(py), timber, name="back_door_batten")
     for x0, x1 in ((688, 700), (880, 892)):
         K.box(P.x(x0), P.x(x1), D - 0.02, D + 0.05, P.z(925), P.z(548), timber, name="back_door_frame")
     K.box(P.x(688), P.x(892), D - 0.02, D + 0.05, P.z(560), P.z(548), timber, name="back_door_frame")
@@ -2500,7 +2511,7 @@ def panchayat_office(K):
     deck = K.tile((168, 645, 222, 748), size=1.0, vary=0.06, soften=0.3)      # lit plaster, for the roof deck
     # the dado where it is lit, right of the door (the old crop took a pillar's diagonal shadow)
     dado = K.tile((1005, 760, 1072, 868), size=0.7, vary=0.05, soften=0.3)
-    green = K.colour((300, 265, 900, 285), vary=0.05)
+    green = strip_tile(K, (300, 262, 900, 288), soften=0.3)                   # the sunshade's painted green, squared
     plinth = strip_tile(K, (100, 880, 600, 930), soften=0.3)                   # stacked square: its top is the floor
     wood = K.tile((760, 440, 860, 840), vary=0.04)
     frame = K.colour((225, 410, 235, 630), vary=0.06)
@@ -2572,16 +2583,15 @@ def cattle_shed(K):
     D = 3.0
     K.front_min = 0.1
     halo_exclude(K, [(0, 0, 1657, 894)])
-    # the hay heaps are their own hay and cards cut from the painting: the painted hay is kept off the back wall and
-    # the floor behind them (from the side it showed as flat hay painted on the wall)
+    # the hay heaps wear their own projected hay and cards cut from the painting: the painted hay is kept off the
+    # back wall and the floor behind them (from the side it showed as flat hay painted on the wall)
     K.front_exclude.append((880, 445, 1480, 880))
     K.figure(CALF_SHED, y=1.15, name="calf")
     # the thatch between its two battens, stacked square (the bare strip box-projected round the hip ends wove into
     # a basket-like diamond pattern)
-    thatch_m = strip_tile(K, (300, 113, 700, 196), soften=0.2, size=1.2)
+    thatch_m = strip_tile(K, (300, 113, 700, 196), soften=0.2, size=1.2, mirror=False)
     # the mud wall where it is evenly lit (the crop in the sunbeam's edge and the eave's shadow repeated as blocks)
-    wall = K.tile((700, 625, 820, 715), size=1.0, vary=0.04, soften=0.35)
-    haym = K.tile((1250, 490, 1420, 565), size=0.7, vary=0.05, soften=0.2)       # the hay, from the big heap's top
+    wall = clean_tile(K, (560, 640, 720, 720), size=1.0, soften=0.15, thresh=22)
     earth = K.tile((1250, 490, 1420, 565), size=0.9, vary=0.1, soften=0.55)       # a floor of trodden straw
     bamboo = K.colour((600, 200, 900, 208), vary=0.08)
     zf = P.z(872)
@@ -2632,18 +2642,30 @@ def cattle_shed(K):
     # hay: the big heaps behind the calf and the one by the post, straw in the manger and on the floor
     # (heaps on the floor up to their painted tops, in their own hay: a projection smears round a heap's sides, and
     # the old heaps hung half a metre above the floor)
-    for px, w, top, y in ((1315, 290, 455, D - 0.8), (1120, 250, 555, 1.85), (975, 180, 700, 1.45)):
+    heaps = ((1315, 290, 455, D - 0.8), (1120, 250, 555, 1.85), (975, 180, 700, 1.45))
+    for px, w, top, y in heaps:
         sz = P.z(top) - zf
-        K.boulder(P.x(px), y, zf + sz / 2, P.m(w), min(P.m(w) * 0.8, 1.1), sz, haym, lumps=0.12, name="hay")
+        hm = projected_solid(K, [(880, 445, 1480, 880)], axis_x=P.x(px), squeeze=0.9, exclude=[(940, 615, 1380, 880)],
+                             inset=3)
+        K.boulder(P.x(px), y, zf + sz / 2, P.m(w), min(P.m(w) * 0.8, 1.1), sz, hm, lumps=0.12, name="hay")
     K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), hay_pixels, CALF_SHED))
     K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
-    for i in range(140):
+    # tufts of hay on the heaps' faces where they are painted (never out in the air above or round them)
+    for i in range(160):
         cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
         if cx + 55 > calf[0] and cx - 55 < calf[2] and cy + 45 > calf[1]:
             continue
-        K.card_from_painting((cx - 55, cy - 45, cx + 55, cy + 45), (P.x(cx), K.rng.uniform(1.3, D - 0.5), P.z(cy)),
-                             yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-30, 30), name="hay_tuft")
+        on = [(px, w, top, y) for px, w, top, y in heaps if abs(cx - px) < w * 0.45 and cy > top + 15]
+        if not on:
+            continue
+        px, w, top, y = on[0]
+        sz = P.z(top) - zf
+        u = (cx - px) / (w / 2)
+        v = (P.z(cy) - (zf + sz / 2)) / (sz / 2)
+        depth = min(P.m(w) * 0.8, 1.1) / 2 * math.sqrt(max(0.05, 1 - u * u - v * v))
+        blob_card(K, (cx - 50, cy - 40, cx + 50, cy + 40), (P.x(cx), y - depth * K.rng.uniform(0.6, 1.0), P.z(cy)),
+                  yaw=K.rng.uniform(-60, 60), pitch=K.rng.uniform(-25, 25), name="hay_tuft", rag=0.3)
     for i in range(10):
         cx = K.rng.uniform(260, 790)
         K.card_from_painting((cx - 50, 690, cx + 50, 745), (P.x(cx), K.rng.uniform(my0 + 0.12, my1 - 0.12), P.z(730)),
@@ -2735,8 +2757,8 @@ def shop_provisions(K):
         a = [corners[0][k] + (corners[1][k] - corners[0][k]) * u for k in range(3)]
         b = [corners[3][k] + (corners[2][k] - corners[3][k]) * u for k in range(3)]
         p = [a[k] + (b[k] - a[k]) * v for k in range(3)]
-        return (p[0], p[1], p[2] + 0.009 * math.sin(2 * math.pi * u * 40))      # real tin's 18 mm corrugation
-    K.sheet(awning, 320, 4, tin, name="awning", smooth=False, thickness=0.008)
+        return (p[0], p[1], p[2] + 0.009 * corrugation(v) * math.sin(2 * math.pi * u * 40))   # at its front edge
+    K.sheet(awning, 320, 8, tin, name="awning", smooth=False, thickness=0.008)
     for x0, x1 in ((100, 135), (1375, 1410)):
         cx = (x0 + x1) / 2
         m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(x0, 405, x1, 1110)], inset=3)

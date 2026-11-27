@@ -289,6 +289,63 @@ def proj_tiles(K, keep, exclude, side, top, side_size=None, top_size=None, lo=0.
     return m
 
 
+def brick_bond(K, boxes, mortar, brick=(62, 26), joint=6, nx=4, ny=4, seed=0):
+    """A tile of brickwork in stretcher bond laid from the painting's own bricks: each brick a painted brick (one of
+    `boxes`, the painted bricks with their ink outline, chosen at random, mirrored now and then) on a bed of mortar
+    (`mortar`, 0-255 RGB, a little mottled); nx bricks across, ny courses up, every other course set over by half a
+    brick. Periodic, so it tiles with no seam and no blending: a mortar joint runs along its bottom edge."""
+    rng = np.random.default_rng(seed)
+    bw, bh = brick[0] + joint, brick[1] + joint
+    W, H = nx * bw, ny * bh
+    base = np.array(mortar, np.float32)[None, None, :] * (1 + 0.05 * ndimage.gaussian_filter(rng.normal(0, 1, (H, W)),
+                                                                                          2.0)[..., None] * 4)
+    out = Image.fromarray(base.clip(0, 255).astype(np.uint8))
+    crops = [K.paint.crop(b).convert("RGB") for b in boxes]
+    for r in range(ny):
+        y = r * bh + joint // 2
+        off = (bw // 2) * (r % 2)
+        for c in range(nx + 1):
+            im = crops[int(rng.integers(len(crops)))].resize(brick, Image.LANCZOS)
+            if rng.uniform() < 0.5:
+                im = im.transpose(Image.FLIP_LEFT_RIGHT)
+            im = Image.fromarray((np.asarray(im).astype(np.float32) * rng.uniform(0.92, 1.06)).clip(0, 255)
+                                 .astype(np.uint8))                # each brick fired a little lighter or darker
+            x = (c * bw + off + joint // 2) % W
+            out.paste(im, (x, y))
+            if x + brick[0] > W:                              # wrapped round to the left edge
+                out.paste(im, (x - W, y))
+    return out
+
+
+def pattern_tile(K, img, size, z0=0.0, vary=0.0, key=None, name=None):
+    """A material tiling a periodic image (brickwork, coursed stone) `size` metres across, sampled once (no blend of
+    two scales, which would double a regular pattern into ghosts), box-projected; z0: a height its bottom edge (a
+    mortar joint) lines up with, so the courses run on round the corners from those painted on the front."""
+    k = ("pattern", key if key is not None else zlib.crc32(img.tobytes()), round(size, 4), round(z0, 4), vary)
+    if k in K._mats:
+        return K._mats[k]
+    m = Mat(name or f"{K.name}_pat{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sw, sh = size, size * img.height / img.width
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(img.convert("RGB"), f"{m.mat.name}_img")
+    tex.projection = "BOX"
+    tex.projection_blend = 0.15
+    mapping = nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (1 / sw, 1 / sw, 1 / sh)
+    mapping.inputs["Location"].default_value = (0.0, 0.0, -z0 / sh)
+    nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+    col = tex.outputs["Color"]
+    if vary:
+        from kitlib import _vary
+        col = _vary(m, col, vary, 1.5 / sw)
+    m.set_colour(col)
+    K._mats[k] = m
+    return m
+
+
 def strip(K, p0, p1, half):
     """A strip of the painting along the line p0 -> p1 (pixels), `half` px either side of it, turned level: the
     clean surface of a thing the painting draws on a slant (a slab's top running away from us), to tile."""
@@ -1166,7 +1223,11 @@ def canal_bridge(K):
     K.front_exclude = [("poly", water_poly)]                 # the water: its own projected surface instead
     xL = P.x(200)
     xR = lambda y: P.x(450) + (P.x(332) - P.x(450)) * min(1.0, (y - y_front) / (y_b0 - y_front))
-    earth = K.tile((470, 78, 506, 104), size=0.28, soften=0.3, vary=0.06)       # the painted red earth
+    # the painted red earth of the banks: its grain (the painted light and its ink marks taken out) at its colour, so
+    # the long slopes show no grid of dark smudges; a soft large-scale variation over it
+    earth_px = P.crop((456, 64, 506, 100))
+    earth = img_tile(K, speckle(delined(earth_px, 3), sigma=3.0, base=img_median(earth_px) * 0.97, amount=1.3), 0.3,
+                     vary=0.14, key="earth")
     stone_m = K.tile((110, 104, 158, 140), soften=0.3, vary=0.05)
     rock_m = K.tile((86, 150, 140, 182), soften=0.3, vary=0.05)
 
@@ -1175,9 +1236,9 @@ def canal_bridge(K):
         cr = max(0.52, sh + 0.06)
         return interp([(0.0, 0.0), (0.05, sh - 0.06), (0.3, sh), (0.45, (sh + cr) / 2 + 0.02), (0.58, cr),
                        (0.7, cr - 0.05), (0.82, cr * 0.62), (0.92, cr * 0.25), (0.97, cr * 0.08), (1.0, 0.0)])(u)
-    _, left = channel_bank(K, lambda y: xL, -1, lambda y: xL - P.x(0), y_front, y_end, prof, earth, rough=0.02,
-                           taper=0.3, name="bank")
-    _, right = channel_bank(K, xR, 1, lambda y: P.x(543) - xR(y), y_front, y_end, prof, earth, rough=0.02,
+    _, left = channel_bank(K, lambda y: xL, -1, lambda y: xL - P.x(22), y_front, y_end, prof, earth, rough=0.02,
+                           taper=0.3, name="bank")          # out to the painted banks' outer edges, no further
+    _, right = channel_bank(K, xR, 1, lambda y: P.x(528) - xR(y), y_front, y_end, prof, earth, rough=0.02,
                             taper=0.3, name="bank")
     # the dry-stone walling lining both sides of the channel, three courses up to the banks' shoulders
     courses = [(0.0, 0.36), (0.36, 0.69), (0.69, 1.0)]
@@ -1205,7 +1266,8 @@ def canal_bridge(K):
             K.block((P.x(x0) + P.x(x1)) / 2, (ya + yb) / 2, (zb + zt) / 2, P.m(x1 - x0) - 0.01, yb - ya - 0.01,
                     zt - zb, stone_m, bevel=0.02, jitter=0.006, name="abutment")
     # the slabs of the bridge: a front row and a back row laid across the abutments
-    slab = K.tile((140, 66, 236, 92), vary=0.05)
+    slab = two_tiles(K, (140, 66, 236, 92), (240, 54, 420, 64), lo=0.6, hi=0.85, soften=0.15, vary=0.06, square=False,
+                     top_img=speckle(P.crop((240, 54, 420, 64)), sigma=4.0, amount=1.2))   # the lit tops' grain
     for x0, x1 in ((74, 246), (246, 372), (372, 462)):
         K.block((P.x(x0) + P.x(x1)) / 2, y_b0 + 0.2, (zt + P.z(52)) / 2, P.m(x1 - x0) - 0.01, 0.4, P.z(52) - zt,
                 slab, bevel=0.012, jitter=0.004, name="slab")
@@ -1223,11 +1285,11 @@ def canal_bridge(K):
         w, h = P.m(x1 - x0) * 0.85, P.m(y1 - y0) * 0.85
         x, y, z = (left if side < 0 else right)(u, y)
         stone(K, x, y, z + h * 0.25, w, w * 0.8, h, rock_m, lumps=0.15, name="rock")
-    for k in range(8):
+    for k in range(16):                                     # rocks and stones all along both banks, as painted
         side = -1 if k % 2 == 0 else 1
-        x, y, z = (left if side < 0 else right)(K.rng.uniform(0.32, 0.9), K.rng.uniform(y_front + 0.3, y_end - 0.3))
-        w = K.rng.uniform(0.12, 0.24)
-        stone(K, x, y, z + w * 0.2, w, w * 0.8, w * 0.6, rock_m, lumps=0.2, subdiv=1, name="rock")
+        x, y, z = (left if side < 0 else right)(K.rng.uniform(0.32, 0.92), K.rng.uniform(y_front + 0.3, y_end - 0.3))
+        w = K.rng.uniform(0.12, 0.3)
+        stone(K, x, y, z + w * 0.2, w, w * 0.8, w * 0.6, rock_m, lumps=0.2, subdiv=1 if w < 0.2 else 2, name="rock")
     # ferns: where they are painted at the front, and all along both banks to the back
     K.leaves_only((0, 0, 543, 291), grass_pixels)
     for box, y in (((40, 8, 165, 110), y_b1 + 0.08), ((350, 8, 470, 104), y_b1 + 0.08), ((22, 92, 132, 152), y_front + 0.06),
@@ -1241,7 +1303,7 @@ def canal_bridge(K):
         for x, sgn in ((xL, 1), (xR(y), -1)):
             K.card_from_painting(ferns[1], (x + sgn * 0.04, y, zl(y) + 0.1), yaw=sgn * yaw, scale=0.9, name="fern",
                                  normal=(sgn, -0.3, 1))
-    for k in range(84):
+    for k in range(150):                                    # the banks as lush with ferns as painted
         side = -1 if k % 2 == 0 else 1
         y = K.rng.uniform(y_front + 0.12, y_end - 0.08)
         u = K.rng.uniform(0.08, 0.3) if k % 4 == 0 else K.rng.uniform(0.3, 0.97)   # over the walling, and the bank
@@ -1491,7 +1553,16 @@ def canal_piece_4(K):
     T-handle on top; a stone sill across the channel's floor."""
     P = K.paint
     d0, d1 = -0.35, 0.55                                    # the walls' depth along the channel
-    brick = K.tile((64, 204, 152, 432), soften=0.15, vary=0.04)
+    # the brick round the walls' sides and backs: laid from the painted bricks, its courses running on from the
+    # painted ones; the pale haze the painting dissolves the walls' outer ends in is not projected (it would be white
+    # blotches on their corners), the brick shows there
+    K.front_exclude = [(0, 190, 42, 452), (508, 190, 554, 452)]
+    bricks = [(108, 222, 158, 252), (45, 223, 105, 252), (394, 223, 456, 252), (461, 223, 503, 252),
+              (423, 254, 489, 286), (68, 255, 139, 284), (45, 287, 105, 318), (110, 287, 157, 318),
+              (74, 320, 140, 350), (392, 287, 456, 318), (110, 352, 160, 382), (70, 385, 140, 415),
+              (392, 352, 456, 382), (422, 385, 490, 415)]
+    brick = pattern_tile(K, brick_bond(K, bricks, (181, 156, 130), brick=(62, 27), joint=6, nx=7, ny=6),
+                         P.m(7 * 68), z0=P.z(220), vary=0.05, key="brick")
     cap = K.tile((40, 168, 150, 190), soften=0.3, vary=0.05)
     wood = K.tile((236, 200, 312, 330), soften=0.15, vary=0.05)
     frame = K.tile((168, 130, 192, 330), soften=0.15, vary=0.05)
@@ -1527,8 +1598,7 @@ def canal_piece_4(K):
         K.lathe([(0.0, P.z(48)), (P.m(9.5), P.z(46)), (P.m(9.5), P.z(30)), (0.0, P.z(28))], handle, segments=10,
                 centre=(P.x(x), 0, 0), name="handle_end")
     # the sill across the channel's floor
-    sill = K.colour((40, 170, 150, 190), vary=0.1, pct=40)
-    K.box(P.x(162), P.x(388), d0, d1, -0.02, 0.04, sill, name="sill")
+    K.box(P.x(162), P.x(388), d0, d1, -0.02, 0.04, cap, name="sill")
 
 
 @fmodel("sluice_gate", "fields", kind="prop", atlas=1024)

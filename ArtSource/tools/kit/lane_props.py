@@ -618,13 +618,13 @@ def water_pot_stand(K):
     P = K.paint
     cx = 126.5
     X0 = P.x(cx)
-    clay = K.projected(axis_x=X0, squeeze=0.93, keep=[(34, 5, 219, 194)], exclude=[(136, 134, 186, 200)], inset=3)
+    clay = proj(K, X0, 0.93, keep=[(34, 5, 219, 194)], exclude=[(136, 134, 186, 200)], inset=3, wrap=62)
     pot = [(0, 197), (40, 197), (52, 195), (62, 190), (67, 184), (72.5, 175), (76, 169), (79.5, 163), (82.5, 157),
            (84.5, 151), (86.5, 145), (88, 139), (89.5, 130), (90.5, 124), (91.5, 115), (91.5, 106), (90.5, 100),
            (89, 94), (87.5, 88), (85.5, 82), (82.5, 76), (78.5, 70), (74, 64), (68.5, 58), (62.5, 52), (58, 49),
            (54, 46), (50, 43), (44.5, 40), (39.5, 37), (36, 34), (35.5, 31), (36.5, 28), (39.5, 25.5), (44.5, 23),
            (47, 20), (47.5, 16), (46.5, 12.5), (42.5, 9.8), (37, 8.2), (31.5, 7.6)]
-    K.lathe(prof(P, pot), clay, segments=48, centre=(X0, 0, 0), wobble=0.008, name="pot", cap=False)
+    K.lathe(prof(P, smooth(pot, 2)), clay, segments=48, centre=(X0, 0, 0), wobble=0.006, name="pot", cap=False)
     mouth(K, cx, 0.0, 31.5, 8.0, 26, K.colour((0.07, 0.025, 0.01), vary=0.08), segments=48)
     # the brass tap low on the belly: its union nut against the pot, the body, the spout and the cross handle
     brass = K.colour((165, 172, 178, 188), vary=0.08)
@@ -652,8 +652,11 @@ def water_pot_stand(K):
     K.tube([(P.x(167), E[1] + 0.005, hz), (P.x(167), E[1] + 0.005, P.z(138.5))], P.m(3.0), brass, segments=8,
            name="handle_knob")
     # the stone slab and the two blocks carrying it
-    slab = K.tile((180, 232, 210, 262), vary=0.08, soften=0.4)
-    leg = K.tile((78, 232, 110, 264), vary=0.08, soften=0.4)
+    # the stones' own grain, quilted from their painted faces
+    slab = quilt_tile(K, (40, 198, 214, 224), keep=opaque_pixels, patch_px=16, size_px=96, soften=0.25,
+                      exclude=[(130, 194, 190, 210)])
+    leg = quilt_tile(K, (44, 228, 214, 268), keep=opaque_pixels, patch_px=18, size_px=108, soften=0.25,
+                     exclude=[(112, 220, 146, 270)])
     D = 0.31
     stone_block(K, [(39, 224), (215, 224), (216, 211), (214, 196), (40, 196), (38, 210)], -D, D, slab, bevel=0.012,
                 jitter=0.0025, name="slab")
@@ -661,7 +664,8 @@ def water_pot_stand(K):
         stone_block(K, ol, -D + 0.04, D - 0.07, leg, bevel=0.01, jitter=0.003, name="block")
     earth(K, 130, 268, 289, 124, 0.42, (60, 278, 100, 286), grass=[(5, 250, 62, 288), (114, 254, 146, 282),
                                                                      (215, 252, 258, 286)],
-          pebbles=[(52, 284, 14), (100, 287, 10), (200, 284, 12)], pebble_box=(45, 278, 60, 287))
+          pebbles=[(52, 284, 14), (100, 287, 10), (200, 284, 12)], pebble_box=(45, 278, 60, 287),
+          dirt_box=(0, 262, 260, 298), dirt_exclude=[(40, 226, 216, 270)])
 
 
 def interp(samples, x):
@@ -988,14 +992,16 @@ def tulsi_planter(K):
     # (box px of its front, half depth m, own material, faces repeating the front)
     tiers = [((42, 362, 236, 397), 0.26, red, ("back", "left", "right")),
              ((61, 340, 218, 362), 0.21, red, ("back", "left", "right")),
-             ((72, 243, 207, 340), 0.18, plaster, ("back",)),
+             ((72, 243, 207, 340), 0.18, plaster, ("back", "left", "right")),
              ((65, 226, 213, 243), 0.2, band, ("back", "left", "right")),
              ((55, 202, 223, 226), 0.225, yellow, ("back", "left", "right"))]
     for (x0, y0, x1, y1), d, mat, faces in tiers:
         K.box(X(x0), X(x1), -d, d, P.z(y1), P.z(y0), mat, bevel=0.006, name="tier")
         decal_faces(K, (x0 + 2, y0 + 1, x1 - 2, y1 - 1), X(x0), X(x1), -d, d, P.z(y1), P.z(y0), faces=faces)
     # the soil inside the rim, and the horns on the rim
-    soil = K.colour((0.06, 0.03, 0.015), vary=0.15, scale=20)
+    from PIL import Image as _Im
+    dark = _Im.eval(quilt(K, (0, 390, 271, 409), soften=0.2), lambda v: int(v * 0.42))     # the earth, wet and dark
+    soil = pil_tile(K, dark, P.m(dark.width), ("soil",), vary=0.08)
     K.box(X(64), X(214), -0.2, 0.2, P.z(202), P.z(199), soil, name="soil")
     horn = K.colour((190, 182, 200, 196), vary=0.08)
     d = 0.225
@@ -1030,7 +1036,7 @@ def tulsi_planter(K):
     K.card_from_painting((14, 0, 257, 201), (X(135.5), -0.16, P.z(100.5)), name="tulsi_front",
                          normal=(0, -0.6, 0.8))
     earth(K, 139, 397, 403, 125, 0.36, (160, 398, 200, 404), grass=[(4, 362, 86, 402), (228, 362, 268, 402)],
-          pebble_box=(150, 397, 160, 403))
+          pebble_box=(150, 397, 160, 403), dirt_box=(0, 388, 271, 409), dirt_exclude=[(40, 360, 238, 398)])
 
 
 def diya(K, cx, cy, rim_py, foot_py, r_px, flame_box, keep_box, name="diya"):
@@ -1197,9 +1203,11 @@ def hand_pump(K):
     # the handle: a curved flat bar from its pivot boss over the head and down to the round grip end
     hm = K.projected(axis_x=X(330), squeeze=1.0, keep=[(236, 4, 432, 214)], exclude=[(236, 50, 300, 214)], inset=1)
     # the arm along the middle of its painted band
-    arm = [(256, 26), (264, 20), (280, 17), (297, 20), (311, 30), (322, 45), (331, 65), (339, 88), (347, 109),
-           (357, 129), (371, 149), (389, 167), (405, 182), (414, 195)]
-    bar(K, [P.pt(x, y, cy) for x, y in arm], P.m(16), P.m(9), hm, y0=cy, segments=12, name="handle")
+    # (the middle of the painted band, measured row by row and column by column off the painting's alpha)
+    arm = [(256, 26), (264, 20), (274, 18), (290, 20.5), (306, 26), (316, 40), (324, 60), (330.5, 80), (334, 90),
+           (337.5, 100), (340.5, 110), (344, 120), (347.5, 130), (353, 140), (360, 150), (370, 160), (383.5, 170),
+           (399.5, 180), (410, 189), (415, 197)]
+    bar(K, [P.pt(x, y, cy) for x, y in arm], P.m(20), P.m(10), hm, y0=cy, segments=12, name="handle")
     axis_y_disc(K, (X(255), cy, Z(33)), P.m(15), P.m(16), hm, name="pivot_boss")
     axis_y_disc(K, (X(415.5), cy, Z(198.5)), P.m(13.5), P.m(13), hm, name="grip")
     for c, rr in (((255, 33), 5), ((415.5, 198.5), 4.5)):
@@ -1221,7 +1229,7 @@ def hand_pump(K):
     K.lathe(prof(P, [(0, 182), (3.2, 180), (3.0, 176), (1.5, 173), (0, 171)]), drop, segments=10,
             centre=(X(166), cy - 0.05, 0), name="drop")
     # the stone block the pump stands in
-    stone = quilt_tile(K, (190, 288, 326, 344), keep=plain_pixels, patch_px=18, size_px=108, soften=0.25)
+    stone = quilt_tile(K, (190, 288, 326, 344), keep=opaque_pixels, patch_px=18, size_px=108, soften=0.25)
     stone_block(K, [(188, 345), (327, 345), (327, 286), (188, 286)][::-1], cy - 0.22, cy + 0.22, stone, bevel=0.015,
                 jitter=0.003, name="block")
     rock = K.colour((300, 325, 320, 335), vary=0.1)
@@ -1248,7 +1256,7 @@ def hand_pump(K):
         bail.append((X(bx) - math.cos(a) * P.m(63), by - math.sin(a) * P.m(62), Z(246) - math.sin(a) * P.m(14)))
     K.tube(bail, P.m(2.2), steel, segments=6, name="bail")
     # the raised earth round the pump, wet in a puddle where the bucket stands
-    earth(K, 176, 345, 394, 172, 0.5, (8, 335, 40, 350), grass=[(42, 314, 88, 340), (226, 326, 258, 350),
+    earth(K, 200, 345, 388, 190, 0.5, (8, 335, 40, 350), grass=[(42, 314, 88, 340), (226, 326, 258, 350),
                                                                  (338, 296, 398, 332)],
           dirt_box=(0, 328, 438, 400), dirt_exclude=[(40, 340, 330, 400)])
     puddle = quilt_tile(K, (25, 345, 330, 396), keep=water_pixels, patch_px=14, size_px=84, soften=0.2)
@@ -1322,60 +1330,49 @@ def cushion(K, corners, thick, mat, n=14, name="cushion"):
 def rope_cot(K):
     """A charpai: four turned wooden legs with knobbed finials, joined at the square blocks on their tops by the
     frame's four rails, the coir rope woven across between them as the bed and wrapped round the rails, sagging a
-    little; a patchwork cushion lies at its head. It stands on ground that falls a little towards the camera."""
+    little; a patchwork cushion is propped at its head. True, level and square on level ground: the painting draws it
+    from above and in perspective (its back legs inward and higher, the bed's top showing), which a real cot seen
+    from the front does not show; from the game's camera, a little above, its bed shows as painted."""
     import numpy as np
     from PIL import Image
     P = K.paint
     X, Z = P.x, P.z
     K.front_exclude.append((345, 50, 400, 112))          # the painted sparkle on the rope: light, not a thing
     yF, yB = -0.4, 0.4
-    tilt = P.m(24) / (yB - yF)
-    # the legs: (centre px, depth, keep box, lathe profile (r px, py) from the foot up, block (x0, x1, top, bottom))
+    foot = 264
+    # the front legs as painted: (centre px, keep box, lathe profile (r px, py) from the foot up, block (x0, x1, top,
+    # bottom), finial profile); the back legs are the same turned legs, straight behind them
     legs = [
-        (54, yF, (26, 36, 84, 266),
-         [(0, 263), (23, 263), (23, 246), (21.5, 238), (18.5, 232), (15.5, 228), (16.5, 224), (14.5, 220),
+        (54, (26, 36, 84, 266),
+         [(0, foot), (23, foot), (23, 246), (21.5, 238), (18.5, 232), (15.5, 228), (16.5, 224), (14.5, 220),
           (16.5, 216), (18.5, 212), (20.5, 208), (22, 204), (22, 190), (19.5, 184), (15, 180), (19.5, 176),
           (19.5, 168), (17, 162), (18, 157)], (28, 80, 96, 157),
          [(18, 96), (15.5, 92), (15.5, 88), (20, 84), (20, 76), (17, 72), (13.5, 68), (13.5, 64), (16, 60), (18.5, 56),
           (19, 50), (17, 44), (12, 41), (0, 40)]),
-        (473.5, yF, (448, 64, 502, 268),
-         [(0, 265), (22, 265), (21, 256), (19.5, 252), (19.5, 232), (15.5, 228), (17.5, 224), (13.5, 220), (14.5, 216),
-          (16.5, 212), (17.5, 208), (18.5, 204), (19.5, 200), (20.5, 196), (19.5, 192), (18.5, 188), (16.5, 184),
-          (13.5, 180), (17.5, 176), (18.5, 172), (17.5, 168), (16.5, 164), (17.5, 158)], (449, 499, 100, 157),
+        (473.5, (448, 64, 502, 268),
+         [(0, foot), (22, foot), (21, 256), (19.5, 252), (19.5, 232), (15.5, 228), (17.5, 224), (13.5, 220),
+          (14.5, 216), (16.5, 212), (17.5, 208), (18.5, 204), (19.5, 200), (20.5, 196), (19.5, 192), (18.5, 188),
+          (16.5, 184), (13.5, 180), (17.5, 176), (18.5, 172), (17.5, 168), (16.5, 164), (17.5, 158)],
+         (449, 499, 100, 157),
          [(18.5, 100), (17.5, 96), (13.5, 92), (17.5, 88), (18.5, 84), (19.5, 80), (18.5, 76), (16.5, 72), (10.5, 68),
           (0, 67)]),
-        (103.5, yB, (82, 140, 126, 246),
-         [(0, 242), (19, 242), (19, 238), (16.5, 236), (16.5, 228), (17.5, 224), (17.5, 212), (13.5, 208), (14.5, 204),
-          (11.5, 200), (12.5, 196), (14.5, 192), (16.5, 188), (17.5, 184), (18.5, 180), (18.5, 176), (16.5, 172),
-          (14.5, 168), (12.5, 164), (16.5, 160), (17.5, 156), (16.5, 152), (17.5, 148)], (82, 126, 82, 148),
-         [(17, 82), (15, 78), (13, 74), (17, 70), (18, 64), (16, 58), (11, 55), (0, 54)]),
-        (437, yB, (410, 140, 452, 246),
-         [(0, 242), (23, 242), (24, 238), (19, 234), (19, 230), (20, 226), (20.5, 222), (22, 218), (21, 214),
-          (19, 210), (16, 206), (16, 202), (15, 198), (16, 194), (18, 190), (20, 186), (21, 182), (21, 174),
-          (19, 170), (16, 166), (16, 162), (20, 158), (19, 154), (20, 150)], (414, 460, 80, 150),
-         [(17, 80), (16, 76), (13, 70), (15, 66), (17, 62), (18, 58), (17, 52), (15, 46), (11, 41), (0, 38)]),
     ]
     blockm = K.tile((36, 104, 72, 150), vary=0.06, soften=0.3)
-    for i, (cx, yy, keep, low, blk, top) in enumerate(legs):
-        wood = K.projected(axis_x=X(cx), squeeze=0.92, keep=[keep], inset=2)
-        lift = 0.0                       # each leg's foot is where it is painted: the ground falls to the front
-        K.lathe([(P.m(r), Z(py) + lift) for r, py in low], wood, segments=24, centre=(X(cx), yy, 0), name="leg")
-        x0, x1, t_py, b_py = blk
-        hw = P.m(x1 - x0) / 2
-        K.box(X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py) + lift, Z(t_py) + lift, blockm, bevel=0.008,
-              name="block")
-        decal_faces(K, (32, 102, 77, 152), X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py) + lift, Z(t_py) + lift,
-                    faces=("back", "left", "right"))
-        tcx = cx if i != 3 else 449
-        if i == 3:
-            wood = K.projected(axis_x=X(tcx), squeeze=0.92, keep=[(434, 34, 464, 70)], inset=2)
-        K.lathe([(P.m(r), Z(py) + lift) for r, py in top], wood, segments=24, centre=(X(tcx), yy, 0), name="finial")
-    # the frame's rails, wrapped in rope
+    for cx, keep, low, blk, top in legs:
+        for yy in (yF, yB):
+            wood_y = proj(K, X(cx), 0.92, keep=[keep], inset=2, wrap=62, axis_y=yy)
+            K.lathe(prof(P, low), wood_y, segments=24, centre=(X(cx), yy, 0), name="leg")
+            x0, x1, t_py, b_py = blk
+            hw = P.m(x1 - x0) / 2
+            K.box(X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py), Z(t_py), blockm, bevel=0.008, name="block")
+            decal_faces(K, (32, 102, 77, 152), X(cx) - hw, X(cx) + hw, yy - hw, yy + hw, Z(b_py), Z(t_py),
+                        faces=("back", "left", "right"))
+            K.lathe(prof(P, top), wood_y, segments=24, centre=(X(cx), yy, 0), name="finial")
+    # the frame's rails, wrapped in rope, all four level
     wrap = K.tile((150, 114, 250, 146), vary=0.06, soften=0.15)
-    rail_r = P.m(17)
-    corners = {"FL": (X(54), yF, Z(130)), "FR": (X(473.5), yF, Z(130)), "BL": (X(103.5), yB, Z(92)),
-               "BR": (X(437), yB, Z(92))}
-    for a, b, r in (("FL", "FR", rail_r), ("BL", "BR", P.m(12)), ("FL", "BL", P.m(13)), ("FR", "BR", P.m(13))):
+    zr = Z(130)
+    corners = {"FL": (X(54), yF, zr), "FR": (X(473.5), yF, zr), "BL": (X(54), yB, zr), "BR": (X(473.5), yB, zr)}
+    for a, b, r in (("FL", "FR", P.m(17)), ("BL", "BR", P.m(15)), ("FL", "BL", P.m(15)), ("FR", "BR", P.m(15))):
         K.tube([corners[a], corners[b]], r, wrap, segments=12, name="rail")
     # the woven bed between the rails, sagging a little in the middle; its weave un-foreshortened from the painting
     weave_src = P.crop((240, 97, 340, 113)).convert("RGB")
@@ -1391,11 +1388,12 @@ def rope_cot(K):
         p = p + np.array([0, 0, P.m(8) - sag])
         return tuple(p)
     K.sheet(bed, 36, 14, weave, name="bed", thickness=0.014)
-    # the patchwork cushion at the head, leaning back against the far rail
+    # the patchwork cushion at the head: its lower edge on the bed, propped back against the head's back post
     pil = proj(K, X(150), 1.0, polys=[[(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]], inset=3)
-    cushion(K, [(X(108), yF + 0.18, Z(110)), (X(234), yF + 0.18, Z(96)), (X(170), yB - 0.12, Z(9)),
-                (X(63), yB - 0.12, Z(12))], 0.075, pil, name="cushion")
-    earth(K, 263, 251, 266, 255, 0.62, (0.58, 0.25, 0.12), tilt=tilt,
+    cushion(K, [(X(108), yF + 0.16, Z(119)), (X(234), yF + 0.16, Z(112)), (X(170), yB - 0.08, Z(10)),
+                (X(66), yB - 0.08, Z(13))], 0.075, pil, name="cushion")
+    earth(K, 263, foot, 270, 255, 0.62, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
+          dirt_exclude=[(20, 200, 510, 262)],
           grass=[(8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
                  (420, 240, 462, 262), (490, 248, 510, 262)])
 

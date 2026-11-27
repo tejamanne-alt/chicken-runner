@@ -745,6 +745,10 @@ class Palm:
     def frond(self, spine, hw, d, roll=None, fold=None, xform=None, profile="frond", rows=5, n=16, power=1.5,
               name="frond", twist=0.0, k=1.0):
         K, P = self.K, self.P
+        # run the ribbon a little past the measured tip, so the painted tip (not the ribbon's end) cuts it off
+        a, b = np.array(spine[-2], float), np.array(spine[-1], float)
+        dv = (b - a) / max(1e-6, np.linalg.norm(b - a))
+        spine = list(spine[:-1]) + [tuple(b), tuple(b + dv * 16)]
         rng = K.rng
         roll = rng.uniform(-0.6, 0.6) if roll is None else roll
         fold = rng.choice([-1, 1]) * rng.uniform(0.25, 0.55) if fold is None else fold
@@ -1422,8 +1426,8 @@ def h4_4(K):
     soil = masked_material(K, earth_ok, inset=1)
     K.lathe([(P.m(r), P.z(py)) for r, py in ((64, 480), (60, 474), (48, 468), (38, 464), (0.0, 462))], soil,
             segments=28, centre=(P.x(cx), 0.0, 0.0), scale_y=0.9, wobble=0.1, name="mound")
-    grass = [(130, 408, 172, 470), (238, 418, 272, 470), (160, 440, 185, 472)]
-    K.leaves_only((128, 405, 275, 472), mask_rule(leaf, (128, 405, 275, 472)))
+    grass = [(124, 404, 178, 470), (230, 413, 278, 470), (160, 440, 185, 472)]
+    K.leaves_only((122, 402, 280, 472), mask_rule(leaf, (122, 402, 280, 472)))
     tufts(K, grass, [-P.m(25), -P.m(25), -P.m(36)])
     tufts(K, grass[:2], [P.m(25), P.m(28)])
 
@@ -1531,7 +1535,7 @@ def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana"
             a = ph + 2 * math.pi * (i + rng.uniform(-0.2, 0.2)) / per_hand
             d = Vector((math.cos(a), math.sin(a) * 0.9, 0.0))
             base = Vector((P.x(rx), y, P.z(py))) + d * P.m(6)
-            out = P.m(reach) * rng.uniform(0.72, 0.88)       # the finger's own width and ink stay inside the bunch
+            out = P.m(max(reach * 0.5, reach - rad * 0.8)) * rng.uniform(0.88, 1.0)   # its width stays inside
             Lm = P.m(L) * rng.uniform(0.85, 1.1)
             pts = [base, base + d * out * 0.45 + Vector((0, 0, Lm * 0.15)),
                    base + d * out * 0.8 + Vector((0, 0, Lm * 0.45)), base + d * out * 0.95 + Vector((0, 0, Lm * 0.8))]
@@ -1540,7 +1544,7 @@ def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana"
 
 
 def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, foot_py, stem_box, leaf_box,
-           back=1.0, extra=5):
+           back=1.0, extra=5, sheaths=()):
     """A banana plant: its pseudostem of sheathing leaf-bases (turned, wearing the painted sheaths all round), great
     arching leaves on stalks rising from its top all round (the painted ones where they are painted), its bunch of
     bananas on a hooked stalk with the bell at its end, boulders and grass at its foot."""
@@ -1557,6 +1561,8 @@ def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, fo
     mat = axis_material(K, st_ok, lambda py: float(np.interp(py, [p[1] for p in stem][::-1],
                                                              [p[0] for p in stem][::-1])), squeeze=0.86, inset=2)
     trunk(K, stem, mat, segments=18, name="pseudostem")
+    for sh in sheaths:                  # a leaf-base sheathing the stem, curving away from it as painted
+        trunk(K, sh, mat, segments=10, ys=-P.m(stem[0][2]) * 0.35, name="sheath")
     # ---- the leaves
     m = (leaf | (opaque & (g > r) & (mx > 70))) & ~halo(rgb) & box_mask(opaque.shape, [leaf_box])
     bx0, by0, bx1, by1 = bunch_box
@@ -1608,15 +1614,17 @@ def h5_1(K):
     """A banana plant: a stout green pseudostem of sheathing leaf-bases, eight great arching leaves with torn edges
     all round its top, a heavy bunch of yellow-green bananas hanging from a hooked stalk with its bell below, stones
     and grass at its foot."""
-    banana(K, [(305, 885, 32), (304, 820, 30), (304, 700, 28), (304, 580, 26), (303, 510, 22), (302, 465, 17)],
+    banana(K, [(305, 885, 32), (304, 820, 30), (304, 700, 30), (304, 580, 27), (303, 510, 26), (300, 465, 22),
+               (298, 420, 18), (296, 380, 15)],
            H51_LEAVES, (302, 468), 300, (285, 300, 330, 470),
            ([(326, 410, 7), (345, 378, 7), (368, 385, 6.5), (383, 420, 6), (388, 500, 6), (395, 585, 5),
-             (404, 612, 4)], [(440, 56), (480, 58), (520, 56), (560, 50)], (48, 8), (318, 395, 455, 605),
-            (408, 638, 20, 25)),
+             (404, 612, 4)], [(440, 58), (478, 60), (515, 58), (552, 54), (588, 46)], (48, 8), (318, 395, 455, 610),
+            (406, 638, 17, 23)),
            [(250, 888, 105, 55, -0.03, (192, 830, 300, 890)), (290, 890, 50, 26, -0.05, (245, 860, 300, 892)),
             (348, 885, 48, 22, -0.045, (322, 862, 375, 888)), (330, 885, 80, 40, 0.05, (192, 830, 300, 890))],
            [(205, 755, 270, 860), (330, 760, 400, 875), (175, 820, 215, 880)], 885, (262, 410, 345, 885),
-           (0, 0, 624, 500))
+           (0, 0, 624, 500), sheaths=[[(256, 385, 8), (262, 420, 10), (269, 470, 11), (275, 520, 11), (279, 600, 9),
+                                      (281, 650, 6)]])
 
 
 H52_LEAVES = [
