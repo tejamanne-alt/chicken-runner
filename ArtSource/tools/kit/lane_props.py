@@ -2159,17 +2159,20 @@ def bullock_cart(K):
     """A country bullock cart, unhitched and resting on its prop: a blue-painted plank body with white and orange
     flowers, its slatted rails on knobbed stakes, heaped with hay; two big wooden wheels with twelve spokes, iron
     tyres and heavy hubs on an iron axle; the beams under it run forward into the long pole, propped up near its end
-    on a forked stick, coils of rope round the pole and a coil hung on the side."""
+    on a forked stick, coils of rope round the pole and a coil hung on the side. A true box, level, side-on: the
+    painted body's far side ends where its near side ends and the near wheel is painted round, so the cart is not
+    turned (the painter drew the far wheel out to the right of the near one besides; a cart turned to show it, 18
+    degrees, shows its far front corner above the pole)."""
     from mathutils import Vector
     P = K.paint
     X, Z = P.x, P.z
-    phi = math.radians(8)
+    phi = math.radians(0)                            # the cart's turn in plan (0: side-on)
     cphi, sphi = math.cos(phi), math.sin(phi)
-    ax = Vector((cphi, -sphi, 0.0))                  # along the cart, towards the pole (and the camera)
+    ax = Vector((cphi, -sphi, 0.0))                  # along the cart, towards the pole
     nrm = Vector((sphi, cphi, 0.0))                  # across it, towards its far side
-    O = Vector((X(304), 0.0, 0.0))                   # the axle's middle
+    O = Vector((X(304), 0.0, 0.0))                   # the body's middle
     W = 0.62                                         # the body's half width
-    # The painting is drawn from a little above: the far wheel, 1.71 m further back than the near one, stands 20 px
+    # The painting is drawn from a little above: the far wheel, 1.8 m further back than the near one, stands 20 px
     # higher on the painted ground (372 and 352), and the ground runs back to 345. That slope is the painting's
     # oblique; the cart stays true and level, and what is further back stands further back.
     kob = P.m(20) / (1.8 * cphi)

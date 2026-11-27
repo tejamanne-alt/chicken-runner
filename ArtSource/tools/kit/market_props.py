@@ -1129,14 +1129,15 @@ def _painted_x(K, nt, sep, op):
     return op("ADD", op("DIVIDE", op("SUBTRACT", sep.outputs["X"], xc), f), xc)
 
 
-def slope_projected(K, keep=None, exclude=(), inset=2, halo=3, name=None):
+def slope_projected(K, keep=None, exclude=(), inset=2, halo=3, name=None, mask=None):
     """K.projected along the painted slope K.oblique (object x, z + oblique * y -> painting u, v; narrowing with depth
     along K.converge), from the painting without its pale halo: the own material of goods lying on a tray painted from
     above (papads, chillies), so their sides and undersides carry the colours the bake's projection lands on their
-    tops."""
+    tops. mask (bool HxW): only those pixels (the goods' own), every other one filled from the nearest of them, so a
+    part of the goods reaching past its painted outline (a papad draped over the back pole) still wears the goods."""
     k = float(K.oblique)
     key = ("slope", round(k, 4), tuple(K.converge or ()), tuple(tuple(b) for b in keep) if keep else None,
-           tuple(tuple(b) for b in exclude), inset, halo)
+           tuple(tuple(b) for b in exclude), inset, halo, None if mask is None else int(mask.sum()))
     if key in K._mats:
         return K._mats[key]
     P = K.paint
@@ -1161,7 +1162,14 @@ def slope_projected(K, keep=None, exclude=(), inset=2, halo=3, name=None):
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(clean_source(K, keep, exclude, inset, halo), f"{m.mat.name}_img")
+    src = clean_source(K, keep, exclude, inset, halo)
+    if mask is not None:
+        from PIL import Image
+        a = np.asarray(src).copy()
+        _, (iy, ix) = ndimage.distance_transform_edt(~mask, return_indices=True)
+        a = a[iy, ix]
+        src = Image.fromarray(a, "RGBA")
+    tex.image = _image(src, f"{m.mat.name}_img")
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
     m.set_colour(tex.outputs["Color"])
@@ -1485,13 +1493,14 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
     return surf_z
 
 
-def lying_papad(K, T, cx, mid_py, R_px, ratio, roll, z_rest, mat, wobble=0.0025, name="papad"):
+def lying_papad(K, T, cx, mid_py, R_px, ratio, roll, z_rest, mat, drape_mat=None, wobble=0.0025, name="papad"):
     """A papad drying on the level tray T: a thin, slightly wavy disc, painted as an ellipse R_px wide (half) centred
     on (cx, mid_py) and `ratio` times as high as wide. The painting draws it f = T.f(y) times smaller across where it
     lies, so it is R_px * f across, and lying flat it would be painted k * f as high; more means it is tilted up at the
     back, less down, by t (sin t + k cos t = ratio / f, where it rests on the edge of one under it); roll (degrees)
     raises its right side (the painted ellipse turned). Its lowest edge rests at z_rest (on the mat, or on the papads
-    under it), and where it reaches the back pole it rides up over it, as a stiff papad would."""
+    under it), and where it reaches the back pole it rides up over it and drapes behind it (wearing drape_mat there:
+    the painting does not show that side)."""
     P, k = K.paint, T.k
     A = math.hypot(1.0, k)
     zc = z_rest
@@ -1547,6 +1556,11 @@ def lying_papad(K, T, cx, mid_py, R_px, ratio, roll, z_rest, mat, wobble=0.0025,
     if bm.faces[0].normal.z < 0:
         bmesh.ops.reverse_faces(bm, faces=bm.faces)
     ob = _obj(name, bm, mat, smooth=True)
+    if drape_mat is not None:
+        ob.data.materials.append(drape_mat.mat)
+        for poly in ob.data.polygons:
+            if poly.center.y > T.yb - T.r * 0.2:
+                poly.material_index = 1
     mod = ob.modifiers.new("solid", "SOLIDIFY")
     mod.thickness = 0.0016
     mod.offset = -1
@@ -1648,9 +1662,14 @@ def papad_mat(K):
     for cx, my, r, ratio, roll, layer in papads:
         goods |= ((xx - cx) / (r + 2)) ** 2 + ((yy - my) / (r * ratio + 2)) ** 2 < 1
     level_tray(K, T, (179, 20, 198, 40), goods, (37, 66.5, 101.5, 138, 169.5, 198))
-    top = slope_projected(K, keep=[(24, 6, 224, 116)], inset=1)
+    inner = np.zeros((P.h, P.w), bool)
+    for cx, my, r, ratio, roll, layer in papads:
+        inner |= ((xx - cx) / (r - 3)) ** 2 + ((yy - my) / (r * ratio - 3)) ** 2 < 1
+    top = slope_projected(K, keep=[(24, 6, 224, 116)], inset=1, mask=inner & (P.rgba[..., 3] > 0.5))
+    # behind the back pole (a papad draped over it) a tile of a papad's painted middle
+    flap = K.tile((100, 62, 126, 82), vary=0.06, soften=0.3)
     for i, (cx, my, r, ratio, roll, layer) in enumerate(papads):
-        lying_papad(K, T, cx, my, r, ratio, roll, T.zm + 0.0018 + 0.0028 * layer, top, name=f"papad{i}")
+        lying_papad(K, T, cx, my, r, ratio, roll, T.zm + 0.0018 + 0.0028 * layer, top, flap, name=f"papad{i}")
 
 
 def papad(K, T, px, py, r_px, lift, mat, tilt=(0.0, 0.0), name="papad"):

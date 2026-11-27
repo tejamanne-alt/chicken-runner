@@ -331,10 +331,11 @@ def earth_patch(K, cx, cy, rx, ry, mat, z=0.0, h=0.025, name="ground"):
 def _pc(K):
     """(k, c, xc, zc) in metres; zc None without a vanishing row."""
     P = K.paint
+    k = getattr(K, "_k_real", K.oblique)
     if not K.converge:
-        return K.oblique, 0.0, 0.0, None
+        return k, 0.0, 0.0, None
     cv = K.converge
-    return K.oblique, float(cv[0]), P.x(cv[1]), (P.z(cv[2]) if len(cv) > 2 and cv[2] is not None else None)
+    return k, float(cv[0]), P.x(cv[1]), (P.z(cv[2]) if len(cv) > 2 and cv[2] is not None else None)
 
 
 def fk(K, y):
@@ -387,29 +388,51 @@ def painted(K, X, Y, Z):
     return xp, zp
 
 
-def place(K, objs, anchor, Z=None, Y=None):
+class built_at:
+    """with built_at(K, py, z) as kb: build an object standing at height z, its foot painted at py, with zo / yo; then
+    place(..., k_build=kb). Without a vanishing row an object grows in plan only, so its own depths are built shorter
+    by as much (the slope inside it is k * f), and come out where they are painted."""
+
+    def __init__(self, K, py, z):
+        k, c, xc, zc = _pc(K)
+        self.K, self.k0 = K, K.oblique
+        self.f = 1.0 if zc is not None else 1.0 + c * yk(K, py, z)
+
+    def __enter__(self):
+        self.K._k_real = self.k0
+        self.K.oblique = self.k0 * self.f
+        return self.K.oblique
+
+    def __exit__(self, *a):
+        self.K.oblique = self.k0
+        del self.K._k_real
+
+
+def place(K, objs, anchor, Z=None, Y=None, k_build=None):
     """Sets an object built round `anchor` with the slope alone (zo / yo, the painting's scale: anchor (x, y, z) drawn
     at x, z + k * y) at its real place: the anchor at height Z (it stands there: its depth follows) or at depth Y, the
-    object as much bigger as it is further back. objs: parts and cards."""
+    object as much bigger as it is further back (in plan only, without a vanishing row). objs: parts and cards."""
     k, c, xc, zc = _pc(K)
     ax, ay, az = anchor
-    zp = az + k * ay
+    zp = az + (k if k_build is None else k_build) * ay
     if Y is None:
         Y = ((zp - Z) / (k - c * (zp - zc)) if zc is not None else (zp - Z) / k) if k else ay
     f = 1 + c * Y
     X = xc + (ax - xc) * f
     if Z is None:
         Z = (zc + (zp - zc) * f if zc is not None else zp) - k * Y
-    M = Matrix.Translation((X, Y, Z)) @ Matrix.Scale(f, 4) @ Matrix.Translation((-ax, -ay, -az))
+    # (without a vanishing row the painting keeps heights as they are: the object grows in plan only)
+    S_ = Matrix.Scale(f, 4) if zc is not None else Matrix.Diagonal((f, f, 1.0, 1.0))
+    M = Matrix.Translation((X, Y, Z)) @ S_ @ Matrix.Translation((-ax, -ay, -az))
     for ob in objs:
         ob.data.transform(M)
     return Vector((X, Y, Z)), f
 
 
-def anchor_y(K, anchor, Z):
+def anchor_y(K, anchor, Z, k_build=None):
     """The real depth place() gives an object built round `anchor` (slope alone) standing at height Z."""
     k, c, xc, zc = _pc(K)
-    zp = anchor[2] + k * anchor[1]
+    zp = anchor[2] + (k if k_build is None else k_build) * anchor[1]
     return (zp - Z) / (k - c * (zp - zc)) if zc is not None else (zp - Z) / k
 
 
@@ -657,27 +680,42 @@ def clean_source(K, keep, inset=4, dark=0.72):
     return Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA")
 
 
-def topped(K, outline, z0, z1, side, top, name="mat", drop_bottom=True):
+def topped(K, outline, z0, z1, side, top, name="mat", drop_bottom=True, grid=12):
     """A level slab over a plan outline [(x, y), ...] (counter-clockwise from above), from z0 to z1: its sides wear
     `side` (a tile), its top `top` (the painted top along the slope, slope_proj). The bottom face is left off when it
-    lies on the ground."""
+    lies on the ground. A four-cornered top is a grid of grid x grid faces (a perspective maps the painting onto it
+    point by point; one big face would be drawn straight between its corners)."""
     import bmesh
     from kitlib import _obj
     bm = bmesh.new()
-    lo = [bm.verts.new((x, y, z0)) for x, y in outline]
-    hi = [bm.verts.new((x, y, z1)) for x, y in outline]
     n = len(outline)
-    ftop = bm.faces.new(hi)
+    if n == 4 and grid > 1:
+        A, B, C, D = [Vector((x, y, z1)) for x, y in outline]
+        g = [[bm.verts.new((A.lerp(B, i / grid)).lerp(D.lerp(C, i / grid), j / grid)) for i in range(grid + 1)]
+             for j in range(grid + 1)]
+        tops = [bm.faces.new([g[j][i], g[j][i + 1], g[j + 1][i + 1], g[j + 1][i]]) for j in range(grid)
+                for i in range(grid)]
+        rim = ([g[0][i] for i in range(grid)] + [g[j][grid] for j in range(grid)] +
+               [g[grid][i] for i in range(grid, 0, -1)] + [g[j][0] for j in range(grid, 0, -1)])
+        corner_at = [0, grid, 2 * grid, 3 * grid]
+    else:
+        rim = [bm.verts.new((x, y, z1)) for x, y in outline]
+        tops = [bm.faces.new(rim)]
+        corner_at = list(range(n))
+    lo = [bm.verts.new((x, y, z0)) for x, y in outline]
     if not (drop_bottom and z0 <= 0.001):
         bm.faces.new(list(reversed(lo)))
+    m = len(rim)
     for i in range(n):
-        j = (i + 1) % n
-        bm.faces.new([lo[i], lo[j], hi[j], hi[i]])
+        a_, b_ = corner_at[i], corner_at[(i + 1) % n]
+        ring = [rim[q % m] for q in range(a_, (b_ if b_ > a_ else b_ + m) + 1)]
+        bm.faces.new([lo[i], lo[(i + 1) % n]] + list(reversed(ring)))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    if ftop.normal.z < 0:
+    if tops[0].normal.z < 0:
         for f in bm.faces:
             f.normal_flip()
-    ftop.material_index = 1
+    for f in tops:
+        f.material_index = 1
     ob = _obj(name, bm, side)
     ob.data.materials.append(top.mat if hasattr(top, "mat") else top)
     K.parts.append(ob)
@@ -2474,8 +2512,6 @@ def birdcage(K, cx, cy, z0, R, z_shoulder, z_top, mat, bars=22, sy=0.7, name="ca
                    for q in range(37)]
             nrm = [(math.cos(2 * math.pi * q / 36), math.sin(2 * math.pi * q / 36), 0.0) for q in range(37)]
             ribbon(K, pts, nrm, w * 1.2, wire, name=name + "_hoop")
-        K.lathe([(R * 0.16, z_top - 0.012), (R * 0.14, z_top + 0.015), (R * 0.06, z_top + 0.02)], mat, segments=12,
-                centre=(cx, cy, 0.0), name=name + "_cap")
         if ring_box is not None:
             # the ring on top, as painted (two cards crossed: it reads as a ring from the front and from the side)
             P = K.paint
@@ -2613,7 +2649,13 @@ def stall_e_3(K):
     top_cloth = dome_wrap(K, (Xr, y_rim, z_rim), math.degrees(t),
                           [(0, 0, 100, 172), (100, 0, 180, 140), (180, 0, 366, 120), (366, 27, 391, 120),
                            (391, 0, 560, 120), (560, 0, 650, 138), (650, 0, 758, 182)])
-    under = ktile(K, (195, 185, 255, 245), vary=0.05)
+    # the underside: the painting through the slope and the perspective, point by point (seen from below, both the
+    # near and the far half of the underside are painted, each where it is); kept off the front projection, whose
+    # visibility (from above along the slope) cannot see an underside above the horizon
+    under_boxes = [(0, 172, 100, 330), (100, 140, 180, 330), (180, 120, 366, 300), (391, 120, 560, 300),
+                   (560, 138, 650, 330), (650, 182, 758, 330)]
+    under = slope_proj(K, keep=under_boxes, inset=2)
+    K.front_exclude += under_boxes
     rib = K.colour((370, 140, 382, 160), vary=0.08)
     tip, axis = rib_umbrella(K, Xr, y_rim, z_rim, R, H, math.degrees(t), top_cloth, under, rib, ribs=10,
                              phase=0.0, runner=hub, shape=pw, scallop=0.0, edge=edge, tears=0.0)

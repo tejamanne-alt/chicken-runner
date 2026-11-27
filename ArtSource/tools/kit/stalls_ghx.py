@@ -1103,17 +1103,20 @@ def stall_h_2(K):
     king posts, a mirror in a wooden frame hung by a string from a back post, a wooden stool with a striped towel
     over it, a brass basin of water and a soap dish, all on a patch of packed red earth.
 
-    The painting looks down on the pitch in perspective. Its slope (K.oblique 0.25 at the stool's seat, row 650) is
-    measured off the stool's square seat (its painted corners make a square only at 0.22-0.30); the posts converge:
-    the back pair is painted 0.73 as far apart as the front pair, both pairs meeting at column 513 (K.converge
-    (0.404, 513.5, 650)). With both, the four posts stand on a true rectangle, 2.44 by 0.95 m. Everything stands
-    level at its real depth and size: the earth (its painted band, py 729-898), the posts at their painted feet, the
-    roof square and level on them, the stool, the basin and the soap dish where they stand."""
-    from stalls_cdef import anchor_y, fk, place, proj_at, xk, yo, zo
+    The painting looks down on the pitch, and draws its back narrower: the back posts are painted 0.73 as far apart
+    as the front ones, both pairs meeting at column 513. It is a painter's view, not one camera: the roof is drawn
+    from above although a true perspective through the posts would put the horizon below it, so the convergence is
+    in width only (K.converge (0.2255, 513)). The slope (K.oblique 0.20) is measured off the stool's square seat (its
+    corners drawn 0.26 as deep as wide where the stool stands 1.3 times its painted size) and the round basin's rim
+    (0.21 against 0.26 painted). With both, the four posts stand on a true rectangle, 2.70 by 1.76 m. Everything
+    stands level and square at its real depth and size: the posts at their painted feet, the roof square and level on
+    them, the stool, the basin and the soap dish where they stand; the earth is the ground the painting shows (its
+    band, py 729-898, runs to the frame's edges at every depth, so it widens to the back)."""
+    from stalls_cdef import anchor_y, built_at, fk, place, proj_at, xk, yo, zo
     P = K.paint
     Z = P.z
-    K.oblique = 0.25
-    K.converge = (0.404, 513.5, 650)
+    K.oblique = 0.20
+    K.converge = (0.2255, 513)
     K.front_min = 0.1
     k = K.oblique
     hp = 0.012                                            # the earth's top
@@ -1128,8 +1131,8 @@ def stall_h_2(K):
                                                 (874, 729, 912, 886), (628, 760, 872, 892), (592, 846, 688, 902)],
                      fill_tile=(20, 760, 145, 890), inset=5)
     y_g0, y_g1 = yk(K, 898, hp), yk(K, 729, hp)
-    gx0, gx1 = xk(K, 6, y_g0), xk(K, 1042, y_g0)
-    topped(K, [(gx0, y_g0), (gx1, y_g0), (gx1, y_g1), (gx0, y_g1)], 0.0, hp, earth, top, name="ground")
+    topped(K, [(xk(K, 6, y_g0), y_g0), (xk(K, 1042, y_g0), y_g0), (xk(K, 1042, y_g1), y_g1), (xk(K, 6, y_g1), y_g1)],
+           0.0, hp, earth, top, name="ground")
     # ---------------------------------------------------------------- the posts, at their painted feet (the back pair
     # lands on the front pair's lines: the check on the convergence), the beams level on them
     yfp, ybp = yk(K, 876, hp), yk(K, 765, hp)
@@ -1216,68 +1219,71 @@ def stall_h_2(K):
     K.tube([(P.x(792), ym + 0.01, Zm(294)), (P.x(792), ym + 0.05, Zm(294))], 0.004, K.colour((0.2, 0.2, 0.2)),
            segments=4, name="nail")
     place(K, K.parts[n1:], (P.x(792), ym, Zm(294)), Y=ybp - rb - 0.02)
-    # ---------------------------------------------------------------- the stool: a square seat (0.52 m), turned as
-    # painted (its diagonal 8 degrees), level at 0.60 m; its legs splay out to their painted feet (built in the
-    # painting's scale round its front foot, set where that foot stands)
+    # ---------------------------------------------------------------- the stool: a square seat, turned as painted
+    # (its diagonal 8 degrees), level at 0.60 m; its legs splay out to their painted feet (built in the painting's
+    # scale round its front foot, set where that foot stands)
     n2 = len(K.parts)
     # its legs and rails wear the painted legs' own wood (lit and shaded faces mixed); they are as thick as painted,
     # so the painted legs land on them, not on the earth behind
     wood = pole_tile(K, (343, 705, 362, 815), soften=0.15, half=8)
     seat_w = pole_tile(K, (350, 640, 470, 652), soften=0.2)
-    r_, al = 0.368, math.radians(8.1)
-    zs, th = 0.60, 0.05
-    c_ = Vector((P.x(452.5), (Z(633) - zs) / k, 0))
-    u_ = Vector((math.cos(al), math.sin(al), 0))          # L -> R
-    v_ = Vector((math.sin(al), -math.cos(al), 0))         # B -> F
-    corners = {"L": c_ - u_ * r_, "F": c_ + v_ * r_, "R": c_ + u_ * r_, "B": c_ - v_ * r_}
-    slab(K, [tuple(corners[q] + Vector((0, 0, zs))) for q in ("L", "F", "R", "B")], th, seat_w, name="stool_seat")
-    feet = {"L": (347, 822), "F": (445, 858), "R": (556, 815), "B": (470, 782)}
-    legs = {}
-    for q, p_ in corners.items():
-        a = c_ + (p_ - c_) * 0.76
-        top_ = Vector((a.x, a.y, zs - th))
-        fx, fpy = feet[q]
-        bot_ = Vector((P.x(fx), yo(K, fpy, hp), hp - 0.01))
-        legs[q] = (top_, bot_)
-        beam(K, tuple(bot_), tuple(top_), 0.1, 0.1, wood, name="stool_leg")
-
-    def on_leg(q, z):
-        a, b = legs[q]
-        tt = (z - b.z) / (a.z - b.z)
-        return tuple(b.lerp(a, tt))
-    for q1, q2 in (("L", "F"), ("F", "R"), ("R", "B"), ("B", "L")):
-        for z_, w_, h_ in ((hp + 0.2, 0.05, 0.06), (zs - th - 0.05, 0.035, 0.1)):
-            beam(K, on_leg(q1, z_), on_leg(q2, z_), w_, h_, wood, name="stretcher")
-    s_anchor = (P.x(445), yo(K, 858, hp), hp)
-    Ys = anchor_y(K, s_anchor, hp)
-    # the towel thrown over the seat, hanging down over its front-right edge (F-R) as painted
-    F_, R_ = corners["F"], corners["R"]
-    y_tw = (F_.y + R_.y) / 2
-    towel = proj_at(K, Ys + (y_tw - s_anchor[1]) * fk(K, Ys), keep=[(398, 604, 556, 738)], inset=2)
     towel_top = ktile(K, (470, 650, 530, 700), vary=0.04)
-    edge = lambda t_: F_.lerp(R_, t_)                     # noqa: E731
-    out = (v_ + u_).normalized() * 0.012
-    inward = (c_ - (F_ + R_) / 2).normalized()
+    with built_at(K, 858, hp) as kb:
+        r_, al = 0.368, math.radians(8.1)
+        zs, th = 0.60, 0.05
+        c_ = Vector((P.x(452.5), (Z(633) - zs) / kb, 0))
+        u_ = Vector((math.cos(al), math.sin(al), 0))      # L -> R
+        v_ = Vector((math.sin(al), -math.cos(al), 0))     # B -> F
+        corners = {"L": c_ - u_ * r_, "F": c_ + v_ * r_, "R": c_ + u_ * r_, "B": c_ - v_ * r_}
+        slab(K, [tuple(corners[q] + Vector((0, 0, zs))) for q in ("L", "F", "R", "B")], th, seat_w, name="stool_seat")
+        feet = {"L": (347, 822), "F": (445, 858), "R": (556, 815), "B": (470, 782)}
+        legs = {}
+        for q, p_ in corners.items():
+            a = c_ + (p_ - c_) * 0.76
+            top_ = Vector((a.x, a.y, zs - th))
+            fx, fpy = feet[q]
+            bot_ = Vector((P.x(fx), yo(K, fpy, hp), hp - 0.01))
+            legs[q] = (top_, bot_)
+            beam(K, tuple(bot_), tuple(top_), 0.1, 0.1, wood, name="stool_leg")
 
-    def tw_top(u, v):
-        p_ = edge(0.08 + 0.84 * u) + inward * (0.3 * v)
-        return (p_.x, p_.y, zs + 0.008)
-    K.sheet(tw_top, 8, 6, towel_top, name="towel_top", thickness=0.006)
+        def on_leg(q, z):
+            a, b = legs[q]
+            tt = (z - b.z) / (a.z - b.z)
+            return tuple(b.lerp(a, tt))
+        for q1, q2 in (("L", "F"), ("F", "R"), ("R", "B"), ("B", "L")):
+            for z_, w_, h_ in ((hp + 0.2, 0.05, 0.06), (zs - th - 0.05, 0.035, 0.1)):
+                beam(K, on_leg(q1, z_), on_leg(q2, z_), w_, h_, wood, name="stretcher")
+        s_anchor = (P.x(445), yo(K, 858, hp), hp)
+        Ys = anchor_y(K, s_anchor, hp, k_build=kb)
+        # the towel thrown over the seat, hanging down over its front-right edge (F-R) as painted
+        F_, R_ = corners["F"], corners["R"]
+        y_tw = (F_.y + R_.y) / 2
+        towel = proj_at(K, Ys + (y_tw - s_anchor[1]) * fk(K, Ys), keep=[(398, 604, 556, 738)], inset=2)
+        edge = lambda t_: F_.lerp(R_, t_)                 # noqa: E731
+        out = (v_ + u_).normalized() * 0.012
+        inward = (c_ - (F_ + R_) / 2).normalized()
 
-    def tw_hang(u, v):
-        p_ = edge(0.08 + 0.84 * u) + out
-        return (p_.x, p_.y - 0.01 * math.sin(math.pi * v), zs + 0.004 - (zs + k * p_.y - Z(736)) * v)
-    K.sheet(tw_hang, 10, 8, towel, name="towel", thickness=0.006)
-    place(K, K.parts[n2:], s_anchor, Z=hp)
+        def tw_top(u, v):
+            p_ = edge(0.08 + 0.84 * u) + inward * (0.3 * v)
+            return (p_.x, p_.y, zs + 0.008)
+        K.sheet(tw_top, 8, 6, towel_top, name="towel_top", thickness=0.006)
+
+        def tw_hang(u, v):
+            p_ = edge(0.08 + 0.84 * u) + out
+            return (p_.x, p_.y - 0.01 * math.sin(math.pi * v), zs + 0.004 - (zs + kb * p_.y - Z(736)) * v)
+        K.sheet(tw_hang, 10, 8, towel, name="towel", thickness=0.006)
+    place(K, K.parts[n2:], s_anchor, Z=hp, k_build=kb)
     # ---------------------------------------------------------------- the brass basin, level on the earth
     n3 = len(K.parts)
-    R = P.m(99)
-    yb = yo(K, 883, hp) + R * 0.55                        # its foot's front is painted at py 883
-    z_rim = zo(K, 802, yb)
-    hgt = z_rim - hp
-    b_anchor = (P.x(752), yb, hp)
-    brass = proj_at(K, anchor_y(K, b_anchor, hp), axis_px=752, squeeze=0.92, keep=[(645, 780, 860, 888)], inset=2)
     water = ktile(K, (700, 800, 800, 815), vary=0.04)
+    with built_at(K, 883, hp) as kb:
+        R = P.m(99)
+        yb = yo(K, 883, hp) + R * 0.55                    # its foot's front is painted at py 883
+        z_rim = zo(K, 802, yb)
+        hgt = z_rim - hp
+        b_anchor = (P.x(752), yb, hp)
+        brass = proj_at(K, anchor_y(K, b_anchor, hp, k_build=kb), axis_px=752, squeeze=0.92,
+                        keep=[(645, 780, 860, 888)], inset=2)
     foot = Vector((P.x(752), yb, hp))
     prof = [(0.0, 0.0), (R * 0.55, 0.0), (R * 0.85, hgt * 0.3), (R * 1.0, hgt * 0.7), (R * 0.98, hgt * 0.92),
             (R * 1.02, hgt)]
@@ -1294,15 +1300,16 @@ def stall_h_2(K):
         pts = [(cx2 + s_ * 0.035 * math.sin(2 * math.pi * i / 16) + s_ * 0.03, foot.y,
                 foot.z + hgt - 0.005 + 0.035 * math.cos(2 * math.pi * i / 16)) for i in range(17)]
         K.tube(pts, 0.008, brass, segments=6, name="basin_handle")
-    place(K, K.parts[n3:], b_anchor, Z=hp)
+    place(K, K.parts[n3:], b_anchor, Z=hp, k_build=kb)
     # ---------------------------------------------------------------- the soap on its wooden dish, at the front
     n4 = len(K.parts)
     dish = ktile(K, (604, 882, 676, 895), vary=0.05)
     soap = ktile(K, (618, 862, 652, 876), vary=0.03)
-    yd0 = yo(K, 897, hp)
+    with built_at(K, 897, hp) as kb:
+        yd0 = yo(K, 897, hp)
     K.box(P.x(600), P.x(681), yd0, yd0 + 0.3, hp - 0.005, hp + 0.045, dish, bevel=0.01, name="soap_dish")
     K.box(P.x(611), P.x(667), yd0 + 0.07, yd0 + 0.24, hp + 0.045, hp + 0.08, soap, bevel=0.012, name="soap")
-    place(K, K.parts[n4:], (P.x(640), yd0, hp), Z=hp)
+    place(K, K.parts[n4:], (P.x(640), yd0, hp), Z=hp, k_build=kb)
 
 
 # ====================================================================== stall H3: the knife grinder
