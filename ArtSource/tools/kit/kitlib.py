@@ -266,7 +266,19 @@ class Kit:
             a = np.asarray(crop.convert("RGB")).astype(np.float32)
             med = np.median(a.reshape(-1, 3), axis=0)
             crop = Image.fromarray((a * (1 - soften) + med * soften).clip(0, 255).astype(np.uint8))
-        img = _image(seamless(crop, blend), m.mat.name)
+        tile_img = seamless(crop, blend)
+        # Box projection maps a top face's y with the same scale as x (y is also the across of the side faces), so a
+        # wide, short crop came out stretched front to back on every top (slab tops, decks, tables read as planks).
+        # Repeat the seamless crop into a near-square image first: m copies across, n down.
+        sw0, sh0 = sw, sh
+        r = sw / max(sh, 1e-6)
+        m_x, n_y = min(((mx, ny) for mx in range(1, 6) for ny in range(1, 6)),
+                       key=lambda t: (abs(math.log(r * t[0] / t[1])), t[0] * t[1]))
+        if (m_x, n_y) != (1, 1):
+            a = np.asarray(tile_img)
+            tile_img = Image.fromarray(np.tile(a, (n_y, m_x) + (1,) * (a.ndim - 2)))
+            sw, sh = sw * m_x, sh * n_y
+        img = _image(tile_img, m.mat.name)
         coord = m.nt.nodes.new("ShaderNodeTexCoord")
         samples = []
         # two samplings of the tile at different scales and offsets, blended by a large soft noise: the repeat
@@ -283,7 +295,7 @@ class Kit:
             m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
             samples.append(tex.outputs["Color"])
         noise = m.nt.nodes.new("ShaderNodeTexNoise")
-        noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+        noise.inputs["Scale"].default_value = 0.9 / max(sw0, sh0)
         noise.inputs["Detail"].default_value = 2.0
         m.nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
         ramp = m.nt.nodes.new("ShaderNodeMapRange")

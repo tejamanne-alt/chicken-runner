@@ -118,6 +118,9 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   packs. The audit's `uv_squash` (the area-weighted median stretch, above 1.3) catches it.
 - The unwrap's 60-degree angle limit projected a bevelled box's big faces along its 45-degree bevel, squashing half of
   it 1.41:1 (the parapet): `_smart_uv` unwraps at 44 degrees, which also halves the stretch over pots and posts.
+- `K.tile`'s box projection maps a top face's depth with the crop's width, so a wide, short crop stretched 2-4 times
+  front to back on every top (slab tops, decks and tables read as planks): it now repeats the seamless crop into a
+  near-square image first. Modules' own squaring helpers (`sq_tile`, `strip_tile`, `squared`) still work.
 - `K.decal(image=...)` cached by `id(image)`, which Python reuses: keyed by content now.
 - Review renders ran out of transparent bounces (black shards in crowns): 128 bounces.
 - The review's ink outline scaled with model size: it now matches the game's (3-12 mm).
