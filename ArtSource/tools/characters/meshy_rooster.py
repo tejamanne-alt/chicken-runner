@@ -182,6 +182,233 @@ for side, lroot in zip(("Right", "Left"), leg_roots):
         MAP[d] = f"{side}Foot"
 LEGS = {side: line(lroot) for side, lroot in zip(("Right", "Left"), leg_roots)}
 
+# ------------------------------------------------------------------ 2b. his wings, cut free as flaps
+# Meshy modelled his folded wings as part of his body's surface, so a wing could not lift without folding his side. Each
+# wing (the surface Meshy weighted mostly to that wing, out on his flank) is cut free of the body except along a hinge
+# round its shoulder joint; the flap's open underside and the flank under it are closed, the flank domed out to his
+# body's curve, both painted flat in his feather colours from the texture. New points are marked in the "patch"
+# attribute (1 under a wing, 2 on the flank) and the flaps' points in "wingside" (1 left, 2 right); new faces use
+# material slots 1 (the wings' undersides) and 2 (the flank).
+import bmesh  # noqa: E402
+
+HINGE = 0.055                   # the wing stays joined to the body this close round its shoulder joint
+
+
+def free_the_wings():
+    from mathutils.bvhtree import BVHTree
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    bm.verts.ensure_lookup_table()
+    outside = BVHTree.FromBMesh(bm)             # his surface before the cut: the patches stay inside it
+    dl = bm.verts.layers.deform.active
+    names = {g.index: g.name for g in body.vertex_groups}
+    n = len(bm.verts)
+    pts = np.array([v.co[:] for v in bm.verts])
+    share = np.zeros((n, 2))
+    for v in bm.verts:
+        tot = sum(w for _, w in v[dl].items()) or 1.0
+        for gi, w in v[dl].items():
+            b = MAP.get(names[gi])
+            if b == "LeftWing":
+                share[v.index, 0] += w / tot
+            elif b == "RightWing":
+                share[v.index, 1] += w / tot
+    side_of = np.where((share[:, 0] > 0.5) & (pts[:, 0] > 0.035), 1, np.where((share[:, 1] > 0.5) & (pts[:, 0] < -0.035), 2, 0))
+    # his hackles (the bright orange neck feathers hanging over the wing's front) stay on his neck, out of the flap
+    uvl0 = bm.loops.layers.uv.active
+    vuv_ = np.array([tuple(v.link_loops[0][uvl0].uv) if v.link_loops else (0.0, 0.0) for v in bm.verts])
+    col_ = tex[np.clip(((1 - vuv_[:, 1]) * TH).astype(int), 0, TH - 1), np.clip((vuv_[:, 0] * TW).astype(int), 0, TW - 1)]
+    hackle = (col_[:, 0] > 0.72) & (col_[:, 1] > 0.38) & (col_[:, 2] < 0.35)
+    side_of[hackle] = 0
+    print("  hackle points kept off the wings:", int((hackle & (share.max(1) > 0.5)).sum()))
+    # each side's wing: its largest connected piece only
+    for k in (1, 2):
+        seen = np.zeros(n, bool)
+        best = []
+        for s in np.nonzero(side_of == k)[0]:
+            if seen[s]:
+                continue
+            comp, stack = [], [s]
+            seen[s] = True
+            while stack:
+                i = stack.pop()
+                comp.append(i)
+                for e in bm.verts[i].link_edges:
+                    j = e.other_vert(bm.verts[i]).index
+                    if not seen[j] and side_of[j] == k:
+                        seen[j] = True
+                        stack.append(j)
+            if len(comp) > len(best):
+                best = comp
+        keep = np.zeros(n, bool)
+        keep[best] = True
+        side_of[(side_of == k) & ~keep] = 0
+    roots = {1: np.array(J[wing_roots[1]]), 2: np.array(J[wing_roots[0]])}      # wing_roots: right (-x) first
+    flag = bm.verts.layers.int.new("wingside")
+    for v in bm.verts:
+        v[flag] = int(side_of[v.index])
+    kill = []
+    rimflag = bm.verts.layers.int.new("_rim")
+    for f in bm.faces:
+        ks = {v[flag] for v in f.verts}
+        if len(ks) < 2:
+            continue
+        k = max(ks)
+        c = np.mean([v.co[:] for v in f.verts], 0)
+        if np.linalg.norm(c - roots[k]) < HINGE:
+            continue
+        kill.append(f)
+        for v in f.verts:
+            v[rimflag] = 1
+    # the band of faces between wing and body goes with the wing, ripped from the body along its body side, so at rest
+    # the flap's edge lies exactly on the body's (no gap shows), and it lifts away cleanly
+    band = set(kill)
+    side_k = {f: max(v[flag] for v in f.verts) for f in kill}
+    rip = [e for e in bm.edges if len(e.link_faces) == 2 and (e.link_faces[0] in band) != (e.link_faces[1] in band)
+           and all(v[flag] == 0 for v in (e.link_faces[1] if e.link_faces[0] in band else e.link_faces[0]).verts)]
+    bmesh.ops.split_edges(bm, edges=rip)
+    for f in kill:
+        if f.is_valid:
+            for v in f.verts:
+                # a point the band shares with the hinge (still joined to the body) stays the body's, so the weights
+                # blend across the hinge instead of stepping
+                if all(g in band or all(w[flag] for w in g.verts) for g in v.link_faces):
+                    v[flag] = side_k[f]
+    pv = bm.verts.layers.int.new("patch")
+    pf = bm.faces.layers.int.new("patchface")
+    uvl = bm.loops.layers.uv.active
+    # the openings' rims, in order: Blender fills each hole left by the cut; each filling's corners, split into the run on
+    # the wing and the run on the body (they meet across the hinge), are the rims the patches close
+    bnd = [e for e in bm.edges if e.is_boundary and (e.verts[0][rimflag] or e.verts[1][rimflag])]
+
+    def next_rim(l_):
+        """The loop of the next boundary edge round the hole (turning through the faces round its far vertex)."""
+        n_ = l_.link_loop_next
+        for _ in range(64):
+            if n_.edge.is_boundary:
+                return n_
+            n_ = n_.link_loop_radial_next.link_loop_next
+        return None
+    visited, loops = set(), []
+    for e in bnd:
+        l0 = e.link_loops[0]
+        if l0 in visited:
+            continue
+        cyc, l_ = [], l0
+        while l_ is not None and l_ not in visited and len(cyc) < 5000:
+            visited.add(l_)
+            cyc.append(l_.vert)
+            l_ = next_rim(l_)
+        if len(cyc) >= 6 and l_ is l0:
+            loops.append(cyc)
+    runs = []
+    for verts in loops:
+        fl = [v[flag] for v in verts]
+        m = len(verts)
+        cut = [i for i in range(m) if fl[i] != fl[i - 1]]
+        if not cut:
+            runs.append(verts)
+            continue
+        verts = verts[cut[0]:] + verts[:cut[0]]
+        fl = fl[cut[0]:] + fl[:cut[0]]
+        cur = [verts[0]]
+        for v, f_ in zip(verts[1:], fl[1:]):
+            if f_ != cur[-1][flag]:
+                runs.append(cur)
+                cur = [v]
+            else:
+                cur.append(v)
+        runs.append(cur)
+    centre_body = np.array([0.0, float(np.mean([roots[1][1], roots[2][1]])) + 0.07,
+                            float(np.mean([roots[1][2], roots[2][2]])) - 0.07])
+    made, rims = {1: 0, 2: 0}, {1: [], 2: []}
+    print("  holes", len(loops), [len(l) for l in loops][:12], "runs", sorted([len(r) for r in runs], reverse=True)[:12])
+    for order in sorted(runs, key=len, reverse=True):
+        if len(order) < 6:
+            continue
+        kind = 1 if order[0][flag] else 2                 # 1: a wing's underside, 2: the flank under it
+        rim = np.array([v.co[:] for v in order])
+        c = rim.mean(0)
+        sx = 1 if c[0] > 0 else -1
+        out_dir = np.array([-sx, 0.0, 0.0]) if kind == 1 else np.array([sx, 0.0, 0.0])
+        # the patch: three rings of points toward its middle and one at the middle, smoothed with the rim held
+        rings_ = []
+        for t_ in (0.25, 0.5, 0.75):
+            rings_.append([bm.verts.new(Vector(rim[i] + (c - rim[i]) * t_)) for i in range(len(order))])
+        centre = bm.verts.new(Vector(c))
+        region = []
+        loops_ = [order] + rings_
+        n_ = len(order)
+        try:
+            for r0, r1 in zip(loops_, loops_[1:]):
+                for i in range(n_):
+                    j = (i + 1) % n_
+                    region.append(bm.faces.new((r0[i], r0[j], r1[j], r1[i])))
+            for i in range(n_):
+                region.append(bm.faces.new((rings_[-1][i], rings_[-1][(i + 1) % n_], centre)))
+        except ValueError:
+            for f in region:
+                bm.faces.remove(f)
+            for v in [v for r in rings_ for v in r] + [centre]:
+                bm.verts.remove(v)
+            continue
+        for f in region:
+            f.material_index = kind
+            f[pf] = kind
+            f.normal_update()
+        if np.mean([np.dot(np.array(f.normal[:]), out_dir) for f in region]) < 0:
+            for f in region:
+                f.normal_flip()
+        inner = [v for r in rings_ for v in r] + [centre]
+        for v in inner:
+            v[pv] = kind
+            v[flag] = int(order[0][flag])
+        for _ in range(60):
+            bmesh.ops.smooth_vert(bm, verts=inner, factor=0.6, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+        # domed to the body's curve: each point at the rim's distance from his middle there, but always inside his
+        # surface before the cut (the flank 12 mm under it, the wing's cupped underside 6 mm under it, lying on the
+        # flank when folded), so at rest neither shows through the folded wing
+        d_rim = rim - centre_body
+        r_rim = np.linalg.norm(d_rim, axis=1)
+        u_rim = d_rim / r_rim[:, None]
+        for v in inner:
+            p = np.array(v.co[:]) - centre_body
+            u = p / np.linalg.norm(p)
+            wgt = 1.0 / (1.0 - np.clip(u_rim @ u, -1, 0.9999)) ** 2
+            r_ = float(np.average(r_rim, weights=wgt))
+            hit = outside.ray_cast(Vector(centre_body), Vector(u))
+            if hit[0] is not None:
+                r_ = min(r_, hit[3] - (0.006 if kind == 1 else 0.012))
+            v.co = Vector(centre_body + u * r_)
+        for f in region:
+            for lp in f.loops:
+                src_v = lp.vert if lp.vert in set(order) else min(order, key=lambda r: (r.co - lp.vert.co).length)
+                old_l = next((l2 for l2 in src_v.link_loops if l2.face.material_index == 0), None)
+                if old_l is not None:
+                    lp[uvl].uv = old_l[uvl].uv
+        made[kind] += 1
+        rims[kind].append([tuple(l2[uvl].uv) for v in order for l2 in v.link_loops if l2.face.material_index == 0][:200])
+    bm.verts.layers.int.remove(rimflag)
+    bm.normal_update()
+    bm.to_mesh(body.data)
+    bm.free()
+    body.data.update()
+    while len(body.data.materials) < 3:
+        body.data.materials.append(body.data.materials[0])
+    # the patches' colours: the texture's median under the rims (the wing's underside a shade darker)
+    cols = {}
+    for kind in (1, 2):
+        uv = np.array([p for r in rims[kind] for p in r]) if rims[kind] else np.zeros((1, 2))
+        px_ = np.clip((uv[:, 0] * TW).astype(int), 0, TW - 1)
+        py_ = np.clip(((1 - uv[:, 1]) * TH).astype(int), 0, TH - 1)
+        cols[kind] = np.median(tex[py_, px_], 0) * (0.8 if kind == 1 else 1.0)
+    return len(kill), made, cols
+
+
+CUT, PATCHES, PATCH_RGB = free_the_wings()
+print("wings cut free (faces cut, patches under the wings and on the flanks):", CUT, PATCHES,
+      {k: tuple(round(float(c), 2) for c in v) for k, v in PATCH_RGB.items()})
+
 # weights
 me = body.data
 nv = len(me.vertices)
@@ -237,6 +464,27 @@ def set_weights(ob, ws):
 # smooth joints: Meshy's 81 bones folded onto 14 leave steps where two of his bones meet, and the jaw (picked by colour)
 # a hard edge at the mouth. The weights blend over a set distance (heat diffusion over the surface): 6 mm everywhere,
 # 1.5 cm round the wing roots, the base of the neck and the tail, 1 cm up the neck and at the hocks, 4 mm at the beak
+# the flaps follow their wings; the body lets go of the wings away from the hinge (blended over 7 cm round the shoulder
+# joint, where the wing stays joined); the patches take their weights from their rims (below)
+patch = np.zeros(nv, np.int64)
+wingside = np.zeros(nv, np.int64)
+if "patch" in me.attributes:
+    me.attributes["patch"].data.foreach_get("value", patch)
+    me.attributes["wingside"].data.foreach_get("value", wingside)
+for k, wname, wroot in ((1, "LeftWing", wing_roots[1]), (2, "RightWing", wing_roots[0])):
+    d_root = np.linalg.norm(co - np.array(J[wroot]), axis=1)
+    hold = np.clip(d_root / 0.07, 0, 1)
+    hold = hold * hold * (3 - 2 * hold)
+    for i in np.nonzero((wingside == k) & (patch == 0))[0]:
+        weights[i] = {wname: 1.0}
+    for i in np.nonzero((wingside == 0) & (patch == 0))[0]:
+        w = weights[i]
+        if w.get(wname, 0) > 0:
+            moved = w[wname] * hold[i]
+            w[wname] -= moved
+            w["Body"] = w.get("Body", 0.0) + moved
+for i in np.nonzero(patch > 0)[0]:
+    weights[i] = {}
 if "--raw-weights" not in ARGS:
     BN = [b[0] for b in M.BONES]
     BI = {b: i for i, b in enumerate(BN)}
@@ -250,16 +498,31 @@ if "--raw-weights" not in ARGS:
     def near(p, r):
         return np.linalg.norm(co - np.array(p), axis=1) < r
     for side, wroot in zip(("Right", "Left"), wing_roots):
-        t = np.where(near(J[wroot], 0.05), 0.015 ** 2, t)
+        t = np.where(near(J[wroot], 0.07), 0.02 ** 2, t)          # the wing's hinge
         t = np.where(near(J[LEGS[side][2]], 0.025) | near(J[LEGS[side][1]], 0.03), np.maximum(t, 0.01 ** 2), t)
     t = np.where(near(J[chest], 0.05) | near(J[tail_root], 0.05), np.maximum(t, 0.015 ** 2), t)
     t = np.where(near(J[upper_neck], 0.04) | near(J[head_joint], 0.035), np.maximum(t, 0.01 ** 2), t)
     t = np.where(near(hinge, 0.02), 0.004 ** 2, t)
+    t = np.where(patch > 0, 1.0, t)          # the patches take their weights from their rims
     Wm = K.diffuse_weights(Wm, co, K.edge_array(me), t, floor=0.02)
     weights = [{BN[j]: float(Wm[i, j]) for j in np.nonzero(Wm[i] > 0)[0]} for i in range(nv)]
 set_weights(body, weights)
 painted = bpy.data.images.load(str(tex_path))
 K.assign(body, K.materials(f"{NAME}Painted", (1, 1, 1), image=painted, shadow=(0.8, 0.72, 0.82)))
+# slot 1: the wings' undersides; slot 2: his flanks under the wings (flat, in his body's feather colour from the texture)
+for slot, (mname, rgb) in enumerate((("RoosterUnderWing", PATCH_RGB[1]), ("RoosterFlank", PATCH_RGB[2])), start=1):
+    mats = K.materials(mname, tuple(float(c) ** 2.2 for c in rgb), shadow=(0.8, 0.72, 0.82))
+    body.data.materials.append(mats[0])
+    K._SURFACES.append((body, slot, mats[0], mats[1]))
+if "patchface" in body.data.attributes:
+    _pf = np.zeros(len(body.data.polygons), np.int64)
+    body.data.attributes["patchface"].data.foreach_get("value", _pf)
+    _mi = np.empty(len(body.data.polygons), np.int64)
+    body.data.polygons.foreach_get("material_index", _mi)
+    _mi[_pf > 0] = _pf[_pf > 0]
+    body.data.polygons.foreach_set("material_index", _mi)
+    body.data.update()
+    print("patch faces on their own materials:", int((_pf > 0).sum()))
 
 # ------------------------------------------------------------------ 3. the rig, the clips, the export
 def tup(v):
@@ -312,7 +575,8 @@ def audit_parts():
         sets[f"wing{s}"] = dom == f"{side}Wing"
         sets[f"leg{s}"] = np.isin(dom, [f"{side}UpperLeg", f"{side}LowerLeg", f"{side}Foot"])
     pairs = [("wingL", "body"), ("wingR", "body"), ("wingL", "legL"), ("wingR", "legR"), ("tail", "legL"),
-             ("tail", "legR"), ("head", "neck"), ("head", "body"), ("beak", "neck"), ("beak", "body"), ("legL", "legR")]
+             ("tail", "legR"), ("head", "neck"), ("head", "body"), ("beak", "neck"), ("beak", "body"), ("legL", "legR"),
+             ("wingL", "tail"), ("wingR", "tail"), ("wingL", "neck"), ("wingR", "neck")]
     return part, sets, pairs, []
 
 actions = {}

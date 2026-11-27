@@ -565,11 +565,16 @@ def tiptoe(t):
 # it rises she rises, leaning back, and shuffles her hips forward; at p = 1 she is half standing, the basket propped
 # open at chest height, and she peers under it.
 BASKET_DIAMETER = 0.90
-BASKET_HINGE_FORWARD = 1.15
+BASKET_HINGE_FORWARD = 1.00
 BASKET_MAX_ANGLE = 40.0
 BASKET_RIM = 0.03               # the rim's thickness: its middle is this far above where it rests
 BASKET_GRIP = 0.20              # her hands, either side of her middle along the near rim
 BASKET_FRAMES = 30
+BASKET_KNEES = 12.0             # her knees' spread in the squat: she folds in between them, her hands outside them
+BASKET_FRONT = 75.0             # the skirt's front, lying up over her knees in the squat
+BASKET_SIDE_SWING = -35.0       # the skirt's sides swing back in the squat, clear of the ground and of her hands
+BASKET_SIDE_OUT = 16.0          # and flare out over her spread knees
+BASKET_WRIST = 25.0             # her wrists bent back at the start, so her fingers lie over the rim
 
 # the rig at rest, for solving her arms: {bone: (parent, rest matrix 4x4 as rows, length)} (meshy_kid fills it)
 RIG = {}
@@ -630,7 +635,7 @@ def wrist_at(P, hips, side):
     return [M[i][1] * ln + M[i][3] for i in range(3)]
 
 
-def reach(P, hips, side, target, guess=(60.0, 0.0, 20.0), prefer=(70.0, 0.0, 15.0), pull=0.04, out_=8.0):
+def reach(P, hips, side, target, guess=(60.0, 0.0, 20.0), prefer=(70.0, 0.0, 15.0), pull=0.002, out_=8.0):
     """Solves her arm so the wrist meets target (armature space): the upper arm's forward swing (X) and its sweep
     across (Y: with the arm raised forward, Blender's XYZ order makes Y the sideways sweep and Z a twist), and the
     elbow, by damped Newton with numeric derivatives, gently pulled toward a natural forward reach (`prefer`), the elbow
@@ -642,7 +647,7 @@ def reach(P, hips, side, target, guess=(60.0, 0.0, 20.0), prefer=(70.0, 0.0, 15.
         P[f"{side}UpperArm"] = [q_[0], q_[1], out_ * s]
         P[f"{side}LowerArm"] = [q_[2], 0.0, 0.0]
 
-    for _ in range(40):
+    for _ in range(80):
         put(q)
         w = wrist_at(P, hips, side)
         err = [(target[i] - w[i]) * 100.0 for i in range(3)]          # in centimetres, so the solve is well scaled
@@ -686,12 +691,12 @@ def basket_lift(t):
     e = smooth(p)
     P = pose()
     lerp = lambda a_, b_, k: a_ + (b_ - a_) * k  # noqa: E731
-    # The rim is a long way off for a toddler's arms (0.3 m ahead of her at the ground, 0.5 m ahead at chest height):
-    # she reaches it with her hips shuffled forward and her body leaning in over her knees, hunched low at the start
-    # and rising and straightening (leaning back from the hunch) as the basket comes up, her arms nearly straight.
-    fwd = 0.08                                     # her hips shuffled forward as far as they go
-    hip_h = lerp(0.26, 0.46, e)                    # the hip joints: a deep squat, heels down, up to half standing
-    tilt = lerp(32.0, 18.0, e)                     # the pelvis tipped forward
+    # The rim starts on the ground 0.15 m ahead of her (where her hands grip it) and ends 0.35 m ahead at chest height;
+    # her arms reach 0.27 m to the wrist. So she starts in a full toddler squat, bottom behind her heels and her body
+    # folded over her knees, and rises to half standing, shuffling her hips 8 cm forward, her arms holding the rim.
+    fwd = lerp(-0.07, 0.01, smooth(p * 1.6))       # her bottom behind her heels in the squat, shuffling 8 cm forward
+    hip_h = lerp(0.17, 0.46, e)                    # the hip joints: a full squat, heels down, up to half standing
+    tilt = lerp(26.0, 18.0, e)                     # the pelvis tipped forward
     drop_head = LEGS.get("pelvis", 0.074)          # the hip joints sit this far below the Hips bone's head
     up = hip_h + drop_head * math.cos(math.radians(tilt)) - (LEGS["hip"] + drop_head)
     hips = (0.0, up, fwd)
@@ -704,8 +709,8 @@ def basket_lift(t):
         thigh = math.degrees(upper - LEGS["thigh_rest"]) + tilt
         knee = math.degrees((lower - upper) - (LEGS["shank_rest"] - LEGS["thigh_rest"]))
         foot = -math.degrees(lower - LEGS["shank_rest"])        # the sole flat on the ground: heels down
-        leg(P, side, thigh, knee, foot, out=lerp(26, 8, e))          # knees apart: she folds in between them
-    P["Spine"] = [lerp(44, 30, e), 0, 0]
+        leg(P, side, thigh, knee, foot, out=lerp(BASKET_KNEES, 6, e))   # knees together: her hands go round them
+    P["Spine"] = [lerp(42, 30, e), 0, 0]
     P["Chest"] = [lerp(26, 16, e), 0, 0]
     for side in ("Left", "Right"):
         P[f"{side}Shoulder"] = [lerp(25.0, 20.0, e), 0.0, 0.0]           # shoulders reaching forward
@@ -714,7 +719,9 @@ def basket_lift(t):
     P["Head"] = [lerp(-26, -16, e), lerp(0, 10, e), lerp(0, 8, e)]
     hair(P, back=lerp(4, -2, e), sides=lerp(2, -1, e), out=1)
     # squatting, her skirt spreads out round her so its hem stays off the ground
-    skirt(P, front=4, back=lerp(34, 6, e), left=(0.0, lerp(30, 4, e)), right=(0.0, lerp(30, 4, e)))
+    # squatting, her skirt's front lies up over her knees, its sides swing back clear of the ground and her hands
+    skirt(P, front=lerp(BASKET_FRONT, 4, e), back=lerp(34, 6, e), left=(lerp(BASKET_SIDE_SWING, 0, e), lerp(8, 4, e)),
+          right=(lerp(BASKET_SIDE_SWING, 0, e), lerp(8, 4, e)))
     # her hands on the near rim: the wrist 5.5 cm short of the grip, toward her shoulder
     for side in ("Left", "Right"):
         if not RIG:
@@ -728,9 +735,13 @@ def basket_lift(t):
         dl = math.sqrt(sum(v * v for v in dv)) or 1.0
         target = [grip[i] + 0.055 * dv[i] / dl for i in range(3)]
         reach(P, hips, side, target)
-        P[f"{side}Hand"] = [lerp(-25, -10, e), 0.0, 0.0]
+        P[f"{side}Hand"] = [lerp(BASKET_WRIST, -10, e), 0.0, 0.0]      # fingers over the rim, not into the ground
     P["_ik"] = [1, 0, 0]
-    return out(P, hips)
+    rot, loc = out(P, hips)
+    # her skirt's sides keep this clip's swing back (dress() would swing them forward after the front)
+    sw, fl = lerp(BASKET_SIDE_SWING, 0, e), lerp(BASKET_SIDE_OUT, 4, e)
+    rot["SkirtLeft"], rot["SkirtRight"] = (sw, 0.0, fl), (sw, 0.0, -fl)
+    return rot, loc
 
 
 # flags judged natural by eye in the check renders (meshy_kid prints them marked): (clip or *, kind, region, why)

@@ -14,16 +14,18 @@ def body_loc(up=0.0, forward=0.0):
     return (0.0, 0.65 * up + 0.76 * forward, 0.76 * up - 0.65 * forward)
 
 
-# Meshy modelled his folded wings as part of his body's surface, not as flaps: they can lift and spread a little (a
-# shrug, a flutter of the wing tips) but a real flap would fold his whole side. WING_SCALE maps the clips' wing beats onto
-# that range, and nothing goes past WING_MAX.
-WING_SCALE = 0.3
-WING_MAX = 20.0
+# meshy_rooster cuts his wings free of his body as flaps, so they can beat. Tucked (Run, Crow, Idle) a wing only shifts a
+# little against his side: TUCK scales the clip's wing values and caps them at TUCK_MAX. Beating (full=True: Flutter,
+# Panic, Startled, Tumble) they open as far as FLAP_MAX.
+TUCK = 0.3
+TUCK_MAX = 20.0
+FLAP_MAX = 80.0
 
 
-def wings(P, lift=0.0, spread=0.0, fold=0.0):
-    lift = max(-WING_MAX, min(WING_MAX, lift * WING_SCALE))
-    spread = max(-WING_MAX, min(WING_MAX, spread * WING_SCALE))
+def wings(P, lift=0.0, spread=0.0, fold=0.0, full=False):
+    k, cap = (1.0, FLAP_MAX) if full else (TUCK, TUCK_MAX)
+    lift = max(-cap, min(cap, lift * k))
+    spread = max(-cap, min(cap, spread * k))
     P["LeftWing"] = [lift, fold, -spread]
     P["RightWing"] = [lift, -fold, spread]
 
@@ -49,7 +51,7 @@ RUN_T = 6 / 30
 PANIC_T = 5 / 30
 
 
-def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0, swing=42.0):
+def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0, swing=42.0, full=False):
     P = pose()
     phi = 2 * math.pi * t / T
     for side, p in (("Left", phi), ("Right", phi + math.pi)):
@@ -66,7 +68,8 @@ def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0, swing=42.0):
     P["Neck2"] = [lean * 0.25 - 1.5 * pump, 0, 0]
     P["Head"] = [-lean * 0.75 + 2 * pump - 6 * lift, 0, 0]
     P["Jaw"] = [-beak, 0, 0]
-    wings(P, lift=wing_lift + wing_flap * math.sin(2 * phi), spread=wing_lift * 0.8 + wing_flap * 0.5 * math.sin(2 * phi))
+    wings(P, lift=wing_lift + wing_flap * math.sin(2 * phi), spread=wing_lift * 0.8 + wing_flap * 0.5 * math.sin(2 * phi),
+          full=full)
     P["Tail1"] = [-4 + 7 * math.sin(2 * phi - 1.2), 0, 3 * math.sin(phi - 0.6)]
     P["Tail2"] = [6 * math.sin(2 * phi - 2.2), 0, 0]
     return P, 0.014 * lift - 0.006
@@ -79,7 +82,7 @@ def run(t):
 
 def panic(t):
     P, up = run_cycle(t, PANIC_T, lean=26, wing_lift=44, wing_flap=42, beak=18 + 10 * math.sin(2 * math.pi * t / 0.13),
-                      swing=42.0)
+                      swing=42.0, full=True)
     return out(P, up - 0.004)
 
 
@@ -87,7 +90,7 @@ def panic(t):
 def flutter(t):
     P = pose()
     q = 2 * math.pi * t / (8 / 30)
-    wings(P, lift=35 + 70 * math.sin(q), spread=55 + 22 * math.sin(q))
+    wings(P, lift=35 + 45 * math.sin(q), spread=55 + 22 * math.sin(q), full=True)
     for side in ("Left", "Right"):
         legs(P, side, thigh=-18, shank=-36, foot=-40)        # tucked, clear of his wings
     P["Body"] = [16 + 3 * math.sin(q), 0, 0]
@@ -123,7 +126,7 @@ def crow(t):
 def startled(t):
     rest, up = run_cycle(0.0, RUN_T, 16, 12, 10)
     leap = pose()
-    wings(leap, lift=72, spread=52)
+    wings(leap, lift=55, spread=72, full=True)          # thrown open sideways, clear of his tail
     for side in ("Left", "Right"):
         legs(leap, side, thigh=-14, shank=-40, foot=-40)
     leap["Body"], leap["Neck1"], leap["Head"], leap["Jaw"] = [12, 0, 0], [-8, 0, 0], [-16, 0, 0], [-34, 0, 0]
@@ -139,7 +142,7 @@ def tumble(t):
     k = t / 0.6
     q = 2 * math.pi * t / 0.2
     P["Body"] = [-360 * k, 0, 10 * math.sin(q)]
-    wings(P, lift=40 + 50 * math.sin(q), spread=60 + 20 * math.sin(q * 0.7))
+    wings(P, lift=30 + 35 * math.sin(q), spread=66 + 14 * math.sin(q * 0.7), full=True)
     for side, s in (("Left", 1), ("Right", -1)):
         legs(P, side, thigh=30 * math.sin(q + s), shank=-30 + 30 * math.sin(q * 1.3 + s), foot=-40)
     P["Neck1"] = [-20 + 25 * math.sin(q * 0.9), 0, 0]
@@ -175,6 +178,10 @@ NATURAL_FLAGS = [
     ("*", "squash", "Neck", "the neck feathers bunching on the inside of the bend"),
     ("*", "fold", "Neck", "the neck feathers bunching on the inside of the bend"),
     ("*", "squash", "LowerLeg", "the inside of the bent hock"),
+    ("*", "fold", "Wing", "the skin of the wing's hinge at his shoulder folding as the wing beats up (like an armpit)"),
+    ("*", "fold", "body/Body", "the skin of the wing's hinge at his shoulder folding as the wing beats up"),
+    ("Idle", "cross", "x body", "the wing's underside and his flank under it, hidden inside the folded wing"),
+    ("Crow", "cross", "x body", "the wing's underside and his flank under it, hidden inside the folded wing"),
 ]
 
 CLIPS = [

@@ -479,6 +479,7 @@ def free_the_arms():
     bmesh.ops.delete(bm, geom=[e for e in bm.edges if not e.link_faces], context="EDGES")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_edges], context="VERTS")
     pv = bm.verts.layers.int.new("patch")
+    pf = bm.faces.layers.int.new("patchface")
     uvl = bm.loops.layers.uv.active
     # the openings' rims: boundary edges near the arms, on an arm or on her side (never across), in chains
     edges = [e for e in bm.edges if e.is_boundary and e.verts[0][flag] == e.verts[1][flag]
@@ -540,6 +541,7 @@ def free_the_arms():
             continue
         for f in region:
             f.material_index = kind
+            f[pf] = kind
             f.normal_update()
         if np.mean([np.dot(np.array(f.normal[:]), out_dir) for f in region]) < 0:
             for f in region:
@@ -768,6 +770,15 @@ MATS = {
 K.assign(body, MATS["body"])
 body.data.materials.append(MATS["skin"][0])       # slot 1: the arms' patches
 body.data.materials.append(MATS["frock"][0])      # slot 2: her sides' patches
+if "patchface" in body.data.attributes:
+    _pf = np.zeros(len(body.data.polygons), np.int64)
+    body.data.attributes["patchface"].data.foreach_get("value", _pf)
+    _mi = np.empty(len(body.data.polygons), np.int64)
+    body.data.polygons.foreach_get("material_index", _mi)
+    _mi[_pf > 0] = _pf[_pf > 0]
+    body.data.polygons.foreach_set("material_index", _mi)
+    body.data.update()
+    print("patch faces on their own materials:", int((_pf > 0).sum()))
 parts = []
 
 
@@ -1002,7 +1013,7 @@ def audit_parts():
     pairs = [("legL", "skirt"), ("legR", "skirt"), ("bloomers", "skirt"), ("thighs", "bloomers"), ("armL", "skirt"),
              ("armR", "skirt"), ("armL", "bodice"), ("armR", "bodice"), ("armL", "legL"), ("armR", "legR"),
              ("hair", "face"), ("hair", "bodice"), ("bangleL", "wristL"), ("bangleR", "wristR"), ("jhumkaL", "face"),
-             ("jhumkaR", "face"), ("jhumkaL", "hair"), ("jhumkaR", "hair"), ("legL", "legR")]
+             ("jhumkaR", "face"), ("jhumkaL", "hair"), ("jhumkaR", "hair"), ("legL", "legR"), ("bodice", "legL"), ("bodice", "legR")]
     attached = [("jhumkaL", "jhumkaL", "head", 0.004), ("jhumkaR", "jhumkaR", "head", 0.004),
                 ("bangleL", "bangleL", "wristL", 0.006), ("bangleR", "bangleR", "wristR", 0.006),
                 ("bloomersL", "bloomerL", "thighL", 0.012), ("bloomersR", "bloomerR", "thighR", 0.012)]
