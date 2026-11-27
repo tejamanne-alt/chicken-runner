@@ -57,8 +57,15 @@ every model against the audit checklist at the end.** Add to it whenever somethi
 ## 4. Geometry
 
 - **True, level, square.** No shears, slopes or skews to make a perspective painting line up: the game stands every
-  model on flat ground, and a parallelogram plan or a ground rising towards the back looks wrong from the side. Where
-  the painting draws a side face or a top in perspective, exclude those pixels and accept that the front differs there.
+  model on flat ground, and a parallelogram plan or a ground rising towards the back looks wrong from the side.
+- **A painting drawn from above is matched along its slope, not accepted as different.** It draws everything further
+  back higher up (a cot's bed, a mat, a field, pebbles, a slab's top, a stall's ground). Measure that slope, set
+  `K.oblique` (metres up per metre of depth: a top of known depth D painted h high gives h / D), and build the model
+  true and level with every part at its real depth: the kit projects the painting along the slope, so the painted
+  tops land on the real tops, and the audit compares the front along it. A thing painted higher because it stands
+  further back goes further back (depth = its painted rise / oblique), never up. Lower `K.front_min` (about 0.1) so
+  the tops take the painting fully. From the game's near-level camera the model then shows what the real thing would,
+  with its painted top on top.
 - **The base sits on the ground** (z = 0): no floating, no tilted ground patch to match a painted foot, no raised mound
   under a prop unless the painting has one. Most paintings stand the foot 2-5 cm above their bottom edge (the shadow is
   painted below it); the record's `lift` (the lowest point, up to 10 cm) sets the model down onto the ground in the
@@ -136,10 +143,11 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   and above, and compares the front with the painting.
 - Look at every view of every sheet, at full size. The six-view review missed things the eight-view audit shows
   (repeating wall stains, stray blocks on a side wall, floating vine patches).
-- The audit's flags are hints, not the verdict. A piece painted three-quarters on or in perspective (the canal
-  benches) cannot match its painted top when built true and level: model it turned in plan (level and square, rotated
-  about the vertical, like `stalls_ghx.Turned`) so the side faces the painting shows are real side faces, and accept
-  what is left.
+- The audit's flags are hints, not the verdict. A piece painted three-quarters on (the canal benches) is modelled
+  turned in plan (level and square, rotated about the vertical, like `stalls_ghx.Turned`) so the side faces the
+  painting shows are real side faces; one painted from above also gets `K.oblique` (section 4), so its tops match.
+- The game's camera is nearly level: about 3.4 degrees down, 14 m back (`ChaseCamera`). It sees the lane almost
+  straight on; a painting's view from above is the painter's, not the game's.
 - Fix the cause, rebuild, re-audit. Expect three to six rounds; stop at eight and write down what is left.
 - Builds run several at once on a 4-core machine: `KIT_THREADS=1`, one Blender process per builder.
 - Edit only your own module; shared fixes go to the kit through the lead.
@@ -167,8 +175,9 @@ Measuring and placing
 Ground and lift
 - **No earth disc, mound, bed or slab the painting does not have**: they read as plain discs from the side and spill
   below the foot. Where the painting has earth, tile it with the painted soil (quilted) and keep its rim at the foot.
-- **Ground painted from above is not a slope to build**: keep it level; stand goods at their painted heights on a real
-  dais, plinth or raked stand (`stalls_ghx.raked_stand`), and accept the red where the painting shows the ground's top.
+- **Ground painted from above is not a slope to build**: keep it level, with `K.oblique` so its painted top lands on
+  the level top; stand goods at their real depth and height (a dais, plinth or raked stand where the painting has
+  one, `stalls_ghx.raked_stand`).
 - **Cards count for the lift**: end every card and figure polygon at the painted foot, or the lift goes to 0 and the
   model floats by its foot height. Check the record's lift after a build.
 
@@ -235,8 +244,8 @@ Cards
 - **Leaves texture 2048** for paintings wider than 1024 px.
 
 The audit itself
-- **Its flags are hints**: `repeat` fires on a regular brick bond and on real symmetry, `streaks` on real wood grain,
-  `front_holes` on every level model of a painting drawn from above. Judge each view by eye.
+- **Its flags are hints**: `repeat` fires on a regular brick bond and on real symmetry, `streaks` on real wood grain.
+  Judge each view by eye. A model with `oblique` is compared along its painted slope (the sheet says so).
 
 ## 10. The audit checklist (a model passes only if every answer is yes)
 

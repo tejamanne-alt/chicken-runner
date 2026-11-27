@@ -333,7 +333,22 @@ def audit_one(name, out):
     cam.data.ortho_scale = max(W, H)
     cam.location = (0, -100, H / 2)
     cam.rotation_euler = (math.radians(90), 0, 0)
+    # a painting drawn from above: compare along its slope (things further back drawn higher, z + oblique * y), as the
+    # kit projected it; the model itself stays true and level, and the eight views below see it as it is
+    k = float(rec.get("oblique", 0.0))
+    sheared = []
+    if k:
+        shear = Matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, k, 1, 0), (0, 0, 0, 1)))
+        for o in scene.objects:
+            if o.type == "MESH":
+                sheared.append((o, o.matrix_world.copy()))
+                o.matrix_world = shear @ o.matrix_world
+        bpy.context.view_layer.update()
     front = render(tmpdir / f"{name}_front.png", rx, ry)
+    for o, mw in sheared:
+        o.matrix_world = mw
+    if sheared:
+        bpy.context.view_layer.update()
     paint = KL.Painting(name, folder).img.convert("RGBA").resize((rx, ry), Image.LANCZOS)
     pa = np.asarray(paint).astype(np.float32)
     fa = np.asarray(front).astype(np.float32)
@@ -451,7 +466,8 @@ def audit_one(name, out):
              f"front  IoU {frontm['iou']:.2f}  holes {frontm['holes']:.2f}  spill {frontm['spill']:.2f}",
              f"       colour median {frontm['colour_median']:.0f}  p90 {frontm['colour_p90']:.0f}  off {frontm['bad']:.2f}",
              f"size   w {geometry['width_ratio']:.2f}  h {geometry['height_ratio']:.2f}  depth {geometry['depth']:.2f} m",
-             f"base   {geometry['base_z']:+.3f} m   parts {geometry['parts']}  loose {geometry['loose_parts']}",
+             f"base   {geometry['base_z']:+.3f} m   parts {geometry['parts']}  loose {geometry['loose_parts']}"
+             + (f"   front along the painted slope {rec['oblique']:.2f}" if rec.get("oblique") else ""),
              f"inside-out {geometry['inside_out']}   faces {geometry['faces']}  cards {geometry['cards']}",
              f"uv     stretch {geometry['uv_stretch']:.2f}  blur {geometry['uv_blur']:.2f}  squash {geometry.get('uv_squash', 1.0):.2f}",
              f"paint  streaks {base['streaks']:.2f}  flat {base['flat']:.2f}  dark {base['dark']:.2f}", "",

@@ -240,6 +240,11 @@ class Kit:
         self.rng = np.random.default_rng(zlib.crc32(name.encode()))   # the same every run (hash() is salted)
         self.front_projection = True     # set False for a model whose painting should not be projected
         self.front_min = 0.25            # how squarely a surface must face the camera to take the painting
+        # A painting drawn from above (a cot's bed, a mat, a field, pebbles, a slab's top) shows things further back
+        # higher up: `oblique` is how far up, per metre of depth (the painting's v = z + oblique * y). The model stays
+        # true and level; the painting is projected along that slope, so the painted tops land on the real tops, and
+        # the audit compares the front along it. 0 is straight on.
+        self.oblique = 0.0
         self.ao = 0.45                   # how much baked ambient occlusion darkens the sides and back
         self.front_exclude = []          # boxes (px) of the painting NOT to project from the front (a neighbour's
                                          # ladder at the edge, a person in front of a stall): the parts' own
@@ -1031,9 +1036,9 @@ def threads(scene):
         scene.render.threads = n
 
 
-def _front_material(P, name, channel="color", exclude=()):
-    """Emission of the painting projected from the front (object x, z -> painting u, v), or of its alpha (zero in
-    the exclude boxes)."""
+def _front_material(P, name, channel="color", exclude=(), oblique=0.0):
+    """Emission of the painting projected from the front (object x, z + oblique * y -> painting u, v), or of its
+    alpha (zero in the exclude boxes)."""
     img = P.img
     if exclude:
         a = np.asarray(img).copy()
@@ -1061,7 +1066,8 @@ def _front_material(P, name, channel="color", exclude=()):
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
     u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
-    v = op("DIVIDE", sep.outputs["Z"], P.H)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], float(oblique))) if oblique
+           else sep.outputs["Z"], P.H)
     vec = nt.nodes.new("ShaderNodeCombineXYZ")
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
@@ -1124,8 +1130,8 @@ def finish(K, spec):
     final = albedo[..., :3].copy()
     if K.front_projection:
         own = [s.material for s in ob.material_slots]
-        col_m = _front_material(P, f"{name}_front_col", "color", K.front_exclude)
-        alp_m = _front_material(P, f"{name}_front_alpha", "alpha", K.front_exclude)
+        col_m = _front_material(P, f"{name}_front_col", "color", K.front_exclude, K.oblique)
+        alp_m = _front_material(P, f"{name}_front_alpha", "alpha", K.front_exclude, K.oblique)
         _with_materials(ob, col_m)
         front = _bake(ob, "EMIT", size)
         _with_materials(ob, alp_m)
@@ -1139,7 +1145,8 @@ def finish(K, spec):
         sun = bpy.data.objects.new("front_sun", bpy.data.lights.new("front_sun", "SUN"))
         sun.data.energy = 1.0
         sun.data.angle = 0.0
-        sun.rotation_euler = (math.radians(90), 0, 0)       # light travelling +Y: from the camera's side
+        # light travelling +Y from the camera's side, and down along the painting's slope when it is drawn from above
+        sun.rotation_euler = (math.radians(90) - math.atan(K.oblique), 0, 0)
         bpy.context.scene.collection.objects.link(sun)
         world = bpy.context.scene.world or bpy.data.worlds.new("w")
         bpy.context.scene.world = world
@@ -1219,6 +1226,8 @@ def finish(K, spec):
     rec = {"name": name, "folder": folder, "kind": {"building": "building", "flat": "slab"}.get(K.kind, "volume"),
            "width": round(P.W, 3), "height": round(P.H, 3), "depth": round(depth, 3), "lift": lift, "faces": faces,
            "source": "blender"}
+    if K.oblique:
+        rec["oblique"] = round(float(K.oblique), 4)
     RECORDS.mkdir(parents=True, exist_ok=True)
     (RECORDS / f"{name}.json").write_text(json.dumps(rec, indent=1))
     return rec, ob, leaves
