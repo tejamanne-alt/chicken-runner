@@ -150,7 +150,7 @@ def _tile_socket(K, m, coord, box, size=None, soften=0.2, vary=0.0, square=False
 
 
 def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=None, soften=0.25, name=None,
-              side_img=None, top_img=None, vary=0.0):
+              side_img=None, top_img=None, vary=0.0, square=True):
     """A material of two tiles of the painting: side_box on the surfaces that face sideways (an earth bank's face,
     a wall) and top_box on those that face up (the bank's grassy or trodden top), blended on normal.z (lo..hi).
     side_img / top_img: images to tile instead (strip() crops), the boxes then only give their painted widths."""
@@ -160,8 +160,10 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     m = Mat(name or f"{K.name}_two{len(K._mats)}")
     nt = m.nt
     coord = nt.nodes.new("ShaderNodeTexCoord")
-    a = _tile_socket(K, m, coord, side_box, side_size, soften, vary, square=side_img is not None, image=side_img)
-    b = _tile_socket(K, m, coord, top_box, top_size, soften, vary, square=top_img is not None, image=top_img)
+    a = _tile_socket(K, m, coord, side_box, side_size, soften, vary, square=square and side_img is not None,
+                     image=side_img)
+    b = _tile_socket(K, m, coord, top_box, top_size, soften, vary, square=square and top_img is not None,
+                     image=top_img)
     geo = nt.nodes.new("ShaderNodeNewGeometry")
     sn = nt.nodes.new("ShaderNodeSeparateXYZ")
     nt.links.new(geo.outputs["Normal"], sn.inputs[0])
@@ -815,11 +817,17 @@ def bank(K, outline, bot_py, sh_py, crest_py, hd_bot, hd_sh, mat, nx=48, rough=0
         for j in range(nj):
             jj = (j + 1) % nj
             bm.faces.new([rings[i][j], rings[i][jj], rings[i + 1][jj], rings[i + 1][j]])
+    body = list(bm.faces)
+    caps = []
     for ring in (rings[0], rings[-1]):                     # the ends: a fan round their middle
         c = bm.verts.new(tuple(sum((v.co for v in ring), Vector()) / len(ring)))
         for j in range(nj):
-            bm.faces.new([c, ring[j], ring[(j + 1) % nj]])
+            caps.append(bm.faces.new([c, ring[j], ring[(j + 1) % nj]]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    # the ends split off the faces round them (smoothed on their own, not into them: no shading cross on them)
+    cs, bs = set(caps), set(body)
+    rim = [e for e in bm.edges if any(f in cs for f in e.link_faces) and any(f in bs for f in e.link_faces)]
+    bmesh.ops.split_edges(bm, edges=rim)
     ob = _obj(name, bm, mat, smooth=True)
     K.parts.append(ob)
     return ob
@@ -834,15 +842,19 @@ def bund_block(K):
     hb, hs = 0.52, 0.4
     ends = {95: (44, 698), 120: (40, 702), 150: (40, 702), 200: (42, 698), 80: (52, 690), 57: (66, 676)}
     outline = lambda py: (interp([(k, v[0]) for k, v in ends.items()])(py), interp([(k, v[1]) for k, v in ends.items()])(py))
-    earth = two_tiles(K, (300, 104, 520, 190), (250, 62, 560, 92), lo=0.5, hi=0.8, soften=0.25)
+    # the cracked red face; the trodden top's red earth (its painted bands taken out, so it does not streak)
+    earth = two_tiles(K, (300, 104, 520, 190), (250, 66, 560, 88), lo=0.5, hi=0.8, soften=0.25, square=False,
+                      side_img=P.crop((300, 104, 520, 190)), top_img=speckle(P.crop((250, 66, 560, 88)), amount=1.3))
     bank(K, outline, 200, 95, 57, hb, hs, earth, nx=56, rough=0.022)
-    # stones on the top and at the foot
+    # stones on the top and at the foot: the painted ones take the painting, those round the back their grain
     stone = K.projected(squeeze=1.0, keep=[(68, 48, 138, 80), (22, 178, 72, 202), (272, 168, 332, 202),
                                            (596, 162, 684, 202)], inset=2)
+    grey = img_tile(K, speckle(P.crop((612, 172, 662, 194)), amount=1.2), P.m(50), vary=0.1, key="stone")
     K.boulder(P.x(103), -0.22, P.z(66), P.m(66), P.m(50), P.m(30), stone, name="stone")
     for px, w, h, y in ((47, 48, 22, -hb - 0.08), (302, 58, 30, -hb - 0.1), (640, 86, 38, -hb - 0.12),
                         (180, 40, 18, hb + 0.08), (520, 56, 26, hb + 0.1)):
-        K.boulder(P.x(px), y, P.z(200) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.75, P.m(h), stone, name="stone")
+        K.boulder(P.x(px), y, P.z(200) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.75, P.m(h), stone if y < 0 else grey,
+                  name="stone")
     clod = K.colour((330, 170, 420, 195), vary=0.15)
     for k in range(12):
         px = K.rng.uniform(60, 680)
@@ -884,7 +896,10 @@ def bund_strip(K):
     rows = [(14, 118, 1000), (20, 82, 1048), (30, 62, 1076), (45, 56, 1078), (56, 56, 1078), (100, 45, 1090),
             (140, 27, 1107), (160, 10, 1124), (168, 14, 1120)]
     outline = lambda py: (interp([(r[0], r[1]) for r in rows])(py), interp([(r[0], r[2]) for r in rows])(py))
-    earth = two_tiles(K, (300, 66, 700, 150), (180, 22, 960, 46), lo=0.45, hi=0.75, soften=0.3)
+    # the face's orange earth (its cracks and the dark gully at x 300 left out), the grass mat's fine blades on top
+    earth = two_tiles(K, (330, 70, 560, 145), (100, 24, 600, 48), lo=0.45, hi=0.75, soften=0.15, vary=0.1,
+                      side_img=delined(P.crop((330, 70, 560, 145)), 3),
+                      top_img=speckle(P.crop((100, 24, 600, 48)), sigma=4.0, amount=1.3), square=False)
     bank(K, outline, 166, 56, 16, hb, hs, earth, nx=64, rough=0.02)
     # the grass: its ragged crest, its fringe over the front and back faces
     K.leaves_only((0, 0, 1135, 70), grass_pixels)
@@ -892,7 +907,7 @@ def bund_strip(K):
         top = (cx - 40, 4, cx + 40, 30)
         K.card_from_painting(top, P.pt(cx, 17, 0.0), name="grass", normal=(0, -0.2, 1))
         K.card_from_painting(top, P.pt(cx + 20, 22, 0.12), yaw=K.rng.uniform(-40, 40), name="grass", normal=(0, 0.2, 1))
-    for cx in range(70, 1080, 40):
+    for cx in range(110, 1050, 40):                         # (all inside the bank's ends: no card past them)
         fr = (cx - 38, 40, cx + 38, 66)
         K.card_from_painting(fr, P.pt(cx, 53, -hs - 0.015), name="fringe", normal=(0, -0.8, 0.6))
         K.card_from_painting(fr, P.pt(cx + 15, 53, hs + 0.015), yaw=180, name="fringe", normal=(0, 0.8, 0.6))

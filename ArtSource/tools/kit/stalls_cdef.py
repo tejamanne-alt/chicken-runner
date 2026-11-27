@@ -1068,7 +1068,7 @@ def stall_d_1(K):
     K.front_min = 0.15
     yf, yb = -0.55, 0.55
     # ---------------------------------------------------------------- the frame
-    bam = K.colour((300, 64, 400, 76), vary=0.08)
+    bam = pole_tile(K, (175, 420, 186, 560))
     post = K.projected(axis_x=P.x(183), squeeze=0.9, keep=[(170, 200, 197, 610)], inset=2)
     post2 = K.projected(axis_x=P.x(848), squeeze=0.9, keep=[(834, 200, 862, 615)], inset=2)
     rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
@@ -1146,9 +1146,9 @@ def stall_d_1(K):
     darkm = K.colour((470, 470, 540, 540), vary=0.15, scale=20)
 
     def all_round(h, cx, y, hw, fruit, r_px):
-        n = int(26 * (hw / 70) ** 2) + 6
+        n = int(15 * (hw / 70) ** 2) + 4
         pile(K, h, P.x(cx), y, P.m(hw) * 0.78, P.m(hw) * 0.78 * 0.85, n, P.m(r_px),
-             darkm if fruit is dark else fruit, over=P.m(3))
+             darkm if fruit is dark else fruit, over=P.m(3), segs=6)
     for cx, hw, rim, prof, fruit, y in table:
         basket(K, P.x(cx), y, zc, [(P.m(hw * 0.7), 0.0), (P.m(hw * 0.95), (Z(rim) - zc) * 0.6), (P.m(hw), Z(rim) - zc)],
                weave, sy=0.85)
@@ -1388,7 +1388,7 @@ def stall_d_3(K):
     roof_z = Z(205)
     # the booth's walls: dark inside (in shadow), clad outside in vertical boards of the painted brown wood (a plain
     # dark slab from the sides and back before), battens and a rail across the back
-    boards = pole_tile(K, (222, 400, 234, 540), soften=0.2)
+    boards = pole_tile(K, (225, 392, 234, 470), soften=0.15, vary=0.1)
     K.box(P.x(215), P.x(880), 0.55, 0.6, 0.0, roof_z + 0.15, dark, name="back_wall")
     xs = np.linspace(P.x(215), P.x(880), 11)
     for xa, xb in zip(xs, xs[1:]):
@@ -2169,7 +2169,7 @@ def stall_f_1(K):
     batten = K.colour((150, 640, 200, 700), vary=0.08)
     zt = Z(232)
     back = wall_behind(K, (225, 245, 650, 598), VENDOR_F1, others=[(165, 240, 605, 385), (128, 465, 450, 598)])
-    booth_shell(K, P.x(108), P.x(660), -0.3, 0.5, zt, dark, planks, batten, back=back)
+    booth_shell(K, P.x(108), P.x(660), -0.3, 0.5, zt, dark, planks, batten, back=back, clad=False)
     shelf = K.colour((260, 322, 560, 330), vary=0.06)
     for py_ in (325, 425):
         K.box(P.x(215), P.x(568), 0.25, 0.46, Z(py_ + 4), Z(py_), shelf, bevel=0.004, name="shelf")

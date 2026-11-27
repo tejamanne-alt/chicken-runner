@@ -1117,17 +1117,17 @@ def bunting(K):
     P = K.paint
     pale_halo(K, near=3, cell=2)
     path = [(22, 20), (30, 26), (45, 33), (62, 41.5), (80, 48), (97, 53), (114, 57), (130, 59.5), (147, 61), (163, 61.5),
-            (180, 61), (195, 59), (210, 55.5), (225, 51.5), (240, 45.5), (255, 38.5), (268, 31), (282, 22.5), (287, 20)]
-    rope_m = K.projected(squeeze=1.0, keep=[(x - 7, y - 3, x + 7, y + 3) for x, y in path] +
-                         [(6, 6, 34, 42), (276, 6, 305, 42)], inset=1)
-    K.tube([P.pt(x, y, 0.0) for x, y in path], P.m(3.3), rope_m, segments=8, name="rope")
+            (180, 61), (195, 59.5), (210, 56.2), (225, 52.2), (240, 46.2), (255, 39.2), (268, 31.5), (282, 22.7), (287, 20)]
+    # the rope's own golden twist (the front projection paints its front): finely mottled gold, round its back too
+    rope_m = K.colour((140, 59, 152, 62), vary=0.25, scale=90.0)
+    K.tube([P.pt(x, y, 0.0) for x, y in path], P.m(3.0), rope_m, segments=8, name="rope")
     # the bows at the ends: an upright loop, a loop out sideways, the knot and a curled tail, as painted
     for s_, kx in ((1, 24), (-1, 286.5)):
         X = lambda dx: kx + s_ * dx
-        ellipse_ring(K, P.pt(X(1), 14.5, 0.0), P.m(3.6), P.m(6.0), P.m(1.3), rope_m, name="bow_loop")
-        ellipse_ring(K, P.pt(X(-9), 19, 0.0), P.m(6.0), P.m(4.0), P.m(1.3), rope_m, name="bow_loop")
+        ellipse_ring(K, P.pt(X(1), 14.5, 0.0), P.m(4.0), P.m(6.4), P.m(1.7), rope_m, name="bow_loop")
+        ellipse_ring(K, P.pt(X(-9.5), 19, 0.0), P.m(6.4), P.m(4.4), P.m(1.7), rope_m, name="bow_loop")
         K.tube([P.pt(X(0), 22, 0), P.pt(X(-3), 30, -0.004), P.pt(X(-6), 35, 0), P.pt(X(-8), 38, 0.004),
-                P.pt(X(-10.5), 37, 0.004)], P.m(1.4), rope_m, segments=6, name="bow_tail")
+                P.pt(X(-10.5), 37, 0.004)], P.m(1.7), rope_m, segments=6, name="bow_tail")
         K.lathe([(P.m(3.0), -P.m(2.8)), (P.m(3.4), 0.0), (P.m(3.0), P.m(2.8)), (0.0, P.m(3.0))], rope_m, segments=10,
                 centre=(P.x(kx), 0.0, P.z(22)), name="knot")
     # traced off the painting: the cloth's saturated colour, its top corners on the rope, its tip at its ink
@@ -1135,13 +1135,12 @@ def bunting(K):
              ((97, 53.0), (127, 59.4), (106.5, 105)), ((131, 60.1), (159, 61.9), (142.0, 109)),
              ((162, 62.0), (191, 60.4), (176.5, 108)), ((196, 59.8), (221, 54.1), (210.5, 101)),
              ((226, 52.6), (251, 41.9), (241.5, 90)), ((254, 40.5), (279, 24.9), (271.5, 74))]
-    # (the painted ink is thin on the lit left edges and thick on the shaded right ones: the cloth sits 1 px right)
-    flags = [tuple((x + 0.9, y) for x, y in f) for f in flags]
+    # the cloth with its painted ink outline and halo: about 3 px wider each side at the rope, its tip where painted
+    flags = [((tl[0] - 2.6, tl[1]), (tr[0] + 3.0, tr[1]), (tip[0] + 0.2, tip[1] - 0.3)) for tl, tr, tip in flags]
     for k, (tl, tr, tip) in enumerate(flags):
         xs, ys_ = [tl[0], tr[0], tip[0]], [tl[1], tr[1], tip[1]]
         cloth = K.projected(squeeze=1.0, keep=[(min(xs) + 1, min(ys_) + 4, max(xs), max(ys_) - 1)], inset=2)
-        # the painted cloth's ink outline reaches about 1 px past its colour: cover it
-        gtl, gtr, gtip = grow_triangle(tl, tr, tip, 1.0)
+        gtl, gtr, gtip = tl, tr, tip
         # the cloth folds over the rope: its top edge a little behind and above the rope's middle
         tw = K.rng.uniform(-0.03, 0.03)
         cloth_sheet(K, P.pt(gtl[0], gtl[1], P.m(1.5)), P.pt(gtr[0], gtr[1], P.m(1.5)), P.pt(*gtip, 0.0), cloth,

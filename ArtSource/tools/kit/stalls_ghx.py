@@ -14,7 +14,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from kitlib import Mat, _image, _obj, model
-from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, green_leaves, heap_px,
+from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, earth_patch, green_leaves,
+                         heap_px,
                          hip_thatch, joint, ktile, lashing, on_heap, pole_tile, rib_umbrella, sack, slab, turned,
                          unify_cards)
 from stalls_cdef import pod as pod_c
@@ -284,7 +285,7 @@ def stall_g_1(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.12, 0.07, 0.03), vary=0.1)
-    bam = K.colour((960, 300, 975, 400), vary=0.08)
+    bam = pole_tile(K, line=((150, 300), (154, 600)), half=4)
     # ---------------------------------------------------------------- the raked bed
     slope = math.tan(math.radians(30))
     yF, zF = -0.9, Z(642)
@@ -299,7 +300,7 @@ def stall_g_1(K):
          [(xl0, yF - 0.004, zF + 0.012), (xr0, yF - 0.004, zF + 0.012), (xr1, yB, Z(410) + 0.012),
           (xl1, yB, Z(410) + 0.012)], plank, name="bed_top")
     # the bed's frame: bearers down its two sides and its middle, a cross bar under its back edge, bamboo legs
-    leg = K.colour((0.42, 0.3, 0.15), vary=0.1)
+    leg = pole_tile(K, line=((150, 300), (154, 600)), half=4)
     for k in (0.0, 0.5, 1.0):
         a = (xl0 + (xr0 - xl0) * k, yF + 0.04, zF - th - 0.035)
         b = (xl1 + (xr1 - xl1) * k, yB - 0.04, Z(410) - th - 0.035)
@@ -378,8 +379,13 @@ def stall_g_1(K):
     # ---------------------------------------------------------------- the back wall: planks between the back posts
     wall = ktile(K, (440, 262, 800, 385), vary=0.05, soften=0.3)
     wall_top = roof_under(ybp + 0.06) - 0.02
-    K.box(P.x(290), P.x(829), ybp - 0.02, ybp + 0.03, 0.0, wall_top, wall, name="back_wall")
-    batten = K.colour((0.17, 0.09, 0.04), vary=0.08)
+    K.box(P.x(290), P.x(829), ybp - 0.02, ybp + 0.01, 0.0, wall_top, wall, name="back_wall")
+    # its outside: vertical boards of the painted plank wood, lit (the dark painted inside is in the shade)
+    xs = np.linspace(P.x(290), P.x(829), 9)
+    for xa, xb in zip(xs, xs[1:]):
+        K.box(xa + 0.003, xb - 0.003, ybp + 0.01, ybp + 0.03 + K.rng.uniform(0, 0.004), 0.0,
+              wall_top + K.rng.uniform(-0.01, 0.01), plank, bevel=0.004, name="board")
+    batten = pole_tile(K, (175, 485, 186, 540), soften=0.3)
     for x in np.linspace(P.x(310), P.x(810), 7):
         K.box(x - 0.022, x + 0.022, ybp + 0.03, ybp + 0.055, 0.0, wall_top, batten, bevel=0.004, name="batten")
     for z in (0.35, 1.2):
@@ -956,12 +962,10 @@ def stall_h_1(K):
     # ---------------------------------------------------------------- the bank of earth and the mats on it
     earth = ktile(K, (935, 792, 1020, 860), vary=0.08, soften=0.3)
     xl, xr = P.x(60), P.x(1026)
-
-    def ground(x, y):
-        side = _smooth(xl - 0.02, xl + 0.12 + 0.1 * _smooth(bank.y0, bank.y1, y), x) * _smooth(xr + 0.02, xr - 0.1, x)
-        return bank.z(y) * side
-    K.grid_plane(xl - 0.1, xr + 0.05, bank.y0 - 0.05, bank.y3 + 0.02, 0.0, 34, 30, earth, height=ground, name="bank")
     straw = ktile(K, (292, 866, 345, 884), vary=0.06)
+    # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
+    earth_patch(K, P.x(540), bank.y1 - 0.1, (xr - xl) / 2 + 0.12, bank.y1 - bank.y0 + 0.65, earth, h=0.015)
+    raked_stand(K, bank, P.x(70), P.x(1010), straw, pole_tile(K, line=((498, 380), (498, 700)), half=5), back=0.6)
 
     def mat_sheet(corners, mat, lift, name):
         FL, FR, BR, BL = corners
@@ -1044,7 +1048,7 @@ def stall_h_1(K):
     K.box(P.x(575), P.x(705), bank.y1 + 0.08, bank.y1 + 0.3, zt_, Z(700), tin, bevel=0.01, name="tool_box")
     K.box(P.x(572), P.x(708), bank.y1 + 0.07, bank.y1 + 0.31, Z(700), Z(692), tin, bevel=0.008, name="tool_box_lid")
     roll = K.lathe([(0.0, -0.3), (0.07, -0.3), (0.07, 0.3), (0.0, 0.3)], hide, segments=14, name="leather_roll")
-    frame_to(roll, (P.x(330), bank.y2 + 0.2, bank.z(bank.y2 + 0.2) + 0.03), (1, 0, 0), (0, 1, 0))
+    frame_to(roll, (P.x(330), bank.y1 + 0.4, bank.top + 0.07), (1, 0, 0), (0, 1, 0))
     # ---------------------------------------------------------------- the cobbler
     K.figure([(630, 471), (656, 478), (672, 500), (668, 540), (660, 565), (700, 580), (722, 600), (736, 630),
               (746, 670), (749, 715), (772, 735), (792, 760), (792, 792), (772, 812), (740, 822), (712, 834),
@@ -1255,6 +1259,52 @@ class Ramp(Bank):
         return self.normal_at(self.y0 + 0.01)
 
 
+def raked_stand(K, bank, x0, x1, side, frame, top=None, back=0.35, name="stand"):
+    """A raked display stand of bamboo, standing level on the ground, for the goods the painting looks down on (laid
+    out on a mat, which from the front rises to the back): its top follows the bank's rake from its front edge (y0, on
+    the ground) up to its crest, then runs level to the back (`back` m past the crest); its sides and back closed with
+    woven matting (side), a bamboo frame round its edges and legs at its corners and along its sides (frame). It
+    replaces a bank of earth rising to the back (a wedge of ground, wrong from the sides): the ground stays level, and
+    bank.z / bank.y place the goods on its top as before (its level deck now reaches its back)."""
+    y3 = bank.y1 + back
+    bank.y2 = bank.y3 = y3
+    bank.z = (lambda f: (lambda y: f(y) if y <= bank.y1 else (bank.top if y <= y3 else 0.0)))(bank.z)
+    prof = [(y, z) for y, z in getattr(bank, "pts", [(bank.y0, 0.0), (bank.y1, bank.top)])]
+    prof += [(y3, bank.top), (y3, 0.0)]
+    bm = bmesh.new()
+    a = [bm.verts.new((x0, y, z)) for y, z in prof]
+    b = [bm.verts.new((x1, y, z)) for y, z in prof]
+    n = len(prof)
+    bm.faces.new(list(reversed(a)))
+    bm.faces.new(b)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([a[i], a[j], b[j], b[i]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    body = _obj(name, bm, side)
+    K.parts.append(body)
+    if top is not None:                          # the top under the mat, where it shows past the mat's edges
+        for (ya, za), (yb, zb) in zip(prof[:-2], prof[1:-1]):
+            hexa(K, [(x0 - 0.005, ya, za - 0.01), (x1 + 0.005, ya, za - 0.01), (x1 + 0.005, yb, zb - 0.01),
+                     (x0 - 0.005, yb, zb - 0.01)],
+                 [(x0 - 0.005, ya, za + 0.003), (x1 + 0.005, ya, za + 0.003), (x1 + 0.005, yb, zb + 0.003),
+                  (x0 - 0.005, yb, zb + 0.003)], top, name=name + "_top")
+    r = 0.022
+    for x in (x0 - r * 0.6, x1 + r * 0.6):          # the frame down each side: along the rake and the deck, the legs
+        pts = [(x, y, max(z - r * 0.5, r)) for y, z in prof[:-1]]
+        for p_, q_ in zip(pts, pts[1:]):
+            bamboo(K, p_, q_, r, frame, node_at=[0.5], taper=1.0, name=name + "_rail")
+        for y, z in prof[1:-1]:
+            bamboo(K, (x, y, 0.0), (x, y, z - r * 0.5), r, frame, node_at=[0.5], taper=1.0, name=name + "_leg")
+        ym = (bank.y0 + bank.y1) / 2
+        bamboo(K, (x, ym, 0.0), (x, ym, bank.z(ym) - r * 0.5), r, frame, node_at=[], taper=1.0, name=name + "_leg")
+    for y, z in prof[1:-1]:                         # cross rails at the crest and the back
+        bamboo(K, (x0 - 0.03, y, z - r * 0.5), (x1 + 0.03, y, z - r * 0.5), r, frame, node_at=[0.3, 0.7], taper=1.0,
+               name=name + "_cross")
+        bamboo(K, (x0 - 0.03, y, r), (x1 + 0.03, y, r), r, frame, node_at=[0.3, 0.7], taper=1.0, name=name + "_cross")
+    return body
+
+
 def blade(K, ramp, path_px, w_px, mat, lift=0.012, taper=0.3, name="blade"):
     """A flat steel blade (a knife, a sickle's crescent) lying on the ground where it is painted: a thin ribbon
     along path_px [(px, py), ...] from its tip, w_px wide at its heel, narrowing to `taper` of that at the tip."""
@@ -1284,16 +1334,17 @@ def stall_h_3(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.3, 0.2, 0.08), vary=0.1)
-    bam = K.colour((100, 300, 115, 400), vary=0.08)
+    bam = pole_tile(K, line=((105, 300), (108, 600)), half=4)
     ramp = Ramp([(-1.15, 0.0), (-0.55, Z(800)), (0.75, Z(738)), (1.0, Z(725))], flat=0.25, back=0.45)
     # ---------------------------------------------------------------- the earth and the mat
     earth = ktile(K, (8, 760, 60, 850), vary=0.08, soften=0.4)
     xl, xr = P.x(4), P.x(905)
-
-    def ground(x, y):
-        return ramp.z(y) * _smooth(xl - 0.02, xl + 0.1, x) * _smooth(xr + 0.02, xr - 0.1, x)
-    K.grid_plane(xl - 0.05, xr + 0.05, ramp.y0 - 0.04, ramp.y3 + 0.02, 0.0, 30, 30, earth, height=ground, name="earth")
     orange = ktile(K, (560, 880, 640, 898), vary=0.06)
+    # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
+    bam_f = pole_tile(K, line=((105, 300), (108, 600)), half=4)
+    raked_stand(K, ramp, xl + 0.02, xr - 0.02, orange, bam_f, back=0.5)
+    earth_patch(K, (xl + xr) / 2, (ramp.y0 + ramp.y3) / 2, (xr - xl) / 2 + 0.12, (ramp.y3 - ramp.y0) / 2 + 0.25, earth,
+                h=0.015)
 
     def mat_f(u, v):
         px_ = 55 + (900 - 55) * u - (1 - v) * 0 + v * (157 - 55) * (1 - u)
@@ -1747,14 +1798,15 @@ def stall_potter(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.3, 0.2, 0.08), vary=0.1)
-    bam = K.colour((765, 260, 778, 330), vary=0.08)
+    bam = pole_tile(K, line=((772, 255), (772, 380)), half=3)
     bank = Bank(-1.25, Z(500), 21.0, flat=0.35, back=0.45)
     # ---------------------------------------------------------------- the rise of earth and the straw mat on it
-    earth = K.colour((0.32, 0.17, 0.08), vary=0.12, scale=5)
-    K.grid_plane(P.x(10), P.x(925), bank.y0 - 0.03, bank.y3 + 0.02, 0.0, 30, 26, earth,
-                 height=lambda x, y: bank.z(y) * _smooth(P.x(10), P.x(40), x) * _smooth(P.x(925), P.x(900), x),
-                 name="earth")
     straw = ktile(K, (880, 575, 915, 610), vary=0.06)
+    # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
+    earth = pole_tile(K, (100, 626, 800, 634), soften=0.3, vary=0.1)
+    bam_f = pole_tile(K, line=((772, 255), (772, 380)), half=3)
+    raked_stand(K, bank, P.x(15), P.x(920), straw, bam_f, back=0.5)
+    earth_patch(K, P.x(468), (bank.y0 + bank.y3) / 2, P.W / 2 + 0.1, (bank.y3 - bank.y0) / 2 + 0.25, earth, h=0.015)
 
     def mat_f(u, v):
         py_ = 622 - (622 - 500) * v
@@ -1874,7 +1926,7 @@ def stall_potter(K):
                  (P.m(hw) * 0.3, P.z(y0 + 1)), (0.0, P.z(y0))], m, segments=14, centre=(P.x(cxp), yt, 0.0),
                 scale_y=0.8, name="figurine")
     # ---------------------------------------------------------------- behind him: a heap of straw for packing pots
-    straw_h = K.colour((0.5, 0.38, 0.16), vary=0.15, scale=8)
+    straw_h = straw
     K.lathe([(0.38, 0.0), (0.34, 0.1), (0.22, 0.2), (0.0, 0.25)], straw_h, segments=20,
             centre=(P.x(720), bank.y1 + 0.2, bank.top - 0.02), wobble=0.1, name="straw_heap")
     # ---------------------------------------------------------------- the potter
@@ -1992,22 +2044,24 @@ def stall_sweets(K):
     for cx, hw, peak, y in ((518, 92, 524, -0.6), (707, 92, 527, -0.6)):
         K.lathe([(0.0, 0.0), (P.m(hw) * 0.85, 0.0), (P.m(hw), Z(598)), (P.m(hw) * 1.02, Z(594))], plate, segments=32,
                 centre=(P.x(cx), y, 0.0), scale_y=0.55, cap=False, name="plate")
-        j = K.projected(squeeze=1.0, keep=[(cx - hw + 4, peak - 2, cx + hw - 4, 600)], inset=1)
+        # each heap wears a tile of its own painted jalebi (the front projection paints its front): projected through,
+        # its sides and top carried the pale halo round the painted heap
+        j = ktile(K, (cx - hw * 0.5, 545, cx + hw * 0.5, 585), vary=0.05)
         heap_px(K, cx, y, [(hw * 0.94, 600), (hw * 0.85, 575), (hw * 0.6, 550), (hw * 0.3, 532), (0, peak + 1)], j,
                 sy=0.5, name="jalebi")
     y3 = 0.25
     zt = Z(506)
     K.box(P.x(677), P.x(814), y3 - 0.2, y3 + 0.2, zt, Z(472), plate, bevel=0.008, name="tray")
-    j3 = K.projected(squeeze=1.0, keep=[(685, 428, 805, 475)], inset=1)
+    j3 = ktile(K, (705, 440, 785, 470), vary=0.05)
     heap_px(K, 745, y3, [(58, 474), (50, 455), (35, 442), (0, 432)], j3, sy=0.25 / P.m(58), name="jalebi")
     weave = ktile(K, (820, 470, 900, 495), vary=0.06)
     basket(K, P.x(868), 0.3, zt, [(P.m(52), 0.0), (P.m(62), Z(480) - zt), (P.m(66), Z(462) - zt)], weave, sy=0.85)
-    j4 = K.projected(squeeze=1.0, keep=[(805, 392, 935, 468)], inset=1)
+    j4 = ktile(K, (825, 415, 905, 460), vary=0.05)
     heap_px(K, 868, 0.3, [(64, 464), (58, 440), (45, 418), (25, 402), (0, 396)], j4, sy=0.85, name="jalebi")
     weave2 = ktile(K, (830, 595, 920, 615), vary=0.06)
     yl = -0.55
     basket(K, P.x(880), yl, 0.0, [(P.m(62), 0.0), (P.m(75), Z(595)), (P.m(80), Z(568))], weave2, sy=0.85)
-    lad = K.projected(squeeze=1.0, keep=[(808, 480, 955, 575)], inset=1)
+    lad = ktile(K, (835, 515, 905, 570), vary=0.05)
     hl = heap_px(K, 880, yl, [(74, 570), (62, 540), (45, 515), (22, 495), (0, 486)], lad, sy=0.85, name="laddus")
     on_heap(K, hl, P.x(880), yl, P.m(74) * 0.85, (808, 480, 955, 575), lad, dark=80, min_area=60, max_area=1200,
             rmax=16, flat=0.9)
@@ -2245,11 +2299,12 @@ def stall_vessels(K):
     rope = K.colour((0.25, 0.16, 0.07), vary=0.1)
     bank = Bank(-1.05, Z(604), 22.0, flat=1.5, back=0.4)
     # ---------------------------------------------------------------- the mat floor and the earth
-    earth = K.colour((0.32, 0.17, 0.08), vary=0.12, scale=5)
-    K.grid_plane(P.x(0), P.x(1031), bank.y0 - 0.03, bank.y3 + 0.02, 0.0, 30, 26, earth,
-                 height=lambda x, y: bank.z(y) * _smooth(P.x(0), P.x(25), x) * _smooth(P.x(1031), P.x(1005), x),
-                 name="earth")
     weave = ktile(K, (300, 630, 500, 660), vary=0.06)
+    # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
+    bam_f = pole_tile(K, line=((150, 200), (150, 400)), half=4)
+    raked_stand(K, bank, P.x(5), P.x(1026), weave, bam_f, back=1.9)
+    earth = ktile(K, (300, 640, 700, 664), vary=0.08, soften=0.4)
+    earth_patch(K, P.x(515), (bank.y0 + bank.y3) / 2, P.W / 2 + 0.1, (bank.y3 - bank.y0) / 2 + 0.25, earth, h=0.015)
 
     def mat_f(u, v):
         py_ = 668 - (668 - 604) * v
@@ -2434,10 +2489,12 @@ def stall_flowers(K):
     bank = Bank(-1.3, Z(645), 22.0, flat=1.1, back=0.4)
     # ---------------------------------------------------------------- the earth and her mat
     earth = ktile(K, (330, 715, 560, 760), vary=0.08, soften=0.4)
-    K.grid_plane(P.x(0), P.x(922), bank.y0 - 0.03, bank.y3 + 0.02, 0.0, 30, 28, earth,
-                 height=lambda x, y: bank.z(y) * _smooth(P.x(0), P.x(20), x) * _smooth(P.x(922), P.x(900), x),
-                 name="earth")
     matw = ktile(K, (380, 690, 560, 705), vary=0.06)
+    # level ground, and a raked bamboo stand under the goods, its sides woven matting (a bank of earth
+    # rising to the back was a wedge of ground)
+    bam_f = pole_tile(K, line=((103, 250), (103, 450)), half=3)
+    raked_stand(K, bank, P.x(5), P.x(917), matw, bam_f, back=1.5)
+    earth_patch(K, P.x(461), (bank.y0 + bank.y3) / 2, P.W / 2 + 0.1, (bank.y3 - bank.y0) / 2 + 0.25, earth, h=0.015)
 
     def mat_f(u, v):
         py_ = 712 - (712 - 607) * v

@@ -34,9 +34,15 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None):
     if w >= h:                                   # a band: rows stacked, each the mirror of the one above
         n = max(1, int(round(w / max(1, h))))
         sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
-    else:                                        # a column (a pillar's face): columns side by side, mirrored
-        n = max(1, int(round(h / max(1, w))))
-        sq = np.concatenate([a if k % 2 == 0 else a[:, ::-1] for k in range(n)], axis=1)
+    else:                                        # a column (a pillar's face): copies side by side, each rolled
+        n = max(1, int(round(h / max(1, w))))    # a different way up and cross-faded into the last (mirrored copies
+        bw = max(2, w // 5)                      # make a symmetric print, like a Rorschach blot)
+        sq = a.copy()
+        for k in range(1, n):
+            nxt = np.roll(a, int(h * (0.37 * k % 1.0)), axis=0)
+            ramp = np.linspace(0, 1, bw)[None, :, None]
+            sq[:, -bw:] = sq[:, -bw:] * (1 - ramp) + nxt[:, :bw] * ramp
+            sq = np.concatenate([sq, nxt[:, bw:]], axis=1)
     sq = Image.fromarray(sq.clip(0, 255).astype(np.uint8))
     sw = size or P.m(sq.width)
     m = Mat(f"{K.name}_lhstrip{len(K._mats)}")
@@ -79,6 +85,26 @@ def clean_tile(K, box, size=None, vary=0.05, soften=0.2, thresh=16, radius=5, st
         if strip:
             return strip_tile(K, box, vary=vary, soften=soften + 1e-4, size=size)
         return K.tile(box, size, vary=vary, soften=soften + 1e-4)
+    finally:
+        P.img = saved
+
+
+def projected_solid(K, keep, white=200, **kw):
+    """K.projected(keep=keep, ...) with the near-white pixels inside the keep boxes (the cut-out's halo and the pale
+    background painted in the gaps of a woodpile or a heap) left out first, so the gaps are filled from the nearest
+    wood or clay instead of showing as white blotches on the ends and sides."""
+    P = K.paint
+    a = np.asarray(P.img).copy()
+    m = np.zeros(a.shape[:2], bool)
+    for x0, y0, x1, y1 in keep:
+        m[int(y0):int(y1), int(x0):int(x1)] = True
+    pale = (a[..., :3].min(axis=2) > white) & m
+    a[ndimage.binary_dilation(pale, iterations=1), 3] = 0
+    from PIL import Image
+    saved, P.img = P.img, Image.fromarray(a, "RGBA")
+    try:                                         # (a hair of dz so it never shares a cached material with K.projected)
+        kw["dz"] = kw.get("dz", 0.0) + 1e-6
+        return K.projected(keep=keep, **kw)
     finally:
         P.img = saved
 
@@ -800,8 +826,8 @@ def doorway_garland(K):
     # (a 30 px column box-projected round a 0.9 m deep side shows a seam every 30 cm)
     lat = strip_tile(K, (50, 100, 80, 345), soften=0.25)
     lat2 = strip_tile(K, (284, 100, 310, 345), soften=0.25)
-    slab = strip_tile(K, (100, 12, 300, 40), soften=0.3)            # the lintel's face, stacked square for its top
-    wood = K.tile((120, 120, 170, 190), vary=0.05)
+    slab = strip_tile(K, (100, 15, 300, 33), soften=0.35)   # the lintel's face clear of its edges, stacked square
+    wood = K.tile((112, 235, 172, 330), vary=0.05)                  # the planks below the thoranam's leaf tips
     frame_w = wood                                                  # the frame's inner faces: the door's planks
     ochre = K.tile((48, 40, 72, 72), size=0.25, vary=0.05, soften=0.3)   # the painted corner blocks
     step = K.tile((38, 370, 80, 398), size=0.6, vary=0.05, soften=0.45)  # the platform's stone, spread wide
@@ -1862,7 +1888,7 @@ def house_hut_porch(K):
     rope_cot(K, 125, 660, 955, 1100, -0.95, -0.15, cotleg, K.colour((150, 990, 600, 1000), vary=0.08),
              K.tile((300, 955, 600, 985), vary=0.06))
     # the firewood: logs end-on at the bottom, sticks piled across them
-    logs = K.projected(squeeze=1.0, keep=[(1065, 945, 1555, 1100)], inset=2)
+    logs = projected_solid(K, [(1065, 945, 1555, 1100)], squeeze=1.0, inset=2)
     bark = K.colour((1200, 1000, 1300, 1040), vary=0.12)
     for cx, cy, rr in ((1110, 1078, 18), (1150, 1080, 19), (1195, 1078, 18), (1240, 1080, 18), (1290, 1078, 19),
                        (1335, 1080, 18), (1380, 1078, 18), (1425, 1080, 18), (1470, 1078, 19), (1515, 1082, 17),

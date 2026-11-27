@@ -581,9 +581,19 @@ def turn_about(xc, yc, deg, dz=0.0, scale=1.0, zc=0.0):
 
 
 # ====================================================================== solids
-def trunk(K, pts, mat, segments=16, ys=None, name="trunk"):
-    """A tapering tube along painted points [(px, py, r_px)] (from its foot up), at depth ys (number or list)."""
+def ink_px(K, k=0.8):
+    """How many painting px of the game's ink outline (as the audit draws it: 3-12 mm) to take off a painted
+    radius that already includes the painted ink line, so the outlined solid is as wide as the painting."""
     P = K.paint
+    return k * min(0.012, max(0.003, 0.0025 * max(P.W, P.H))) * P.ppm
+
+
+def trunk(K, pts, mat, segments=16, ys=None, name="trunk"):
+    """A tapering tube along painted points [(px, py, r_px)] (from its foot up), at depth ys (number or list); the
+    painted half-width (ink line included) less the game's outline."""
+    P = K.paint
+    ik = ink_px(K)
+    pts = [(x, y, max(r * 0.6, r - ik)) for x, y, r in pts]
     sp = spline([(x, y) for x, y, _ in pts], max(8, len(pts) * 6))
     t_in = np.linspace(0, 1, len(pts))
     t = np.linspace(0, 1, len(sp))
@@ -647,11 +657,17 @@ def tufts(K, boxes, ys, yaws=None, name="grass", depth=0.6, nx=10, nz=5):
     """Grass tufts painted at the foot: each the painted tuft wrapped round its own upright axis (the front and back
     halves of a squat cylinder) at depth ys: from the front exactly the painted tuft (not squeezed doubles of it
     beside it), round from the side; the box must hold the whole tuft, the mask cuts its blades. (yaws: unused.)"""
+    P = K.paint
     for i, box in enumerate(boxes):
         y = ys[i] if isinstance(ys, (list, tuple)) else ys
-        ax, r = (box[0] + box[2]) / 2, (box[2] - box[0]) / 2
-        wrap_card(K, box, ax, r, y0=y, depth=depth, nx=nx, nz=nz, name=name)
-        wrap_card(K, box, ax, r, y0=y, depth=depth, back=True, nx=nx, nz=nz, name=name)
+        x0, y0p, x1, y1p = box
+        k = max(1, int(math.ceil((x1 - x0) / (1.25 * (y1p - y0p)))))   # a long low strip: several tufts side by side
+        for j in range(k):
+            b = (x0 + (x1 - x0) * j / k, y0p, x0 + (x1 - x0) * (j + 1) / k, y1p)
+            ax, r = (b[0] + b[2]) / 2, (b[2] - b[0]) / 2
+            yy = y + (K.rng.uniform(-0.3, 0.3) * P.m(r) if k > 1 else 0.0)
+            wrap_card(K, b, ax, r, y0=yy, depth=depth, nx=max(4, nx // k + 2), nz=nz, name=name)
+            wrap_card(K, b, ax, r, y0=yy, depth=depth, back=True, nx=max(4, nx // k + 2), nz=nz, name=name)
 
 
 # ====================================================================== palms
@@ -1254,7 +1270,10 @@ def palmyra(K, fans, heart_px, crown_r_px, skirt_box, skirt_r_px, trunk_pts, pet
     wrap_card(K, skirt_box, scx, rr_fn, depth=1.0, nx=14, nz=6, name="skirt")
     wrap_card(K, skirt_box, scx, rr_fn, depth=1.0, back=True, nx=14, nz=6, name="skirt")
     # ---- the fans
-    leaf_ok = opaque & ~halo(rgb) & ~((r > g + 4) & (mx < 150)) & box_mask(opaque.shape, [crown_box])
+    # the fans and their grey-brown ink outline; the brown of the skirt only where the skirt is
+    sx0_, sy0_, sx1_, sy1_ = skirt_box
+    skirt_zone = box_mask(opaque.shape, [(sx0_ - 6, sy0_ - 6, sx1_ + 6, P.h)])
+    leaf_ok = opaque & ~halo(rgb) & ~((r > g + 4) & (mx < 150) & skirt_zone) & box_mask(opaque.shape, [crown_box])
     lab, nl = ndimage.label(leaf_ok)               # specks out, but not the fans' thin spiky tips (no opening)
     if nl:
         sizes = ndimage.sum(leaf_ok, lab, range(1, nl + 1))
@@ -1585,7 +1604,8 @@ def h5_2(K):
 
 # ====================================================================== h5_3: the papaya
 H53_LEAVES = [(120, 95, 58, -0.25), (222, 50, 55, 0.25), (320, 110, 60, -0.25), (132, 178, 62, -0.65),
-              (275, 158, 62, -0.65), (60, 250, 58, -0.15), (345, 235, 58, -0.15), (212, 120, 42, 0.5)]
+              (275, 158, 62, -0.65), (60, 250, 58, -0.15), (345, 235, 58, -0.15), (212, 120, 42, 0.5),
+              (52, 100, 34, -0.2), (390, 88, 22, -0.2)]
 H53_FRUIT = [(183, 263, 19, 17), (184, 289, 18, 23), (236, 274, 16, 24), (216, 317, 22, 37), (263, 308, 23, 26),
              (156, 342, 20, 32), (183, 352, 23, 36), (244, 343, 14, 25), (273, 370, 25, 34), (167, 411, 23, 33),
              (212, 395, 22, 43), (255, 421, 25, 41)]
@@ -1628,8 +1648,8 @@ def h5_3(K):
     stalk = masked_material(K, opaque & leaf & box_mask(opaque.shape, [(60, 225, 380, 245)]) & not_ink(rgb, 70), inset=1)
     fan_crown(K, H53_LEAVES, (212, 225), 190, lm, stalk, pet=(3.2, 2.2), side_min=0.3, cup=0.2, grow=1.3, tilt=0.7,
               pleat=0.05, pet_from=(212, 246))
-    K.lathe([(P.m(rr), P.z(py)) for rr, py in ((17, 250), (19, 232), (15, 215), (8, 205), (0.0, 200))], stalk,
-            segments=14, centre=(P.x(212), 0.0, 0.0), name="crown_top")
+    K.lathe([(P.m(rr), P.z(py)) for rr, py in ((17, 250), (19, 232), (18, 215), (15, 205), (9, 198), (0.0, 195))],
+            stalk, segments=14, centre=(P.x(213), 0.0, 0.0), name="crown_top")
     # ---- the papayas round the top of the trunk: the painted ones, and more round the back
     fmat = masked_material(K, opaque & fruit_m & not_ink(rgb, 50), inset=2)
     tr = P.m(19)
@@ -1638,12 +1658,18 @@ def h5_3(K):
         rr = P.m(max(rx, ry * 0.7))
         y = -math.sqrt(max(0.0, (tr + rr) ** 2 - dx * dx)) * 0.9
         papaya_fruit(K, cx, cy, rx * 0.9, ry * 0.93, y, fmat, tilt=(cx - 212) * 0.35)
+    bunch_m = ndimage.binary_fill_holes(ndimage.binary_closing(fruit_m & opaque, iterations=4))
     for k, (cx, cy, rx, ry) in enumerate(H53_FRUIT[:9]):
-        a = math.radians(rng.uniform(25, 155))
-        rr = tr + P.m(rx) * 1.1
-        x, y = P.x(212) + rr * math.cos(a), rr * math.sin(a)
-        m2 = shifted_material(K, opaque & fruit_m & not_ink(rgb, 50), P.x(cx) - x, 0.0, inset=2)
-        papaya_fruit(K, P.px(x), cy + rng.uniform(-8, 8), rx, ry, y, m2, tilt=(P.px(x) - 212) * 0.35)
+        for _ in range(12):                      # behind the bunch, inside its painted outline from the front
+            a = math.radians(rng.uniform(25, 155))
+            rr = tr + P.m(rx) * 1.1
+            x, y = P.x(212) + rr * math.cos(a), rr * math.sin(a)
+            qx, qy = P.px(x), cy + rng.uniform(-8, 8)
+            if ellipse_mask(opaque.shape, [(qx, qy, rx * 0.95, ry * 0.95)]).sum() <= \
+                    (ellipse_mask(opaque.shape, [(qx, qy, rx * 0.95, ry * 0.95)]) & bunch_m).sum() * 1.02:
+                m2 = shifted_material(K, opaque & fruit_m & not_ink(rgb, 50), P.x(cx) - x, 0.0, inset=2)
+                papaya_fruit(K, qx, qy, rx * 0.9, ry * 0.93, y, m2, tilt=(qx - 212) * 0.35)
+                break
     # ---- grass at its foot
     grass = [(130, 820, 185, 905), (245, 815, 295, 905), (180, 860, 215, 905)]
     K.leaves_only((128, 812, 300, 912), mask_rule(leafy(rgb) | (opaque & (mx > 150) & ~halo(rgb)),
@@ -2299,8 +2325,8 @@ def h7_4(K):
     rgb = painted_rgb(K)
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
-    plaster = K.tile((262, 320, 340, 430), vary=0.05, soften=0.4)
-    cap_mat = patch_tile(K, opaque & (mx > 110) & ~leafy(rgb), (140, 42, 210, 57), vary=0.05, soften=0.35)
+    plaster = K.tile((262, 320, 340, 430), vary=0.08, soften=0.15)
+    cap_mat = patch_tile(K, opaque & (mx > 150) & ~leafy(rgb), (135, 17, 215, 36), vary=0.05, soften=0.3)
     th = math.radians(37.6)
     R = Vector((math.cos(th), math.sin(th), 0.0))
     L = Vector((-math.sin(th), math.cos(th), 0.0))
@@ -2322,8 +2348,8 @@ def h7_4(K):
     O = C + R * s + L * w0
     ku = 1.0 / math.cos(th)                       # painted px across -> metres along the wall's face
 
-    def U(px):
-        return P.m(px - 212) * ku
+    def U(px):                                    # painted x -> metres along the wall from O
+        return (P.x(px) - O.x) * ku
     plaster_top = [(212, 110), (230, 111), (248, 113), (258, 128), (268, 146), (280, 166), (290, 190), (302, 212),
                    (311, 236), (320, 256), (334, 276), (346, 292), (352, 300), (364, 302)]
     out = [(0.0, zg)] + [(U(px), P.z(py)) for px, py in plaster_top] + [(U(366), P.z(560)), (U(366), zg)]
@@ -2365,7 +2391,7 @@ def h7_4(K):
     # and on the wall's back, low down
     wb = O + L * (t + 0.001)
     for u0, u1, z0, z1 in ((0.45, 0.75, P.z(600), P.z(520)), (0.15, 0.3, P.z(300), P.z(255))):
-        W_ = P.m(366 - 212) / math.cos(th)
+        W_ = U(366)
         a, bq = wb + R * W_ * u1, wb + R * W_ * u0
         patch_card(K, (100, 420, 190, 520), [a + Vector((0, 0, z0)), bq + Vector((0, 0, z0)), bq + Vector((0, 0, z1)),
                                              a + Vector((0, 0, z1))], brickish, (L.x, L.y, 0.3), name="brick_back")
@@ -2388,6 +2414,7 @@ def h7_4(K):
                                            & box_mask(opaque.shape, [(0, 480, 100, 610)]))
                                   | ((mx < 70) & ndimage.binary_dilation(green, iterations=3)))
     keep &= ~box_mask(opaque.shape, [(105, 60, 215, 470)]) | ((g > r + 10) & (g > b + 10))
+    keep |= opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 470, 56, 615)])      # the weed left of the pillar
     keep = ndimage.binary_opening(keep, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
     tufts(K, [(8, 478, 112, 612), (198, 418, 282, 592), (328, 538, 402, 602), (88, 568, 302, 622)],
@@ -2423,10 +2450,16 @@ def h7_5(K):
     poly_solid(K, poly, 0.0, stone, depth=0.78, segments=28, name="boulder")
     # the cushion of moss it sits on: a low oval mound, its front edge the painted band of moss
     moss = patch_tile(K, opaque & ~halo(rgb), (230, 302, 450, 332), vary=0.1, soften=0.15)
-    zg = P.z(338)
-    rx = P.m(305)
+    # (the painting draws its front edge as a curve seen from above; level, it is as wide as the painted bottom)
+    zg = P.z(334)
+    rx = P.m(232)
     K.lathe([(rx, zg), (rx * 0.97, zg + 0.05), (rx * 0.88, zg + 0.095), (rx * 0.5, zg + 0.11), (0.0, zg + 0.115)],
-            moss, segments=40, centre=(P.x(322), 0.0, 0.0), scale_y=0.46 / rx, wobble=0.06, name="moss")
+            moss, segments=40, centre=(P.x(322), 0.0, 0.0), scale_y=0.5 / rx, wobble=0.06, name="moss")
+    # the painted ink outline round the boulder belongs to its silhouette: kept off the faces near its rim, which
+    # from the side would carry it as a dark line
+    pm = poly_mask(opaque.shape, [poly])
+    rim = ndimage.binary_dilation(pm, iterations=5) & ~ndimage.binary_erosion(pm, iterations=7) & (mx < 90)
+    exclude_front(K, ndimage.binary_dilation(rim, iterations=2), block=3)
     # the ferns: fronds on cards in clumps round the boulder, the painted clumps in front, more round the back
     fern = opaque & ~halo(rgb) & ~(rock_ok & ~fernish)
     fern = ndimage.binary_opening(fern, iterations=1)

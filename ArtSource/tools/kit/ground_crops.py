@@ -81,6 +81,13 @@ def halo_free(P, reach=8, bright=145, sat=30):
     return a & ~out
 
 
+def haze_free(P, bright=168, sat=32):
+    """halo_free less the pale grey haze left anywhere in a plant's gaps (for plants with no white parts)."""
+    rgb = P.rgba[..., :3] * 255
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    return halo_free(P) & ~((mn > bright) & (mx - mn < sat))
+
+
 def inset_px(mask, px):
     """A mask pulled in by px pixels (the game's ink line, drawn outside every solid part, takes their place)."""
     return ndimage.binary_erosion(mask, iterations=px) if px > 0 else mask
@@ -1330,7 +1337,7 @@ def crop_strip_3(K):
     base_py = 399
     rows_y = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
     field_bed(K, 28, 1197, 398, depth, top=bed_top(K, (40, 396, 1190, 418)), ridges=0.03, rows=rows_y)
-    card_mask(K, clean & (np.arange(P.h)[:, None] < 402))
+    card_mask(K, haze_free(P) & (np.arange(P.h)[:, None] < 402))
     # the front row: the painting, one card per painted plant, each crossed by itself turned; each painted head
     # crossed by a turned copy of itself; the rows behind on the same grid, whole plants (stalk, leaves and head)
     # cut from the painting round its stalks, turned, each crossed by a second
@@ -1573,7 +1580,7 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
             & (yy < pod_band[1]))
     podm = ndimage.binary_dilation(ndimage.binary_opening(podm, iterations=1), iterations=2)
     pods = [p for p in blobs(P, podm, 40) if p[2][3] < 600]
-    card_mask(K, clean & ~ndimage.binary_dilation(podm, iterations=3) & (yy < base_py + 2))
+    card_mask(K, haze_free(P) & ~ndimage.binary_dilation(podm, iterations=3) & (yy < base_py + 2))
     shell = proj_material(K, filled_source(P, ndimage.binary_erosion(podm, iterations=2) & clean), name="pod")
     z0 = P.z(bed_py)
     cols = np.nonzero(alpha_mask(P)[:base_py].any(0))[0]
@@ -1644,7 +1651,10 @@ def crop_strip_6(K):
     field_bed(K, 8, 1173, 212, depth, top=bed_top(K, (20, 212, 1160, 236), tol=36), ridges=0.035, rows=rows)
 
     def make(K, fr, ft, yaw, s):
-        # a painted boll (its bracts and the stalk under it), turned square to its card
+        # a painted boll (its bracts and the stalk under it), turned square to its card (every boll of a painted bush,
+        # every other one of a bush behind: their crossed twin cards carry bolls round too)
+        if s != 1.0 and K.rng.uniform() < 0.5:
+            return
         e0, e1, hw, area = ft[2]
         r = math.sqrt(area / math.pi) * 1.5
         box = (ft[0] - r, ft[1] - r, ft[0] + r, ft[1] + r * 1.15)
@@ -1652,7 +1662,7 @@ def crop_strip_6(K):
                              name="boll", normal=(0, -0.2, 1))
     at = [105, 228, 335, 470, 640, 790, 925, 1065]                  # the painted bushes' stems
     crop_rows(K, 5, 1176, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.92, 1.0), yaw=30,
-              cross=True, src=at, at=at, same=0.85)
+              cross=True, src=at, at=at, same=0.95)
 
 
 # banana pseudostems of crop_strip_7: (axis px, foot py, top py, half-width at the foot, at the top px)
@@ -1685,7 +1695,7 @@ def crop_strip_7(K):
         t = np.clip((foot - yy) / max(1, foot - top), 0, 1)
         half = wf + (wt - wf) * t
         stems |= (yy <= foot + 2) & (yy >= top) & (np.abs(xx - ax) <= half + 1)
-    card_mask(K, clean & ~stems & (yy < 396))
+    card_mask(K, haze_free(P) & ~stems & (yy < 396))
     rows = [-depth / 2 + 0.3, 0.05, depth / 2 - 0.3]
     bed_py = 393
     field_bed(K, 28, 1198, bed_py, depth, top=bed_top(K, (40, 392, 1190, 415), tol=36), ridges=0.05, rows=rows)
@@ -1704,22 +1714,22 @@ def crop_strip_7(K):
                    K.rng.uniform(-4, 4), 1.0, name="banana")
     main = [bn for bn in BANANAS if bn[3] >= 15]
     for ax, foot, top, wf, wt in main:
-        plant_card(K, (ax - 150, 0, ax + 150, foot), (P.x(ax), rows[0] + 0.3, z0), 90 + K.rng.uniform(-3, 3), 0.85,
-                   name="banana")
+        plant_card(K, (ax - 150, 0, ax + 150, foot), (P.x(ax), rows[0] + 0.3, z0), 90 + K.rng.uniform(-1.5, 1.5),
+                   0.85, name="banana")
     # and the rows behind, planted on the same grid: behind every painted plant one like it (its own stem and its
     # crown turned a little, as tall as it, so from the front it stays behind the painted one and the painted gaps
     # stay open), crossed by a second turned square to the painting
     for k, y in enumerate(rows[1:]):
         for ax, foot, top, wf, wt in main:
-            s = K.rng.uniform(0.94, 1.0)
-            yaw = K.rng.uniform(-25, 25)
+            s = K.rng.uniform(0.95, 1.0)
+            yaw = K.rng.uniform(-18, 18)
             X, Y = P.x(ax) + K.rng.uniform(-0.02, 0.02), y + K.rng.uniform(-0.12, 0.12)
             mat = wrapped(K, X, axis_y=Y, squeeze=0.9, src=src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
             pseudostem(K, ax, foot, top, wf, wt, X, Y, z0, mat, scale=s * 0.97)
             box = (ax - 150, 0, ax + 150, foot)
             for j in range(2):
-                plant_card(K, box, (X, Y, z0), yaw + (90 + K.rng.uniform(-4, 4) if j else 0), s * (0.9 if j else 1),
-                           name="banana")
+                plant_card(K, box, (X, Y, z0), yaw * (1 - j) + (90 + K.rng.uniform(-1.5, 1.5) if j else 0),
+                           s * (0.9 if j else 1), name="banana")
 
 
 def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None, at=None):
@@ -1728,7 +1738,7 @@ def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, 
     P = K.paint
     clean = halo_free(P)
     clean_front(K, clean)
-    card_mask(K, clean & (np.arange(P.h)[:, None] < bed_py + 3))
+    card_mask(K, haze_free(P) & (np.arange(P.h)[:, None] < bed_py + 3))
     a = alpha_mask(P)
     allc = np.nonzero(a[:bed_py].any(0))[0]
     bx0, bx1 = (x0, x1) if x0 is not None else (int(allc.min()) + 20, int(allc.max()) - 20)
@@ -1761,7 +1771,7 @@ def seedbed(K, x0, x1, top_py, base_py, depth, rows, water_box, src, width_px, s
     clean = halo_free(P)
     clean_front(K, clean)
     field_bed(K, x0, x1, top_py, depth, top=bed_top(K, water_box, tol=26, erode=1, patch=16, soften=0.3), wet=True)
-    card_mask(K, clean & (np.arange(P.h)[:, None] < base_py + 4))
+    card_mask(K, haze_free(P) & (np.arange(P.h)[:, None] < base_py + 4))
     cols = np.nonzero(alpha_mask(P)[:base_py].any(0))[0]
     crop_rows(K, int(cols.min()) - 1, int(cols.max()) + 2, 0, base_py, rows, P.z(base_py), slices, width_px, step_px,
               src=src, at=src, scale=(0.8, 0.95), yaw=40, same=0.9)

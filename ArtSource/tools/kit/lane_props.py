@@ -56,8 +56,8 @@ def pot_stack(K):
         [(44, 108), (57, 92), (61, 68), (52, 46), (35, 33), (40, 25), (42, 14), (40, 8)],
     ]
     for i, prof in enumerate(pots):
-        prof_m = [(P.m(r), P.z(y)) for r, y in smooth(prof)]
-        K.lathe(prof_m, clay, segments=48, centre=(P.x(cx), 0, 0), wobble=0.012, name=f"pot{i}", cap=i < 2)
+        prof_m = [(P.m(r), P.z(y)) for r, y in smooth(prof, 3)]
+        K.lathe(prof_m, clay, segments=40, centre=(P.x(cx), 0, 0), wobble=0.005, name=f"pot{i}", cap=i < 2)
     # the top pot's open mouth: a dark inside going down into it
     inside = K.colour((0.09, 0.035, 0.015), vary=0.1)
     K.lathe([(P.m(36), P.z(9)), (P.m(33), P.z(16)), (P.m(30), P.z(35)), (0.0, P.z(40))], inside, segments=40,
@@ -367,6 +367,13 @@ def proj(K, axis_x, squeeze=0.93, keep=None, polys=None, exclude=(), exclude_pol
     return mat
 
 
+def water_pixels(rgba):
+    """A painted puddle: its blue water and the pale sky and light in it, not the earth round it."""
+    import numpy as np
+    r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
+    return (a > 220) & ((b > r + 15) | ((r > 200) & (g > 200) & (b > 190)))
+
+
 def plain_pixels(rgba):
     """A plain material's own pixels (stone, wood, earth): opaque, not the ink line, not a bright highlight and not
     the vivid paint of flowers, garlands or marks painted on it."""
@@ -508,7 +515,7 @@ def dung(K):
     K.lathe([(0.0, Z0 + 0.0), (R * 0.95, Z0 + 0.0)], K.colour((0.07, 0.035, 0.015), vary=0.05), segments=24,
             centre=(X0, 0, 0), name="heap_floor")
     # straw dropped round it on the earth (the painted ones in front land on the earth's rim), and stuck in its sides
-    gold = K.colour((200, 40, 230, 50), vary=0.15, pct=80)
+    gold = K.colour((218, 93, 252, 100), vary=0.15, pct=85)            # the painted straws' gold
     for a, b, y0, y1 in (((48, 98), (100, 98), -0.2, -0.18), ((215, 98), (250, 99), 0.12, 0.2),
                          ((240, 49), (284, 44), -0.02, -0.03), ((70, 98), (40, 99), 0.1, 0.16),
                          ((150, 99), (120, 99), 0.22, 0.27), ((260, 98), (232, 99), -0.08, -0.17)):
@@ -746,7 +753,7 @@ def jute_sacks(K):
     grass = [(8, 192, 62, 222), (112, 207, 155, 226), (282, 200, 322, 222)]
     # the bottom right sack, in front
     weave = (150, 125, 200, 160)
-    m = proj(K, P.x(235), 0.95, polys=[right], exclude=grass, inset=3, side_tile=weave, axis_y=-0.3, top_shear=0.5)
+    m = proj(K, P.x(235), 0.95, polys=[right], exclude=grass, inset=3, side_tile=weave, axis_y=-0.3, top_shear=0.28)
     sack(K, top=[(135, 168), (140, 125), (150, 117), (160, 112), (180, 105), (200, 100), (220, 96), (240, 93),
                  (260, 94), (280, 100), (300, 112), (310, 128), (318, 150), (324, 166), (333, 180)],
          seam=[(135, 168), (160, 178), (190, 181), (220, 181), (250, 178), (270, 172), (300, 170), (320, 169),
@@ -756,7 +763,7 @@ def jute_sacks(K):
          depth=[(135, 0.08), (150, 0.2), (190, 0.25), (290, 0.25), (318, 0.18), (333, 0.07)], yc=-0.05, mat=m,
          ground_py=224.5, lump=0.006, name="sack_right")
     # the bottom left sack, a little behind
-    m = proj(K, P.x(75), 0.95, polys=[left], exclude=grass, inset=3, side_tile=weave, axis_y=-0.11, top_shear=0.5)
+    m = proj(K, P.x(75), 0.95, polys=[left], exclude=grass, inset=3, side_tile=weave, axis_y=-0.11, top_shear=0.28)
     sack(K, top=[(8, 180), (20, 152), (30, 138), (40, 128), (55, 115), (70, 107), (90, 104), (110, 105), (130, 110),
                  (145, 118), (160, 140), (166, 170)],
          seam=[(8, 180), (20, 172), (40, 166), (60, 163), (90, 164), (110, 166), (125, 172), (150, 172), (166, 170)],
@@ -765,7 +772,7 @@ def jute_sacks(K):
          depth=[(8, 0.07), (25, 0.17), (60, 0.23), (130, 0.23), (155, 0.16), (166, 0.07)], yc=0.12, mat=m,
          ground_py=223.5, lump=0.006, name="sack_left")
     # the top sack across them, its left end gathered into the neck
-    m = proj(K, P.x(170), 0.96, polys=[tops], inset=3, side_tile=weave, axis_y=-0.13, top_shear=0.6)
+    m = proj(K, P.x(170), 0.96, polys=[tops], inset=3, side_tile=weave, axis_y=-0.13, top_shear=0.35)
     sack(K, top=[(66, 48), (70, 30), (80, 22), (100, 16), (120, 10), (150, 7), (180, 6), (200, 9), (220, 14),
                  (240, 21), (260, 33), (270, 41), (280, 44), (290, 49), (299, 60)],
          seam=[(66, 62), (100, 62), (150, 64), (190, 70), (205, 76), (220, 72), (250, 66), (280, 60), (299, 60)],
@@ -893,7 +900,7 @@ def chicken_basket(K):
         return (X0 + R * math.sin(a), -R * math.cos(a), z)
     K.sheet(lining, 32, 12, dark, name="inner_shadow", thickness=0.006)
     # straw on the ground inside
-    straw_m = K.colour((0.42, 0.25, 0.05), vary=0.2, scale=30)
+    straw_m = quilt_tile(K, (60, 205, 260, 233), keep=plain_pixels, patch_px=12, size_px=72, soften=0.2)
     K.lathe(prof(P, [(0, 228), (60, 229), (100, 231.5), (118, 233), (118, 236), (0, 236)]), straw_m, segments=40,
             centre=(X0, 0, 0), name="straw_bed", wobble=0.05)
     earth(K, cx, 245, 251, 138, 0.33, (110, 246, 140, 252), grass=[(6, 202, 42, 248), (280, 212, 306, 248)],
@@ -1171,8 +1178,8 @@ def hand_pump(K):
     X, Z = P.x, P.z
     cx, cy = 256, 0.06
     Xc = X(cx)
-    body = K.projected(axis_x=Xc, squeeze=0.93, keep=[(214, 96, 296, 300)], exclude=[(190, 108, 222, 160)], inset=2)
-    head = K.projected(axis_x=Xc, squeeze=0.93, keep=[(208, 76, 302, 99)], inset=1)
+    body = proj(K, Xc, 0.93, keep=[(214, 96, 296, 300)], exclude=[(190, 108, 222, 160)], inset=2, wrap=62, axis_y=cy)
+    head = proj(K, Xc, 0.93, keep=[(208, 76, 302, 99)], inset=1, wrap=62, axis_y=cy)
     K.lathe(prof(P, [(0, 296), (42, 296), (42, 284), (39, 282), (38, 266), (40.5, 262), (38, 258), (30, 256),
                      (29, 254), (29, 172), (31, 169), (35, 166), (35.5, 156), (33, 153), (34, 150), (34.5, 100),
                      (36, 98), (0, 98)]), body, segments=40, centre=(Xc, cy, 0), name="barrel")
@@ -1189,17 +1196,18 @@ def hand_pump(K):
     K.lathe(prof(P, [(0, 62), (8.5, 62), (8.5, 55), (0, 55)]), brass, segments=12, centre=(X(253), cy, 0), name="collar")
     # the handle: a curved flat bar from its pivot boss over the head and down to the round grip end
     hm = K.projected(axis_x=X(330), squeeze=1.0, keep=[(236, 4, 432, 214)], exclude=[(236, 50, 300, 214)], inset=1)
-    arm = [(257, 22), (266, 14), (278, 10), (292, 12), (305, 20), (317, 33), (327, 52), (334, 72), (341, 93),
-           (349, 113), (357, 131), (367, 146), (381, 160), (396, 174), (408, 186), (415, 196)]
-    bar(K, [P.pt(x, y, cy) for x, y in arm], P.m(14), P.m(9), hm, y0=cy, segments=12, name="handle")
+    # the arm along the middle of its painted band
+    arm = [(256, 26), (264, 20), (280, 17), (297, 20), (311, 30), (322, 45), (331, 65), (339, 88), (347, 109),
+           (357, 129), (371, 149), (389, 167), (405, 182), (414, 195)]
+    bar(K, [P.pt(x, y, cy) for x, y in arm], P.m(16), P.m(9), hm, y0=cy, segments=12, name="handle")
     axis_y_disc(K, (X(255), cy, Z(33)), P.m(15), P.m(16), hm, name="pivot_boss")
     axis_y_disc(K, (X(415.5), cy, Z(198.5)), P.m(13.5), P.m(13), hm, name="grip")
     for c, rr in (((255, 33), 5), ((415.5, 198.5), 4.5)):
         axis_y_disc(K, (X(c[0]), cy - P.m(9), Z(c[1])), P.m(rr), P.m(4), brass, name="pin")
     # the link from the head up to the handle, with its pin
-    bar(K, [P.pt(304, 98, cy - 0.03), P.pt(308, 76, cy - 0.03), P.pt(311, 56, cy - 0.03)], P.m(15), P.m(6), hm,
+    bar(K, [P.pt(300, 98, cy - 0.03), P.pt(303, 78, cy - 0.03), P.pt(306, 58, cy - 0.03)], P.m(15), P.m(6), hm,
         y0=cy - 0.03, name="link")
-    axis_y_disc(K, (X(311), cy - 0.035, Z(55)), P.m(9.5), P.m(8), hm, name="link_pin")
+    axis_y_disc(K, (X(306), cy - 0.035, Z(57)), P.m(9.5), P.m(8), hm, name="link_pin")
     # the spout: out of the barrel, its collar, the elbow down to the mouth, a drop falling from it
     sp = K.projected(axis_x=X(195), squeeze=1.0, keep=[(148, 108, 238, 175)], inset=1)
     axis_lathe(K, [(0.0, 0.0), (P.m(22), 0.0), (P.m(23), P.m(4)), (P.m(23), P.m(16)), (P.m(20), P.m(19)),
@@ -1213,7 +1221,7 @@ def hand_pump(K):
     K.lathe(prof(P, [(0, 182), (3.2, 180), (3.0, 176), (1.5, 173), (0, 171)]), drop, segments=10,
             centre=(X(166), cy - 0.05, 0), name="drop")
     # the stone block the pump stands in
-    stone = K.tile((200, 300, 245, 340), vary=0.08, soften=0.35)
+    stone = quilt_tile(K, (190, 288, 326, 344), keep=plain_pixels, patch_px=18, size_px=108, soften=0.25)
     stone_block(K, [(188, 345), (327, 345), (327, 286), (188, 286)][::-1], cy - 0.22, cy + 0.22, stone, bevel=0.015,
                 jitter=0.003, name="block")
     rock = K.colour((300, 325, 320, 335), vary=0.1)
@@ -1221,7 +1229,7 @@ def hand_pump(K):
         K.boulder(X(x), cy - 0.24, Z(y), P.m(s), P.m(s) * 0.8, P.m(s) * 0.6, rock, name="rock")
     # the steel bucket under the spout: its tapered body, rolled rim, ribbed foot, the inside, its bail on two lugs
     bx, by = 130.5, -0.17
-    steel = K.projected(axis_x=X(bx), squeeze=0.93, keep=[(64, 216, 197, 344)], inset=2)
+    steel = proj(K, X(bx), 0.93, keep=[(64, 216, 197, 344)], inset=2, wrap=62, axis_y=by)
     K.lathe(prof(P, [(0, 342), (40, 342), (42.5, 339), (42.5, 334), (40.5, 331), (41, 325), (39.5, 321), (39, 316),
                      (41.5, 304), (44, 292), (47, 280), (51, 270), (55, 262), (58, 250), (60, 240), (61, 230),
                      (62.5, 226), (62.5, 221), (60.5, 219.5), (58.5, 221)]), steel, segments=40,
@@ -1241,8 +1249,9 @@ def hand_pump(K):
     K.tube(bail, P.m(2.2), steel, segments=6, name="bail")
     # the raised earth round the pump, wet in a puddle where the bucket stands
     earth(K, 176, 345, 394, 172, 0.5, (8, 335, 40, 350), grass=[(42, 314, 88, 340), (226, 326, 258, 350),
-                                                                 (338, 296, 398, 332)])
-    puddle = K.colour((70, 350, 110, 366), vary=0.15, scale=6)
+                                                                 (338, 296, 398, 332)],
+          dirt_box=(0, 328, 438, 400), dirt_exclude=[(40, 340, 330, 400)])
+    puddle = quilt_tile(K, (25, 345, 330, 396), keep=water_pixels, patch_px=14, size_px=84, soften=0.2)
     def wet(u, v):
         a = 2 * math.pi * u
         rx, ry = P.m(120) * (1 + 0.12 * math.sin(3 * a + 1)), 0.27 * (1 + 0.1 * math.sin(2 * a))
@@ -1471,7 +1480,9 @@ def lamp_pillar(K):
         rr = P.m(r)
         K.box(X(cx) - rr, X(cx) + rr, -rr, rr, Z(y1), Z(y0), ped, bevel=0.01, name="moulding")
     # the steps
-    step = K.tile((300, 1296, 420, 1334), vary=0.05, soften=0.3)
+    # the steps' stone, quilted from their painted faces (a strip of one step's face would lie on their treads as
+    # planks)
+    step = quilt_tile(K, (130, 1118, 730, 1342), keep=plain_pixels, patch_px=24, size_px=144, soften=0.25)
     for (y0, y1, x0, x1) in ((1112, 1148, 260, 600), (1148, 1183, 212, 648), (1183, 1218, 165, 697),
                              (1218, 1252, 115, 747), (1252, 1290, 68, 795), (1290, 1342, 18, 842)):
         d = P.m(x1 - x0) * 0.32 + P.m(110)
@@ -1488,8 +1499,11 @@ def lamp_pillar(K):
                  reds=[(X(372), yfr, Z(1003)), (X(386), yfr, Z(1022))], red_mat=white)
     flower_chain(K, [(X(x), yfr, Z(y)) for x, y in right], r, marigold, P.m(19),
                  reds=[(X(488), yfr, Z(1000))], red_mat=white)
-    flower_chain(K, [(X(512), yfr, Z(928)), (X(cx) + D + r, 0.0, Z(930)), (X(cx), D + r, Z(932)),
-                     (X(cx) - D - r, 0.0, Z(930)), (X(348), yfr, Z(928))], r, marigold, P.m(20), name="garland_back")
+    # round the back of the shaft (not of the pedestal below it, which would carry it out past its painted ends)
+    flower_chain(K, [(X(512), yfr, Z(928)), (X(cx) + P.m(80), -P.m(45), Z(929)), (X(cx) + P.m(84), P.m(10), Z(930)),
+                     (X(cx) + P.m(56), P.m(70), Z(931)), (X(cx), P.m(84), Z(932)), (X(cx) - P.m(56), P.m(70), Z(931)),
+                     (X(cx) - P.m(84), P.m(10), Z(930)), (X(cx) - P.m(80), -P.m(45), Z(929)), (X(348), yfr, Z(928))],
+                 r, marigold, P.m(20), name="garland_back")
     for x, y, m in ((498, 1038, white), (497, 1052, white), (494, 1068, red), (504, 1068, red)):
         boulder_ball(K, (X(x), yfr - 0.02, Z(y)), (P.m(8), P.m(7), P.m(8)), m, lumps=0.3, name="pendant")
     cloth = K.colour((410, 960, 420, 975), vary=0.08)
@@ -1583,8 +1597,11 @@ def clothesline(K):
     a magenta and a yellow cloth with woven borders hung over it to dry, draped in folds, grass at the posts' feet."""
     P = K.paint
     X, Z = P.x, P.z
-    cane = proj(K, X(62), 0.9, keep=[(44, 8, 80, 372)], exclude=[(36, 34, 84, 76)], inset=2)
-    cane_r = proj(K, X(500), 0.9, keep=[(468, 8, 532, 372)], exclude=[(488, 34, 545, 76)], inset=2)
+    # the posts' sides (which a projection along y would streak with their painted rims) wear a tile of the cane
+    cane = proj(K, X(62), 0.9, keep=[(44, 8, 80, 372)], exclude=[(36, 34, 84, 76)], inset=2,
+                side_tile=(55, 140, 69, 200), side_soften=0.15)
+    cane_r = proj(K, X(500), 0.9, keep=[(468, 8, 532, 372)], exclude=[(488, 34, 545, 76)], inset=2,
+                  side_tile=(55, 140, 69, 200), side_soften=0.15)
     bamboo(K, (61.5, 374), (61.5, 10), 13.5, (124, 208, 292), cane, name="post")
     bamboo(K, (484.5, 374), (515, 10), 13.5, (124, 208, 292), cane_r, name="post")
     cut = K.colour((60, 12, 66, 18), vary=0.08)
@@ -1612,9 +1629,10 @@ def clothesline(K):
           lambda x: interp([(301, 296), (320, 298), (335, 302), (345, 306), (370, 306), (385, 302), (400, 298),
                             (420, 296), (432, 286), (447, 282)], x),
           pole_z, P.m(8), 0.5, yellow, folds=3, name="cloth_yellow")
-    earth(K, 276, 372, 380, 276, 0.3, (0.42, 0.2, 0.09),
+    earth(K, 276, 372, 380, 266, 0.3, (0.42, 0.2, 0.09),
           grass=[(4, 330, 60, 374), (60, 334, 132, 374), (410, 334, 470, 374), (495, 334, 552, 374)],
-          pebbles=[(88, 372, 14), (150, 374, 12), (385, 372, 12), (440, 372, 12)], pebble_box=(80, 368, 95, 376))
+          pebbles=[(88, 372, 14), (150, 374, 12), (385, 372, 12), (440, 372, 12)], pebble_box=(80, 368, 95, 376),
+          dirt_box=(0, 352, 553, 390), dirt_exclude=[(44, 300, 80, 376), (466, 300, 534, 376)])
 
 
 def card_mask_all(K, mask):
