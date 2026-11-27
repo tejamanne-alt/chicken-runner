@@ -573,10 +573,10 @@ def grass_pixels(rgb):
 
 
 def water_pixels(rgb):
-    """A leaf rule for falling water: its pale blue-white and grey, not the brick or rust painted behind it."""
+    """A leaf rule for falling water: its pale blue-white and grey, not the brick or rust painted round it; the
+    pinholes where the painted water lets the wall show through filled (on a card they would be see-through)."""
     r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
-    keep = (b >= r - 4) & (r - g < 12)
-    return ndimage.binary_erosion(keep, iterations=1) | ((b > r + 20) & keep)    # no rim of tinted pixels
+    return ndimage.binary_fill_holes(ndimage.binary_closing(b >= r - 12, iterations=2))
 
 
 def everything(rgb):

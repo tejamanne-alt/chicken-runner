@@ -1627,6 +1627,8 @@ def parapet_gap(K):
     with red-oxide coping, on a red plinth painted with a white kolam border, tufts of grass at its feet."""
     P = K.paint
     X, Z = P.x, P.z
+    # (no bevels: smart_project gives a big face a bevel's 45-degree projection, half its texels one way; see
+    # kit_requests/market_props.md)
     wall = K.tile((140, 92, 215, 148), vary=0.05, soften=0.45)
     wall2 = K.tile((25, 30, 80, 148), vary=0.05, soften=0.45)
     coping = square_tile(K, (30, 12, 86, 21), vary=0.06, soften=0.25)        # the painted red-oxide coping
@@ -1635,14 +1637,14 @@ def parapet_gap(K):
     d = 0.26
     # the plinth all along, the piers standing proud of the wall, the steps and the low middle
     # (it stands on its painted foot, py 195; the record's lift sets it down)
-    K.box(X(22), X(327), -0.04, d + 0.04, Z(195), Z(152), red, bevel=0.01, name="plinth")
-    K.box(X(22), X(327), -0.045, d + 0.045, Z(154), Z(151), K.colour((40, 151, 300, 154), vary=0.05), bevel=0.004,
+    K.box(X(22), X(327), -0.04, d + 0.04, Z(195), Z(152), red, name="plinth")
+    K.box(X(22), X(327), -0.045, d + 0.045, Z(154), Z(151), K.colour((40, 151, 300, 154), vary=0.05),
           name="plinth_lip")
     for x0, x1, top, cx0, cx1, ctop, cbot, dy in ((22, 90, 22, 18, 94, 7, 24, -0.03), (265, 326, 22, 262, 330, 7, 24, -0.03),
                                                  (84, 137, 45, 84, 141, 33, 46, 0.0), (218, 270, 45, 215, 270, 33, 46, 0.0),
                                                  (133, 222, 85, 132, 224, 72, 86, 0.0)):
-        K.box(X(x0), X(x1), dy, d - dy, Z(152), Z(top), wall2 if dy < 0 else wall, bevel=0.008, name="wall")
-        K.box(X(cx0), X(cx1), dy - 0.035, d - dy + 0.035, Z(cbot), Z(ctop), coping, bevel=0.012, name="coping")
+        K.box(X(x0), X(x1), dy, d - dy, Z(152), Z(top), wall2 if dy < 0 else wall, name="wall")
+        K.box(X(cx0), X(cx1), dy - 0.035, d - dy + 0.035, Z(cbot), Z(ctop), coping, name="coping")
     # tufts of grass at its feet, front and round the corners
     K.leaves_only((0, 150, 354, 203), green_pixels)
     for box, x in (((8, 165, 42, 197), 25), ((292, 150, 348, 197), 320)):

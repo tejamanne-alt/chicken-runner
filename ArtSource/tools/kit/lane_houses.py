@@ -2694,19 +2694,16 @@ def cattle_shed(K):
     D = 3.0
     K.front_min = 0.1
     halo_exclude(K, [(0, 0, 1657, 894)])
-    # the hay heaps wear their own projected hay and cards cut from the painting: the painted hay is kept off the
-    # back wall and the floor behind them (from the side it showed as flat hay painted on the wall)
-    K.front_exclude.append((880, 445, 1480, 880))
     K.figure(CALF_SHED, y=1.15, name="calf")
     # the thatch between its two battens, stacked square (the bare strip box-projected round the hip ends wove into
     # a basket-like diamond pattern)
     thatch_m = strip_tile(K, (300, 113, 700, 196), soften=0.2, size=1.2, mirror=False)
     # the mud wall where it is evenly lit (the crop in the sunbeam's edge and the eave's shadow repeated as blocks)
-    wall = clean_tile(K, (560, 640, 720, 720), size=1.0, soften=0.15, thresh=22)
+    wall = clean_tile(K, (300, 620, 680, 700), size=1.6, soften=0.3, thresh=20)   # below the handprints
     earth = K.tile((1250, 490, 1420, 565), size=0.9, vary=0.1, soften=0.55)       # a floor of trodden straw
     bamboo = K.colour((600, 200, 900, 208), vary=0.08)
     zf = P.z(872)
-    K.box(P.x(110), P.x(1570), -0.25, D + 0.1, 0.0, zf, earth, bevel=0.02, name="floor")
+    K.box(P.x(110), P.x(1570), -0.25, D + 0.3, 0.0, zf, earth, bevel=0.02, name="floor")
     # the roof
     ze, zr = P.z(285), P.z(16)
     eave = (P.x(12), P.x(1648), -0.55, D + 0.55)
@@ -2719,7 +2716,7 @@ def cattle_shed(K):
         K.tube([P.pt(x0, py, y), P.pt(x1, py, y)], P.m(8), bamboo, segments=8, name="batten")
         K.tube([P.pt(x0, py, D - y), P.pt(x1, py, D - y)], P.m(8), bamboo, segments=8, name="batten_back")
     # rafters under the hip ends and a beam along the posts, front and back
-    for y in (0.0, D - 0.1):
+    for y in (0.0, D + 0.1):
         K.tube([P.pt(120, 300, y), P.pt(1560, 300, y)], P.m(12), bamboo, segments=8, name="plate")
     for x in np.linspace(P.x(200), P.x(1480), 8):
         K.tube([(x, -0.3, ze + 0.02), (x, D / 2, zr - 0.15), (x, D + 0.3, ze + 0.02)], P.m(6), bamboo, segments=6,
@@ -2731,7 +2728,7 @@ def cattle_shed(K):
                         exclude=[(860, 700, 900, 880)] if x0 == 825 else (), inset=3)
         prof = [(P.m((x1 - x0) / 2 * f), P.z(py)) for f, py in ((1.05, 885), (0.95, 800), (1.0, 650), (0.92, 500),
                                                                 (1.0, 380), (0.95, top))]
-        for y in (0.0, D - 0.1):
+        for y in (0.0, D + 0.1):                       # (the back ones stand clear of the back wall's face)
             K.lathe(prof, m, segments=12, centre=(P.x(cx), y, 0.0), wobble=0.06, scale_y=0.9, name="post")
     # the back wall
     zw = ze + (zr - ze) * 0.4
@@ -2753,12 +2750,22 @@ def cattle_shed(K):
     # hay: the big heaps behind the calf and the one by the post, straw in the manger and on the floor
     # (heaps on the floor up to their painted tops, in their own hay: a projection smears round a heap's sides, and
     # the old heaps hung half a metre above the floor)
-    heaps = ((1315, 290, 455, D - 0.8), (1120, 250, 555, 1.85), (975, 180, 700, 1.45))
+    # (mounds on the floor, widest at the foot like the painted ones, so the painted hay lands on them and not on the
+    # wall behind, which from the side showed as flat hay painted on the plaster; their own paint is the painted
+    # hay about each one's axis, the calf left out of it)
+    from PIL import Image as _I, ImageDraw as _D
+    calf_m = _I.new("L", (P.w, P.h), 0)
+    _D.Draw(calf_m).polygon([(float(x), float(y)) for x, y in CALF_SHED], fill=255)
+    calf_m = np.asarray(calf_m) > 127
+    heaps = ((1315, 300, 455, D - 0.8), (1120, 280, 555, 1.85), (975, 210, 700, 1.4))
     for px, w, top, y in heaps:
         sz = P.z(top) - zf
-        hm = projected_solid(K, [(880, 445, 1480, 880)], axis_x=P.x(px), squeeze=0.9, exclude=[(940, 615, 1380, 880)],
+        hm = projected_solid(K, [(880, 445, 1480, 880)], drop=lambda rgb: calf_m, axis_x=P.x(px), squeeze=0.9,
                              inset=3)
-        K.boulder(P.x(px), y, zf + sz / 2, P.m(w), min(P.m(w) * 0.8, 1.1), sz, hm, lumps=0.12, name="hay")
+        R = P.m(w) / 2
+        K.lathe([(R * a_, zf + sz * b_) for a_, b_ in ((1.0, 0.0), (0.98, 0.2), (0.9, 0.45), (0.72, 0.7), (0.45, 0.88),
+                                                       (0.15, 0.98), (0.0, 1.0))], hm, segments=24,
+                centre=(P.x(px), y, 0.0), wobble=0.1, scale_y=min(1.0, 0.55 / R), name="hay")
     K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), hay_pixels, CALF_SHED))
     K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
@@ -2772,9 +2779,10 @@ def cattle_shed(K):
             continue
         px, w, top, y = on[0]
         sz = P.z(top) - zf
-        u = (cx - px) / (w / 2)
-        v = (P.z(cy) - (zf + sz / 2)) / (sz / 2)
-        depth = min(P.m(w) * 0.8, 1.1) / 2 * math.sqrt(max(0.05, 1 - u * u - v * v))
+        R = P.m(w) / 2
+        u = abs(cx - px) / (w / 2)
+        h = (P.z(cy) - zf) / sz                               # how far up the mound: its radius there
+        depth = min(R, 0.55) * max(0.1, (1 - h ** 1.6)) * math.sqrt(max(0.0, 1 - u * u))
         blob_card(K, (cx - 50, cy - 40, cx + 50, cy + 40), (P.x(cx), y - depth * K.rng.uniform(0.6, 1.0), P.z(cy)),
                   yaw=K.rng.uniform(-60, 60), pitch=K.rng.uniform(-25, 25), name="hay_tuft", rag=0.3)
     for i in range(10):

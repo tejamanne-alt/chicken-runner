@@ -2337,14 +2337,15 @@ def stall_f_3(K):
     K.box(P.x(150), P.x(620), ty0, ty1, Z(532), Z(497), wood, bevel=0.006, name="table_top")
     K.panel((150, 497, 620, 532), ty0 - 0.003, name="table_front")
     # the trestle legs, traced: the front pair and the rear pair (painted further in and shorter), splayed
-    legs = [(((172, 532), (153, 752)), ((208, 532), (203, 752))), (((322, 532), (345, 752)), ((352, 532), (380, 752))),
-            (((603, 532), (603, 752)), ((567, 532), (567, 752)))]
+    legs = [(((174, 532), (155, 752), 34), ((208, 532), (203, 752), 28)),
+            (((322, 532), (345, 752), 30), ((352, 532), (380, 752), 28)),
+            (((603, 532), (603, 752), 42), ((567, 532), (567, 752), 24))]
     for front_leg, rear_leg in legs:
-        for ((ax, ay), (bx, by)), y in ((front_leg, ty0 + 0.06), (rear_leg, ty1 - 0.06)):
-            beam(K, P.pt(ax, ay, y), (P.x(bx), y, 0.0), P.m(26), P.m(24), legw, name="leg")
+        for ((ax, ay), (bx, by), w), y in ((front_leg, ty0 + 0.06), (rear_leg, ty1 - 0.06)):
+            beam(K, P.pt(ax, ay, y), (P.x(bx), y, 0.0), P.m(w), P.m(24), legw, name="leg")
     for y in (ty0 + 0.06, ty1 - 0.06):
-        beam(K, P.pt(165, 668, y), P.pt(330, 668, y), P.m(16), P.m(22), wood, name="stretcher")
-    beam(K, P.pt(247, 668, ty0 + 0.06), P.pt(247, 668, ty1 - 0.06), P.m(16), P.m(16), wood, name="stretcher_x")
+        beam(K, P.pt(160, 650, y), P.pt(340, 650, y), P.m(16), P.m(20), legw, name="stretcher")
+    beam(K, P.pt(247, 650, ty0 + 0.06), P.pt(247, 650, ty1 - 0.06), P.m(16), P.m(16), legw, name="stretcher_x")
     # ---------------------------------------------------------------- the crusher
     iron = K.colour((185, 430, 200, 470), vary=0.06)
     my = -0.05
