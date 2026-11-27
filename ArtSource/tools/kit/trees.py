@@ -1836,8 +1836,8 @@ def strand(K, top, length, mat, radius, sway=0.06, name="strand"):
     return K.tube(pts, radius, mat, segments=5, name=name)
 
 
-SHRINE_TRUNK = [(905, 1395, 245), (905, 1150, 225), (905, 900, 212), (905, 700, 205), (905, 520, 200),
-                (905, 400, 195), (905, 320, 175), (905, 280, 150)]
+SHRINE_TRUNK = [(905, 1395, 245), (905, 1150, 225), (905, 900, 212), (918, 700, 195), (940, 520, 165),
+                (945, 460, 172), (932, 400, 168), (918, 320, 158), (910, 280, 140)]    # its top measured (alpha runs)
 SHRINE_LIMBS = [
     [(860, 300, 70), (823, 273, 60), (783, 220, 50), (740, 160, 38), (700, 110, 26)],
     [(950, 300, 70), (943, 273, 60), (970, 220, 50), (1000, 150, 36), (1030, 90, 22)],
@@ -2607,10 +2607,14 @@ def field_tree_6(K):
     place_blades(K, found, agave_mat, y_of, rolls=25, thick=0.25, fold=0.3, name="agave")
     # what the solid blades leave of the painted agave (thin tips, ink): cards of exactly those pixels, in its shell
     rest = ag & ~ndimage.binary_erosion(cover, iterations=1)
+    # and the agave's blades painted behind the left rosettes (left out of the blade mask): what the solid rosettes
+    # do not hide of them showed as a hole with a straight top edge
+    behind = opaque & ~halo & box_mask(opaque.shape, [(130, 150, 225, 236)]) & ~(r > g + 5)
+    rest = (rest | behind)
     rest = ndimage.binary_opening(rest, iterations=1) | (rest & (mx < 90))
-    K.leaves_only((0, 60, 195, 225), mask_rule(rest, (0, 60, 195, 225)))
+    K.leaves_only((0, 60, 225, 236), mask_rule(rest, (0, 60, 225, 236)))
     cover_cards(K, rest & ~box_mask(rest.shape, [(80, 185, 145, 225)]), (30, 30), blade_depth(found, y_of),
-                slope=(0.5, 0.3), name="agave_tips", n_max=400)
+                slope=(0.5, 0.3), name="agave_tips", n_max=500)
     # ---- the rosettes
     ros = opaque & ~halo & box_mask(opaque.shape, [(140, 172, 220, 238), (205, 192, 260, 238), (298, 172, 370, 236)])
     ros_mat = masked_material(K, ros, inset=1)
@@ -2659,9 +2663,15 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
                   mask=crown_mask)
     clear_sky(K, crown_box)
     if root_z_px is not None:
-        # and the white cut-out halo round the roots: a root's tip reaching past its painted tip took it as a white
-        # shard from the front
+        # and the white cut-out halo round the roots (and its pale pink blend into the earth): a root's tip reaching
+        # past its painted tip, or a root behind showing through a gap, took it as a white shard from the front
         clear_sky(K, (0, root_z_px - 60, P.w, P.h))
+        a = np.asarray(P.img).copy()
+        mn_ = a[..., :3].min(2).astype(np.int32)
+        pale = (mn_ > 150) & box_mask(mn_.shape, [(0, root_z_px - 60, P.w, P.h)]) & \
+            ~ndimage.binary_erosion(mask, iterations=2)
+        a[pale, 3] = 0
+        P.img = Image.fromarray(a, "RGBA")
     floor = P.m(cw) * 0.06
     root_lim = crown.hd * 0.6                          # the roots spread round the foot, whatever the crown does
 
@@ -2994,7 +3004,9 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     tx, ty, tr = tpts[0]
 
     # the trunk's painted width: its pale bark and ink line (not the hand-drawn strokes added to the trace, wider)
-    painted = ndimage.binary_dilation(full & pale_wood(rgb) & (P.rgba[..., 3] > 0.5), iterations=2)
+    # (its pale bark only, inside the painted ink line: the game draws its own ink line round the solid, 3 mm, which
+    # on a 1 m tree is as wide as the painted one)
+    painted = full & pale_wood(rgb) & (P.rgba[..., 3] > 0.5)
     painted = ndimage.binary_fill_holes(ndimage.binary_closing(painted, iterations=2))
 
     def foot(bark):
@@ -3011,11 +3023,11 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6, min_r_px=4.5, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
+                                          dome_pow=0.6, min_r_px=7.0, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
                                           bark_inset=1, tile_box=DRUM_BARK[K.name])
     # the pods: long, thin, ribbed green tubes hanging from the branches, and one more of each round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=1, flatten=0.85, lump=0.05, min_len=40,
-              segments=7)
+              segments=7, rscale=0.72)                # (inside their painted ink line, as the trunk)
     return wood, crown, bark
 
 
@@ -3189,7 +3201,9 @@ def h3_1(K):
     side = K.tile((1050, 1310, 1190, 1385), vary=0.06, soften=0.35)      # inside the wall: no edge lines
     top = strip_tile(K, (1334, 1252, 1514, 1292), soften=0.3, quilt=True)     # its clean pale stone
     coping = K.tile((560, 1262, 760, 1300), vary=0.06, soften=0.3)
-    katte.build(side, top, coping, coping=P.m(45), lip=P.m(8))
+    # (the coping slab is the platform's top: its clean pale stone; the coping band's tile, all moss and ink lines,
+    # made the top a dark olive from every side)
+    katte.build(side, top, top, coping=P.m(45), lip=P.m(8))
     # ---- the tree
     zt = katte.top(0.0, 0.0)
     trunk = [(880, P.py(zt) + 4, 200)] + H31_TRUNK          # its foot down onto the level top

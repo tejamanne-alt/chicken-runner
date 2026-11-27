@@ -1570,7 +1570,7 @@ def stall_high(K):
     yf, yb = -0.4, 0.7
     a_ = 1.13
     # ---------------------------------------------------------------- posts and frame (in the stall's own frame)
-    for x, y, top, r in ((-a_, yf, Z(8), 0.06), (a_, yf, Z(10), 0.06), (-a_, yb, Z(84), 0.05), (a_, yb, Z(84), 0.05)):
+    for x, y, top, r in ((-a_, yf, Z(8), 0.067), (a_, yf, Z(10), 0.067), (-a_, yb, Z(84), 0.063), (a_, yb, Z(84), 0.063)):
         bamboo(K, (x, y, z0), (x, y, top), r, bam, nodes=0.55, bend=0.0, taper=0.97, name="post")
         K.lathe([(r * 1.15, top - 0.02), (r * 1.2, top + 0.02), (r * 0.8, top + 0.05)], bam, segments=10,
                 centre=(x, y, 0.0), name="post_cap")
@@ -1614,7 +1614,7 @@ def stall_high(K):
     scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), stripes, hem=P.m(7), n_scallop=10,
                   drop=Z(88) - Z(104), sag=0.02, name="awning_back")
     # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
-    gable = K.projected(squeeze=1.0, keep=[(36, 30, 110, 150)], inset=2)
+    gable = ktile(K, (150, 36, 230, 76), vary=0.04)             # the awning's own stripes
     for x in (-a_ - 0.06, a_ + 0.06):
         K.prism([(yf - 0.42, Z(72)), (yf, zr + 0.01), (yb + 0.08, Z(82)), (yb + 0.08, Z(90)), (yf - 0.42, Z(80))],
                 0.0, 0.012, gable, name="gable")
@@ -1731,7 +1731,7 @@ def stall_low(K):
     scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), stripes, hem=P.m(5), n_scallop=8,
                   drop=Z(60) - Z(70), sag=0.02, name="awning_back")
     # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
-    gable = K.projected(squeeze=1.0, keep=[(30, 40, 112, 140)], inset=2)
+    gable = ktile(K, (110, 22, 186, 62), vary=0.04)             # the awning's own stripes
     for x in (-a_ - 0.05, a_ + 0.05):
         K.prism([(yf - 0.36, Z(52)), (yf, zr + 0.01), (yb + 0.06, Z(56)), (yb + 0.06, Z(62)), (yf - 0.36, Z(58))],
                 0.0, 0.012, gable, name="gable")

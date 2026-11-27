@@ -1765,8 +1765,8 @@ def h5_3(K):
     fruit_m = ellipse_mask(opaque.shape, H53_FRUIT, 1)
     tr_ok = opaque & not_ink(rgb, 70) & box_mask(opaque.shape, [(170, 440, 255, 880)]) & ~fruit_m
     bark = axis_material(K, tr_ok, lambda py: 212.0, squeeze=0.86, inset=2)
-    trunk(K, [(212, 905, 38), (212, 860, 35), (212, 800, 31), (212, 700, 28), (212, 600, 25), (212, 480, 22),
-              (212, 330, 19), (212, 228, 15)], bark, segments=18)
+    trunk(K, [(212, 905, 38), (213, 860, 36), (214, 800, 34), (214, 700, 29), (214, 600, 25.5), (213, 480, 22.5),
+              (212, 330, 19.5), (212, 228, 15)], bark, segments=18)          # as measured row by row
     # ---- the leaves on their stalks
     leaf_box = (0, 0, P.w, 320)
     lm = leaf & ~fruit_m & box_mask(opaque.shape, [leaf_box]) & ~box_mask(opaque.shape, [(195, 200, 232, 330)])
@@ -1783,7 +1783,7 @@ def h5_3(K):
         dx = P.x(cx) - P.x(212)
         rr = P.m(max(rx, ry * 0.7))
         y = -math.sqrt(max(0.0, (tr + rr) ** 2 - dx * dx)) * 0.9
-        papaya_fruit(K, cx, cy, rx * 0.9, ry * 0.93, y, fmat, tilt=(cx - 212) * 0.35)
+        papaya_fruit(K, cx, cy, rx * 1.05, ry * 1.04, y, fmat, tilt=(cx - 212) * 0.35)
     bunch_m = ndimage.binary_fill_holes(ndimage.binary_closing(fruit_m & opaque, iterations=4))
     for k, (cx, cy, rx, ry) in enumerate(H53_FRUIT[:9]):
         for _ in range(12):                      # behind the bunch, inside its painted outline from the front
@@ -2396,7 +2396,7 @@ def h7_1(K):
     # where they are painted, more behind them all round
     rng = K.rng
     for k in range(13):
-        xb, xt = 262 + 178 * k / 12, 240 + 216 * k / 12
+        xb, xt = 302 + 92 * k / 12, 232 + 230 * k / 12           # a tight foot fanning out, as painted
         yb = rng.uniform(-0.035, 0.035)
         yt = yb * 2.2 + rng.uniform(-0.04, 0.04)
         K.tube([P.pt(xb, 520, yb), P.pt((xb + xt) / 2, 458, (yb + yt) / 2), P.pt(xt, 392, yt)],
@@ -3007,9 +3007,9 @@ def h6_3(K):
     rgb = painted_rgb(K)
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
-    boulder = [(372, 380), (380, 335), (410, 295), (450, 272), (500, 265), (550, 272), (585, 290), (610, 320),
-               (622, 355), (615, 380)]
-    stones = [(60, 345, 25, 14), (300, 356, 48, 16)]
+    boulder = [(374, 370), (380, 335), (410, 295), (450, 272), (500, 265), (550, 272), (585, 290), (610, 320),
+               (622, 355), (615, 370)]
+    stones = [(88, 335, 24, 11), (302, 358, 30, 10)]                    # as measured on the grid
     rock_m = poly_mask(opaque.shape, [boulder]) | ellipse_mask(opaque.shape, stones)
     keep = opaque & ~halo(rgb) & ~(rock_m & ~((g > r + 15) & (g > b + 25) & ~poly_mask(opaque.shape, [boulder])))
     keep = ndimage.binary_opening(keep, iterations=1)
@@ -3042,9 +3042,11 @@ def h6_3(K):
     bush_cards(K, cr2, 25, (85, 75), "front", yaw=25, pitch=15)
     # the boulder and the stones
     stone = masked_material(K, opaque & rock_m & not_ink(rgb), inset=2)
-    poly_solid(K, boulder, -0.16, stone, depth=0.55, segments=24, name="boulder")
-    zg = P.z(376)                                # on the ground with the boulder, a little sunk into it
-    for (cx, cy, rx, ry), yy in zip(stones, (-0.3, -0.36)):
-        K.boulder(P.x(cx), yy, zg + P.m(ry) * 0.75, P.m(rx * 2), P.m(rx * 1.4), P.m(ry * 2.2), stone,
+    bstone = round_material(K, opaque & poly_mask(opaque.shape, [boulder]) & not_ink(rgb, 60), 497,
+                            filled_crop(K, opaque & poly_mask(opaque.shape, [boulder]) & not_ink(rgb, 60),
+                                        (430, 290, 580, 350)), P.m(150), squeeze=0.88, soften=0.2)
+    poly_solid(K, boulder, -0.16, bstone, depth=0.55, segments=24, name="boulder")
+    for (cx, cy, rx, ry), yy in zip(stones, (-0.3, -0.36)):       # flat stones half sunk where painted
+        K.boulder(P.x(cx), yy, P.z(cy + ry) + P.m(ry) * 0.9, P.m(rx * 1.9), P.m(rx * 1.3), P.m(ry * 2.0), stone,
                   name="stone")
 

@@ -2101,9 +2101,9 @@ def roof_house_a_1(K):
     dung_cakes(K, [(327, 400, 26), (386, 413, 25), (329, 462, 26), (266, 470, 26), (376, 465, 24), (379, 520, 24),
                    (319, 521, 24), (252, 533, 24), (312, 579, 25), (372, 579, 25), (246, 593, 25)], 0.0, cake)
     # the tulsi at the stair's foot
-    K.leaves_only((265, 525, 370, 712), green_pixels)
+    K.leaves_only((265, 525, 370, 708), green_pixels)
     for yaw, yy in ((0, -0.3), (60, -0.25), (-60, -0.35), (90, -0.3)):
-        K.card_from_painting((265, 525, 370, 712), (X(317.5), yy, Z(618.5)), yaw=yaw, name="tulsi")
+        K.card_from_painting((265, 525, 370, 708), (X(317.5), yy, Z(616.5)), yaw=yaw, name="tulsi")
     # the roof: a flat deck behind the coping, the back and side parapets
     K.box(X(455), X(1440), 0.0, D, Z(212.5), Z(211.3), deck_m, name="deck")
     K.box(X(455), X(1440), D - 0.25, D, Z(214), Z(128), tower, name="back_parapet")
@@ -2228,7 +2228,9 @@ def roof_house_a_2(K):
     # the house, its cornice, parapet, door and windows under their lintel slabs, the meter
     body = K.box(X(70), X(1300), 0.0, D, 0.0, Z(166), mud, name="walls")
     K.box(X(50), X(1310), -0.12, D + 0.08, Z(262), Z(245), ledge, bevel=0.01, name="cornice")
-    K.box(X(60), X(1300), 0.0, 0.28, Z(245), Z(165), mud2, bevel=0.008, name="parapet_front")
+    # (its face a little proud of the walls' face below: coplanar faces shadow each other in the bake, and the
+    # painting was not projected onto this band)
+    K.box(X(60), X(1300), -0.012, 0.28, Z(245), Z(165), mud2, bevel=0.008, name="parapet_front")
     K.box(X(56), X(1304), -0.03, 0.31, Z(172), Z(160), ledge, bevel=0.008, name="parapet_coping")
     K.cut(body, X(478), X(630), -0.05, 0.25, -0.01, Z(397))
     K.box(X(480), X(628), 0.16, 0.19, 0.0, Z(397), door, name="door")
@@ -2296,8 +2298,8 @@ def roof_house_a_2(K):
     for cx, top in ((1068, 485), (1278, 485), (1422, 472)):
         K.box(X(cx - 6), X(cx + 6), -2.0, -1.88, 0.0, Z(top), wood, bevel=0.005, name="post")
     K.tube([(X(990), -1.94, Z(482)), (X(1460), -1.94, Z(474))], P.m(6), wood, segments=8, name="purlin")
-    figures(K, [([(1056, 617), (1058, 575), (1072, 547), (1095, 538), (1120, 546), (1150, 553), (1200, 546),
-                  (1262, 546), (1284, 560), (1284, 617)], -0.9, "calf", 20)], exact=True)
+    figures(K, [([(1056, 612), (1058, 575), (1072, 547), (1095, 538), (1120, 546), (1150, 553), (1200, 546),
+                  (1262, 546), (1284, 560), (1284, 612)], -0.9, "calf", 20)], exact=True)
     pot = K.projected(axis_x=X(922), squeeze=0.93, keep=[(895, 582, 950, 617)], inset=2)
     K.lathe(prof(P, [(15, 617), (25, 610), (28, 600), (24, 590), (14, 586), (16, 582), (14, 581)]), pot, segments=20,
             centre=(X(922), -0.45, 0), name="water_pot")
@@ -2308,7 +2310,9 @@ def roof_house_a_2(K):
         back_window(K, body, x0, x1, 408, 535, D, wood, iron, dark, nbars=5)
     for side in (-1, 1):
         side_window(K, body, side, D * 0.55, Z(535), Z(410), 0.8, wood, iron, dark)
-    stand_on(K, Z(610))
+    # the painted foot (py 610-612: the shadow is painted below it); the calf's card ends there too, so the record's
+    # lift sets the whole house down
+    stand_on(K, Z(612))
 
 
 @model("roof_house_b_2", "market", kind="building", atlas=2048)
@@ -2433,12 +2437,12 @@ def roof_house_b_2(K):
         blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(80) - 0.04, K.rng.uniform(0.1, 1.4), Z(py)),
                   yaw=90 + K.rng.uniform(-20, 20), name="jasmine_side")
     # the hens at the foot of the plinth (animals: painted cut-outs)
-    figures(K, [([(506, 960), (508, 905), (518, 898), (532, 912), (552, 928), (567, 944), (574, 960)], -0.6, "hen1"),
-                ([(590, 960), (596, 925), (603, 898), (612, 885), (622, 893), (630, 920), (644, 950), (644, 960)],
+    figures(K, [([(506, 953), (508, 905), (518, 898), (532, 912), (552, 928), (567, 944), (574, 953)], -0.6, "hen1"),
+                ([(590, 953), (596, 925), (603, 898), (612, 885), (622, 893), (630, 920), (644, 950), (644, 953)],
                  -0.9, "hen2"),
-                ([(695, 960), (698, 934), (718, 922), (744, 903), (752, 888), (764, 893), (762, 925), (754, 960)],
+                ([(695, 953), (698, 934), (718, 922), (744, 903), (752, 888), (764, 893), (762, 925), (754, 953)],
                  -0.7, "hen3"),
-                ([(870, 941), (878, 923), (904, 913), (924, 895), (937, 898), (934, 936), (917, 960), (878, 960)],
+                ([(870, 941), (878, 923), (904, 913), (924, 895), (937, 898), (934, 936), (917, 953), (878, 953)],
                  -0.6, "hen4")])
     # the back: a door
     K.quad([(X(775), D + 0.004, Z(858)), (X(605), D + 0.004, Z(858)), (X(605), D + 0.004, Z(575)),

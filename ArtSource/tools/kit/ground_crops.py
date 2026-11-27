@@ -549,12 +549,13 @@ def tri_sheet(K, mask, step, yfn, mat, eps=1.2, back_y=None, thickness=0.0, name
 
 def ground_anchor(K, foot_px):
     """The one solid part a model of cards needs (the kit otherwise adds a dark 2 mm cube at the frame's foot, which
-    shows): a 2 mm triangle lying flat 1 mm under the ground, under the plant's foot: edge on from the side, under the
-    plant from above, under the ground in the game."""
+    shows): a 2 mm triangle lying flat 1 mm under the plant's painted foot (foot_px: the bottom edge of its lowest
+    painted pixel). It is the model's lowest point, so the record's lift sets the painted foot down onto the ground
+    and the triangle 1 mm under it: edge on from the side, under the plant from above."""
     P = K.paint
-    x = P.x(foot_px[0])
+    x, z = P.x(foot_px[0]), P.z(foot_px[1]) - 0.001
     bm = bmesh.new()
-    vs = [bm.verts.new((x + dx, dy, -0.001)) for dx, dy in ((-0.001, -0.001), (0.001, -0.001), (0.0, 0.001))]
+    vs = [bm.verts.new((x + dx, dy, z)) for dx, dy in ((-0.001, -0.001), (0.001, -0.001), (0.0, 0.001))]
     f = bm.faces.new(vs)
     f.normal_update()
     if f.normal.z > 0:
@@ -1059,8 +1060,9 @@ def tuft(K, n=5):
     clean_front(K, mask)
     card_mask(K, mask)
     ys, xs = np.nonzero(mask)
-    box = (xs.min() - 1, ys.min() - 1, xs.max() + 2, ys.max() + 2)
-    foot = ((xs.min() + xs.max()) / 2, ys.max())
+    # every card ends at the bottom edge of the lowest painted pixel: nothing reaches below the painted foot
+    box = (xs.min() - 1, ys.min() - 1, xs.max() + 2, ys.max() + 1)
+    foot = ((xs.min() + xs.max()) / 2, ys.max() + 1)
     K.card_from_painting(box, P.pt((box[0] + box[2]) / 2, (box[1] + box[3]) / 2, 0.0), name="tuft",
                          normal=(0, -0.4, 0.8))
     # the turned copies between 50 and 130 degrees (never near face on: from the front they stay inside the painted
@@ -1102,7 +1104,12 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
     mask = haze_free(P)
     clean_front(K, mask)
     card_mask(K, mask)
-    K.card_from_painting((0, 0, P.w, P.h), P.pt(P.w / 2, P.h / 2, 0.0), name="weed", normal=(0, -0.4, 0.8))
+    # every card ends at the bottom edge of the lowest painted pixel (nothing reaches below the painted foot), and the
+    # rosette's turned copies stand on it
+    low = int(np.nonzero(mask.any(1))[0].max()) + 1
+    foot = (foot[0], low)
+    rosette_box = rosette_box[:3] + (min(rosette_box[3], low),)
+    K.card_from_painting((0, 0, P.w, low), P.pt(P.w / 2, low / 2, 0.0), name="weed", normal=(0, -0.4, 0.8))
     # each flower stalk, turned square to the painting too, so from the side it is a stalk (a card: a solid stalk
     # this thin would be all ink outline)
     for pts in stems:

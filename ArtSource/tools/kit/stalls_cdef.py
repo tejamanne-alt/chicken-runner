@@ -2527,12 +2527,15 @@ def stall_f_4(K):
         coil(K, (P.x(cx), y, P.z(cy)), P.m(R), P.m(7), ropes, tilt=tilt)
     # ---------------------------------------------------------------- the old man on his seat
     # ---------------------------------------------------------------- on the back wall: a coil of rope on a peg, and
-    # two spare brooms standing against it
+    # rolled grass mats standing on end, leaning against it
     yo = 0.8 + 0.05
     K.tube([(P.x(400), 0.8, Z(250)), (P.x(400), yo + 0.06, Z(250) + 0.02)], 0.014, wall, segments=6, name="peg")
     coil(K, (P.x(400), yo + 0.03, Z(250) - 0.2), 0.17, 0.022, ropes, tilt=(90, 0), turns=2.4)
-    fib = ktile(K, (120, 330, 170, 420), vary=0.06)
-    for x_px in (200, 610):
-        broom(K, (P.x(x_px), yo + 0.06, 0.62), (P.x(x_px) + 0.03, yo + 0.05, 1.45), 0.34, fib, handle, rope, 0.0)
+    for k, x_px in enumerate((170, 215, 600, 645)):
+        rr = 0.07
+        c0 = (P.x(x_px), yo + 0.09, zS)
+        ob = K.lathe([(0.0, 0.0), (rr, 0.0), (rr, 1.15 - 0.08 * (k % 2)), (0.0, 1.15 - 0.08 * (k % 2))], body,
+                     segments=14, centre=c0, name="mat_roll")
+        orient(ob, c0, (0.03 * (1 if k % 2 else -1), -0.12, 1.0))
     K.figure(SELLER_F4, y=-0.05, name="mat_seller")
     unify_cards(K)

@@ -1721,22 +1721,30 @@ def sluice_gate(K):
     zw = P.z(250)                                           # the water's level in the channel
     K.front_exclude = [("poly", [(128, 238), (300, 238), (300, 250), (128, 250)]),     # the water's far edge
                        (30, 146, 130, 168), (298, 150, 394, 172)]                       # the walls' tops
-    stone = K.tile((100, 110, 140, 240), soften=0.3, vary=0.05)
-    wall = K.tile((40, 176, 96, 270), soften=0.3, vary=0.05)
+    # the stone, block by block: the painted blocks' mauve-brown grain with its moss flecks (clean patches of two
+    # painted blocks, quilted), each block a little lighter or darker, soft patches over it; no fern in it
+    grain = delined(P.crop((62, 175, 96, 199)), 5)          # (its flecks and highlight lines filtered out)
+    g_c = lit_median(K, (40, 170, 98, 240), 90)
+    stones = [img_tile(K, speckle(grain, sigma=3.0, seed=i, amount=2.6, base=np.array(g_c) * f), P.m(34),
+                       vary=0.05, mottle=0.26, mottle_size=0.22, key=("stone", i))
+              for i, f in enumerate((1.0, 1.1, 0.9, 1.16, 0.85))]
+    pick = lambda: stones[int(K.rng.integers(len(stones)))]
+    stone = stones[0]
     wood = K.tile((160, 125, 265, 200), soften=0.15, vary=0.05)
     brass = K.projected(squeeze=1.0, keep=[(140, 4, 282, 116)], inset=2)
     y_front = -0.85
+    zf = P.z(306)                                           # the painted foot (the record's lift sets it down)
     # the pillars: two rough blocks each, either side of the gate, from the channel's floor
     for x0, x1 in ((93, 151), (271, 330)):
         w = P.m(x1 - x0)
-        K.block((P.x(x0) + P.x(x1)) / 2, 0.0, P.z(100) / 2, w, 0.34, P.z(100), stone, bevel=0.03, jitter=0.01,
-                name="pillar")
+        K.block((P.x(x0) + P.x(x1)) / 2, 0.0, (zf + P.z(100)) / 2, w, 0.34, P.z(100) - zf, pick(), bevel=0.03,
+                jitter=0.01, name="pillar")
         K.block((P.x(x0) + P.x(x1)) / 2, 0.0, (P.z(100) + P.z(66)) / 2 + 0.01, w * 0.98, 0.33, P.z(66) - P.z(100),
-                stone, bevel=0.03, jitter=0.01, name="pillar_top")
+                pick(), bevel=0.03, jitter=0.01, name="pillar_top")
     # the gate: planks with rails and bolts, in the gap between the pillars, down to the channel's floor
     for i in range(6):
         x0 = 151 + (271 - 151) * i / 6
-        K.box(P.x(x0) + 0.004, P.x(x0 + 20) - 0.004, -0.03, 0.04, 0.0, P.z(117), wood, bevel=0.006, name="plank")
+        K.box(P.x(x0) + 0.004, P.x(x0 + 20) - 0.004, -0.03, 0.04, zf, P.z(117), wood, bevel=0.006, name="plank")
     K.box(P.x(153), P.x(272), -0.07, -0.03, P.z(230), P.z(205), wood, bevel=0.008, name="rail")
     K.box(P.x(153), P.x(272), 0.04, 0.08, P.z(230), P.z(205), wood, bevel=0.008, name="rail_back")
     iron = K.colour((157, 128, 170, 140), vary=0.1)
@@ -1761,29 +1769,41 @@ def sluice_gate(K):
                        centre=(P.x(x), 0, 0), name="knob")
         rotate(knob, 90, "Y", (P.x(x), 0, P.z(17)))
     # the low walls lining the channel, from the pillars out towards us
+    # (three courses of big blocks as painted, each course two blocks long, the joints breaking course by course)
+    levels = [zf, P.z(245), P.z(205), P.z(160)]
     for x0, x1 in ((32, 128), (300, 392)):
-        K.block((P.x(x0) + P.x(x1)) / 2, (y_front - 0.17) / 2, P.z(152) / 2, P.m(x1 - x0), -0.17 - y_front,
-                P.z(152), wall, bevel=0.03, jitter=0.012, name="wall")
+        for c, (za, zb) in enumerate(zip(levels, levels[1:])):
+            cut = y_front + (-0.17 - y_front) * (0.42 if c % 2 == 0 else 0.6)
+            for ya, yb in ((y_front, cut), (cut, -0.17)):
+                K.block((P.x(x0) + P.x(x1)) / 2, (ya + yb) / 2, (za + zb) / 2, P.m(x1 - x0) - 0.01, yb - ya - 0.012,
+                        zb - za - 0.012, pick(), bevel=0.03, jitter=0.01, name="wall")
     # the water: standing in the channel between the walls, and behind the gate a little higher
     wtile = K.tile((150, 252, 300, 300), vary=0.04)
     plan_prism(K, [(P.x(128), y_front), (P.x(300), y_front), (P.x(300), -0.17), (P.x(271), -0.17), (P.x(271), -0.04),
-                   (P.x(151), -0.04), (P.x(151), -0.17), (P.x(128), -0.17)], 0.0, zw, wtile, name="water")
-    K.box(P.x(151), P.x(271), 0.09, 0.75, 0.0, zw + 0.06, wtile, name="water_behind")
+                   (P.x(151), -0.04), (P.x(151), -0.17), (P.x(128), -0.17)], P.z(314), zw, wtile,
+               name="water")                                # (its painted section reaches a little lower)
+    K.box(P.x(151), P.x(271), 0.09, 0.75, zf, zw + 0.06, wtile, name="water_behind")
     for x0, x1 in ((112, 151), (271, 310)):                 # the channel's walls behind the gate, lower
-        K.block((P.x(x0) + P.x(x1)) / 2, 0.48, (zw + 0.2) / 2, P.m(x1 - x0), 0.62, zw + 0.2, wall, bevel=0.03,
-                jitter=0.01, name="wing")
+        for ya, yb in ((0.17, 0.48), (0.48, 0.79)):
+            K.block((P.x(x0) + P.x(x1)) / 2, (ya + yb) / 2, (zf + zw + 0.2) / 2, P.m(x1 - x0), yb - ya - 0.012,
+                    zw + 0.2 - zf, pick(), bevel=0.03, jitter=0.01, name="wing")
     # ferns on the walls and at their feet, stones at the water's edge
     K.leaves_only((0, 100, 419, 323), grass_pixels)
     for box, y in (((8, 104, 112, 192), -0.4), ((8, 222, 108, 292), y_front - 0.06), ((312, 106, 412, 190), -0.4),
                    ((312, 232, 412, 292), y_front - 0.06)):
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-        K.card_from_painting(box, P.pt(cx, cy, y), name="fern", normal=(0, -0.3, 1))
+        sgn = 1 if cx > 210 else -1                         # turned a little out: never a sliver from the side
+        K.card_from_painting(box, P.pt(cx, cy, y), yaw=sgn * 14, name="fern", normal=(0, -0.3, 1))
         for j in range(2):
             K.card_from_painting(box, (P.x(cx + K.rng.uniform(-15, 15)), y + K.rng.uniform(0.1, 0.35), P.z(cy)),
                                  yaw=K.rng.uniform(-80, 80), name="fern", normal=(0, -0.3, 1))
-    pebbles = K.projected(squeeze=1.0, keep=[(18, 278, 92, 306), (332, 282, 402, 306)], inset=2)
-    for px, w in ((40, 34), (75, 30), (355, 30), (388, 26)):
-        K.boulder(P.x(px), y_front - 0.08, P.m(8), P.m(w), P.m(w) * 0.8, P.m(16), pebbles, name="stone")
+    peb = speckle(P.crop((40, 290, 70, 300)), sigma=3.0, amount=1.2)
+    pebbles = proj_tiles(K, [(18, 278, 92, 306), (332, 282, 402, 306)], [], peb, peb, side_size=P.m(30),
+                         top_size=P.m(30), y_from=0.6, y_to=0.85, inset=2, soften=0.0, vary=0.08, blur=3.0)
+    for px, w, py in ((40, 34, 296), (75, 30, 300), (355, 30, 298), (388, 26, 300)):
+        h = P.m(16)
+        K.boulder(P.x(px), y_front - 0.08, max(zf, P.z(py)) + h / 2 - 0.01, P.m(w), P.m(w) * 0.8, h, pebbles,
+                  name="stone")
 
 
 def ring_wall(K, cx, cy, r_out, r_in, z0, z1, courses, n, mat, rim=None, bevel=0.035, gap=0.012, name="course",
@@ -1814,7 +1834,8 @@ def well(K):
     them, a coil of rope wound on the beam, a pulley wheel hanging under it, a pail on the rope over the opening,
     the spare rope coiled and hung on the wall, rocks and weeds round its foot."""
     P = K.paint
-    K.front_min = 0.15
+    K.front_min = 0.45                                       # (the painting only where the round wall faces us:
+                                                             # nearer its sides it would be dragged out wide)
     cx = P.x(256)
     R, r_in = P.m(190), P.m(190) - 0.24
     zg = P.z(374)                                            # the ground round its foot
@@ -1834,9 +1855,9 @@ def well(K):
     for bx, tx in ((106, 120), (396, 380)):
         x0, x1 = P.x(bx), P.x(tx)
         h = P.z(10) - zg
-        ob = K.lathe([(P.m(22), zg), (P.m(21.5), zg + h * 0.4), (P.m(20.5), zg + h * 0.85), (P.m(20), P.z(10)),
-                      (P.m(17), P.z(10) + 0.01), (0.0, P.z(10) + 0.015)], post, segments=10, centre=(x0, 0.0, 0.0),
-                     wobble=0.07, name="post")
+        ob = K.lathe([(P.m(19), zg), (P.m(18.5), zg + h * 0.4), (P.m(18), zg + h * 0.85), (P.m(18), P.z(10)),
+                      (P.m(15), P.z(10) + 0.01), (0.0, P.z(10) + 0.015)], post, segments=10, centre=(x0, 0.0, 0.0),
+                     wobble=0.05, name="post")              # as thick as painted
         rotate(ob, math.degrees(math.atan2(x1 - x0, h)), "Y", (x0, 0.0, zg))
     beam = K.projected(squeeze=1.0, keep=[(78, 28, 422, 58)], exclude=[(228, 15, 290, 70)], inset=2)
     K.tube([P.pt(80, 43), P.pt(420, 41)], P.m(13), beam, segments=14, name="beam")
@@ -1859,12 +1880,12 @@ def well(K):
            segments=6, name="rope")
     K.tube([P.pt(286, 96, 0.0), P.pt(285, 126, 0.0)], P.m(4), rope, segments=6, name="rope")
     pail = K.projected(axis_x=P.x(275), squeeze=0.9, keep=[(234, 146, 318, 222)], inset=2)
-    K.lathe([(P.m(33), P.z(220)), (P.m(36), P.z(200)), (P.m(41), P.z(160)), (P.m(42), P.z(154)), (P.m(39), P.z(153))],
-            pail, segments=24, centre=(P.x(275), 0, 0), name="pail")
-    K.lathe([(P.m(38), P.z(156)), (0.0, P.z(175))], K.colour((0.07, 0.07, 0.07), vary=0.1), segments=24,
+    K.lathe([(P.m(29), P.z(218)), (P.m(31), P.z(200)), (P.m(35), P.z(170)), (P.m(37), P.z(160)), (P.m(37.5), P.z(156)),
+             (P.m(35.5), P.z(155))], pail, segments=24, centre=(P.x(275), 0, 0), name="pail")   # its painted profile
+    K.lathe([(P.m(35), P.z(157)), (0.0, P.z(175))], K.colour((0.07, 0.07, 0.07), vary=0.1), segments=24,
             centre=(P.x(275), 0, 0), name="pail_inside", cap=False)
     iron = K.colour((240, 128, 252, 140), vary=0.1)
-    K.tube([(P.x(275) + P.m(42) * math.cos(a), 0.0, P.z(158) + P.m(30) * math.sin(a))
+    K.tube([(P.x(275) + P.m(36) * math.cos(a), 0.0, P.z(158) + P.m(33) * math.sin(a))
             for a in np.linspace(0.0, math.pi, 12)], P.m(3), iron, segments=6, name="pail_handle")
     # the spare rope, coiled and hung over the wall's front
     hook_x = 175
@@ -1876,12 +1897,12 @@ def well(K):
             yy = 215 + (bot - 215) * (0.5 - 0.5 * math.cos(a))
             pts.append(P.pt(x, yy, yw - 0.02 * i))
         K.tube(pts, P.m(6), rope, segments=6, name="coil", cap=False)
-    # the ground round its foot: earth, rocks, weeds
-    earth = K.colour((100, 375, 160, 385), vary=0.18, scale=8)
-    K.lathe([(0.0, 0.0), (R + 0.36, 0.0), (R + 0.31, 0.015), (R + 0.16, zg * 0.75), (R, zg), (0.0, zg)], earth,
-            segments=32, centre=(cx, 0, 0), wobble=0.08, name="ground")
-    rocks = K.projected(squeeze=1.0, keep=[(14, 340, 500, 394)], exclude=[(30, 300, 120, 360), (330, 300, 500, 360)],
-                        inset=2)
+    # rocks and weeds round its foot (on the game's ground: the painting has no patch of earth)
+    rock_px = P.crop((120, 372, 160, 386))
+    rocks = proj_tiles(K, [(14, 340, 500, 394)], [(30, 300, 120, 360), (330, 300, 500, 360)],
+                       speckle(rock_px, sigma=3.0, amount=1.2), speckle(rock_px, sigma=3.0, amount=1.2),
+                       side_size=P.m(40), top_size=P.m(40), y_from=0.6, y_to=0.85, inset=2, soften=0.0, vary=0.1,
+                       blur=3.0)
     for px, w, h in ((70, 48, 24), (130, 60, 30), (215, 50, 22), (300, 44, 22), (380, 70, 32), (450, 52, 24),
                      (40, 30, 14), (480, 30, 14)):
         dxm = P.x(px) - cx
