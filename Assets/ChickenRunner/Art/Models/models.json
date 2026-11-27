@@ -273,10 +273,11 @@
    "kind": "volume",
    "width": 3.464,
    "height": 1.724,
-   "depth": 2.713,
-   "lift": 0.053,
-   "faces": 3383,
-   "source": "blender"
+   "depth": 3.401,
+   "lift": 0.0,
+   "faces": 2615,
+   "source": "blender",
+   "oblique": 0.281
   },
   {
    "name": "canal_piece_3",
@@ -284,10 +285,11 @@
    "kind": "volume",
    "width": 2.956,
    "height": 1.84,
-   "depth": 2.732,
+   "depth": 2.997,
    "lift": 0.0,
-   "faces": 2434,
-   "source": "blender"
+   "faces": 2146,
+   "source": "blender",
+   "oblique": 0.292
   },
   {
    "name": "canal_piece_4",
@@ -317,10 +319,11 @@
    "kind": "volume",
    "width": 7.277,
    "height": 1.319,
-   "depth": 1.578,
-   "lift": 0.055,
-   "faces": 7340,
-   "source": "blender"
+   "depth": 1.751,
+   "lift": 0.043,
+   "faces": 7676,
+   "source": "blender",
+   "oblique": 0.35
   },
   {
    "name": "crop_strip_3",
@@ -476,9 +479,9 @@
    "kind": "building",
    "width": 2.676,
    "height": 4.2,
-   "depth": 1.784,
+   "depth": 2.536,
    "lift": 0.055,
-   "faces": 760,
+   "faces": 553,
    "source": "blender"
   },
   {
@@ -553,9 +556,9 @@
    "kind": "building",
    "width": 4.584,
    "height": 4.6,
-   "depth": 3.563,
-   "lift": 0.097,
-   "faces": 8281,
+   "depth": 4.166,
+   "lift": 0.08,
+   "faces": 5876,
    "source": "blender"
   },
   {
@@ -828,10 +831,11 @@
    "kind": "volume",
    "width": 0.35,
    "height": 0.24,
-   "depth": 0.298,
-   "lift": 0.0,
-   "faces": 1892,
-   "source": "blender"
+   "depth": 0.281,
+   "lift": 0.011,
+   "faces": 1150,
+   "source": "blender",
+   "oblique": 0.73
   },
   {
    "name": "pebbles",
@@ -839,10 +843,11 @@
    "kind": "volume",
    "width": 0.6,
    "height": 0.269,
-   "depth": 0.3,
-   "lift": 0.0,
-   "faces": 1468,
-   "source": "blender"
+   "depth": 0.379,
+   "lift": 0.01,
+   "faces": 750,
+   "source": "blender",
+   "oblique": 0.58
   },
   {
    "name": "tuft_1",
@@ -927,9 +932,9 @@
    "kind": "volume",
    "width": 1.7,
    "height": 1.205,
-   "depth": 1.252,
-   "lift": 0.03,
-   "faces": 5490,
+   "depth": 0.997,
+   "lift": 0.025,
+   "faces": 6734,
    "source": "blender"
   },
   {
@@ -949,10 +954,11 @@
    "kind": "volume",
    "width": 3.8,
    "height": 1.726,
-   "depth": 2.253,
-   "lift": 0.041,
-   "faces": 3859,
-   "source": "blender"
+   "depth": 2.645,
+   "lift": 0.073,
+   "faces": 4225,
+   "source": "blender",
+   "oblique": 0.0503
   },
   {
    "name": "cattle_shed",
@@ -1290,10 +1296,15 @@
    "kind": "volume",
    "width": 1.9,
    "height": 1.02,
-   "depth": 1.253,
-   "lift": 0.022,
-   "faces": 4896,
-   "source": "blender"
+   "depth": 1.014,
+   "lift": 0.017,
+   "faces": 4892,
+   "source": "blender",
+   "oblique": 0.1729,
+   "converge": [
+    0.3214,
+    290.0
+   ]
   },
   {
    "name": "shop_provisions",
@@ -1444,10 +1455,15 @@
    "kind": "volume",
    "width": 0.435,
    "height": 0.25,
-   "depth": 0.31,
-   "lift": 0.0,
-   "faces": 3858,
-   "source": "blender"
+   "depth": 0.417,
+   "lift": 0.018,
+   "faces": 6922,
+   "source": "blender",
+   "oblique": 0.49,
+   "converge": [
+    0.89,
+    110.9
+   ]
   },
   {
    "name": "coconut_cart",
@@ -1532,10 +1548,15 @@
    "kind": "volume",
    "width": 0.437,
    "height": 0.25,
-   "depth": 0.31,
-   "lift": 0.0,
-   "faces": 4310,
-   "source": "blender"
+   "depth": 0.426,
+   "lift": 0.018,
+   "faces": 4844,
+   "source": "blender",
+   "oblique": 0.49,
+   "converge": [
+    0.89,
+    110.9
+   ]
   },
   {
    "name": "parapet_gap",
@@ -1598,10 +1619,15 @@
    "kind": "volume",
    "width": 4.033,
    "height": 2.845,
-   "depth": 2.778,
+   "depth": 3.728,
    "lift": 0.0,
-   "faces": 13511,
-   "source": "blender"
+   "faces": 12531,
+   "source": "blender",
+   "oblique": 0.2,
+   "converge": [
+    0.165,
+    547.0
+   ]
   },
   {
    "name": "stall_c_2",
@@ -1609,10 +1635,15 @@
    "kind": "volume",
    "width": 3.15,
    "height": 3.0,
-   "depth": 3.424,
+   "depth": 3.114,
    "lift": 0.0,
-   "faces": 10011,
-   "source": "blender"
+   "faces": 10245,
+   "source": "blender",
+   "oblique": 0.3,
+   "converge": [
+    0.5222,
+    400.0
+   ]
   },
   {
    "name": "stall_c_3",
@@ -1620,10 +1651,15 @@
    "kind": "volume",
    "width": 3.541,
    "height": 2.329,
-   "depth": 2.772,
+   "depth": 1.264,
    "lift": 0.0,
-   "faces": 16380,
-   "source": "blender"
+   "faces": 13733,
+   "source": "blender",
+   "oblique": 0.3,
+   "converge": [
+    0.3,
+    469.0
+   ]
   },
   {
    "name": "stall_d_1",
@@ -1686,10 +1722,16 @@
    "kind": "volume",
    "width": 3.103,
    "height": 2.874,
-   "depth": 3.218,
+   "depth": 3.411,
    "lift": 0.0,
-   "faces": 5579,
-   "source": "blender"
+   "faces": 5317,
+   "source": "blender",
+   "oblique": 0.3,
+   "converge": [
+    0.222,
+    333.5,
+    644.0
+   ]
   },
   {
    "name": "stall_f_1",
@@ -1796,10 +1838,15 @@
    "kind": "volume",
    "width": 3.327,
    "height": 2.87,
-   "depth": 2.483,
+   "depth": 2.69,
    "lift": 0.0,
-   "faces": 6044,
-   "source": "blender"
+   "faces": 5936,
+   "source": "blender",
+   "oblique": 0.2,
+   "converge": [
+    0.2255,
+    513.0
+   ]
   },
   {
    "name": "stall_h_3",
@@ -1830,9 +1877,10 @@
    "width": 2.546,
    "height": 2.0,
    "depth": 2.108,
-   "lift": 0.095,
+   "lift": 0.098,
    "faces": 7528,
-   "source": "blender"
+   "source": "blender",
+   "oblique": 0.043
   },
   {
    "name": "stall_potter",
@@ -2043,10 +2091,11 @@
    "kind": "volume",
    "width": 1.187,
    "height": 1.0,
-   "depth": 0.947,
+   "depth": 0.959,
    "lift": 0.0,
-   "faces": 22550,
-   "source": "blender"
+   "faces": 20268,
+   "source": "blender",
+   "oblique": 0.226
   },
   {
    "name": "h4_1",

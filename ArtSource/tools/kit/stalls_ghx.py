@@ -1111,8 +1111,9 @@ def stall_h_2(K):
     (0.21 against 0.26 painted). With both, the four posts stand on a true rectangle, 2.70 by 1.76 m. Everything
     stands level and square at its real depth: the posts at their painted feet, the roof square and level on them, the
     basin where it stands; the earth a level rectangle as wide as the frame and as deep as its painted band (py
-    729-898). The stool and the soap dish are drawn larger than real ones (a 0.74 m seat): they are built at a real
-    barber's stool's size (a 0.42 m seat, 0.48 m high) and a soap tray's, where they stand."""
+    729-898). The stool, the basin and the soap are drawn larger than real ones (the stool would have a 0.74 m seat,
+    the basin 0.7 m): they are built at real sizes (a barber's stool with a 0.45 m seat, 0.50 m high; a 0.52 m
+    basin; a soap tray), where they stand."""
     from stalls_cdef import anchor_y, built_at, fk, place, proj_at, xk, yo, zo
     P = K.paint
     Z = P.z
@@ -1127,10 +1128,14 @@ def stall_h_2(K):
     # painted earth through the slope and the perspective (where the posts, stool, basin and soap are painted over
     # it, its own earth)
     earth = ktile(K, (20, 760, 145, 890), vary=0.12, soften=0.1)
-    stool_px = [(325, 729), (580, 729), (580, 835), (470, 870), (420, 870), (325, 835)]
-    top = slope_proj(K, fill=[stool_px], boxes=[(148, 729, 192, 888), (242, 729, 282, 776), (774, 729, 814, 774),
-                                                (874, 729, 912, 886), (628, 760, 872, 892), (592, 846, 688, 902)],
-                     fill_tile=(20, 760, 145, 890), inset=5)
+    stool_px = [(325, 600), (580, 600), (580, 835), (470, 870), (420, 870), (325, 835)]
+    over = [(148, 729, 192, 888), (242, 729, 282, 776), (774, 729, 814, 774), (874, 729, 912, 886),
+            (628, 760, 872, 892), (592, 846, 688, 902)]
+    top = slope_proj(K, fill=[stool_px], boxes=over, fill_tile=(20, 760, 145, 890), inset=5)
+    # the stool, basin and soap are built at real sizes, smaller than painted, and the posts stand at their real
+    # depths: kept off the front projection there, or their painted pixels land on the earth behind them as ghosts
+    # (the earth shows its own filled top there; the posts, stool, basin and soap wear their own materials)
+    K.front_exclude += [("poly", [(float(x), float(y)) for x, y in stool_px])] + over
     # (a rectangle no wider than the frame; the band runs to the frame's edges at every depth, so its two far ends,
     # drawn wider than a square patch's, are left over)
     y_g0, y_g1 = yk(K, 898, hp), yk(K, 729, hp)
@@ -1221,15 +1226,15 @@ def stall_h_2(K):
                name="mirror_string")
     K.tube([(P.x(792), ym + 0.01, Zm(294)), (P.x(792), ym + 0.05, Zm(294))], 0.004, K.colour((0.2, 0.2, 0.2)),
            segments=4, name="nail")
-    place(K, K.parts[n1:], (P.x(792), ym, Zm(294)), Y=ybp - rb - 0.02)
-    # ---------------------------------------------------------------- the stool: a real barber's stool (a 0.42 m
-    # square seat, 0.48 m high, its legs splayed out to a 0.56 m square), turned as its painted seat (38 degrees),
+    place(K, K.parts[n1:], (P.x(792), ym, Zm(294)), Y=ybp - rb - 0.02)    # (0.68 m across: a big barber's mirror)
+    # ---------------------------------------------------------------- the stool: a real barber's stool (a 0.45 m
+    # square seat, 0.50 m high, its legs splayed out to a 0.58 m square), turned as its painted seat (38 degrees),
     # standing where the painted stool stands: its seat drawn about 20 px lower and its feet 20 px higher than the
     # larger painted one
     wood = pole_tile(K, (343, 705, 362, 815), soften=0.15, half=8)
     seat_w = pole_tile(K, (350, 640, 470, 652), soften=0.2)
     towel_top = ktile(K, (470, 650, 530, 700), vary=0.04)
-    zs, th, side_, foot_ = 0.48, 0.04, 0.42, 0.56
+    zs, th, side_, foot_ = 0.50, 0.04, 0.45, 0.58
 
     def real(px, py, z):
         y = yk(K, py, z)
@@ -1286,7 +1291,10 @@ def stall_h_2(K):
         z_rim = zo(K, 802, yb)
         hgt = z_rim - hp
         b_anchor = (P.x(752), yb, hp)
-        brass = proj_at(K, anchor_y(K, b_anchor, hp, k_build=kb), axis_px=752, squeeze=0.92,
+        Yb_ = anchor_y(K, b_anchor, hp, k_build=kb)
+        fb_ = fk(K, Yb_)
+        # (held to a real basin's size, it wears the whole painted basin, squeezed onto it)
+        brass = proj_at(K, Yb_, axis_px=752, squeeze=0.92 * fb_ / min(fb_, 0.26 / R),
                         keep=[(645, 780, 860, 888)], inset=2)
     foot = Vector((P.x(752), yb, hp))
     prof = [(0.0, 0.0), (R * 0.55, 0.0), (R * 0.85, hgt * 0.3), (R * 1.0, hgt * 0.7), (R * 0.98, hgt * 0.92),
@@ -1304,7 +1312,7 @@ def stall_h_2(K):
         pts = [(cx2 + s_ * 0.035 * math.sin(2 * math.pi * i / 16) + s_ * 0.03, foot.y,
                 foot.z + hgt - 0.005 + 0.035 * math.cos(2 * math.pi * i / 16)) for i in range(17)]
         K.tube(pts, 0.008, brass, segments=6, name="basin_handle")
-    place(K, K.parts[n3:], b_anchor, Z=hp, k_build=kb)
+    place(K, K.parts[n3:], b_anchor, Z=hp, k_build=kb, size_cap=0.26 / R)    # a real basin, 0.52 m across
     # ---------------------------------------------------------------- the soap on its wooden tray, at the front (a
     # real tray, 0.2 m, and a cake of soap, where the larger painted ones lie)
     dish = ktile(K, (604, 882, 676, 895), vary=0.05)
@@ -1844,8 +1852,15 @@ def stall_low(K):
     stripes = K.projected(squeeze=1.0, keep=[(48, 14, 242, 73)], exclude=[(30, 0, 60, 25), (195, 0, 220, 25)], inset=1,
                           dz=k * wy(0.0, yf - 0.21))
     n1 = collect(K)
-    scallop_cloth(K, -a_ - 0.06, a_ + 0.16, yf, zr + 0.03, yf - 0.42, Z(56), stripes, hem=P.m(6), n_scallop=10,
+    scallop_cloth(K, -a_ - 0.06, a_ + 0.16, yf, zr + 0.015, yf - 0.42, Z(56), stripes, hem=P.m(6), n_scallop=10,
                   drop=Z(56) - Z(66), sag=0.02, name="awning")
+    # its right end follows the splayed front rafter: at the ridge it ends over the post (the painted ridge ends there),
+    # at the hem 0.16 m past it (measured: the ridge's painted right end is at px 212, the hem's at px 240)
+    for ob in K.parts[n1:]:
+        for v in ob.data.vertices:
+            if v.co.x > a_:
+                t_ = min(1.0, max(0.0, (yf - v.co.y) / 0.42))
+                v.co.x = a_ + (v.co.x - a_) * (0.25 + 0.75 * t_)
     # the back slope wears the awning's own stripes: a strip across them above the scallops, where they hang
     # straight, stacked square (projected through, or tiled at two scales, they ran askew)
     stripe_t = pole_tile(K, (100, 58, 200, 65), soften=0.0, vary=0.03)

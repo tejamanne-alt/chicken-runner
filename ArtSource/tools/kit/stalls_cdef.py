@@ -552,7 +552,25 @@ def slope_source(K, fill=(), boxes=(), keep=None, inset=2, fill_tile=None, feath
             ring = ndimage.binary_dilation(g, iterations=12) & ok
             if ring.sum() < 20:
                 continue
-            filled[g] = np.median(a[ring][:, :3], axis=0) + grain[g]
+            # row by row, the top's colour just left and right of the gap, blended across it (its painted light and
+            # shade carry on through), smoothed down the rows; the ring's median where a side has none
+            med = np.median(a[ring][:, :3], axis=0)
+            base = np.zeros((h, w, 3), np.float32)
+            rows = np.nonzero(g.any(1))[0]
+            for r in rows:
+                xs = np.nonzero(g[r])[0]
+                l, rr = xs.min(), xs.max()
+                sides = []
+                for a0, a1 in ((l - 14, l - 2), (rr + 2, rr + 14)):
+                    a0, a1 = max(0, a0), min(w, a1)
+                    okr = ok[r, a0:a1]
+                    sides.append(np.median(a[r, a0:a1][okr][:, :3], axis=0) if okr.sum() >= 3 else med)
+                t_ = np.linspace(0, 1, rr - l + 1)[:, None]
+                base[r, l:rr + 1] = sides[0] * (1 - t_) + sides[1] * t_
+            gm = g.astype(np.float32)
+            sm = np.stack([ndimage.gaussian_filter(base[..., c] * gm, (6, 2)) for c in range(3)], -1)
+            sm /= np.maximum(ndimage.gaussian_filter(gm, (6, 2)), 1e-3)[..., None]
+            filled[g] = sm[g] + grain[g]
         wgt = np.asarray(Image.fromarray((ok * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(feather)))
         wgt = np.maximum(wgt.astype(np.float32) / 255.0, okf)[..., None]
         out[..., :3] = a[..., :3] * wgt + filled * (1 - wgt)
@@ -809,7 +827,7 @@ def stall_c_1(K):
                                                           (195, 0, 245, 62), (800, 0, 850, 60)], inset=3)
     under = ktile(K, (560, 95, 700, 170), vary=0.05, soften=0.35)
     awning(K, R_(100, 180, yf + 0.02), R_(925, 176, yf + 0.02), R_(214, 50, yb - 0.02), R_(828, 50, yb - 0.02),
-           cloth, sag_front=P.m(94) * fk(K, yf), sag_back=P.m(8) * fk(K, yb), belly=0.06, sag_side=0.03, under=under,
+           cloth, sag_front=P.m(94), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under,
            nu=40, nv=18, hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2), front_pow=0.63)
     # ---------------------------------------------------------------- the ground: a level rectangle of the painted
     # earth under the front half (the painting shows it only at the right, past the last sack)
@@ -856,10 +874,13 @@ def stall_c_1(K):
     ]
     for cx, hw, f, b, pk, h_s, cl, gd in sacks:
         n0 = len(K.parts)
-        foot_row = P.py(k * max(0.0, (Z(f) - h_s) / k)) if h_s is not None else 790
+        # (the rim's front, h_s up, stands r * 0.82 in front of the sack's centre)
+        foot_row = P.py(k * max(0.0, (Z(f) - h_s) / k + P.m(hw) * 0.82)) if h_s is not None else \
+            P.py(Z(790) + k * P.m(hw) * 0.82)            # the front row: its front at the frame's foot
         with built_at(K, foot_row, 0.0) as kb:
             y = yo(K, foot_row, 0.0)
-            sack(K, P.x(cx), y, P.m(hw), zo(K, f, y), zo(K, b, y), zo(K, pk, y), cl, gd, z0=0.0, sy=0.82,
+            ry_ = P.m(hw) * 0.82                          # (its rim's front and back stand that far in front and behind)
+            sack(K, P.x(cx), y, P.m(hw), zo(K, f, y - ry_), zo(K, b, y + ry_), zo(K, pk, y), cl, gd, z0=0.0, sy=0.82,
                  wobble=0.035)
             if cx == 317:
                 scoop(K, (P.x(338), y - 0.04, zo(K, 678, y - 0.04)), (P.x(408), y - 0.1, zo(K, 582, y - 0.1)),
@@ -1151,6 +1172,10 @@ def stall_c_2(K):
     earth = ktile(K, (762, 760, 868, 832), vary=0.08, soften=0.3)
     gtop = slope_proj(K, boxes=[(28, 728, 258, 836), (212, 770, 418, 836), (418, 750, 672, 836), (638, 640, 748, 836),
                                 (258, 712, 296, 790), (730, 700, 766, 822)], fill_tile=(762, 760, 868, 832), inset=4)
+    # the baskets and the bench's legs wear their own (projected) materials: kept off the front projection, so their
+    # painted pixels do not land on the earth behind them as ghosts
+    K.front_exclude += [(28, 728, 258, 836), (212, 770, 418, 836), (638, 640, 748, 836), (258, 712, 296, 790),
+                        (730, 700, 766, 822)]
     y_g0, y_g1 = 0.0, yk(K, 749, hg)
     gx0, gx1 = xk(K, 6, y_g0), xk(K, 871, y_g0)
     topped(K, [(gx0, y_g0), (gx1, y_g0), (gx1, y_g1), (gx0, y_g1)], 0.0, hg, earth, gtop, name="ground")
@@ -1512,6 +1537,9 @@ def stall_c_3(K):
     earth = ktile(K, (310, 566, 430, 598), vary=0.08, soften=0.3)
     gtop = slope_proj(K, boxes=[(46, 455, 110, 649), (920, 455, 982, 649), (186, 522, 228, 582), (768, 522, 814, 582),
                                 (124, 520, 162, 600), (820, 520, 856, 596)], fill_tile=(310, 566, 430, 598), inset=4)
+    # the front legs and the posts wear their own materials: kept off the front projection below the cot, so their
+    # painted pixels do not land on the earth behind them as ghosts
+    K.front_exclude += [(46, 545, 110, 649), (920, 545, 982, 649), (124, 540, 162, 600), (820, 540, 856, 596)]
     # a rectangle no wider than the frame, as deep as the band at the frame's middle (the band runs to the frame's
     # left edge at every depth, and its brushed right end runs back to the left: their far ends, drawn wider than a
     # square patch's, are left over)
@@ -1553,7 +1581,7 @@ def stall_c_3(K):
            zt - 0.012, zt, weave, weave, name="bed")
     # the legs (built in the painting's scale round their feet, set where they stand): square blocks with pegs,
     # turned below; the back ones the painted turned block feet
-    foot_m = K.colour((600, 545, 645, 575), vary=0.08)
+    foot_m = pole_tile(K, (200, 556, 212, 570), soften=0.15)     # the painted turned foot's wood
     for x_px, blk, keep in ((77, (50, 105, 465, 545), [(50, 465, 106, 645)]), (950, (925, 975, 460, 545),
                                                                               [(924, 460, 978, 645)])):
         for back in (False, True):
@@ -2754,6 +2782,7 @@ def stall_e_3(K):
     # astrologer, the mat's own straw
     straw = ktile(K, (545, 600, 620, 632), vary=0.06)
     top = slope_proj(K, fill=[man, parrot], boxes=[(80, 440, 216, 666)], fill_tile=(545, 600, 620, 632))
+    K.front_exclude.append((80, 600, 216, 666))           # the painted cage's foot is not projected onto the mat
     y0, y1 = yk(K, 695, zm), yk(K, 547, zm)
     x0, x1 = -1.5734, 1.3981                              # its sides, fitted to the painted ones through the perspective
     topped(K, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], 0.0, zm, straw, top, name="mat")

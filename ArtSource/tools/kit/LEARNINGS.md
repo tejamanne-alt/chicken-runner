@@ -280,6 +280,15 @@ Paintings drawn from above (the last round: cot, cart, bicycle, mats, stones, fi
   corners (`fields.quad_mapped`), excluded from the front projection.
 - **Take the painted ink out of what is projected** where the model matches to a few px (`fields.deink`): an ink line
   3 px off an edge reads as a dark stripe along a top seen from the side.
+- **No fan-shaped ground, ever**: a ground band painted to the frame's edges becomes a trapezoid under any
+  convergence. Build a true rectangle no wider than the frame and accept the red wedges at the band's far ends.
+- **Real proportions beat the front match**: a painter often draws an object bigger than the structure round it
+  allows (a stool with a 0.74 m seat). Build it at a real size where the painted one stands and accept the red round
+  it; put its painted region in `K.front_exclude` and fill the ground there with its own earth, or the projection
+  leaves a ghost of it on the ground behind.
+- **Decide whether the painting is one camera**: `converge` with a vanishing row is a true perspective (things above
+  its horizon seen from below); a painter's view (a roof drawn from above over posts whose horizon runs below it)
+  takes width only, `(c, xc)`. Check it by the plan: a mat or bench fitted through it comes out square.
 - **Spoked wheels are spoked-disc cards** in the wheel's own plane showing the painting's spokes minus every solid's
   painted stroke (`lane_props.spoke_disc`); tube radius is the painted half width less the ink line.
 
