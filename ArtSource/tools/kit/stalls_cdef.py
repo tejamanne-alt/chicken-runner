@@ -1390,7 +1390,7 @@ def stall_d_3(K):
     roof_z = Z(205)
     # the booth's walls: dark inside (in shadow), clad outside in vertical boards of the painted brown wood (a plain
     # dark slab from the sides and back before), battens and a rail across the back
-    boards = pole_tile(K, (225, 392, 234, 470), soften=0.15, vary=0.1)
+    boards = pole_tile(K, (225, 400, 234, 462), soften=0.45, vary=0.12)
     K.box(P.x(215), P.x(880), 0.55, 0.6, 0.0, roof_z + 0.15, dark, name="back_wall")
     xs = np.linspace(P.x(215), P.x(880), 11)
     for xa, xb in zip(xs, xs[1:]):

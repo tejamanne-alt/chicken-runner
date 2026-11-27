@@ -2769,7 +2769,8 @@ def h5_4(K):
     # the short trunk, forking at its middle into the painted left stem and main stem, a limb to the right, two
     # snapped-off stubs, and limbs going back into the crown
     # (traced off the painting row by row; radii less the outline the game draws round them)
-    parts = [limb(K, [(255, 640, 33), (253, 600, 26), (252, 560, 26), (252, 530, 26)], bark, segments=16,
+    parts = [limb(K, [(255, 640, 33), (253, 600, 26), (252, 560, 26), (251, 530, 30), (254, 515, 26)], bark,
+                  segments=16,
                   name="trunk")]
     for pts, ys in (([(232, 530, 10), (222, 512, 9), (215, 495, 8), (209, 475, 6), (206, 455, 4), (204, 438, 3)],
                      [0, -0.005, -0.01, -0.02, -0.03, -0.04]),
