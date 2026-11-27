@@ -2344,8 +2344,8 @@ def stall_f_3(K):
         for ((ax, ay), (bx, by), w), y in ((front_leg, ty0 + 0.06), (rear_leg, ty1 - 0.06)):
             beam(K, P.pt(ax, ay, y), (P.x(bx), y, 0.0), P.m(w), P.m(24), legw, name="leg")
     for y in (ty0 + 0.06, ty1 - 0.06):
-        beam(K, P.pt(160, 650, y), P.pt(340, 650, y), P.m(16), P.m(20), legw, name="stretcher")
-    beam(K, P.pt(247, 650, ty0 + 0.06), P.pt(247, 650, ty1 - 0.06), P.m(16), P.m(16), legw, name="stretcher_x")
+        beam(K, P.pt(160, 680, y), P.pt(345, 680, y), P.m(16), P.m(32), legw, name="stretcher")
+    beam(K, P.pt(250, 680, ty0 + 0.06), P.pt(250, 680, ty1 - 0.06), P.m(16), P.m(16), legw, name="stretcher_x")
     # ---------------------------------------------------------------- the crusher
     iron = K.colour((185, 430, 200, 470), vary=0.06)
     my = -0.05

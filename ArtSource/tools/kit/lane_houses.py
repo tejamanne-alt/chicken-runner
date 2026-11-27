@@ -1806,7 +1806,13 @@ def house_weaver(K):
     halo_exclude(K, [(1346, 600, 1660, 1080)], near=400)          # the white the cut-out filled in behind the rack
     # the spinning wheel, the rack's posts and the yarn stand in front of the wall's right end with their own
     # materials: kept off the wall behind them (from an angle it showed a ghost wheel painted on the plaster)
-    K.front_exclude.append((1035, 590, 1345, 1080))
+    def not_wall(rgb):                           # the wheel's and rack's wood and the yarn, not the lime or indigo
+        r, g, b_ = [rgb[..., i].astype(np.int32) for i in range(3)]
+        mx, mn = np.maximum(np.maximum(r, g), b_), np.minimum(np.minimum(r, g), b_)
+        lime = (mn > 165) & (mx - mn < 60)
+        indigo = (b_ > r + 10) & (b_ > g)
+        return ~(lime | indigo)
+    exclude_where(K, (1035, 590, 1345, 1080), not_wall, grow=1)
     white = K.tile((200, 560, 440, 900), size=1.0, vary=0.05, soften=0.2)
     indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
     thatch_m = K.tile((500, 120, 800, 380), size=0.6, vary=0.06, soften=0.05)    # its strands kept
