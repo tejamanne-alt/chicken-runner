@@ -302,7 +302,10 @@ KID_STEPS = [
     "everything else the same.* If something is missing or comes back from the sheet, ask for just that: *Add the "
     "gold jhumka earrings and keep everything else the same.* or *Make the henna exactly the design in the front view "
     "and keep everything else the same.* or *Make the hairband a plain peacock-blue band with no "
-    "pattern and keep everything else the same.*",
+    "pattern and keep everything else the same.* If the back view shows front details (palms, toes, henna on the "
+    "backs of the legs), reply: *Using the image you just made, show her hands from behind, with their backs, "
+    "knuckles and fingernails towards us and one leaf vine on each; turn her feet away from us so we see only her "
+    "heels; and make the backs of her legs plain skin. Keep everything else the same.*",
     "Save them as `kid_meshy_front.png`, `kid_meshy_left.png`, `kid_meshy_right.png` and `kid_meshy_back.png` in "
     "`ArtSource/references/`.",
     "In Meshy, **Image to 3D** with several images: upload the four as front, left, right and back. If it offers them, "
@@ -341,10 +344,6 @@ KID_HENNA_SEEN = {
             "fingertips, the edge of the palm's dot design, part of the leaf vine on the back of the hand and the row "
             "of dots below the bangles, the dyed toes, the dyed band along the edge of the sole, the leaf vine on the "
             "top of the foot from the side, the ring of dots round the ankle and the leaf vine up the front of the shin.",
-    "back": "From behind we see the backs of both hands, each with its one leaf vine from the middle finger to the "
-            "wrist and its row of dots below the bangles, the dyed fingertips at their ends, the rings of dots round "
-            "the backs of the ankles, and the dyed band round the edges of the soles at her heels; the palms, the "
-            "tops of the feet and the shin vines face away from us.",
 }
 KID_POSE = ("She faces the viewer squarely and stands in a neutral A-pose for rigging: upright and symmetrical, her "
             "weight on both feet, her feet flat, toes forward and a hand's width apart; her arms straight and held out "
@@ -366,16 +365,28 @@ def kid_side(side):
             "and her bare feet with the silver anklets.\n\n" + KID_HENNA + " " + KID_HENNA_SEEN["side"])
 
 
-KID_BACK = ("The same toddler in the same peacock-blue pattu frock, seen exactly from behind, so her face is hidden. "
-            "She stands in the same A-pose as in the front view, mirrored as seen from the back: her arms straight and "
-            "held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt, her "
-            "hands open with the palms forward, so we see the backs of her hands, and her feet flat and a hand's width "
-            "apart. Show her back clearly: the back of her head with the shoulder-length wavy black hair, the gold "
-            "jhumka earrings just showing below her hair on each side, the back of the plain peacock-blue hairband, the "
-            "plain back of the bodice with a fine seam down the middle, the puffed sleeves with their gold edges, the "
-            "gold and glass bangles on both wrists, the blue sash tied in a neat bow at the back of the waist, the "
-            "gathered skirt with the magenta and gold temple-tower border continuing all the way round, and the backs "
-            "of her lower legs and bare heels with the silver anklets.\n\n" + KID_HENNA + " " + KID_HENNA_SEEN["back"])
+# The back view names only what is seen from behind: image models draw whatever a prompt mentions, so listing the
+# whole henna design (palms, tops of the feet, shins) put palms, toes and shin vines into the back view.
+KID_BACK = ("The same toddler in the same peacock-blue pattu frock, seen exactly from behind: we look at her back, "
+            "and she faces away from us, into the picture, so her face and the fronts of her legs are turned away."
+            " She stands in the same A-pose as in the front view, seen from the back: her arms "
+            "straight and held out about 45 degrees from her sides, with clear space between her arms, her body and "
+            "her skirt, and her feet flat and a hand's width apart.\n\n"
+            "Show her back clearly: the back of her head, all shoulder-length wavy black hair; a thin arc of the plain "
+            "peacock-blue hairband showing across the top of her head; the gold jhumka earrings just peeping out below "
+            "her hair on each side; the plain back of the bodice with a fine seam down the middle; the puffed sleeves "
+            "with their gold edges; the blue sash tied in a neat bow at the back of the waist; the gathered skirt with "
+            "the magenta and gold temple-tower border continuing all the way round; the backs of her knees and calves, "
+            "plain bare skin; the silver anklets; and her two round heels, the soles' edges just showing beneath them.\n\n"
+            "Her hands, seen from behind, show their backs: knuckles and fingernails towards us, fingers pointing down "
+            "and a little outwards, thumbs on the outer side, the gold and glass bangles at the wrists. Her feet point "
+            "away from us, so we see her heels and the backs of her ankles, with her toes hidden in front of her feet.\n\n"
+            "Her maruthani (henna) from the front view, as it looks from behind, is only this, in the same flat deep "
+            "orange-red: on the back of each hand, one vine of small paired leaves from the base of the middle finger "
+            "to the wrist, ending in a row of small dots just below the bangles; the dyed fingertips showing as "
+            "orange-red tips round the fingernails; a ring of small dots round the back of each ankle, just below the "
+            "anklet; and a thin orange-red rim round each heel, where the dyed edge of the sole shows. The backs of her "
+            "legs are plain bare skin.")
 KID_FRAME_G = ("Show only her: one full-length figure, centred, from the top of her hair to the soles of her feet, "
                "filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw "
                "her orthographic and straight on at her own chest height, with no perspective. Light her evenly and "
@@ -422,14 +433,16 @@ def kid_prompts():
             body = KID_BACK if v == "back" else kid_side(v)
             title = "Back view" if v == "back" else f"{v.capitalize()} side view"
             design = "hair" if v == "back" else "face, hair"
+            henna = ("henna design, seen here from behind" if v == "back"
+                     else "henna (the same design in the same places)")
             c = (f"Square 1:1 image.\n\n{title}, for 3D modelling, of the same toddler as in the attached images: the "
                  f"model sheet ({KID_SHEET}) for her {design}, frock, anklets and painted style, and the front view "
                  f"({KID_FILES['front']}) for her exact size, position in the frame, pose, colours, plain hairband "
-                 f"(not the sheet's leopard-print one), earrings, bangles and henna (the same design in the same places). Match them exactly.\n\n{body}\n\n{KID_SAME_C}")
+                 f"(not the sheet's leopard-print one), earrings, bangles and {henna}. Match them exactly.\n\n{body}\n\n{KID_SAME_C}")
             g = (f"Create a 1:1 square image.\n\nUse the images I've uploaded: the kid's model sheet, for her {design}, "
                  f"frock, anklets and painted style; and the front view, for her exact size, position in the frame, "
-                 f"pose, colours, plain hairband (not the sheet's leopard-print one), earrings, bangles and henna "
-                 f"(the same design in the same places). Match them exactly.\n\n{body}\n\n{KID_SAME_G}")
+                 f"pose, colours, plain hairband (not the sheet's leopard-print one), earrings, bangles and {henna}. "
+                 f"Match them exactly.\n\n{body}\n\n{KID_SAME_G}")
         out.append({"view": v, "file": KID_FILES[v], "attach": attach, "chatgpt": c, "gemini": g})
     return out
 
