@@ -150,13 +150,13 @@ def _tile_socket(K, m, coord, box, size=None, soften=0.2, vary=0.0, square=False
 
 
 def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=None, soften=0.25, name=None,
-              side_img=None, top_img=None, vary=0.0, square=True):
+              side_img=None, top_img=None, vary=0.0, square=True, mottle=0.0, mottle_size=0.5):
     """A material of two tiles of the painting: side_box on the surfaces that face sideways (an earth bank's face,
     a wall) and top_box on those that face up (the bank's grassy or trodden top), blended on normal.z (lo..hi).
     side_img / top_img: images to tile instead (strip() crops), the boxes then only give their painted widths."""
     ck = lambda im: None if im is None else zlib.crc32(im.tobytes()) ^ (im.width << 16) ^ im.height   # by content
     key = ("two", tuple(side_box), tuple(top_box), lo, hi, side_size, top_size, soften, ck(side_img), ck(top_img),
-           vary, square)
+           vary, square, mottle, mottle_size)
     if key in K._mats:
         return K._mats[key]
     m = Mat(name or f"{K.name}_two{len(K._mats)}")
@@ -178,7 +178,11 @@ def two_tiles(K, side_box, top_box, lo=0.55, hi=0.8, side_size=None, top_size=No
     nt.links.new(rng.outputs["Result"], mix.inputs["Factor"])
     nt.links.new(a, mix.inputs["A"])
     nt.links.new(b, mix.inputs["B"])
-    m.set_colour(mix.outputs["Result"])
+    col = mix.outputs["Result"]
+    if mottle:                                              # soft patches of lighter and darker stone or earth
+        from kitlib import _vary
+        col = _vary(m, col, mottle, 1.0 / mottle_size)
+    m.set_colour(col)
     K._mats[key] = m
     return m
 
@@ -383,16 +387,23 @@ def img_median(img):
     return np.median(px if len(px) else a.reshape(-1, 4)[:, :3], axis=0)
 
 
-def speckle(crop, sigma=5.0, base=None, seed=0, amount=1.0):
+def speckle(crop, sigma=5.0, base=None, seed=0, amount=1.0, flatten=0.0):
     """A stone surface to tile, from a clean patch of it: the patch's fine grain (its flecks and pits, the painted
-    light and shade taken out: the patch less its blur, times `amount`) laid over one colour (`base`, 0-255 RGB,
-    default the patch's own median), so a long thin patch can be stacked into a square (each copy rolled sideways a
+    light and shade taken out: the patch less its blur, times `amount`; sigma None keeps the whole patch, its light,
+    blotches and tone) laid over one colour (`base`, 0-255 RGB, default the patch's own median), so a long thin patch can be stacked into a square (each copy rolled sideways a
     random amount and cross-faded into the one before it, never mirrored) without banding or seams, and tinted for
-    each block of a wall or a pier."""
+    each block of a wall or a pier. flatten: how much of the strip's shading across it (each row's own mean, the
+    painted light falling off towards an edge) to take out first, so stacked rows do not band like planks."""
     a = np.asarray(crop.convert("RGBA")).astype(np.float32)
     rgb, ok = a[..., :3], a[..., 3] > 200
+    if flatten:
+        across = 0 if rgb.shape[1] >= rgb.shape[0] else 1          # the strip's short side
+        prof = ndimage.gaussian_filter1d(np.median(rgb, axis=1 - across), 1.0, axis=0)
+        prof = prof[:, None, :] if across == 0 else prof[None, :, :]
+        rgb = rgb - flatten * (prof - np.median(rgb[ok] if ok.any() else rgb.reshape(-1, 3), axis=0))
     med = np.median(rgb[ok], axis=0) if ok.any() else np.median(rgb.reshape(-1, 3), axis=0)
-    low = np.stack([ndimage.gaussian_filter(rgb[..., i], sigma) for i in range(3)], -1)
+    low = med[None, None, :] if sigma is None else np.stack([ndimage.gaussian_filter(rgb[..., i], sigma)
+                                                             for i in range(3)], -1)
     det = (rgb - low) * amount
     det[~ok] = 0.0
     tr = det.shape[0] < det.shape[1] / 1.4 or det.shape[1] >= det.shape[0] * 1.4
@@ -415,6 +426,37 @@ def speckle(crop, sigma=5.0, base=None, seed=0, amount=1.0):
         det = det.transpose(1, 0, 2)
     out = (np.array(base, np.float32) if base is not None else med) + det
     return Image.fromarray(out.clip(0, 255).astype(np.uint8))
+
+
+def quilt(crop, n=3, seed=0, contrast=1.0, base=None, flatten=0.0):
+    """A square tile with no direction in it, from a long thin patch of a surface (a slab's painted top): the patch cut
+    into squares, laid n by n turned a random quarter-turn each, their edges feathered into one another; its tone
+    pulled to `base` (0-255 RGB) and its blotches strengthened by `contrast`. For a surface the tile's rows would
+    otherwise cross at an angle (a slab turned in plan) and show as scratches."""
+    a = np.asarray(crop.convert("RGB")).astype(np.float32)
+    if flatten:
+        prof = ndimage.gaussian_filter1d(np.median(a, axis=1), 1.0, axis=0)
+        a = a - flatten * (prof[:, None, :] - np.median(a.reshape(-1, 3), axis=0))
+    h, w = a.shape[:2]
+    q = min(h, w)
+    chunks = [a[:q, x:x + q] for x in range(0, w - q + 1, max(1, q // 2))]
+    rng = np.random.default_rng(seed)
+    ov = max(2, q // 4)
+    step = q - ov
+    N = n * step + ov
+    out = np.zeros((N, N, 3), np.float32)
+    wt = np.zeros((N, N, 1), np.float32)
+    ramp = np.minimum(1.0, np.minimum(np.arange(q) + 1, q - np.arange(q)) / ov)
+    win = (ramp[:, None] * ramp[None, :])[..., None]
+    for i in range(n):
+        for j in range(n):
+            c = np.rot90(chunks[int(rng.integers(len(chunks)))], int(rng.integers(4)))
+            out[i * step:i * step + q, j * step:j * step + q] += c * win
+            wt[i * step:i * step + q, j * step:j * step + q] += win
+    out = out / np.maximum(wt, 1e-3)
+    med = np.median(out.reshape(-1, 3), axis=0)
+    out = (np.array(base, np.float32) if base is not None else med) + (out - med) * contrast
+    return Image.fromarray(out[ov // 2:N - ov // 2, ov // 2:N - ov // 2].clip(0, 255).astype(np.uint8))
 
 
 def lit_median(K, box, min_lum=100):
@@ -1467,20 +1509,27 @@ def canal_piece_2(K):
     zt, t, zg = P.z(160), 0.29, P.z(318)                    # the slabs' top (the near ends'), their thickness, ground
     zb = zt - t
     rot = ((250, 150), (600, 70))                           # the front slab's long side, as painted
-    top = turned_crop(K, *rot, (300, 108, 450, 132), centre=(330, 164))
-    side = turned_crop(K, *rot, (300, 153, 440, 168), centre=(330, 164))
+    grain = turned_crop(K, *rot, (300, 108, 450, 132), centre=(330, 164))     # a clean patch of the slab's top
+    # the slabs' own painted stone, its tones kept: the top's ochre-cream with its brown-grey blotches and flecks
+    # (the whole painted top, ink edges left out), the darker brown-grey of the painted side face on the sides, ends
+    # and underside; the slabs' rounded edges take the darker side stone, as the painted tops darken to their edges
+    edge = ((0, 0), (1000, -317))                           # the front slab's painted top edge, -17.6 degrees
+    top = turned_crop(K, *edge, (250, 107, 585, 140), centre=(330, 164))
+    side = turned_crop(K, *edge, (290, 155, 550, 174), centre=(330, 164))
     top_c, side_c = img_median(top), img_median(side)
-    slab = two_tiles(K, (0, 0, 150, 1), (0, 0, 150, 1), lo=0.5, hi=0.8, side_size=P.m(150), top_size=P.m(150),
-                     soften=0.0, vary=0.12, side_img=speckle(top, base=0.55 * top_c + 0.45 * side_c, amount=1.8),
-                     top_img=speckle(top, amount=1.8, seed=3))
+    slab = two_tiles(K, (0, 0, 100, 1), (0, 0, 100, 1), lo=0.8, hi=0.97, side_size=P.m(100), top_size=P.m(100),
+                     soften=0.0, vary=0.1, square=False,
+                     side_img=quilt(side, 4, seed=5, contrast=1.3, flatten=0.8),
+                     top_img=quilt(top, 3, seed=3, contrast=1.5, base=0.82 * top_c + 0.18 * side_c, flatten=0.6))
     shades = [lit_median(K, b) for b in ((60, 225, 130, 245), (175, 245, 225, 262), (250, 280, 300, 300),
                                          (530, 165, 580, 185), (110, 255, 170, 275))]
-    stones = [img_tile(K, speckle(top, base=sh, seed=i, amount=1.8), P.m(150), vary=0.1, key=("pier", i))
+    stones = [img_tile(K, speckle(grain, base=sh, seed=i, amount=1.8), P.m(150), vary=0.1, key=("pier", i))
               for i, sh in enumerate(shades)]
     parts = []
     for u0, v0, length in ((0.0, 0.0, L), (ub, w + g, Lb)):
         parts.append(K.block(u0 + length / 2, v0 + w / 2, zb + t / 2, length, w, t, slab,
-                             rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.06, jitter=0.008, name="slab"))
+                             rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.07, jitter=0.008, name="slab"))
+        parts[-1].modifiers["bevel"].segments = 3          # a rounded edge, its upper face half dark
         for a0, a1 in ((u0 + 0.03, u0 + 0.52), (u0 + length - 0.56, u0 + length - 0.07)):
             parts += block_pier(K, a0, a1, v0 + 0.03, v0 + w - 0.03, zg, zb, 4, stones)
     turn(parts, th, (P.x(240), -1.385))
@@ -1506,15 +1555,22 @@ def canal_piece_3(K):
     th, T = 25.0, 0.5                                       # the turn; each tread's depth
     c, s = math.cos(math.radians(th)), math.sin(math.radians(th))
     h0 = P.z(263)                                           # the lowest step: the pot stands on it as painted
-    grain = P.crop((140, 145, 200, 180))                    # a clean patch of a block's face
-    # the blocks' own stone, lit (their shaded left ends and undersides are light, not paint): the risers' shade,
-    # a little lighter or darker block by block, and their tops as the lit treads
-    base = np.array(lit_median(K, (60, 55, 190, 100), 120))
-    tread = np.array(lit_median(K, (230, 100, 340, 130), 120))
-    stones = [two_tiles(K, (0, 0, 60, 1), (0, 0, 60, 1), lo=0.55, hi=0.8, side_size=P.m(60), top_size=P.m(60),
-                        soften=0.0, vary=0.1, side_img=speckle(grain, base=base * f, amount=0.9, seed=i),
-                        top_img=speckle(grain, base=(0.5 * base + 0.5 * tread) * f, amount=0.9, seed=i + 7))
-              for i, f in enumerate((1.0, 1.05, 0.95, 1.09, 0.92))]
+    # the blocks' own painted stone, its tones and blotches kept: the risers' tan-brown camouflage of light and dark
+    # patches (clean patches of three painted risers, inside their ink lines, quilted with no direction in it) on
+    # their faces and ends, the lit treads' paler stone on their tops; each block a little lighter or darker. The
+    # painted shaded left ends and undersides are light, not paint: not used.
+    def strip_of(boxes, h):
+        return Image.fromarray(np.concatenate([np.asarray(P.crop(b).convert("RGB").resize(
+            (int(round((b[2] - b[0]) * h / (b[3] - b[1]))), h), Image.LANCZOS)) for b in boxes], 1))
+    riser = strip_of([(215, 56, 335, 74), (232, 132, 330, 155), (140, 147, 212, 174)], 22)
+    tread = strip_of([(240, 99, 330, 108), (155, 24, 240, 33)], 14)
+    r_c, t_c = img_median(riser), img_median(tread)
+    stones = [two_tiles(K, (0, 0, 60, 1), (0, 0, 60, 1), lo=0.55, hi=0.8, side_size=P.m(riser.width),
+                        top_size=P.m(tread.width),
+                        soften=0.0, vary=0.05, square=False, mottle=0.22, mottle_size=0.3,
+                        side_img=speckle(riser, sigma=4.0, seed=i, amount=1.3, base=r_c * f),
+                        top_img=speckle(tread, sigma=4.0, seed=i + 7, amount=1.3, base=t_c * f))
+              for i, f in enumerate((1.0, 1.05, 0.94, 1.09, 0.9))]
     # the tiers: (their courses' levels, the joints along each course from the bottom up, the right end), all from
     # the ground (the lower courses of the upper tiers show at the left end and the back)
     tiers = [([0.0, h0], [[0.61, 1.25, 1.85]], 2.43),
@@ -1531,7 +1587,8 @@ def canal_piece_3(K):
                                      rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.045, jitter=0.01, name="step"))
     # the washing tray on the ground before the lowest step: a rim round a sunk floor
     tray_px = P.crop((330, 255, 420, 285))
-    tray = img_tile(K, speckle(tray_px, base=img_median(tray_px) * 0.9, amount=0.9), P.m(90), vary=0.08, key="tray")
+    tray = img_tile(K, quilt(tray_px, 4, seed=11, contrast=1.3, base=img_median(tray_px) * 0.92), P.m(80), vary=0.08,
+                    key="tray")
     ta0, ta1, tp0, tp1, tht, rim = 0.7, 1.8, -1.06, -0.06, 0.13, 0.09
     parts.append(K.box(ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor"))
     for a0, a1, p0, p1 in ((ta0, ta1, tp0, tp0 + rim), (ta0, ta1, tp1 - rim, tp1), (ta0, ta0 + rim, tp0, tp1),

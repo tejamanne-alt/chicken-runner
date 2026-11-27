@@ -122,14 +122,15 @@ def rake_tile(K, a, b, offset_px, thick_px, vary=0.1, soften=0.1):
     band = rot.crop(tuple(int(v) for v in box))
     return strip_tile(K, box, vary=vary, soften=soften, image=band, key=("rake", tuple(a), tuple(b), offset_px))
 
-def clean_source(K, keep=None, exclude=(), inset=4, halo=3, soften=0.0):
+def clean_source(K, keep=None, exclude=(), inset=4, halo=3, soften=0.0, drop=None):
     """Like K.source (the painting inside the keep boxes, outside the exclude boxes, pulled in `inset` px from its
     outline, every other pixel filled from the nearest kept one), but also without the cut-out's pale grey halo
     (unsaturated light pixels within `halo` px of the transparent edge), and with its strong highlights and
-    reflections pulled `soften` towards their blurred surroundings (for a body that borrows another's paint)."""
+    reflections pulled `soften` towards their blurred surroundings (for a body that borrows another's paint).
+    drop: (box, fn(rgb) -> bool array) pixels inside box to leave out too (things painted over the body)."""
     from PIL import Image
     key = ("csrc", tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude), inset, halo,
-           soften)
+           soften, (tuple(drop[0]), drop[1].__name__) if drop else None)
     if key in K._mats:
         return K._mats[key]
     a = np.asarray(K.paint.img).astype(np.float32)
@@ -146,6 +147,10 @@ def clean_source(K, keep=None, exclude=(), inset=4, halo=3, soften=0.0):
         ok &= k
     for x0, y0, x1, y1 in exclude:
         ok[int(y0):int(y1), int(x0):int(x1)] = False
+    if drop:
+        (x0, y0, x1, y1), fn = drop
+        sub = ok[int(y0):int(y1), int(x0):int(x1)]
+        sub &= ~ndimage.binary_dilation(fn(a[int(y0):int(y1), int(x0):int(x1), :3]), iterations=1)
     if inset:
         ok = ndimage.binary_erosion(ok, iterations=inset)
     if ok.any():
@@ -161,7 +166,7 @@ def clean_source(K, keep=None, exclude=(), inset=4, halo=3, soften=0.0):
 
 
 def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4, dx=0.0, dz=0.0, front_deg=64.0,
-            zs=1.0, z0=0.0, halo=3, soften=0.0, name=None):
+            zs=1.0, z0=0.0, halo=3, soften=0.0, drop=None, name=None):
     """Like K.projected, for a round thing turned about a vertical axis (axis_x, axis_y metres): the painting
     wrapped round it instead of pushed straight through. Up to front_deg either side of the front it is exactly the
     straight projection (so it meets the painting's front seamlessly; the bake's front projection covers that much);
@@ -170,7 +175,7 @@ def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4,
     dragged across it in streaks. keep / exclude / inset as K.source. dx, dz shift where it samples (metres); zs
     scales the heights it samples about z0 (to borrow a taller or shorter painted body)."""
     key = ("wrap", round(axis_x, 4), round(axis_y, 4), squeeze, round(dx, 4), round(dz, 4), front_deg, zs, round(z0, 4),
-           halo, soften,
+           halo, soften, (tuple(drop[0]), drop[1].__name__) if drop else None,
            tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude), inset)
     if key in K._mats:
         return K._mats[key]
@@ -209,7 +214,7 @@ def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4,
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(clean_source(K, keep, exclude, inset, halo, soften), f"{m.mat.name}_img")
+    tex.image = _image(clean_source(K, keep, exclude, inset, halo, soften, drop), f"{m.mat.name}_img")
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
     m.set_colour(tex.outputs["Color"])
@@ -704,9 +709,18 @@ def veg_basket(K):
     bunches of spinach, piled all round its top, not only at the front."""
     P = K.paint
     cx = 82
-    wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(16, 62, 150, 129)], inset=2)
+    pale_halo(K)
+    # the wicker only: not the tomatoes, brinjals and leaves painted over the rim (they would ring it in red)
+    def not_wicker(rgb):
+        r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+        return ((r > 150) & (r > 2.5 * g)) | ((b > g + 10) & (r > g)) | (g > r + 4)
+    wicker = wrapped(K, P.x(cx), squeeze=0.93, keep=[(16, 55, 150, 129)], inset=2, drop=((28, 50, 142, 76), not_wicker))
     basket(K, cx, 0.0, [(40, 128.5), (45, 127), (51, 119), (56, 109), (60, 98), (62.5, 88), (64, 79)],
            (67, 62, 77), 16, wicker)
+    # the inside of the rim, seen over it from behind: woven wicker (the painting has none to project there)
+    lining = K.tile((40, 88, 124, 118), vary=0.08, soften=0.3)
+    K.lathe(prof(P, [(53.5, 64.2), (50.2, 71), (45.8, 78.3)]), lining, segments=40, centre=(P.x(cx), 0.0, 0),
+            name="lining", cap=False, wobble=0.01)
     ground_disc(K, cx, 129, 70, 0.16, (8, 124, 30, 128), h=0.004)
     R = P.m(64)                                   # the basket's radius at the rim, metres
     zr = P.z(64)
@@ -716,7 +730,7 @@ def veg_basket(K):
         rho = min(1.0, math.hypot(x - P.x(cx), y) / R)
         return zr + P.m(10) * (1 - rho * rho) - P.m(3) * rho
     # the heap inside: a low dome of dark leaves the vegetables lie on
-    heap = K.colour((0.05, 0.09, 0.015), vary=0.2, scale=25)
+    heap = K.tile((122, 20, 150, 44), vary=0.12, soften=0.25)        # the painted spinach leaves
     K.lathe([(0.0, zr + P.m(10)), (R * 0.6, zr + P.m(7)), (R * 0.88, zr + P.m(1)), (R * 0.93, zr - P.m(8))], heap,
             segments=32, centre=(P.x(cx), 0, 0), name="heap", cap=False)
     # okra fanned up on the left, a bunch going back through the basket
@@ -734,7 +748,7 @@ def veg_basket(K):
     T1, T2, T3 = ((106, 46), (96, 38, 116, 54), 12), ((95, 60), (83, 50, 108, 70), 14), ((122, 58), (112, 49, 134, 67), 13)
     cap = K.colour((0.06, 0.12, 0.02), vary=0.1)
     tomatoes = [  # at (px, py), depth y (fraction of R), painted source
-        ((106, 46), -0.2, T1), ((95, 60), -0.6, T2), ((122, 58), -0.5, T3),
+        ((106, 46), -0.2, T1), ((95, 60), -0.95, T2), ((122, 58), -0.92, T3),
         ((100, 50), 0.35, T2), ((120, 52), 0.55, T3), ((84, 52), 0.72, T1), ((112, 50), 0.05, T1), ((70, 52), 0.5, T3)]
     for (px, py), fy, ((sx, sy), box, r) in tomatoes:
         y = R * fy
@@ -746,7 +760,7 @@ def veg_basket(K):
                 centre=(P.x(px), y, cz + P.m(r) * 0.84), name="tomato_cap")
     B1 = ((63, 59), (52, 53, 74, 64))
     brinjals = [  # (x0, y0, x1, y1) px of its length, radius px, depth (fraction of R), yaw
-        ((47, 52, 78, 66), 9, -0.55, 0), ((64, 40, 85, 56), 8.5, -0.35, 0), ((80, 34, 90, 48), 7.5, -0.15, 0),
+        ((47, 52, 78, 66), 9, -0.9, 0), ((64, 40, 85, 56), 8.5, -0.35, 0), ((80, 34, 90, 48), 7.5, -0.15, 0),
         ((48, 44, 76, 54), 8.5, 0.35, 35), ((70, 40, 96, 50), 8, 0.7, -30), ((96, 42, 124, 52), 8, 0.85, 15)]
     for (x0, y0, x1, y1), r, fy, yaw in brinjals:
         y = R * fy
@@ -764,7 +778,7 @@ def veg_basket(K):
            name="stalk")
     # pale round gourds: the painted one at the front left, two more at the back
     gourd = painted_as(K, (36, 57), (36, 57), (29, 52, 44, 63), squeeze=0.8)
-    for px, fy, rot in ((36, -0.55, -25), (44, 0.75, 20), (128, 0.7, -10)):
+    for px, fy, rot in ((36, -0.9, -25), (44, 0.75, 20), (128, 0.7, -10)):
         y = R * fy
         cz = P.z(57) if fy < 0 else heap_z(P.x(px), y) + P.m(6)
         ellipsoid(K, (P.x(px), y, cz), (P.m(10), P.m(8), P.m(7)), gourd if fy < 0 else
@@ -1228,28 +1242,28 @@ def kite(K):
         ellipsoid(K, P.pt(x, y, depth(x, y) - 0.002), (P.m(3.5), P.m(3), P.m(3)), knot, seg=8, rings=6, name="knot")
     # the paper tassels at the corners, and the tail on its string
     def strip(pts, w, box, ys):
-        # the painted strips carry a dark outline and halo about 1.5 px each side: the paper is that much wider
+        # traced off the painting: the strip's middle and its width there, outline included
         m = wrapped(K, 0.0, squeeze=1.0, front_deg=179.9, keep=[box], inset=1, halo=3)
-        ribbon(K, pts, w + 3.5, m, ys=ys)
+        ribbon(K, pts, w, m, ys=ys)
     yl, yr = depth(19, 55), depth(145, 79)
-    strip([(19, 56), (14, 68), (9, 80)], 6, (6, 58, 20, 86), [yl, yl + 0.01, yl + 0.02])
-    strip([(21, 57), (23, 72), (25, 88)], 7, (19, 60, 30, 88), [yl, yl - 0.008, yl - 0.012])
-    strip([(145, 80), (139, 92), (133, 104)], 6, (128, 84, 143, 106), [yr, yr - 0.01, yr - 0.02])
-    strip([(147, 80), (149, 91), (150, 102)], 6, (143, 82, 153, 104), [yr, yr + 0.01, yr + 0.015])
-    strip([(70, 127), (61, 133), (54, 142)], 8, (52, 127, 66, 148), [0.0, -0.01, -0.012])
-    strip([(70, 127), (77, 134), (83, 141)], 7, (72, 127, 88, 145), [0.0, 0.01, 0.012])
+    strip([(21.8, 57.2), (16.8, 69.2), (11.8, 81.2)], 8.5, (6, 58, 20, 86), [yl, yl + 0.01, yl + 0.02])
+    strip([(23.0, 56.7), (25.0, 71.7), (27.0, 87.7)], 7.5, (19, 60, 30, 88), [yl, yl - 0.008, yl - 0.012])
+    strip([(143.9, 79.4), (137.9, 91.4), (131.9, 103.4)], 8.0, (128, 84, 143, 106), [yr, yr - 0.01, yr - 0.02])
+    strip([(144.0, 80.4), (146.0, 91.4), (147.0, 102.4)], 7.5, (143, 82, 153, 104), [yr, yr + 0.01, yr + 0.015])
+    strip([(72.7, 129.9), (63.7, 135.9), (56.7, 144.9)], 12.5, (52, 127, 66, 148), [0.0, -0.01, -0.012])
+    strip([(67.1, 129.7), (74.1, 136.7), (80.1, 143.7)], 12.5, (72, 127, 88, 145), [0.0, 0.01, 0.012])
     string = [(70, 124), (71, 140), (73, 150), (82, 160), (92, 170), (104, 180), (110, 186), (113, 198), (112, 212)]
     sy = [0.0, 0.004, 0.01, 0.02, 0.03, 0.038, 0.04, 0.036, 0.03]
     K.tube([P.pt(x, y, yy) for (x, y), yy in zip(string, sy)], P.m(0.9), knot, segments=5, name="string")
     for pts, w, box, ys in (
-            ([(72, 150), (71, 162), (72, 173)], 7, (66, 152, 78, 176), [0.01, 0.0, -0.01]),
-            ([(74, 151), (86, 155), (97, 159)], 7, (76, 150, 100, 164), [0.012, 0.02, 0.03]),
-            ([(89, 169), (103, 173), (118, 178)], 7, (92, 166, 120, 181), [0.028, 0.04, 0.05]),
-            ([(91, 172), (93, 182), (95, 192)], 8, (88, 175, 99, 194), [0.03, 0.02, 0.012]),
-            ([(108, 186), (107, 196), (106, 207)], 7, (102, 189, 112, 210), [0.038, 0.03, 0.02]),
-            ([(111, 187), (120, 194), (128, 202)], 7, (113, 187, 131, 206), [0.04, 0.05, 0.058]),
-            ([(114, 200), (112, 215), (105, 230)], 7, (102, 204, 120, 233), [0.035, 0.04, 0.048]),
-            ([(110, 213), (96, 222), (85, 236)], 7, (80, 213, 108, 240), [0.03, 0.02, 0.01])):
+            ([(71.0, 150.0), (70.0, 162.0), (71.0, 173.0)], 9.5, (66, 152, 78, 176), [0.01, 0.0, -0.01]),
+            ([(72.8, 154.5), (84.8, 158.5), (95.8, 162.5)], 13.0, (76, 150, 100, 164), [0.012, 0.02, 0.03]),
+            ([(88.6, 170.2), (102.6, 174.2), (117.6, 179.2)], 14.0, (92, 166, 120, 181), [0.028, 0.04, 0.05]),
+            ([(90.0, 172.2), (92.0, 182.2), (94.0, 192.2)], 9.5, (88, 175, 99, 194), [0.03, 0.02, 0.012]),
+            ([(112.7, 186.5), (111.7, 196.5), (110.7, 207.5)], 11.0, (102, 189, 112, 210), [0.038, 0.03, 0.02]),
+            ([(111.7, 186.3), (120.7, 193.3), (128.7, 201.3)], 8.5, (113, 187, 131, 206), [0.04, 0.05, 0.058]),
+            ([(114.5, 200.1), (112.5, 215.1), (105.5, 230.1)], 12.5, (102, 204, 120, 233), [0.035, 0.04, 0.048]),
+            ([(108.6, 211.5), (94.6, 220.5), (83.6, 234.5)], 8.5, (80, 213, 108, 240), [0.03, 0.02, 0.01])):
         strip(pts, w, box, ys)
 
 

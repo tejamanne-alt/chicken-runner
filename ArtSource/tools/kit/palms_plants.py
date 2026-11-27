@@ -695,7 +695,7 @@ def earth_disc(K, cx_px, rx_px, ry, mat, z=0.0, h=None, y=0.0, name="earth"):
                    centre=(P.x(cx_px), y, z), scale_y=ry / rx, wobble=0.1, name=name)
 
 
-def tufts(K, boxes, ys, yaws=None, name="grass", depth=0.6, nx=10, nz=5):
+def tufts(K, boxes, ys, yaws=None, name="grass", depth=0.35, nx=10, nz=5):
     """Grass tufts painted at the foot: each the painted tuft wrapped round its own upright axis (the front and back
     halves of a squat cylinder) at depth ys: from the front exactly the painted tuft (not squeezed doubles of it
     beside it), round from the side; the box must hold the whole tuft, the mask cuts its blades. (yaws: unused.)"""
@@ -710,6 +710,13 @@ def tufts(K, boxes, ys, yaws=None, name="grass", depth=0.6, nx=10, nz=5):
             yy = y + (K.rng.uniform(-0.3, 0.3) * P.m(r) if k > 1 else 0.0)
             wrap_card(K, b, ax, r, y0=yy, depth=depth, nx=max(4, nx // k + 2), nz=nz, name=name)
             wrap_card(K, b, ax, r, y0=yy, depth=depth, back=True, nx=max(4, nx // k + 2), nz=nz, name=name)
+            # and the tuft side-on through its middle (edge-on from the front): from the side and above it is a
+            # tuft, not a hollow ring
+            d = P.m(r) * depth
+            X, zb_, zt_ = P.x(ax), P.z(b[3]), P.z(b[1])
+            K.card([(X, yy - d, zb_), (X, yy + d, zb_), (X, yy + d, zt_), (X, yy - d, zt_)],
+                   [(b[0] / P.w, 1 - b[3] / P.h), (b[2] / P.w, 1 - b[3] / P.h), (b[2] / P.w, 1 - b[1] / P.h),
+                    (b[0] / P.w, 1 - b[1] / P.h)], name=name, normal=(1.0, 0.0, 0.6))
 
 
 # ====================================================================== palms
@@ -776,11 +783,15 @@ class Palm:
         tg /= np.maximum(1e-9, np.linalg.norm(tg, axis=1))[:, None]
         perp = np.stack([-tg[:, 1], tg[:, 0]], 1)
         w = widths(hw, np.linspace(0, 1, n), profile) * 0.7
+        wm = wp = w
+        if self.fit_mask is not None:            # the widths the frond will really have, either side
+            fm, fp = fit_widths(self.fit_mask, spine, hw, profile, n, *self.fit_lim)
+            wm, wp = fm * 0.9, fp * 0.9
         y_of = self.y_fn(d, power)
         good = tot = 0
         for i, t in enumerate(np.linspace(0, 1, n)):
             for c in (-1, 0, 1):
-                q = sp[i] + perp[i] * c * w[i]
+                q = sp[i] + perp[i] * c * (wm[i] if c < 0 else wp[i] if c > 0 else 0.0)
                 v = xform(Vector((P.x(q[0]), y_of(t), P.z(q[1]))))
                 px, py = int(P.px(v.x)), int(P.py(v.z))
                 tot += 1
@@ -1103,7 +1114,7 @@ def relief_y(P, x, z, X0, y0, Z0, n, lim=1.6):
 
 
 def fan_card(K, centre_px, r_px, y_c, normal, cup=0.3, spokes=20, rings=4, xform=None, rough=0.1, name="fan",
-             pleat=0.0):
+             pleat=0.0, lim=1.6):
     """A palm's fan leaf: the painting inside the circle round centre_px (r_px), as a round card bent onto the plane
     through its centre (at depth y_c) facing `normal`, cupped `cup` x its radius towards its face; every vertex at its
     painted x, z, so from the front it is the painted fan. xform moves the whole card (a copy round the back)."""
@@ -1121,7 +1132,7 @@ def fan_card(K, centre_px, r_px, y_c, normal, cup=0.3, spokes=20, rings=4, xform
     def vert(px, py, k, pl=0.0):
         px, py = float(np.clip(px, 0.5, P.w - 0.5)), float(np.clip(py, 0.5, P.h - 0.5))
         x, z = P.x(px), P.z(py)
-        y = relief_y(P, x, z, X0, y_c, Z0, n) + sgn * cup * rm * k * k + pl * rm * k
+        y = relief_y(P, x, z, X0, y_c, Z0, n, lim) + sgn * cup * rm * k * k + pl * rm * k
         v = Vector((x, y, z))
         if xform is not None:
             v = xform(v)
@@ -1188,7 +1199,7 @@ def wrap_card(K, box_px, axis_px, r_px, y0=0.0, depth=1.0, back=False, nx=12, nz
 
 
 def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), side_min=0.35, cup=0.25, y0=0.0,
-              tilt=0.0, grow=1.0, pleat=0.0, pet_from=None, back_turn=False, fit_need=0.85):
+              tilt=0.0, grow=1.0, pleat=0.0, pet_from=None, back_turn=False, fit_need=0.85, lim=1.6, sides=None):
     """A crown of fan / palmate leaves on stalks from the heart: each painted fan [(cx, cy, r px, d)] where it is
     painted, at depth d x the crown's reach there (- in front of the heart), facing out from the heart, on its stalk;
     each mirrored behind the heart, and the outer ones turned round to the sides (only where they still lie over the
@@ -1211,7 +1222,7 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
             sx_ = math.copysign(1.0, dx) if abs(dx) > Rc * 0.15 else rng.choice([-1.0, 1.0])
             n = (n + Vector((sx_ * rng.uniform(0.45, 0.8) * tilt, 0.0, rng.uniform(0.2, 0.5) * tilt))).normalized()
         rad = rad * grow
-        fan_card(K, (cx, cy), rad, y_c, n, cup=cup + rng.uniform(0, 0.15), pleat=pleat)
+        fan_card(K, (cx, cy), rad, y_c, n, cup=cup + rng.uniform(0, 0.15), pleat=pleat, lim=lim)
         placed.append((cx, cy, rad, y_c, n))
         K.tube([(sx0, 0.0, sz0), ((sx0 + X0) / 2, y_c * 0.5, (sz0 + Z0) / 2 + P.m(rad) * (0.15 if pet_from is None else 0.03)),
                 (X0, y_c + s * P.m(3), Z0)],
@@ -1249,17 +1260,19 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
                 if xb is not None:
                     break
         if xb is not None:
-            fan_card(K, (cx, cy), rad * rng.uniform(0.9, 1.0), y_c, n, cup=cup, xform=xb, name="fan_back", pleat=pleat)
+            fan_card(K, (cx, cy), rad * rng.uniform(0.9, 1.0), y_c, n, cup=cup, xform=xb, name="fan_back", pleat=pleat,
+                     lim=lim)
             c3 = xb(Vector((X0, y_c, Z0)))
             K.tube([(sx0, 0.0, sz0), tuple(c3)], [P.m(pet[0] * 0.9), P.m(pet[1])], stalk, segments=6, name="petiole")
         else:
             n2 = Vector((n.x, -n.y, n.z))
             y2 = -y_c if abs(y_c) > Rc * 0.2 else Rc * rng.uniform(0.3, 0.6)
             fan_card(K, (cx, cy), rad * rng.uniform(0.9, 1.0), y2, n2, cup=cup if back_turn else 0.3, name="fan_back",
-                     pleat=pleat)
+                     pleat=pleat, lim=lim)
             K.tube([(sx0, 0.0, sz0), (X0, y2, Z0)], [P.m(pet[0] * 0.9), P.m(pet[1])], stalk, segments=6,
                    name="petiole")
-        for sgn in ((1, -1, rng.choice([1, -1])) if abs(dx) > Rc * side_min else (1, -1)):
+        nside = sides if sides is not None else (3 if abs(dx) > Rc * side_min else 2)
+        for sgn in [(1, -1)[k % 2] for k in range(nside)]:
             if True:
                 deg = (rng.uniform(40, 140)) * sgn
                 for sc in (0.85, 0.7, 0.55):
@@ -1270,7 +1283,7 @@ def fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, pet=(2.6, 1.6), sid
                 else:
                     continue
                 fan_card(K, (cx, cy), rad * 0.9, y_c, n, cup=cup if back_turn else 0.3, xform=xf, name="fan_side",
-                         pleat=pleat)
+                         pleat=pleat, lim=lim)
                 c3 = xf(Vector((X0, y_c, Z0)))
                 K.tube([(sx0, 0.0, sz0), tuple(c3)], [P.m(pet[0] * 0.9), P.m(pet[1])], stalk, segments=6, name="petiole")
     for ob in K.cards_parts[n0:] + K.parts[k0:]:
@@ -1329,7 +1342,7 @@ def palmyra(K, fans, heart_px, crown_r_px, skirt_box, skirt_r_px, trunk_pts, pet
     stalk = masked_material(K, opaque & box_mask(opaque.shape, [petiole_box]) & (g > b + 6) & (mx > 100), inset=0) \
         if petiole_box else K.colour((0.25, 0.27, 0.12))
     hx = P.x(heart_px[0])
-    fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, grow=1.3, pleat=0.13, tilt=0.6, cup=0.18)
+    fan_crown(K, fans, heart_px, crown_r_px, leaf_ok, stalk, grow=1.3, pleat=0.06, cup=0.15, lim=0.8, sides=3)
     # the heart: the bud of new leaves at the top of the trunk, in the middle of the crown
     K.lathe([(P.m(r_), P.z(heart_px[1] + dz)) for r_, dz in ((10, 30), (14, 10), (12, -15), (6, -30), (0.0, -36))],
             stalk, segments=12, centre=(hx, 0.0, 0.0), name="heart")
@@ -2110,7 +2123,7 @@ def h6_4(K):
     bam = masked_material(K, bamboo_ok(rgb, opaque) & box_mask(opaque.shape, [(25, 30, 435, 548)]), inset=1)
     rope = masked_material(K, opaque & box_mask(opaque.shape, [(70, 80, 100, 115), (365, 85, 395, 115)])
                            & not_ink(rgb, 80), inset=0)
-    pr, br = 11.5, 11.0                         # as thick as painted, with its ink line
+    pr, br = 8.4, 7.9                           # painted half-width (10 px with its ink) less the game's outline
     yb = -P.m(pr + br) * 0.9
     pole(K, (86, 552), (86, 33), pr, bam, nodes=(0.12, 0.35, 0.6))
     pole(K, (380, 548), (382, 46), pr, bam, nodes=(0.1, 0.32, 0.55))
@@ -2135,7 +2148,8 @@ def h6_4(K):
             ribbon(K, [(x, y_) for x, y_, _ in pts], [r * 1.6 for *_, r in pts],
                    lambda t, ys_=ys_: float(np.interp(t, np.linspace(0, 1, len(ys_)), ys_)), rows=3, roll=rl,
                    n=max(6, n * 2), name="stem", profile=None, normal=(0, -0.3, 1))
-    haze = (mx - mn < 26) & (mx < 222) & (mx > 95)                    # the grey haze painted behind the vine
+    haze = (mx - mn < 26) & (mx < 222) & (mx > 150)                   # the pale grey haze behind the vine (not
+    #                                                                      the grey-olive stems)
     bam_px = bamboo_ok(rgb, opaque) & box_mask(opaque.shape, [(25, 30, 435, 548)])
     bam_px = ndimage.binary_dilation(ndimage.binary_opening(bam_px, iterations=2), iterations=2)
     poles_m = box_mask(opaque.shape, [(72, 30, 100, 552), (370, 40, 397, 548), (28, 84, 430, 112),
@@ -2281,9 +2295,10 @@ def h6_7(K):
          dome=(230, 0, 345), core=0.2, dome_pow=0.85, crown_mask=crown_mask)
     # the bed's mound of earth, its front the painted band of soil under the leaves
     soil = patch_tile(K, opaque & soil_px, (180, 300, 430, 338), vary=0.08, soften=0.2)
-    rx = P.m(205)
-    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((205, 350), (196, 338), (165, 324), (100, 314), (0.0, 311))], soil,
-            segments=36, centre=(P.x(290), 0.03, 0.0), scale_y=0.3 / rx, wobble=0.06, name="earth")
+    # (the painted bed's foot rises to the right in perspective; the level mound sits under its left and middle)
+    rx = P.m(135)
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((135, 353), (128, 344), (105, 334), (60, 328), (0.0, 326))], soil,
+            segments=36, centre=(P.x(218), 0.03, 0.0), scale_y=0.32 / rx, wobble=0.06, name="earth")
     gm = leafy(rgb) & opaque & ~halo(rgb) & ~stone_m
     K.leaves_only((30, 250, 120, 350), mask_rule(gm, (30, 250, 120, 350)))
     tufts(K, [(34, 252, 112, 348)], [-0.12])
@@ -2380,7 +2395,7 @@ def h7_4(K):
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
     plaster = K.tile((262, 320, 340, 430), vary=0.08, soften=0.15)
-    cap_mat = patch_tile(K, opaque & (mx > 150) & ~leafy(rgb), (135, 17, 215, 36), vary=0.05, soften=0.3)
+    cap_mat = patch_tile(K, opaque & (mx > 120), (135, 17, 215, 36), vary=0.06, soften=0.08)
     th = math.radians(37.6)
     R = Vector((math.cos(th), math.sin(th), 0.0))
     L = Vector((-math.sin(th), math.cos(th), 0.0))
@@ -2421,7 +2436,7 @@ def h7_4(K):
     for k, (ytop, ybot, xl, xr) in enumerate(courses):
         z0, z1 = P.z(ybot) + P.m(0.8), P.z(ytop) - P.m(0.8)
         lo = U(xl) - P.m(18)                      # run back into the plaster
-        hi = U(xr)
+        hi = U(xr - 6)                            # the painted brick ends are rounded: square ones stop short
         blen = P.m(34) * ku
         u = lo - (blen * 0.5 if k % 2 else 0.0)
         while u < hi - P.m(4):
@@ -2472,7 +2487,7 @@ def h7_4(K):
     keep = ndimage.binary_opening(keep, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
     tufts(K, [(8, 478, 112, 612), (198, 418, 282, 592), (328, 538, 402, 602), (88, 568, 302, 622)],
-          [C.y - 0.03, C.y + 0.08, C.y + 0.13, C.y - 0.06], depth=0.5)
+          [C.y - 0.03, C.y + 0.08, C.y + 0.13, C.y - 0.06], depth=0.35)
     tufts(K, [(48, 3, 192, 97), (138, 28, 192, 102)], [Cc.y + cs * 0.55, Cc.y + cs * 0.45], depth=0.35)
     # and weeds round the back of its foot
     for k, (box, f) in enumerate((((10, 480, 110, 610), 0.2), ((200, 440, 280, 600), 0.6), ((330, 540, 400, 600), 0.9),
@@ -2506,7 +2521,7 @@ def h7_5(K):
     moss = patch_tile(K, opaque & ~halo(rgb), (230, 302, 450, 332), vary=0.1, soften=0.15)
     # (the painting draws its front edge as a curve seen from above; level, it is as wide as the painted bottom)
     zg = P.z(334)
-    rx = P.m(232)
+    rx = P.m(212)
     K.lathe([(rx, zg), (rx * 0.97, zg + 0.05), (rx * 0.88, zg + 0.095), (rx * 0.5, zg + 0.11), (0.0, zg + 0.115)],
             moss, segments=40, centre=(P.x(322), 0.0, 0.0), scale_y=0.5 / rx, wobble=0.06, name="moss")
     # the painted ink outline round the boulder belongs to its silhouette: kept off the faces near its rim, which
@@ -2526,7 +2541,7 @@ def h7_5(K):
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         dx = (P.x(cx) - P.x(320)) / hw
         ybase = -math.sqrt(max(0.0, 1 - min(1.0, dx * dx))) * 0.36 - 0.06
-        tufts(K, [box], [ybase + rng.uniform(-0.02, 0.02)], depth=0.45, name="fern")
+        tufts(K, [box], [ybase + rng.uniform(-0.02, 0.02)], depth=0.3, name="fern")
     # more clumps all round the back and sides of the boulder, standing on the moss just clear of the stone
     whole = [(10, 90, 150, 322), (60, 140, 230, 322), (380, 150, 520, 322), (450, 50, 600, 322), (500, 150, 640, 330),
              (20, 200, 140, 330), (560, 200, 643, 322)]
@@ -2806,9 +2821,9 @@ def pumpkin(K, px, py, rx, ry, y, mat, ribs=10, name="pumpkin"):
 
 
 H56_PUMPKINS = [(148, 135, 28, 25, -0.06), (320, 160, 52, 42, -0.07), (160, 260, 50, 40, -0.07),
-                (264, 295, 26, 24, -0.05), (340, 347, 28, 22, -0.05), (150, 410, 48, 40, -0.07),
-                (270, 520, 76, 66, -0.13), (150, 555, 52, 45, -0.14), (356, 568, 46, 40, -0.12),
-                (272, 580, 30, 25, -0.2)]
+                (263, 295, 31, 25, -0.05), (340, 347, 28, 22, -0.05), (143, 414, 55, 45, -0.07),
+                (270, 521, 76, 64, -0.13), (153, 556, 58, 49, -0.14), (356, 568, 46, 40, -0.12),
+                (271, 583, 32, 28, -0.2)]
 
 
 @model("h5_6", "plants", kind="prop", atlas=1024, leaves=1024)
@@ -2880,8 +2895,16 @@ def h5_6(K):
     leaf = ndimage.binary_opening(leaf, iterations=1)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(leaf, (0, 0, P.w, P.h)))
     exclude_front(K, ndimage.binary_dilation(leaf, iterations=2) & ~ndimage.binary_dilation(orange, iterations=2))
-    cover_cards(K, leaf, (70, 64), lambda px, py: yy(py, 1) - P.m(pr * 2.6) - rng.uniform(0.0, 0.035),
-                region=(0, 0, P.w, 612), name="vine")
+    def vine_y(px, py):
+        """In front of the trellis face; a leaf painted over a pumpkin, in front of that pumpkin."""
+        y = yy(py, 1) - P.m(pr * 2.6) - rng.uniform(0.0, 0.035)
+        for qx, qy, rx, ry, qy_ in H56_PUMPKINS:
+            if ((px - qx) / (rx + 4)) ** 2 + ((py - qy) / (ry + 4)) ** 2 <= 1.0:
+                y = min(y, qy_ - P.m(rx) * 0.95 - rng.uniform(0.01, 0.02))
+        return y
+    over = leaf & ellipse_mask(opaque.shape, [(x, y, rx, ry) for x, y, rx, ry, _ in H56_PUMPKINS], 4)
+    cover_cards(K, over, (56, 52), vine_y, region=(0, 0, P.w, 612), name="vine")     # first those over pumpkins
+    cover_cards(K, leaf & ~over, (70, 64), vine_y, region=(0, 0, P.w, 612), name="vine")
     scatter_cards(K, (0, 0, P.w, 600), 50, (70, 65), (0, 0), leaf, name="vine_back", normal=(0, 0.4, 1),
                   y_of=lambda px, py: -yy(py, 1) + P.m(pr * 2.5) + rng.uniform(0.0, 0.04))
     scatter_cards(K, (40, 300, 440, 600), 26, (70, 64), (0, 0), leaf, yaw=60, pitch=30, name="vine_mid",
@@ -2946,7 +2969,8 @@ def h6_3(K):
     # the boulder and the stones
     stone = masked_material(K, opaque & rock_m & not_ink(rgb), inset=2)
     poly_solid(K, boulder, -0.16, stone, depth=0.55, segments=24, name="boulder")
-    for cx, cy, rx, ry in stones:
-        K.boulder(P.x(cx), -0.36, P.z(cy + ry) + P.m(ry), P.m(rx * 2), P.m(rx * 1.4), P.m(ry * 2.2), stone,
+    zg = P.z(376)                                # on the ground with the boulder, a little sunk into it
+    for (cx, cy, rx, ry), yy in zip(stones, (-0.3, -0.36)):
+        K.boulder(P.x(cx), yy, zg + P.m(ry) * 0.75, P.m(rx * 2), P.m(rx * 1.4), P.m(ry * 2.2), stone,
                   name="stone")
 

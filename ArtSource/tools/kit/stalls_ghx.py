@@ -1613,6 +1613,12 @@ def stall_high(K):
                   drop=Z(76) - Z(88), sag=0.03, name="awning")
     scallop_cloth(K, -a_ - 0.04, a_ + 0.04, yf + 0.02, zr + 0.02, yb + 0.1, Z(88), stripes, hem=P.m(7), n_scallop=10,
                   drop=Z(88) - Z(104), sag=0.02, name="awning_back")
+    # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
+    gable = K.projected(squeeze=1.0, keep=[(36, 30, 110, 150)], inset=2)
+    for x in (-a_ - 0.06, a_ + 0.06):
+        K.prism([(yf - 0.42, Z(72)), (yf, zr + 0.01), (yb + 0.08, Z(82)), (yb + 0.08, Z(90)), (yf - 0.42, Z(80))],
+                0.0, 0.012, gable, name="gable")
+        K.parts[-1].data.transform(Matrix.Translation((x + 0.006, 0, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z"))
     T.apply(K.parts[n1:])
     # ---------------------------------------------------------------- the front cloth over the counter
     towel = K.projected(squeeze=1.0, keep=[(98, 213, 226, 288)], inset=1)
@@ -1701,7 +1707,7 @@ def stall_low(K):
     zt = Z(143)
     zr_ = Z(149)
     rr_ = P.m(9)
-    slat = pole_tile(K, (100, 147, 170, 153), soften=0.2)
+    slat = bam
     for k in range(9):
         y = yf - 0.03 + (yb - yf + 0.06) * (k + 0.5) / 9
         bamboo(K, (-a_ - 0.04, y, zt - 0.03), (a_ + 0.06, y, zt - 0.03), 0.03, slat, node_at=[0.3, 0.7], taper=1.0,
@@ -1724,6 +1730,12 @@ def stall_low(K):
                   drop=Z(56) - Z(66), sag=0.02, name="awning")
     scallop_cloth(K, -a_ - 0.03, a_ + 0.03, yf + 0.02, zr + 0.02, yb + 0.08, Z(60), stripes, hem=P.m(5), n_scallop=8,
                   drop=Z(60) - Z(70), sag=0.02, name="awning_back")
+    # the gable ends closed with the same striped cloth (the painting shows the left one, turned towards us)
+    gable = K.projected(squeeze=1.0, keep=[(30, 40, 112, 140)], inset=2)
+    for x in (-a_ - 0.05, a_ + 0.05):
+        K.prism([(yf - 0.36, Z(52)), (yf, zr + 0.01), (yb + 0.06, Z(56)), (yb + 0.06, Z(62)), (yf - 0.36, Z(58))],
+                0.0, 0.012, gable, name="gable")
+        K.parts[-1].data.transform(Matrix.Translation((x + 0.006, 0, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z"))
     T.apply(K.parts[n1:])
     # ---------------------------------------------------------------- the banana leaves and the coconuts
     leaf = ktile(K, (72, 124, 108, 137), vary=0.05)
@@ -1752,9 +1764,7 @@ def stall_low(K):
         q = T.w(cxp, 0.15 + dy, P.z(cyp))
         MP.ellipsoid(K, tuple(q), (P.m(r) * 0.9, P.m(r) * 0.86, P.m(r) * 0.84), nut, seg=12, rings=8, lumps=0.05,
                      name="coconut")
-    shadow = MP.strip_tile(K, (40, 183, 220, 187), vary=0.05, soften=0.7)
-    K.lathe([(0.0, 0.0), (1.25, 0.0), (1.2, 0.006), (0.0, 0.008)], shadow, segments=32, centre=(T.cx, 0.1, z0 - 0.004),
-            scale_y=0.5, cap=False, name="ground")
+
 
 
 # ====================================================================== the potter
@@ -2426,7 +2436,7 @@ def stall_vessels(K):
     for cx, prof, _ in ground_pots:
         vessel(K, bank, cx, prof)
     # ---------------------------------------------------------------- behind the stand: spare pots stacked mouth down
-    clay = K.colour((480, 520, 520, 540), vary=0.08)
+    clay = ktile(K, (88, 440, 126, 480), vary=0.06, soften=0.2)      # the painted terracotta of a plain pot
     for k, x_px in enumerate((300, 520, 700)):
         for j in range(2):
             K.lathe([(0.0, 0.0), (0.14, 0.02), (0.2, 0.12), (0.17, 0.24), (0.1, 0.28)], clay, segments=20,

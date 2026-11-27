@@ -1492,14 +1492,27 @@ def lamp_pillar(K):
         for th in ((180, 0) if L == 212 else (180, 0, -90, 90)):
             stone_lamp(K, (cx, 0.0), L, th, 78 if th in (0, 180) else hw + 16, hw, lampm)
     # the pedestal: a square block with its mouldings and a sunk panel on each face
-    ped = proj(K, X(cx), 1.0, keep=[(330, 940, 535, 1112)], exclude=[(340, 920, 520, 1060), (392, 1040, 472, 1112)],
-               inset=3,
-               side_tile=(345, 1062, 400, 1078))
+    # the pedestal's own sandstone (the garland and the bell hang in front of its painted face: its back and sides
+    # wear the stone, not the painted face pushed through, which brought the shadows under the garland round)
+    ped = quilt_tile(K, (330, 940, 535, 1112), keep=plain_pixels, patch_px=16, size_px=96, soften=0.25,
+                     exclude=[(345, 920, 515, 1060), (392, 1030, 472, 1112)])
     D = P.m(89)
     K.box(X(cx) - D, X(cx) + D, -D, D, Z(1080), Z(990), ped, name="pedestal")
     for (y0, y1), r in (((1090, 1112), 103), ((1080, 1090), 96), ((975, 990), 100), ((945, 975), 92)):
         rr = P.m(r)
         K.box(X(cx) - rr, X(cx) + rr, -rr, rr, Z(y1), Z(y0), ped, bevel=0.01, name="moulding")
+    # pilasters framing a sunk panel on its back and sides, as on its painted face
+    pw, pr = P.m(20), 0.018
+    z0, z1 = Z(1080), Z(990)
+    for sgn in (-1, 1):
+        for t in (-1, 1):
+            a0, a1 = sorted((t * D, t * (D - pw)))
+            K.box(X(cx) + a0, X(cx) + a1, D, D + pr, z0, z1, ped, bevel=0.004, name="pilaster")          # back
+            K.box(X(cx) + sgn * D - (pr if sgn < 0 else 0), X(cx) + sgn * D + (pr if sgn > 0 else 0), a0, a1, z0, z1,
+                  ped, bevel=0.004, name="pilaster")                                                  # sides
+        K.box(X(cx) - D, X(cx) + D, D, D + pr, z1 - P.m(14), z1, ped, bevel=0.004, name="lintel")
+        K.box(X(cx) + sgn * D - (pr if sgn < 0 else 0), X(cx) + sgn * D + (pr if sgn > 0 else 0), -D, D,
+              z1 - P.m(14), z1, ped, bevel=0.004, name="lintel")
     # the steps
     # the steps' stone, quilted from their painted faces (a strip of one step's face would lie on their treads as
     # planks)

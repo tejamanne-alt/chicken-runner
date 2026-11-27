@@ -1290,10 +1290,12 @@ def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
     ragged fringe `fringe` m deep. The mat's thickness stands half outside the surface, so seen from the front the
-    hip ends reach about half the thickness past the painted hip lines: pull (m) moves both hip ends in by that much."""
+    hip ends reach about half the thickness past the painted hip lines: pull (m) moves both hip ends in by that much,
+    or (eave left, eave right, ridge left, ridge right) to fit a painted roof whose two ends differ."""
     ex0, ex1, ey0, ey1 = eave
     rx0, rx1 = ridge
-    ex0, ex1, rx0, rx1 = ex0 + pull, ex1 - pull, rx0 + pull, rx1 - pull
+    pe0, pe1, pr0, pr1 = pull if isinstance(pull, (tuple, list)) else (pull,) * 4
+    ex0, ex1, rx0, rx1 = ex0 + pe0, ex1 - pe1, rx0 + pr0, rx1 - pr1
     ym = (ey0 + ey1) / 2
     rng = K.rng
     nu, nv = 48, 14
@@ -1396,7 +1398,7 @@ def house_potter(K):
     K.box(P.x(0), P.x(2190), -1.25, D + 0.4, 0.0, P.z(1108), earth, bevel=0.03, name="ground")
     # the hut's thatch, its ridge pole, palm fronds weighting it front (painted) and back (cards)
     hip_thatch(K, (P.x(334), P.x(1500), -0.55, D + 0.55), (P.x(506), P.x(1414)), P.z(474), P.z(40), thatch_m,
-               thickness=0.25, shag=0.05, fringe=0.1, pull=0.12)
+               thickness=0.25, shag=0.05, fringe=0.1, pull=0.05)
     K.tube([P.pt(506, 28, D / 2), P.pt(1414, 28, D / 2)], P.m(17), K.colour((560, 15, 1300, 40), vary=0.06),
            segments=10, name="ridge_pole")
     K.leaves_only((440, 40, 1310, 470), olive_leaf_pixels)
@@ -1406,7 +1408,9 @@ def house_potter(K):
         u = 0.35 + 0.2 * (i % 2)
         z = ze + (zr - ze) * u
         y = D + 0.55 - (D / 2 + 0.55) * u + 0.34            # clear of the thatch's thickness and lumps
-        K.card_from_painting((cx - 130, cy - 200, cx + 130, cy + 200), (P.x(cx) + K.rng.uniform(-0.3, 0.3), y, z),
+        # (boxes stop above the straw fringe's leaf rule: where two rules overlap their pixels are ANDed, and the
+        # fringe's straw rule erased the fronds' lower halves into torn green bits)
+        K.card_from_painting((cx - 130, cy - 200, cx + 130, 398), (P.x(cx) + K.rng.uniform(-0.3, 0.3), y, z),
                              yaw=180, pitch=-(90 - ang) * 0.95, name="frond_back")
     # straw fringe cards round the sides and back, cut from the painted fringe
     K.leaves_only((560, 400, 1300, 520), straw_clean)
@@ -1550,6 +1554,25 @@ def pumpkin(K, px, py, rx_px, ry_px, y, mat, stalk, ribs=8, name="pumpkin"):
     return ob
 
 
+def leafy_spots(K, box, keep, n, size, thresh=0.35):
+    """n random card centres (px) inside box where the plant (keep(rgb) -> bool) covers more than `thresh` of a
+    card `size` px across: so cards cut for a hip end or a back slope show whole leaves, not stray fragments."""
+    P = K.paint
+    x0, y0, x1, y1 = [int(v) for v in box]
+    h = size // 2
+    a0, b0 = max(0, y0 - h), max(0, x0 - h)
+    rgb = (P.rgba[a0:y1 + h, b0:x1 + h, :3] * 255).astype(np.uint8)
+    m = (keep(rgb) & (P.rgba[a0:y1 + h, b0:x1 + h, 3] > 0.5)).astype(np.float32)
+    cover = ndimage.uniform_filter(m, size=size)
+    out, tries = [], 0
+    while len(out) < n and tries < n * 60:
+        tries += 1
+        cx, cy = K.rng.uniform(x0, x1), K.rng.uniform(y0, y1)
+        if cover[int(cy) - a0, int(cx) - b0] >= thresh:
+            out.append((cx, cy))
+    return out
+
+
 def cover_cards(K, box, keep, step, size, place, thresh=0.2, jitter=0.25, name="leaf"):
     """Cards over every cell of a step-px grid inside box where the painting's plant (keep(rgb) -> bool) covers more
     than `thresh` of the cell, so from the front nothing of it is missing; place(cx, cy) -> (y, yaw, pitch) puts
@@ -1618,7 +1641,7 @@ def house_thatched_hut(K):
     eave = (P.x(15), P.x(1508), -0.62, D + 0.62)
     ridge = (P.x(305), P.x(1220))
     ze, zr = P.z(598), P.z(82)
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.26, shag=0.05, fringe=0.11, pull=0.12)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.26, shag=0.05, fringe=0.11, pull=(0.0, 0.1, 0.12, 0.12))
     K.tube([P.pt(305, 77, D / 2), P.pt(1220, 77, D / 2)], P.m(18), K.colour((500, 62, 1000, 90), vary=0.06),
            segments=10, name="ridge_pole")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
@@ -1664,16 +1687,14 @@ def house_thatched_hut(K):
     cover_cards(K, (380, 30, 1300, 110), vine_keep, 40, 70, place, thresh=0.08, name="vine_top")   # leaves on the ridge
     # round the right corner: hugging it below the eave, as one mass with the front's
     corner_climber(K, (1300, 640, 1450, 880), 12, 95, X1, 1, 615, 880, 1.0)
-    for i in range(10):
-        cx, cy = K.rng.uniform(800, 1250), K.rng.uniform(40, 330)
+    for cx, cy in leafy_spots(K, (800, 40, 1250, 330), vine_keep, 10, 110):
         z = P.z(cy)
         yb = D + 0.62 - (fy(cx, cy) + 0.62) + 0.06
         K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (P.x(cx), yb, z), yaw=180 + K.rng.uniform(-30, 30),
                              pitch=40 + K.rng.uniform(-20, 20), name="vine_back")
-    for i in range(10):
-        cx, cy = K.rng.uniform(900, 1300), K.rng.uniform(120, 560)
+    for cx, cy in leafy_spots(K, (900, 120, 1300, 560), vine_keep, 12, 110):
         v = (P.z(K.rng.uniform(250, 560)) - ze) / (zr - ze)
-        xh = eave[1] + (ridge[1] - eave[1]) * v
+        xh = (eave[1] - 0.1) + ((ridge[1] - 0.12) - (eave[1] - 0.1)) * v       # the hip end, pulled in as built
         ya, yb2 = eave[2] + (D / 2 - eave[2]) * v, eave[3] + (D / 2 - eave[3]) * v
         K.card_from_painting((cx - 55, cy - 55, cx + 55, cy + 55), (xh + 0.06, K.rng.uniform(ya + 0.2, yb2 - 0.2),
                              ze + (zr - ze) * v), yaw=90 + K.rng.uniform(-30, 30), pitch=K.rng.uniform(-20, 20) + 35,
@@ -1704,6 +1725,9 @@ def house_weaver(K):
     K.front_min = 0.15
     halo_exclude(K, [(0, 0, 1671, 480), (1340, 590, 1671, 1143)])
     halo_exclude(K, [(1346, 600, 1660, 1080)], near=400)          # the white the cut-out filled in behind the rack
+    # the spinning wheel, the rack's posts and the yarn stand in front of the wall's right end with their own
+    # materials: kept off the wall behind them (from an angle it showed a ghost wheel painted on the plaster)
+    K.front_exclude.append((1035, 590, 1345, 1080))
     white = K.tile((200, 560, 440, 900), size=1.0, vary=0.05, soften=0.2)
     indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
     thatch_m = K.tile((500, 120, 800, 380), size=0.8, vary=0.06, soften=0.25)
@@ -2011,17 +2035,18 @@ def house_village_head(K):
     yv, yp = -2.6, -2.3                                # the veranda's edge; the pillars' line
     K.front_min = 0.0
     halo_exclude(K, [(0, 0, 2325, 1377)])
-    cream = K.tile((800, 400, 1000, 560), size=1.2, vary=0.05, soften=0.25)
+    # the cream wall below the eave's shadow and above the pale stains (both repeated as faint bands and blots)
+    cream = clean_tile(K, (760, 414, 1000, 478), size=1.4, soften=0.2)
     maroon = K.colour((250, 420, 290, 600), vary=0.05)
-    dado = K.tile((620, 1060, 880, 1140), size=1.0, vary=0.04, soften=0.4)
+    dado = clean_tile(K, (580, 1052, 640, 1138), size=0.6, soften=0.25)   # the maroon left of the tulsi's leaves
     # the roofs' tiles where no moss grows (the mossy crops repeated their green patches in rows on the backs)
     tiles = K.tile((1180, 100, 1480, 290), size=1.5, vary=0.04, soften=0.15)
     tiles_low = K.tile((1500, 650, 1780, 770), size=1.5, vary=0.04, soften=0.15)
     fascia = K.colour((400, 308, 800, 326), vary=0.06)
     # the plinth's base course and sides: the thinnai's plain terracotta plaster (a flat colour read as untextured)
-    plinth = K.tile((140, 1035, 200, 1170), size=0.8, vary=0.05, soften=0.3)
+    plinth = clean_tile(K, (212, 1112, 330, 1166), size=0.8, soften=0.25)
     floor = strip_tile(K, (600, 1150, 900, 1165), soften=0.3)
-    thin = K.tile((150, 1100, 380, 1170), size=0.8, vary=0.05, soften=0.3)
+    thin = plinth                                      # the thinnai's lit front, not its ink lines and shaded ends
     bracket_m = K.colour((545, 815, 560, 845), vary=0.08)
     clay = K.colour((560, 90, 600, 100), vary=0.06)
     dark = K.colour((0.03, 0.02, 0.02), vary=0.0)
@@ -2154,7 +2179,7 @@ def house_village_head(K):
     K.sheet(seat, 4, 10, slats, name="chair_seat", thickness=0.01)
     # the tulsi planter before the steps, the plant on it
     # (squeezed so its sides take its own paint, not the ink outline and the shadow below it)
-    tp = K.projected(axis_x=P.x(790), squeeze=0.82, keep=[(705, 1148, 877, 1366)], inset=3)
+    tp = K.projected(axis_x=P.x(790), squeeze=0.82, keep=[(705, 1148, 877, 1358)], inset=3)   # (above its foot's ink)
     yt = yv - 1.0
     for x0, x1, t, b in ((705, 876, 1331, 1377), (720, 872, 1305, 1331), (731, 850, 1198, 1305),
                          (712, 865, 1178, 1198)):

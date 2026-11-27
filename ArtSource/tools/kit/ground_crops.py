@@ -442,9 +442,14 @@ def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
         # its own painted face on its front and back, and on its sides and top a quilt of the same stone's painted
         # surface (the sides carry the stone, not its outline dragged through in stripes)
         inner = ok if ok.sum() > 20 else m
+        # the quilt from the stone's mid tones only (its painted light and shade are light, not its material: mixed
+        # in a quilt they come out as camouflage blotches)
+        inner_m = ndimage.binary_erosion(m, iterations=2) & halo_free(P)
+        rgb = P.rgba[..., :3] * 255
+        med = np.median(rgb[inner_m], axis=0) if inner_m.any() else np.array((128.0, 128.0, 128.0))
+        mid = inner_m & (np.linalg.norm(rgb - med, axis=-1) < 26)
         try:
-            side = quilt(K, ndimage.binary_erosion(m, iterations=2) & halo_free(P), out=96, patch=12, overlap=4,
-                         soften=0.35)
+            side = quilt(K, mid, out=96, patch=10, overlap=4, soften=0.45)
         except RuntimeError:                                  # too small a stone for a patch: its painted face only
             side = None
         mat = proj_material(K, filled_source(P, inner), name="stone", dz=lift, side=side)
@@ -783,8 +788,8 @@ def coconut(K):
     inner = ndimage.binary_erosion(body, iterations=6) & halo_free(P)
     rgb, okr = unrolled(P, inner, c, d, 110, 100)
     pil, size = quilt(K, okr, out=192, patch=22, overlap=6, soften=0.1, turn=False, rgb=rgb)
-    a = ndimage.convolve1d(np.asarray(pil).astype(np.float32), np.ones(13) / 13, axis=1, mode="wrap")
-    pil = Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGB")        # drawn out into fibres along the nut
+    fib = ndimage.convolve1d(np.asarray(pil).astype(np.float32), np.ones(13) / 13, axis=1, mode="wrap")
+    pil = Image.fromarray(fib.clip(0, 255).astype(np.uint8), "RGB")      # drawn out into fibres along the nut
     ob, _ = lying_body(K, inset_px(body, 3), None, lobes=0.035, name="nut")
     rho = float(max(v.co.y for v in ob.data.vertices))
     husk = axis_quilt(K, c, d, pil, size, max(1, round(2 * math.pi * rho / size)))
@@ -1658,7 +1663,7 @@ def capsule(K, a, b, r, mat, segments=8, name="pod"):
     return K.tube([tuple(p) for p in pts], rad, mat, segments=segments, name=name)
 
 
-def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, at=None):
+def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, at=None, half=0.75):
     """A groundnut (peanut) crop: bushy plants of small round leaflets in rows, the pods lying on the ground at their
     feet (the painted pods where they are painted across, the ones painted higher further back: the painting looks
     down on them; and a few at the foot of every plant behind)."""
@@ -1689,14 +1694,15 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
         bottom = max(e0[1], e1[1]) + hw
         y = rows[0] - 0.06 + max(0.0, P.m(bed_py - bottom)) * 1.2
         lay(P.x(px), y, math.atan2(-(e1[1] - e0[1]), e1[0] - e0[0]), length, P.m(hw) * 1.05)
+    lim = half - 0.06                                         # on the bed, clear of its back edge
     for fx, fy, fz, yaw, s, sx in feet:
         if fy <= rows[0] + 0.05:
             continue
         for _ in range(int(K.rng.integers(0, 3))):
             px, py, (e0, e1, hw, area) = pods[int(K.rng.integers(len(pods)))]
             length = P.m(float(np.hypot(e1[0] - e0[0], e1[1] - e0[1]))) * s
-            lay(fx + K.rng.uniform(-0.12, 0.12), fy + K.rng.uniform(-0.1, 0.1), K.rng.uniform(0, math.pi), length,
-                P.m(hw) * s)
+            lay(fx + K.rng.uniform(-0.12, 0.12), min(lim, fy + K.rng.uniform(-0.1, 0.1)), K.rng.uniform(0, math.pi),
+                length, P.m(hw) * s)
     return pods
 
 
@@ -1709,7 +1715,7 @@ def crop_strip_4(K):
     rows = [-depth / 2 + 0.16 + k * 0.3 for k in range(5)]
     field_bed(K, 8, 1174, 180, depth, top=bed_top(K, (20, 178, 1160, 200), tol=36), ridges=0.015, rows=rows)
     groundnut(K, 0, 180, 190, rows, 120, 105, 11, (130, 200),
-              at=[93, 193, 331, 420, 529, 668, 766, 878, 976, 1087])
+              at=[93, 193, 331, 420, 529, 668, 766, 878, 976, 1087], half=depth / 2)
 
 
 @model("crop_strip_5", "fields", kind="prop", atlas=2048, leaves=2048)
@@ -1721,7 +1727,8 @@ def crop_strip_5(K):
     rows = [-depth / 2 + 0.13 + k * 0.22 for k in range(7)]
     field_bed(K, 13, 1178, 100, depth, top=bed_top(K, (20, 99, 1170, 120), tol=36), ridges=0.012, rows=rows)
     groundnut(K, 0, 100, 110, rows, 80, 70, 15, (70, 112),
-              at=[76, 139, 188, 252, 310, 369, 425, 470, 516, 590, 660, 726, 774, 839, 895, 951, 1019, 1097])
+              at=[76, 139, 188, 252, 310, 369, 425, 470, 516, 590, 660, 726, 774, 839, 895, 951, 1019, 1097],
+              half=depth / 2)
 
 
 @model("crop_strip_6", "fields", kind="prop", atlas=2048, leaves=2048)
@@ -1741,7 +1748,7 @@ def crop_strip_6(K):
     bolls = blobs(P, white, 60)
     card_mask(K, clean & (np.arange(P.h)[:, None] < 216))
     rows = [-depth / 2 + 0.16 + k * 0.36 for k in range(4)]
-    field_bed(K, 8, 1173, 212, depth, top=bed_top(K, (20, 212, 1160, 236), tol=36), ridges=0.035, rows=rows)
+    field_bed(K, 8, 1173, 212, depth, top=bed_top(K, (20, 212, 1160, 236), tol=36), ridges=0.015, rows=rows)
 
     def make(K, fr, ft, yaw, s):
         # a painted boll (its bracts and the stalk under it), turned square to its card (every boll of a painted bush,
@@ -1755,7 +1762,7 @@ def crop_strip_6(K):
                              name="boll", normal=(0, -0.2, 1))
     at = [105, 228, 335, 470, 640, 790, 925, 1065]                  # the painted bushes' stems
     crop_rows(K, 5, 1176, 0, 214, rows, P.z(212), 12, 135, 120, bolls, make, scale=(0.92, 1.0), yaw=30,
-              cross=True, src=at, at=at, same=0.95)
+              cross=True, src=at, at=at, same=1.0)
 
 
 # banana pseudostems of crop_strip_7: (axis px, foot py, top py, half-width at the foot, at the top px)
@@ -1814,8 +1821,8 @@ def crop_strip_7(K):
     # stay open), crossed by a second turned square to the painting
     for k, y in enumerate(rows[1:]):
         for ax, foot, top, wf, wt in main:
-            s = K.rng.uniform(0.95, 1.0)
-            yaw = K.rng.uniform(-18, 18)
+            s = K.rng.uniform(0.98, 1.0)
+            yaw = K.rng.uniform(-12, 12)
             X, Y = P.x(ax) + K.rng.uniform(-0.02, 0.02), y + K.rng.uniform(-0.12, 0.12)
             mat = wrapped(K, X, axis_y=Y, squeeze=0.9, src=src, dz=P.z(foot) - z0, src_axis_x=P.x(ax))
             pseudostem(K, ax, foot, top, wf, wt, X, Y, z0, mat, scale=s * 0.97)

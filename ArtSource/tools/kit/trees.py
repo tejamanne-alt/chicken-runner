@@ -66,25 +66,30 @@ def tree_mango_2(K):
     wood, crown, bark, thin = traced_tree(
         K, mask, (365, 690), (0, 0, 743, 450), (372, 300), (290, 0, 450), foliage_pixels, spread=0.5, root_z_px=650,
         card_px=(110, 95), n_cards=(230, 80, 45, 25), limb_py_max=420, n_limbs=6, n_roots=4, root_py=660,
-        depth_ratio=0.378, core=0.2, dome_pow=0.85, min_r_px=1.5, trunk=(680, 410, 360, 620, 0.6))
+        depth_ratio=0.378, core=0.2, dome_pow=0.85, min_r_px=1.5, trunk=(680, 410, 360, 620, 0.6),
+        leaf_all=True)                               # its deep-shaded leaves under the crown are not "foliage" green
     # mangoes where they hang, and more round the back
     keep = [(int(x - rx + 3), int(y - ry + 3), int(x + rx - 3), int(y + ry - 3)) for x, y, rx, ry in MANGO2_FRUIT]
     stalk = K.colour((0.1, 0.18, 0.03))
     fruit_in_crown(K, crown, MANGO2_FRUIT, lambda i, dx, dz: K.projected(squeeze=1.0, keep=keep, inset=2, dx=dx, dz=dz),
                    stalk, back=1)
     # rocks and the low plants at the foot
-    stone = K.projected(squeeze=1.0, keep=[(140, 645, 220, 705), (465, 640, 585, 705)], inset=2)
+    # (the rocks a tile of their own painted stone: projected, the leaves painted in front of them streaked them)
+    stone = K.tile((470, 655, 540, 688), vary=0.08, soften=0.25)
     rock(K, 180, 690, 80, 55, -0.5, stone)
     rock(K, 525, 690, 120, 65, -0.35, stone)
     rock(K, 300, 700, 70, 40, 1.1, stone)
+    # the low plants at the foot: cards covering every painted leaf there (exactly the painting from the front), a
+    # layer in front of the trunk's foot and one behind it
     K.leaves_only((90, 550, 640, 712))
-    for i in range(26):
-        cx, cy = K.rng.uniform(110, 620), K.rng.uniform(600, 690)
-        y = K.rng.uniform(-1.2, 1.2)
-        K.card_from_painting((cx - 45, cy - 40, cx + 45, cy + 40), (P.x(cx), y, P.z(cy)), yaw=K.rng.uniform(-80, 80),
-                             name="undergrowth")
+    low = leaf_mask_of(K, (90, 550, 640, 712), plant_pixels)
+    rng = K.rng
+    cover_cards(K, low, (70, 60), lambda px, py: -rng.uniform(0.5, 1.3), slope=(0.8, 0.2), name="undergrowth",
+                normal=(0, -0.3, 1))
+    cover_cards(K, low, (70, 60), lambda px, py: rng.uniform(0.5, 1.3), slope=(0.8, 0.2), name="undergrowth_back",
+                normal=(0, 0.3, 1))
     # the patch of earth
-    earth(K, 365, 270, P.m(270) * 0.7, (200, 700, 520, 712), h=0.04)
+    earth(K, 365, 270, P.m(270) * 0.7, (150, 706, 280, 713), h=0.04)
 
 
 # ====================================================================== the tracing kit for the other trees
@@ -707,7 +712,8 @@ def strip_tile(K, box, soften=0.35, vary=0.08, name=None, blur=0.0, quilt=False)
         return K._mats[key]
     crop = P.crop(box).convert("RGBA")
     a = np.asarray(crop).astype(np.float32)
-    ok = a[..., 3] > 200
+    mx_, mn_ = a[..., :3].max(2), a[..., :3].min(2)
+    ok = (a[..., 3] > 200) & ~((mn_ > 175) & (mx_ - mn_ < 45))       # not the white cut-out halo either
     if (~ok).any() and ok.any():                         # fill the crop's transparent or halo pixels first
         _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
         a = a[iy, ix]
@@ -1104,6 +1110,7 @@ class Crown:
             sub = a[y0:y1, x0:x1]
             sub[..., 3] = np.where(keep(sub[..., :3]), sub[..., 3], 0)
         lm = (a[..., 3] > 127) & box_mask(a.shape[:2], [self.region])
+        self._raw = lm
         lm = ndimage.binary_opening(lm, iterations=1)
         self._lm, self._lm_key = lm, key
         return lm
@@ -1126,7 +1133,9 @@ class Crown:
             return self.top_cards(int(round(n * 3.0)), size_px, region=(x0, y0, x1, y1), name=name)
         shell = layer in ("front", "back")
         if shell:
-            target = lm & box_mask(lm.shape, [(x0, y0, x1, y1)])
+            # every painted leaf pixel, the thin wisps too (an opened mask left the fine needles at the crown's edge
+            # uncovered)
+            target = self._raw & box_mask(lm.shape, [(x0, y0, x1, y1)])
             total = max(1, int(target.sum()))
             covered = np.zeros_like(target)
             free = None
@@ -1343,11 +1352,15 @@ def tree_mango_1(K):
     rock(K, 300, 704, 80, 44, 1.2, stone)
     rock(K, 120, 704, 50, 30, 0.9, stone)
     K.leaves_only((0, 470, 560, 712), foliage_pixels)
-    undergrowth(K, (20, 470, 520, 700), 34, (80, 70), (-1.5, 1.5))
-    K.card_from_painting((10, 520, 150, 705), (P.x(80), -0.35, P.z(612)), name="bush_front")
-    K.card_from_painting((140, 570, 300, 705), (P.x(220), -0.75, P.z(637)), name="plants_front")
+    # the low plants: cards covering every painted leaf at the foot (the painting from the front), in front of the
+    # trunk's foot and behind it
+    low = leaf_mask_of(K, (0, 470, 560, 712), foliage_pixels)
+    rng = K.rng
+    cover_cards(K, low, (75, 65), lambda px, py: -rng.uniform(0.4, 1.5), slope=(0.8, 0.2), name="undergrowth",
+                normal=(0, -0.3, 1))
+    cover_cards(K, low, (75, 65), lambda px, py: rng.uniform(0.5, 1.6), slope=(0.8, 0.2), name="undergrowth_back",
+                normal=(0, 0.3, 1))
     earth(K, 270, 250, 1.7, (300, 700, 420, 712), h=0.035)
-    undergrowth(K, (20, 560, 520, 700), 16, (70, 60), (0.6, 1.6), name="undergrowth_back")
 
 
 # ====================================================================== solids traced off the painting
@@ -2030,6 +2043,14 @@ def sage_leaves(rgb):
     return keep
 
 
+def sage_inked(rgb):
+    """sage_leaves with their whole ink outline (sage_leaves keeps only the darkest ink: the paler grey outline round
+    each leaf went missing, a red rim round every leaf from the front)."""
+    r, g, b, mx, mn = chan(rgb)
+    lv = sage_leaves(rgb)
+    return lv | ((mx < 130) & ~((mn > 175) & (mx - mn < 45)) & ndimage.binary_dilation(lv, iterations=3))
+
+
 @model("field_tree_2", "fields", kind="prop", atlas=2048, leaves=1024)
 def field_tree_2(K):
     """A gnarled old tree: a twisting, knotted trunk leaning one way then the other, crooked limbs splitting into
@@ -2052,7 +2073,7 @@ def field_tree_2(K):
                               [r0 * 0.45, r0 * 0.3, r0 * 0.1], bark, segments=10, name="root"))
         return out
     wood, crown, bark, thin = traced_tree(
-        K, mask, (255, 525), (0, 0, 525, 410), (262, 220), (220, 0, 410), sage_leaves, spread=0.6, root_z_px=505,
+        K, mask, (255, 525), (0, 0, 525, 410), (262, 220), (220, 0, 410), sage_inked, spread=0.6, root_z_px=505,
         card_px=(70, 60), n_cards=(220, 100, 50, 20), limb_py_max=330, n_limbs=7, n_roots=0, depth_ratio=0.343,
         core=0.2, dome_pow=0.9, min_r_px=2.2, trunk=(536, 380, 300, 500, 0.25), foot=foot)
     # grass tufts and stones on the earth
@@ -2130,9 +2151,10 @@ def field_tree_3(K):
             r0 = P.m(rng.uniform(4.5, 5.8))
             culm(K, pts, [r0, r0 * 0.95, r0 * 0.88, r0 * 0.75, r0 * 0.55, r0 * 0.3], green, node, node_every=0.6)
     # the knot of roots at the foot: a low mound of earth and root, and the fibrous roots on cards round it
-    soil = K.colour((225, 780, 240, 800), vary=0.15)
-    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((75, 837), (68, 805), (58, 778), (45, 760), (25, 750), (0.0, 747))],
-            soil, segments=20, centre=(P.x(cx), 0.0, 0.0), scale_y=0.8, wobble=0.12, name="root_mound")
+    # (low, inside the painted knot of roots, and a tile of the painted root knot: a tall plain lump read as a sack)
+    soil = strip_tile(K, (215, 785, 300, 815), soften=0.3, quilt=True)
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((62, 837), (58, 818), (50, 800), (36, 786), (18, 778), (0.0, 775))],
+            soil, segments=20, centre=(P.x(cx), 0.0, 0.0), scale_y=0.85, wobble=0.12, name="root_mound")
 
     def roots_rule(rgb):
         r, g, b, mx, mn = chan(rgb)
@@ -2144,8 +2166,7 @@ def field_tree_3(K):
         K.card_from_painting((px - 35, 770, px + 35, 837), (P.x(px), rng.uniform(-0.3, 0.3), P.z(803)),
                              yaw=rng.uniform(-60, 60) + rng.choice([0, 180]), name="roots")
     K.card_from_painting((95, 745, 425, 837), (P.x(260), -0.3, P.z(791)), name="roots_front")
-    # the leaves
-    K.leaves_only((0, 0, 511, 640), sage_leaves)
+    K.leaves_only((0, 0, 511, 640), sage_inked)
     crown.cards(200, (70, 60), "volume", yaw=85, pitch=45)
     crown.cards(110, (80, 70), "front", yaw=30, pitch=20)
     crown.cards(50, (70, 60), "back", yaw=30, pitch=20)
@@ -2364,6 +2385,14 @@ def field_tree_4(K):
         return yb + f * shape.extent(x, y) * (t ** 1.3)
     place_blades(K, found, green, y_of, rolls=15, thick=0.14, fold=0.15)
     K.ao = 0.12
+    # what the solid blades leave of the painting (the thin drooping tips, the ink round the blades): cards of exactly
+    # those pixels, each where it is painted, at a depth in the clump's outer shell
+    rest = plant & ~stumpish & ~ndimage.binary_erosion(cover, iterations=1)
+    rest = ndimage.binary_opening(rest, iterations=1) | (rest & (mx < 90))
+    K.leaves_only((0, 0, 512, 410), mask_rule(rest, (0, 0, 512, 410)))
+    cover_cards(K, rest & ~box_mask(rest.shape, [(220, 300, 330, 410)]), (40, 40),
+                lambda px, py: rng.choice([-1, 1]) * shape.extent(px, py) * rng.uniform(0.3, 0.9),
+                slope=(0.9, 0.4), name="blade_tips", n_max=600)
     # the mound of red earth and its stones
     ground = mound(K, 266, 149, 1.3, 430, 402, (280, 416, 340, 428))
     stone = K.tile((172, 405, 192, 418), vary=0.08)
@@ -2406,8 +2435,10 @@ def field_tree_5(K):
     ys = [-0.35, 0.05, 0.45, -0.1]
     wood = []
     for (pts, y0) in zip(CASUARINA_TRUNKS, ys):
-        pts = [(pts[0][0], 887, pts[0][2] * 1.05)] + list(pts)       # down into the earth
-        wood.append(limb(K, pts, bark, y=[y0 + rng.uniform(-0.05, 0.05) * i for i in range(len(pts))], segments=10,
+        pts = [(pts[0][0], 880, pts[0][2] * 1.05)] + list(pts)       # down into the earth
+        lean = rng.uniform(-0.12, 0.12)                               # straight, leaning a little
+        n = len(pts)
+        wood.append(limb(K, pts, bark, y=[y0 + lean * ((pts[0][1] - p[1]) / 600.0) for p in pts], segments=10,
                          name="trunk"))
     # branches leaning out from each trunk through its spire, under the needles
     for pts, y0 in zip(CASUARINA_TRUNKS, ys):
@@ -2431,7 +2462,7 @@ def field_tree_5(K):
     crown.cards(60, (60, 70), "back", yaw=30, pitch=20)
     crown.cards(20, (60, 70), "top", yaw=90, region=(0, 0, 401, 300))
     # the mound of red earth, stones
-    ground = mound(K, 235, 88, 0.75, 881, 855, (180, 866, 300, 878))
+    ground = mound(K, 228, 110, 0.8, 881, 855, (180, 866, 300, 878))
     stone = K.colour((245, 858, 255, 866), vary=0.1)
     for px, w, h, y in ((245, 30, 16, -0.4), (285, 22, 12, -0.45), (175, 18, 10, -0.35), (300, 16, 10, 0.4),
                         (200, 20, 12, 0.5)):
@@ -2528,6 +2559,13 @@ def field_tree_6(K):
             tips[k] = rng.choice([-1, 1]) * rng.uniform(0.2, 1.0)
         return tips[k] * shape.extent(x, y) * t ** 1.2
     place_blades(K, found, agave_mat, y_of, rolls=25, thick=0.25, fold=0.3, name="agave")
+    # what the solid blades leave of the painted agave (thin tips, ink): cards of exactly those pixels, in its shell
+    rest = ag & ~ndimage.binary_erosion(cover, iterations=1)
+    rest = ndimage.binary_opening(rest, iterations=1) | (rest & (mx < 90))
+    K.leaves_only((0, 60, 195, 225), mask_rule(rest, (0, 60, 195, 225)))
+    cover_cards(K, rest & ~box_mask(rest.shape, [(80, 185, 145, 225)]), (30, 30),
+                lambda px, py: rng.choice([-1, 1]) * shape.extent(px, py) * rng.uniform(0.3, 0.9),
+                slope=(0.9, 0.4), name="agave_tips", n_max=400)
     # ---- the rosettes
     ros = opaque & ~halo & box_mask(opaque.shape, [(140, 172, 220, 238), (205, 192, 260, 238), (298, 172, 370, 236)])
     ros_mat = masked_material(K, ros, inset=1)
@@ -2679,7 +2717,7 @@ def h1_1(K):
     """A spreading shade tree: a thick grey trunk of twisted, braided strands on a great splay of roots, crooked
     limbs reaching out under a broad dome of feathery compound leaves."""
     mask, _ = TRACE["h1_1"](K)
-    traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_leaves, spread=0.55,
+    traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_inked, spread=0.55,
                 root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
                 n_cards=(240, 100, 55, 25), trunk=(1150, 700, 600, 960, 0.7), min_r_px=2.5)
 
@@ -2693,7 +2731,7 @@ def h1_2(K):
     """A young tree: a slim straight grey trunk on a few thin roots, forking high into slender limbs and twigs under
     loose sprays of compound leaves."""
     mask, _ = TRACE["h1_2"](K)
-    traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_leaves, spread=0.6,
+    traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_inked, spread=0.6,
                 root_z_px=900, limb_py_max=520, limb_py_min=150, n_limbs=6, n_roots=4, root_py=920,
                 n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=3.5, trunk=(950, 530, 275, 900, 0.8),
                 leaf_all=True)
@@ -2712,7 +2750,7 @@ def h1_3(K):
     rng = K.rng
     mask, _ = TRACE["h1_3"](K)
     wood, crown, bark, thin = traced_tree(K, mask, (150, 1000), (90, 0, 864, 535), (480, 270), (280, 0, 540),
-                                          sage_leaves, spread=0.5, root_z_px=960, limb_py_max=470, limb_py_min=200,
+                                          sage_inked, spread=0.5, root_z_px=960, limb_py_max=470, limb_py_min=200,
                                           n_limbs=6, n_roots=3, root_py=975, n_cards=(190, 90, 45, 20),
                                           card_px=(90, 80), min_r_px=2.5, trunk=(990, 530, 160, 940, 0.6))
     # the swing: two ropes looped round the limb, each splitting into a V to the ends of a plank seat
@@ -2824,7 +2862,7 @@ def h2_1(K):
     rng = K.rng
     mask, _ = TRACE["h2_1"](K)
     wood, crown, bark, thin = traced_tree(K, mask, (540, 1060), (0, 0, 1120, 670), (560, 330), (330, 0, 680),
-                                          sage_leaves, spread=0.5, root_z_px=980, limb_py_max=560, limb_py_min=250,
+                                          sage_inked, spread=0.5, root_z_px=980, limb_py_max=560, limb_py_min=250,
                                           n_limbs=7, n_roots=5, root_py=1030, n_cards=(210, 95, 50, 20),
                                           fuse_faces=7000, trunk=(1060, 580, 600, 980, 0.6))
     pm = pod_mask(K, (150, 220, 1000, 690))
@@ -2960,7 +2998,7 @@ def h2_3(K):
     P = K.paint
     mask, _ = TRACE["h2_3"](K)
     wood, crown, bark, thin = traced_tree(K, mask, (300, 715), (0, 0, 593, 470), (300, 210), (210, 0, 470),
-                                          sage_leaves, spread=0.5, root_z_px=680, limb_py_max=420, limb_py_min=150,
+                                          sage_inked, spread=0.5, root_z_px=680, limb_py_max=420, limb_py_min=150,
                                           n_limbs=6, n_roots=4, root_py=700, n_cards=(170, 80, 45, 15),
                                           card_px=(80, 70), trunk=(700, 440, 305, 660, 0.7))
     pm = pod_mask(K, (100, 60, 500, 460))
