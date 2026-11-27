@@ -212,13 +212,25 @@ namespace ChickenRunner.EditorTools
             public void Puddle(float x, float width)
             {
                 var obstacle = MakeObstacle("Puddle", x, _z.obstacles.puddle, width, 0.15f);
-                var water = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                water.name = "Water";
-                Object.DestroyImmediate(water.GetComponent<Collider>());
-                water.transform.SetParent(obstacle.visual, false);
-                water.transform.localPosition = new Vector3(0f, 0.004f, 0f);
-                water.transform.localScale = new Vector3(width, 0.004f, 0.9f);
-                water.GetComponent<Renderer>().sharedMaterial = _z.puddle != null ? _z.puddle : _z.water;
+                // The painted puddle (road_textures.py): shallow water reflecting the pale sky in a rim of wet mud, laid
+                // flat on the road; a disc of the canal water if it is missing.
+                var painted = ArtAssets.CutoutTexture("puddle_water");
+                if (painted != null)
+                {
+                    var card = ArtAssets.Card(obstacle.visual, "PuddleWater", ArtAssets.CardMaterial(painted), new Vector3(0f, 0.004f, 0f),
+                        new Vector2(width * 1.15f, width * 1.15f * painted.height / Mathf.Max(1f, painted.width)), false, true);
+                    foreach (var renderer in card.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder - 1;
+                }
+                else
+                {
+                    var water = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    water.name = "Water";
+                    Object.DestroyImmediate(water.GetComponent<Collider>());
+                    water.transform.SetParent(obstacle.visual, false);
+                    water.transform.localPosition = new Vector3(0f, 0.004f, 0f);
+                    water.transform.localScale = new Vector3(width, 0.004f, 0.9f);
+                    water.GetComponent<Renderer>().sharedMaterial = _z.puddle != null ? _z.puddle : _z.water;
+                }
                 // Far enough back (its model is 1 m deep) that its bucket and spout stay off the running line.
                 if (Art("hand_pump", x - width * 0.3f, 1.35f, height: 1.2f) == null)
                     Prim(PrimitiveType.Cylinder, "HandPump", _root, new Vector3(x - width * 0.3f, 0.55f, 1.35f), new Vector3(0.16f, 0.55f, 0.16f), Palette.Iron);

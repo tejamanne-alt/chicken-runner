@@ -116,16 +116,17 @@ def mud_lane(rng):
     """The lane: hardened light sandy-brown mud, paler along the worn foot path and the middle, two faint cart ruts."""
     v = np.linspace(0, 1, H)[:, None] * np.ones((1, W))
     t = 0.45 + 0.35 * (fbm(rng, 3, 3) - 0.5) + 0.25 * (streaks(rng) - 0.5)
-    worn = band(v, LINE + 0.04, 0.10, 0.18) * 0.22 + band(v, 0.48, 0.22, 0.2) * 0.1
+    worn = band(v, LINE + 0.04, 0.09, 0.16) * 0.3 + band(v, 0.48, 0.2, 0.2) * 0.12
     t = t + worn
-    edge = 1 - band(v, 0.5, 0.40, 0.1)
-    t = t - edge * 0.25
+    edge = 1 - band(v, 0.5, 0.34, 0.14)
+    t = t - edge * 0.4
+    t = t + 0.18 * (fbm(rng, 2, 2, 2) - 0.5)          # broad patches, metres across, that read from the camera
     col = ramp(t, [(0.0, (150, 98, 62)), (0.35, (188, 136, 90)), (0.6, (212, 164, 112)), (0.85, (228, 186, 134)),
                    (1.0, (238, 200, 150))])
     wobble = (noise(rng, 2, 1) - 0.5) * 0.04
     for c in (v_of(-1.65), v_of(-0.25)):
-        rut = band(v + wobble, c, 0.012, 0.03) * (0.5 + 0.5 * noise(rng, 5, 2))
-        col = col * (1 - 0.18 * rut[..., None]) + np.array([150, 100, 64]) * 0.18 * rut[..., None]
+        rut = band(v + wobble, c, 0.02, 0.035) * (0.45 + 0.55 * noise(rng, 5, 2))
+        col = col * (1 - 0.3 * rut[..., None]) + np.array([140, 92, 58]) * 0.3 * rut[..., None]
     col = finish(col, rng)
     img = Image.fromarray(col.astype(np.uint8), "RGB").convert("RGBA")
     pebbles(img, rng, 260, (226, 196, 160), (128, 86, 56), (1, 3))
@@ -218,6 +219,28 @@ def side_lane(rng):
     return img
 
 
+def puddle(rng):
+    """The hand pump's puddle as a flat decal: shallow water reflecting the pale sky, a few ripple rings, a darker rim of
+    wet mud fading out (alpha), as C1 paints it. 1.6 m along the lane by 0.9 m across."""
+    w, h = 640, 360
+    yy, xx = np.mgrid[0:h, 0:w]
+    nx, ny = (xx - w / 2) / (w / 2), (yy - h / 2) / (h / 2)
+    wob = (noise(rng, 6, 4, h, w) - 0.5) * 0.22
+    r = np.sqrt(nx ** 2 + ny ** 2) + wob
+    water = np.clip((0.86 - r) / 0.08, 0, 1)
+    wet = np.clip((1.02 - r) / 0.14, 0, 1)
+    sky = ramp(ny * 0.5 + 0.5 + (noise(rng, 3, 2, h, w) - 0.5) * 0.3,
+               [(0.0, (214, 232, 240)), (0.5, (178, 208, 226)), (1.0, (134, 170, 194))])
+    for cx, cy, rr in ((0.2, -0.1, 0.25), (-0.3, 0.15, 0.18)):
+        ring = np.abs(np.sqrt((nx - cx) ** 2 + ((ny - cy) * 1.6) ** 2) - rr)
+        sky = sky + np.clip(1 - ring / 0.02, 0, 1)[..., None] * 25
+    mud = np.array([112, 74, 46], float)
+    col = sky * water[..., None] + mud * (1 - water[..., None])
+    alpha = np.clip(wet * 0.95, 0, 1)
+    rgba = np.dstack([np.clip(col, 0, 255), alpha * 255]).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA").filter(ImageFilter.GaussianBlur(0.8))
+
+
 def main():
     rng = np.random.default_rng(1980)
     TEX.mkdir(parents=True, exist_ok=True)
@@ -230,6 +253,9 @@ def main():
     lane = side_lane(rng)
     lane.save(GROUND / "side_lane_mud.png")
     print(f"side_lane_mud: {lane.size}")
+    pud = puddle(rng)
+    pud.save(GROUND / "puddle_water.png")
+    print(f"puddle_water: {pud.size}")
     if "--sheet" in sys.argv:
         sheet_path = pathlib.Path(sys.argv[sys.argv.index("--sheet") + 1])
         # each road twice along (to show it tiles), stacked, with the kid's line marked

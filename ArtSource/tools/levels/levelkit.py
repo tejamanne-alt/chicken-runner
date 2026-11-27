@@ -242,8 +242,7 @@ class Plan:
         self.jump_arc(s, x)
 
     def puddle(self, s, x, width=1.6):
-        self.add(s, "puddle", x, [{"piece": "_water", "x": x, "y": 0.004, "z": 0.0, "w": width, "h": 0.0, "d": 0.9,
-                                   "mirror": False, "flat": True, "turn": 0, "kind": "water"},
+        self.add(s, "puddle", x, [visual("puddle_water", x, 0.004, 0.0, w=width * 1.15, flat=True, kind="decal"),
                                   visual("hand_pump", x - width * 0.3, z=1.35, h=1.2)],
                  width=width, top=0.15, span=width)
         self.hop_over(s, x, width, 0.15)

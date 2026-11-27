@@ -227,8 +227,8 @@ namespace ChickenRunner.EditorTools
                 ground.SetFloat("_RoadTile", RoadTile);
                 ground.SetFloat("_RoadFront", RoadFront);
                 ground.SetFloat("_RoadBack", RoadBack);
-                ground.SetFloat("_RoadSoft", 0.22f);
-                ground.SetFloat("_RoadWave", 0.12f);
+                ground.SetFloat("_RoadSoft", 0.32f);
+                ground.SetFloat("_RoadWave", 0.2f);
             }
             else
             {

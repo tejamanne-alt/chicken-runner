@@ -1796,17 +1796,16 @@
      "span": 1.6,
      "visuals": [
       {
-       "piece": "_water",
+       "piece": "puddle_water",
        "x": 114.0,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.6,
-       "h": 0.0,
-       "d": 0.9,
+       "w": 1.84,
+       "h": 1.035,
        "mirror": false,
        "flat": true,
-       "turn": 0,
-       "kind": "water"
+       "turn": 0.0,
+       "kind": "decal"
       },
       {
        "piece": "hand_pump",
@@ -3593,17 +3592,16 @@
      "span": 1.6,
      "visuals": [
       {
-       "piece": "_water",
+       "piece": "puddle_water",
        "x": 226.5,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.6,
-       "h": 0.0,
-       "d": 0.9,
+       "w": 1.84,
+       "h": 1.035,
        "mirror": false,
        "flat": true,
-       "turn": 0,
-       "kind": "water"
+       "turn": 0.0,
+       "kind": "decal"
       },
       {
        "piece": "hand_pump",
@@ -4800,17 +4798,16 @@
      "span": 1.6,
      "visuals": [
       {
-       "piece": "_water",
+       "piece": "puddle_water",
        "x": 303.5,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.6,
-       "h": 0.0,
-       "d": 0.9,
+       "w": 1.84,
+       "h": 1.035,
        "mirror": false,
        "flat": true,
-       "turn": 0,
-       "kind": "water"
+       "turn": 0.0,
+       "kind": "decal"
       },
       {
        "piece": "hand_pump",
@@ -7251,17 +7248,16 @@
      "span": 1.6,
      "visuals": [
       {
-       "piece": "_water",
+       "piece": "puddle_water",
        "x": 456.0,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.6,
-       "h": 0.0,
-       "d": 0.9,
+       "w": 1.84,
+       "h": 1.035,
        "mirror": false,
        "flat": true,
-       "turn": 0,
-       "kind": "water"
+       "turn": 0.0,
+       "kind": "decal"
       },
       {
        "piece": "hand_pump",
