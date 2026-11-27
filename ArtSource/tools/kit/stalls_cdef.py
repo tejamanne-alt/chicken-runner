@@ -318,6 +318,141 @@ def earth_patch(K, cx, cy, rx, ry, mat, z=0.0, h=0.025, name="ground"):
                    centre=(cx, cy, 0.0), scale_y=ry / rx, wobble=0.08, name=name)
 
 
+# ====================================================================== paintings drawn from above (K.oblique)
+# A painting drawn from above shows everything further back higher up: v = z + k * y (k = K.oblique, metres up per
+# metre of depth; y = 0 where the painting's bottom meets the ground). The model stays true and level: a part painted
+# at height py that stands at depth y is really at z = P.z(py) - k * y, and a thing painted higher because it stands
+# further back goes further back (y = its painted rise / k), never up.
+def zk(K, py, y):
+    """The real height of a point painted at py that stands at depth y."""
+    return K.paint.z(py) - K.oblique * y
+
+
+def yk(K, py, z=0.0):
+    """How far back a point at height z stands when it is painted at py."""
+    return (K.paint.z(py) - z) / K.oblique
+
+
+def slope_cards(K, cards=None):
+    """Cards (painted cut-outs: people, animals, fringes) are placed at their painted heights; along the painting's
+    slope a card at depth y is drawn k * y higher, so set each vertex down by k * y. Call it last."""
+    for ob in (K.cards_parts if cards is None else cards):
+        for v in ob.data.vertices:
+            v.co.z -= K.oblique * v.co.y
+
+
+def slope_source(K, fill=(), boxes=(), keep=None, inset=2, fill_tile=None, feather=3):
+    """The painting as a source for a top seen from above (the ground, a mat, a seat), with what is painted on or in
+    front of the top (people, goods, posts: polygons [(px, py), ...] in `fill`, boxes in `boxes`) taken out and filled:
+    from a seamless tile of the top's own clean paint (`fill_tile`: a box px), or else from the nearest top pixels.
+    So from above the top shows its own paint where a vendor or a basket stood in front of it in the painting."""
+    from PIL import Image, ImageDraw, ImageFilter
+    from scipy import ndimage
+    from kitlib import seamless
+    key = ("slope_src", tuple(tuple(tuple(p) for p in poly) for poly in fill), tuple(tuple(b) for b in boxes),
+           tuple(tuple(b) for b in keep) if keep else None, inset, tuple(fill_tile) if fill_tile else None)
+    if key in K._mats:
+        return K._mats[key]
+    img = _filled(K) if fill_tile else K.paint.img
+    a = np.asarray(K.paint.img).astype(np.float32)
+    h, w = a.shape[:2]
+    ok = a[..., 3] > 127
+    if keep:
+        kk = np.zeros_like(ok)
+        for x0, y0, x1, y1 in keep:
+            kk[int(y0):int(y1), int(x0):int(x1)] = True
+        ok &= kk
+    m = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(m)
+    for poly in fill:
+        d.polygon([(float(x), float(y)) for x, y in poly], fill=255)
+    for x0, y0, x1, y1 in boxes:
+        d.rectangle([x0, y0, x1, y1], fill=255)
+    ok &= ~(np.asarray(m) > 127)
+    if inset:
+        ok = ndimage.binary_erosion(ok, iterations=inset)
+    _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+    out = a[iy, ix]
+    if fill_tile:
+        t = np.asarray(seamless(img.crop(tuple(int(v) for v in fill_tile)), 0.3)).astype(np.float32)
+        reps = (h // t.shape[0] + 2, w // t.shape[1] + 2, 1)
+        tiled = np.tile(t, reps)[:h, :w]
+        wgt = np.asarray(Image.fromarray((ok * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(feather)))
+        wgt = np.maximum(wgt.astype(np.float32) / 255.0, ok.astype(np.float32))[..., None]
+        out[..., :3] = a[..., :3] * wgt + tiled[..., :3] * (1 - wgt)
+        out[..., :3] = np.where(ok[..., None], a[..., :3], out[..., :3])
+    out[..., 3] = 255
+    pil = Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA")
+    K._mats[key] = pil
+    return pil
+
+
+def slope_proj(K, fill=(), boxes=(), keep=None, inset=2, fill_tile=None, name=None):
+    """A material: the painting projected along its slope (object x, z + k * y -> painting), for the tops it draws
+    from above (the ground, a mat, a seat's top): from above, the top wears its painted top, spread to its real depth;
+    from the front along the slope it is the painting. Only for tops (on a wall or a side it would smear)."""
+    from kitlib import Mat, _image
+    src = slope_source(K, fill, boxes, keep, inset, fill_tile)
+    key = ("slope", id(src))
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(name or f"{K.name}_slope{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], float(K.oblique))), P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(src, f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
+def topped(K, outline, z0, z1, side, top, name="mat", drop_bottom=True):
+    """A level slab over a plan outline [(x, y), ...] (counter-clockwise from above), from z0 to z1: its sides wear
+    `side` (a tile), its top `top` (the painted top along the slope, slope_proj). The bottom face is left off when it
+    lies on the ground."""
+    import bmesh
+    from kitlib import _obj
+    bm = bmesh.new()
+    lo = [bm.verts.new((x, y, z0)) for x, y in outline]
+    hi = [bm.verts.new((x, y, z1)) for x, y in outline]
+    n = len(outline)
+    ftop = bm.faces.new(hi)
+    if not (drop_bottom and z0 <= 0.001):
+        bm.faces.new(list(reversed(lo)))
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([lo[i], lo[j], hi[j], hi[i]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    if ftop.normal.z < 0:
+        for f in bm.faces:
+            f.normal_flip()
+    ftop.material_index = 1
+    ob = _obj(name, bm, side)
+    ob.data.materials.append(top.mat if hasattr(top, "mat") else top)
+    K.parts.append(ob)
+    return ob
+
+
 # ====================================================================== stall C1: the spice seller's sacks
 @model("stall_c_1", "market", kind="prop", atlas=2048)
 def stall_c_1(K):
@@ -1894,7 +2029,7 @@ def stall_e_2(K):
 
 
 def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs=10, phase=0.0, tears=0.18,
-                 name="brolly"):
+                 name="brolly", runner=-0.05):
     """A big cloth market umbrella: a dome of cloth stretched over `ribs` ribs (scalloped between them, ragged and
     torn at its edge), the ribs and stretchers under it, the runner on the shaft; centred over (cx, cy), its rim at
     z_rim, R wide, H tall, tilted back `tilt` degrees. Returns the shaft's top (x, y, z) after the tilt and its
@@ -1919,7 +2054,7 @@ def rib_umbrella(K, cx, cy, z_rim, R, H, tilt, top_mat, under_mat, rib_mat, ribs
     parts.append(K.sheet(lambda u, v: f(u, v), nu, nv, top_mat, name=name + "_cloth", thickness=0.008))
     parts.append(K.sheet(lambda u, v: f(u, v, 0.014) if v > 0.06 else f(u, 0.06, 0.014), nu, nv, under_mat,
                          name=name + "_under", thickness=0.004))
-    runner_z = z_rim - 0.05
+    runner_z = z_rim + runner
     for i in range(ribs):
         a = 2 * math.pi * i / ribs + phase
         pts = [(cx + R * t * math.cos(a), cy + R * t * math.sin(a), dome(R * t) - 0.022) for t in np.linspace(0.04, 1.0, 7)]

@@ -23,7 +23,7 @@ import bmesh
 import cv2
 import numpy as np
 from mathutils import Vector
-from PIL import Image
+from PIL import Image, ImageDraw
 from scipy import ndimage
 
 from kitlib import Mat, _image, _obj, _vary, model
@@ -344,99 +344,234 @@ def clean_front(K, mask):
 
 
 # ====================================================================== stones
-def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="stone"):
-    """A faceted stone whose front outline is a painted one (px), set down by `lift` metres onto the ground, `depth`
-    metres front to back about y = y_c: its outline is its widest girth, and it narrows in facets towards a flat
-    front face and a flat back face; its foot stays broad and flat on the ground."""
+def slope_material(K, src, k, ends, side=None, name="stone"):
+    """The painting on a thing lying on the ground, seen from above along the painting's slope k: a point (x, y, z)
+    of its front half samples the painting at (x, z + k * y), exactly where the painting shows it, and a point of its
+    back half the same mirrored about its middle line (ends: its left and right ends (x, y), metres), so the back
+    wears the painted top and front faces as a stone of that shape would. side=(pil, size): where the surface turns
+    away from the slope towards the sides, a box-projected tile of pil (a quilt of the same painted stone, one tile
+    `size` metres) instead, so the sides are not the painting dragged across in stripes. src: the painting as a
+    source (PIL, the painting's size)."""
     P = K.paint
-    pts = np.array([(P.x(px), P.z(py) - lift) for px, py in poly_px])
-    pts[:, 1] = np.maximum(pts[:, 1], 0.0)
-    if top_px is not None:
-        c = np.array((P.x(top_px[0]), P.z(top_px[1]) - lift))
-    else:
-        c = pts.mean(0)
-    rings = [(0.94, 0.34), (0.77, 0.64), (0.52, 0.86), (0.22, 0.98)]     # rounded like a pebble front to back
-    bm = bmesh.new()
+    (xl, yl), (xr, yr) = ends
+    m = Mat(f"{K.name}_{name}{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
 
-    def ring(s, f, side):
-        out = []
-        for X, Z in pts:
-            j = 1 + K.rng.uniform(-jitter, jitter)
-            x = c[0] + (X - c[0]) * s * j
-            k = s if Z > c[1] else s ** 0.45                  # the foot stays broader, rounding in to the ends
-            z = max(0.0, c[1] + (Z - c[1]) * k * j)
-            out.append(bm.verts.new((x, y_c + side * depth / 2 * f * (1 + K.rng.uniform(-jitter, jitter)), z)))
-        return out
-    mid = [bm.verts.new((X, y_c, Z)) for X, Z in pts]
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    slope = (yr - yl) / max(1e-6, xr - xl)
+    yc = op("ADD", op("MULTIPLY", sep.outputs["X"], slope), yl - slope * xl)
+    back = op("ABSOLUTE", op("SUBTRACT", sep.outputs["Y"], yc))
+    v = op("DIVIDE", op("ADD", sep.outputs["Z"], op("MULTIPLY", op("SUBTRACT", yc, back), k)), P.H)
+    u = op("ADD", op("DIVIDE", sep.outputs["X"], P.W), 0.5)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(src, f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    col = tex.outputs["Color"]
+    if side is not None:
+        pil, size = side
+        t2 = nt.nodes.new("ShaderNodeTexImage")
+        t2.image = _image(pil, f"{m.mat.name}_side")
+        t2.projection = "BOX"
+        t2.projection_blend = 0.3
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (1 / size, 1 / size, 1 / size)
+        nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs[0], t2.inputs["Vector"])
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        sn = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(geo.outputs["Normal"], sn.inputs[0])
+        # how squarely the surface faces along the slope (its front half towards the painter, its back half away)
+        facing = op("DIVIDE", op("ADD", op("ABSOLUTE", sn.outputs["Y"]), op("MULTIPLY", op("MAXIMUM", sn.outputs["Z"]), k)),
+                    math.sqrt(1 + k * k))
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.inputs["From Min"].default_value = 0.22
+        mr.inputs["From Max"].default_value = 0.45
+        nt.links.new(facing, mr.inputs["Value"])
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(mr.outputs["Result"], mix.inputs["Factor"])
+        nt.links.new(t2.outputs["Color"], mix.inputs["A"])
+        nt.links.new(col, mix.inputs["B"])
+        col = mix.outputs["Result"]
+    m.set_colour(col)
+    K._mats[("slope", len(K._mats))] = m
+    return m
+
+
+def hull_span(pts, x):
+    """The top and bottom (py) of a convex polygon (px points) at column x."""
+    ys = []
     n = len(pts)
-    for side in (-1, 1):
-        prev = mid
-        for s_, f in rings:
-            cur = ring(s_, f, side)
-            for i in range(n):
-                j = (i + 1) % n
-                bm.faces.new([prev[i], prev[j], cur[j], cur[i]])
-            prev = cur
-        bm.faces.new(prev)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for i in range(n):
+        (x0, y0), (x1, y1) = pts[i], pts[(i + 1) % n]
+        if x0 != x1 and (x0 - x) * (x1 - x) <= 0:
+            ys.append(y0 + (y1 - y0) * (x - x0) / (x1 - x0))
+    return (min(ys), max(ys)) if ys else (None, None)
+
+
+def merged_stones(P, ms, inside=0.7):
+    """stone_masks less the facets an inner ink line split off a stone (a piece lying mostly inside another stone's
+    outline is part of that stone)."""
+    def hull_mask(hull):
+        im = Image.new("L", (P.w, P.h), 0)
+        ImageDraw.Draw(im).polygon(hull, fill=255)
+        return np.asarray(im) > 127
+    ms = list(ms)
+    hm = [hull_mask(h) for _, h in ms]
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(ms)):
+            for j in range(len(ms)):
+                if i != j and hm[i].sum() < hm[j].sum() and (hm[i] & hm[j]).sum() > inside * hm[i].sum():
+                    m = ms[i][0] | ms[j][0]
+                    ys, xs = np.nonzero(m)
+                    hull = cv2.convexHull(np.stack([xs, ys], 1).astype(np.int32))[:, 0, :]
+                    ms[j] = (m, [(float(x) + 0.5, float(y) + 0.5) for x, y in hull])
+                    hm[j] = hull_mask(ms[j][1])
+                    del ms[i], hm[i]
+                    merged = True
+                    break
+            if merged:
+                break
+    return ms
+
+
+def lying_stone(K, hull, k, zg, mat, p=2.4, name="stone"):
+    """A stone lying on the ground (z = zg), built so that seen along the painting's slope k its outline is the
+    painted one (hull, px, convex): every column of the painted outline is a section of the stone across its depth,
+    its foot at the painted bottom set back by its painted rise / k, its back as far behind the stone's middle line
+    (through its painted left and right ends) as its foot is in front of it, and its height whatever puts its top,
+    seen along the slope, on the painted top. Each section is a rounded superellipse (p) standing flat on the
+    ground; the ends round in to the painted left and right ends."""
+    P = K.paint
+    pts = np.array(hull, float)
+    c = pts.mean(0)
+    d = pts - c
+    pts = c + d * (1 + 0.5 / np.maximum(np.linalg.norm(d, axis=1), 1.0))[:, None]    # pixel centres to edges
+    xl, xr = pts[:, 0].min(), pts[:, 0].max()
+    vl = pts[pts[:, 0] < xl + 1.0, 1].mean()
+    vr = pts[pts[:, 0] > xr - 1.0, 1].mean()
+    yl, yr = (P.z(vl) - zg) / k, (P.z(vr) - zg) / k
+    n = max(8, int((xr - xl) / 6))
+    m = 10
+    ts = [-math.cos(math.pi * j / m) for j in range(m + 1)]
+    ss = [(1 - abs(t) ** p) ** (1 / p) for t in ts]
+    bm = bmesh.new()
+    cols = []
+    for i in range(n + 1):
+        xp = (xl + xr) / 2 - (xr - xl) / 2 * math.cos(math.pi * i / n)
+        x = P.x(xp)
+        yc = yl + (yr - yl) * (xp - xl) / (xr - xl)
+        if i in (0, n):
+            cols.append([bm.verts.new((x, yc, zg))] * (m + 1))
+            continue
+        vt, vb = hull_span(pts, xp)
+        b = max(yc - (P.z(vb) - zg) / k, 0.001)
+        T = P.z(vt) - zg - k * yc
+        if T < k * b * 1.05:                                  # never deeper than the painted top allows
+            b = max(T / (k * 1.05), 0.001)
+        lo, hi = 0.0, max(T, 1e-4) * 2
+        for _ in range(40):
+            a = (lo + hi) / 2
+            if max(a * s + k * b * t for s, t in zip(ss, ts)) > T:
+                hi = a
+            else:
+                lo = a
+        cols.append([bm.verts.new((x, yc + b * t, zg + lo * s)) for s, t in zip(ss, ts)])
+    for i in range(n):
+        for j in range(m):
+            q = [cols[i][j], cols[i + 1][j], cols[i + 1][j + 1], cols[i][j + 1]]
+            q = [v for k_, v in enumerate(q) if v not in q[:k_]]
+            if len(q) >= 3:
+                bm.faces.new(q)
+    bm.normal_update()
+    ctr = Vector((P.x((xl + xr) / 2), (yl + yr) / 2, zg))
+    if sum((f.calc_center_median() - ctr).dot(f.normal) for f in bm.faces) < 0:
+        for f in bm.faces:
+            f.normal_flip()
     ob = _obj(name, bm, mat, smooth=False)
     K.parts.append(ob)
-    return ob
+    return ob, ((P.x(xl), yl), (P.x(xr), yr))
 
 
-def stones(K, depth=0.8, back=1.6, dark=95, ink=85, min_px=25):
-    """Every painted stone as a faceted stone standing on the ground: each where it is painted across, set down
-    onto the ground, and as far back as it is painted up (a stone painted higher stands further back: the painting
-    looks down on them), `depth` of its width deep. Each carries its own painted face all round (the front
-    projection is off: the stones are moved down from where they are painted)."""
+def stone_source(P, inner, tile):
+    """The painting as a source for one stone: its own pixels (inner, without its painted outline), filled outwards
+    from them a few pixels, then its quilt (tile, PIL) beyond, so where its painted face is hidden (under the stone in
+    front of it) it carries its own stone, not a smear."""
+    a = np.asarray(filled_source(P, inner)).astype(np.float32)
+    t = np.asarray(tile.convert("RGB")).astype(np.float32)
+    t = np.tile(t, (P.h // t.shape[0] + 1, P.w // t.shape[1] + 1, 1))[:P.h, :P.w]
+    dist = ndimage.distance_transform_edt(~inner)
+    w = np.clip(1 - (dist - 2) / 6, 0, 1)[..., None]
+    a[..., :3] = a[..., :3] * w + t * (1 - w)
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
+
+
+def stones(K, k, dark=95, ink=85, min_px=25, p=2.4):
+    """Every painted stone lying on the ground: the painting looks down on them along a slope k (metres up per metre
+    back), so each stone stands as far back as its painted foot is above the lowest one (rise / k) and is shaped
+    so that, seen along that slope, its outline is its painted one (lying_stone). The model stays level and true;
+    K.oblique tells the audit (and the game's record) the painting's slope. Each stone wears its own painted face
+    along the slope on its front and top, mirrored on its back, and a quilt of its own painted mid tones on its
+    sides."""
     P = K.paint
     K.front_projection = False
-    ms = stone_masks(P, dark=dark, ink=ink, min_px=min_px)
-    foot = [np.nonzero(m)[0].max() for m, _ in ms]
-    lowest = max(foot)
-    placed = []
-    for (m, hull), bot in zip(ms, foot):
-        ys, xs = np.nonzero(m)
-        w = P.m(xs.max() - xs.min())
-        y_c = P.m(lowest - bot) * back
-        placed.append((m, hull, bot, w, y_c, (xs.mean(), ys.mean())))
-    lo = min(p[4] - p[3] * depth / 2 for p in placed)
-    hi = max(p[4] + p[3] * depth / 2 for p in placed)
-    shift = (lo + hi) / 2
-    for m, hull, bot, w, y_c, top in sorted(placed, key=lambda p: p[4]):
-        lift = P.z(bot + 0.5)
+    K.oblique = k
+    ms = merged_stones(P, stone_masks(P, dark=dark, ink=ink, min_px=min_px))
+    lowest = max(np.nonzero(m)[0].max() for m, _ in ms) + 1
+    zg = P.z(lowest)
+    rgb = P.rgba[..., :3] * 255
+    clean = halo_free(P)
+    for m, hull in ms:
         ok = ndimage.binary_erosion(m, iterations=4)
-        # its own painted face on its front and back, and on its sides and top a quilt of the same stone's painted
-        # surface (the sides carry the stone, not its outline dragged through in stripes)
         inner = ok if ok.sum() > 20 else m
         # the quilt from the stone's mid tones only (its painted light and shade are light, not its material: mixed
         # in a quilt they come out as camouflage blotches)
-        inner_m = ndimage.binary_erosion(m, iterations=2) & halo_free(P)
-        rgb = P.rgba[..., :3] * 255
+        inner_m = ndimage.binary_erosion(m, iterations=2) & clean
         med = np.median(rgb[inner_m], axis=0) if inner_m.any() else np.array((128.0, 128.0, 128.0))
         mid = inner_m & (np.linalg.norm(rgb - med, axis=-1) < 26)
         try:
             pil, size = quilt(K, mid, out=96, patch=10, overlap=4, soften=0.5)
             sm = ndimage.gaussian_filter(np.asarray(pil).astype(np.float32), (1.6, 1.6, 0), mode="wrap")
-            side = (Image.fromarray(sm.clip(0, 255).astype(np.uint8), "RGB"), size)    # no patch seams
-        except RuntimeError:                                  # too small a stone for a patch: its painted face only
+            tile = Image.fromarray(sm.clip(0, 255).astype(np.uint8), "RGB")              # no patch seams
+            side = (tile, size)
+        except RuntimeError:                                  # too small a stone for a patch: its painted face
+            tile = Image.new("RGB", (8, 8), tuple(int(v) for v in med))
             side = None
-        mat = proj_material(K, filled_source(P, inner), name="stone", dz=lift, side=side)
-        rock(K, hull, y_c - shift, w * depth * K.rng.uniform(0.85, 1.05), mat, lift, top_px=top)
+        ob, ends = lying_stone(K, hull, k, zg, None, p=p)      # its material once its ends are known
+        ob.data.materials.append(slope_material(K, stone_source(P, inner, tile), k, ends, side=side).mat)
 
 
 @model("pebbles", "ground", kind="prop")
 def pebbles(K):
-    """Five loose stones of different sizes and colours, each faceted like the painted ones, standing on the
-    ground, the ones painted higher up further back."""
-    stones(K, depth=0.8, back=1.4)
+    """Five loose stones of different sizes and colours lying on a small patch of ground, the painting looking down
+    on them: each as far back as it is painted up (the slope 0.58 makes them about as deep as they are wide), rounded
+    and flat on the ground."""
+    stones(K, 0.58)
 
 
 @model("pebble_cluster", "ground", kind="prop")
 def pebble_cluster(K):
-    """A small cluster of brown pebbles round one bigger stone, on the ground, the ones painted higher up behind it,
-    the hidden ones going on under the stones in front of them."""
-    stones(K, depth=0.85, back=1.6, dark=120, ink=85, min_px=12)
+    """A small cluster of brown pebbles round one bigger stone, lying on the ground, the painting looking down on
+    them (slope 0.73: the pebbles about as deep as they are wide): those painted higher up behind it, the hidden ones
+    going on under the stones in front of them."""
+    stones(K, 0.73, dark=120, ink=85, min_px=12)
 
 
 # ====================================================================== helpers: cards

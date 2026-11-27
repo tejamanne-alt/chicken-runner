@@ -1524,43 +1524,48 @@ def stack(K, cx, cy, w, d, h, courses, mat, z0=0.0, yaw=0.0, name="stack"):
                     bevel=min(0.05, ch * 0.25), jitter=0.006, name=name)
 
 
-def block_pier(K, u0, u1, v0, v1, z0, z1, courses, mats, name="pier"):
+def block_pier(K, u0, u1, v0, v1, z0, z1, courses, mats, name="pier", along=None, gap=0.014, bevel=0.045):
     """A pier of rough-dressed stones in a local frame (u, v across the plan): `courses` layers, each of two blocks
     laid along u and across v by turns (so the joints break on both faces), each block a little uneven and its own
-    shade of the painted stone (one of mats)."""
+    shade of the painted stone (one of mats). along: for each course from the bottom, whether its two blocks lie
+    along u (default: by turns, the bottom one along); gap, bevel: the joints between the blocks."""
     parts = []
     ch = (z1 - z0) / courses
     for c in range(courses):
         z = z0 + ch * (c + 0.5)
-        along = c % 2 == 0
+        al = c % 2 == 0 if along is None else along[c]
         f = K.rng.uniform(0.42, 0.58)
         for k in range(2):
-            if along:
+            if al:
                 a0, a1 = (u0, u0 + (u1 - u0) * f) if k == 0 else (u0 + (u1 - u0) * f, u1)
                 b0, b1 = v0, v1
             else:
                 a0, a1 = u0, u1
                 b0, b1 = (v0, v0 + (v1 - v0) * f) if k == 0 else (v0 + (v1 - v0) * f, v1)
             parts.append(K.block((a0 + a1) / 2 + K.rng.uniform(-0.01, 0.01), (b0 + b1) / 2 + K.rng.uniform(-0.01, 0.01), z,
-                                 (a1 - a0) - 0.014, (b1 - b0) - 0.014, ch - 0.012, mats[int(K.rng.integers(len(mats)))],
-                                 rot=(0, 0, K.rng.uniform(-2, 2)), bevel=min(0.045, ch * 0.25), jitter=0.006, name=name))
+                                 (a1 - a0) - gap, (b1 - b0) - gap, ch - gap * 6 / 7, mats[int(K.rng.integers(len(mats)))],
+                                 rot=(0, 0, K.rng.uniform(-2, 2)), bevel=min(bevel, ch * 0.25), jitter=0.006, name=name))
     return parts
 
 
 @fmodel("canal_piece_2", "fields", kind="prop", atlas=1024)
 def canal_piece_2(K):
     """A footbridge of two long stone slabs laid side by side on piers of rough-dressed stones, a pier under each end
-    of each slab. The painting looks down on it three-quarters on from the left, the slabs running away up to the
-    right: it is modelled level and square and turned 42 degrees in plan, so the slabs' near ends and their long sides
-    are real faces as painted. Stone on every face of the slabs (a patch of their painted top, its flecks on the
-    slabs' own colour) and on every block of the piers (the same grain on each painted block's shade). The painted
-    tops, drawn from above, cannot show from the front of a level model: nothing is projected from the front."""
+    of each slab. The painting looks down on it (K.oblique 0.283: the far piers' feet, the slabs' tops and the near
+    ends' top edges, fitted together with the outline) three-quarters on from the left, the slabs running away up to
+    the right: it is modelled level and square, the slabs at their real length and the piers on the ground, and
+    turned 50 degrees in plan, so the slabs' near ends and their long sides are real faces as painted; the painting,
+    projected along its slope, lands on the slabs' tops, ends and sides and on the piers' faces. Underneath and
+    behind, the slabs' own painted stone (a patch of their painted top, its flecks on the slabs' own colour) and the
+    piers' blocks, each one of the painted blocks' shades."""
     P = K.paint
-    K.front_exclude = [(0, 0, P.w, P.h)]
-    th = 42.0
-    w, g = 0.6, 0.12                                        # each slab's width, the gap between them
-    L, ub, Lb = 2.9, -0.28, 2.95                            # the front slab's length; the back slab's start, length
-    zt, t, zg = P.z(160), 0.29, P.z(318)                    # the slabs' top (the near ends'), their thickness, ground
+    # fitted to the painted outline and to 18 painted corners (the slabs' ends, the piers' feet) at once
+    K.oblique = 0.283
+    K.front_min = 0.03                                      # the tops (lit at 0.27 along the slope) take the painting
+    th, origin = 50.1, (-0.478, 0.176)                      # the turn; the front slab's near front corner
+    w, g = 0.652, 0.109                                     # each slab's width, the gap between them
+    L, ub, Lb = 3.286, -0.165, 3.426                        # the front slab's length; the back slab's start, length
+    zt, t = 0.734, 0.182                                    # the slabs' top, their thickness
     zb = zt - t
     rot = ((250, 150), (600, 70))                           # the front slab's long side, as painted
     grain = turned_crop(K, *rot, (300, 108, 450, 132), centre=(330, 164))     # a clean patch of the slab's top
@@ -1582,11 +1587,14 @@ def canal_piece_2(K):
     parts = []
     for u0, v0, length in ((0.0, 0.0, L), (ub, w + g, Lb)):
         parts.append(K.block(u0 + length / 2, v0 + w / 2, zb + t / 2, length, w, t, slab,
-                             rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.07, jitter=0.008, name="slab"))
+                             rot=(0, 0, K.rng.uniform(-0.4, 0.4)), bevel=0.06, jitter=0.006, name="slab"))
         parts[-1].modifiers["bevel"].segments = 3          # a rounded edge, its upper face half dark
-        for a0, a1 in ((u0 + 0.03, u0 + 0.52), (u0 + length - 0.56, u0 + length - 0.07)):
-            parts += block_pier(K, a0, a1, v0 + 0.03, v0 + w - 0.03, zg, zb, 4, stones)
-    turn(parts, th, (P.x(240), -1.385))
+        # the piers, flush with the slab's near (far) end and its front side as painted, three courses each (the
+        # painted courses), the middle one of two blocks along the slab, the others of two across it
+        for a0, a1, vi in ((u0, u0 + 0.59, 0.136), (u0 + length - 0.428, u0 + length, 0.106)):
+            parts += block_pier(K, a0 + 0.004, a1 - 0.004, v0 + 0.004, v0 + w - vi, 0.0, zb - 0.004, 3, stones,
+                                along=(False, True, False), gap=0.01, bevel=0.035)
+    turn(parts, th, origin)
 
 
 def retint(crop, base):
