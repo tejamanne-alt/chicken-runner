@@ -2314,7 +2314,7 @@ def house_being_built(K):
     inner = brick
     # the earth: a clean patch between the straw by the pallets, its stray stalks taken out, stacked square (the long
     # ground strip took the heaps' shadows and straw, which repeated in rows of chevrons over the apron's top)
-    earth = clean_tile(K, (1490, 1058, 1640, 1084), size=1.0, vary=0.1, soften=0.0, thresh=45, strip=True)
+    earth = clean_tile(K, (1490, 1058, 1640, 1084), size=1.0, vary=0.16, soften=0.0, thresh=45, strip=True)
     floor = earth
     bamboo = K.colour((1262, 150, 1276, 240), vary=0.1, scale=20)
     rope = K.colour((0.32, 0.14, 0.05), vary=0.12)
@@ -2409,6 +2409,18 @@ def house_being_built(K):
         zz = zg + 0.01
         K.card_from_painting((cx - 70, cy - 30, cx + 70, cy + 30), (P.x(cx), y, zz), yaw=K.rng.uniform(-60, 60),
                              pitch=-80 + K.rng.uniform(-6, 6), name="straw_ground")
+    # straw blown round the sides and the back of the site too (the apron's earth alone read as a plain slab)
+    xa, xb = P.x(215), P.x(2390)                         # (the apron's level top)
+    for i in range(30):
+        cx, cy = K.rng.uniform(180, 1520), K.rng.uniform(950, 1035)
+        k = i % 3
+        if k == 0:                                           # along the back
+            x, y = K.rng.uniform(xa + 0.3, xb - 0.3), K.rng.uniform(D + 0.05, D + 0.4)
+        else:                                                # down the two sides
+            x = K.rng.uniform(xa + 0.15, X0 - 0.1) if k == 1 else K.rng.uniform(X1 + 0.1, xb - 0.15)
+            y = K.rng.uniform(-0.2, D + 0.4)
+        K.card_from_painting((cx - 70, cy - 30, cx + 70, cy + 30), (x, y, zg + 0.01), yaw=K.rng.uniform(0, 360),
+                             pitch=-84 + K.rng.uniform(-4, 4), name="straw_ground")
     # stacks of new roof tiles on a pallet
     tilem = K.projected(squeeze=1.0, keep=[(1470, 780, 1960, 1000)], inset=2)
     pal = K.colour((1600, 1000, 1900, 1020), vary=0.08)
