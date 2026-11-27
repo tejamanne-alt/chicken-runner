@@ -491,7 +491,7 @@ def back_decal(K, box, depth, x_shift=0.0, name="back_door"):
     P = K.paint
     bx0, by0, bx1, by1 = box
     mat = K.decal(box)
-    y = depth + 0.004
+    y = depth + 0.02                             # (in front of a skirting or dado running round the back wall)
     return K.quad([(P.x(bx1) + x_shift, y, P.z(by1)), (P.x(bx0) + x_shift, y, P.z(by1)),
                    (P.x(bx0) + x_shift, y, P.z(by0)), (P.x(bx1) + x_shift, y, P.z(by0))], mat, name=name)
 
@@ -1035,7 +1035,8 @@ def house_mud_tin(K):
     X0, X1 = P.x(122), P.x(1312)
     ze, zr = P.z(368), P.z(36)
     body = K.box(X0, X1, 0.0, depth, 0.0, ze + 0.05, mud, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, depth + 0.015, P.z(1095), P.z(1000), lime, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, depth + 0.015, P.z(1095), P.z(1000), lime, name="skirting")
+    K.cut(skirt, P.x(588), P.x(830), -0.05, 0.22, P.z(1080), P.z(995))   # (not across the door's foot)
     K.box(P.x(85), P.x(1350), -0.15, depth + 0.15, 0.0, P.z(1095), earth, bevel=0.03, name="plinth")
     # the roof: hipped tin with an overhang all round, its eave over the wall's shadow band
     ov = 0.38
@@ -1444,7 +1445,8 @@ def house_potter(K):
     dark = K.colour((0.05, 0.03, 0.025), vary=0.0)
     X0, X1 = P.x(467), P.x(1427)
     body = K.box(X0, X1, 0.0, D, 0.0, P.z(470), mud, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(921), lime, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(921), lime, name="skirting")
+    K.cut(skirt, P.x(1003), P.x(1230), -0.05, 0.25, P.z(1071), P.z(915))   # (not across the door's foot)
     K.box(P.x(0), P.x(2190), -1.25, D + 0.4, 0.0, P.z(1108), earth, bevel=0.03, name="ground")
     # the hut's thatch, its ridge pole, palm fronds weighting it front (painted) and back (cards)
     hip_thatch(K, (P.x(334), P.x(1500), -0.55, D + 0.55), (P.x(506), P.x(1414)), P.z(474), P.z(40), thatch_m,
@@ -1708,7 +1710,8 @@ def house_thatched_hut(K):
     frame = K.colour((622, 700, 645, 1100), vary=0.06)
     X0, X1 = P.x(165), P.x(1353)
     body = K.box(X0, X1, 0.0, D, 0.0, P.z(605), mud, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(1032), lime, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(1032), lime, name="skirting")
+    K.cut(skirt, P.x(650), P.x(874), -0.05, 0.25, P.z(1119), P.z(1025))   # (not across the door's foot)
     K.box(P.x(125), P.x(1396), -0.45, D + 0.25, 0.0, P.z(1132), earth, bevel=0.04, name="ground")
     eave = (P.x(15), P.x(1508), -0.62, D + 0.62)
     ridge = (P.x(305), P.x(1220))
@@ -1808,7 +1811,8 @@ def house_weaver(K):
     timber = K.colour((560, 600, 568, 750), vary=0.08)
     X0, X1 = P.x(152), P.x(1345)
     body = K.box(X0, X1, 0.0, D, 0.0, P.z(452), white, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(925), indigo, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(925), indigo, name="skirting")
+    K.cut(skirt, P.x(491), P.x(1001), -0.05, 0.1, P.z(989), P.z(920))     # (not across the alcove's floor)
     K.box(P.x(150), P.x(1665), -0.9, D + 0.25, 0.0, P.z(1090), earth, bevel=0.04, name="ground")
     eave = (P.x(5), P.x(1495), -0.62, D + 0.62)
     ridge = (P.x(375), P.x(1125))
@@ -1956,7 +1960,8 @@ def house_hut_porch(K):
     frame = K.colour((688, 700, 700, 1000), vary=0.06)
     X0, X1 = P.x(130), P.x(1525)
     body = K.box(X0, X1, 0.0, D, 0.0, P.z(480), mud, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(985), lime, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(985), lime, name="skirting")
+    K.cut(skirt, P.x(700), P.x(960), -0.05, 0.25, P.z(1068), P.z(980))    # (not across the door's foot)
     K.box(P.x(78), P.x(1580), -1.85, D + 0.25, 0.0, P.z(1100), earth, bevel=0.04, name="ground")
     hip_thatch(K, (P.x(100), P.x(1545), -0.5, D + 0.5), (P.x(370), P.x(1290)), P.z(468), P.z(30), thatch_m,
                thickness=0.26, shag=0.05, fringe=0.09, pull=0.12)
@@ -2135,7 +2140,8 @@ def house_village_head(K):
     K.box(X0, X1, Du - 0.01, D, 0.0, P.z(790), cream, name="ground_floor_back")
     upper = K.box(X0, X1, 0.0, Du, P.z(640), P.z(330), cream, name="upper_floor")
     K.box(X0 - 0.03, X1 + 0.03, -0.03, Du + 0.03, P.z(645), P.z(620), maroon, name="band")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, zf, P.z(1035), dado, name="dado")
+    dado_b = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, zf, P.z(1035), dado, name="dado")
+    K.cut(dado_b, P.x(1030), P.x(1295), -0.05, 0.3, zf - 0.01, P.z(1030))   # (not across the door's foot)
     for x0, x1 in ((240, 292), (2033, 2085)):
         for z0, z1 in ((zf, P.z(800)), (P.z(620), P.z(330))):
             K.box(P.x(x0) - 0.02, P.x(x1) + 0.02 * 0, -0.02, 0.05, z0, z1, maroon, name="pilaster")
@@ -2639,7 +2645,8 @@ def panchayat_office(K):
     zt, zp = P.z(38), P.z(873)
     # the block behind the veranda, the upper wall over the veranda, roof deck and cornices
     body = K.box(X0, X1, Dv, D, 0.0, zt, wall, name="walls")
-    K.box(X0, X1, Dv - 0.005, D + 0.005, zp, P.z(750), dado, name="dado")
+    dado_b = K.box(X0, X1, Dv - 0.005, D + 0.005, zp, P.z(750), dado, name="dado")
+    K.cut(dado_b, P.x(757), P.x(978), Dv - 0.05, Dv + 0.25, zp - 0.01, P.z(745))   # (not across the door's foot)
     K.box(X0, X1, 0.0, Dv, P.z(258), zt, wall, name="upper_wall")
     lip = 0.18                                        # the coping: a green lip round the roof's edge
     for a, b, c, d in ((X0 - 0.07, X1 + 0.07, -0.07, lip), (X0 - 0.07, X1 + 0.07, D - lip, D + 0.07),
@@ -2759,17 +2766,13 @@ def cattle_shed(K):
     # (heaps on the floor up to their painted tops, in their own hay: a projection smears round a heap's sides, and
     # the old heaps hung half a metre above the floor)
     # (mounds on the floor, widest at the foot like the painted ones, so the painted hay lands on them and not on the
-    # wall behind, which from the side showed as flat hay painted on the plaster; their own paint is the painted
-    # hay about each one's axis, the calf left out of it)
-    from PIL import Image as _I, ImageDraw as _D
-    calf_m = _I.new("L", (P.w, P.h), 0)
-    _D.Draw(calf_m).polygon([(float(x), float(y)) for x, y in CALF_SHED], fill=255)
-    calf_m = np.asarray(calf_m) > 127
+    # wall behind, which from the side showed as flat hay painted on the plaster; the front bake paints their faces
+    # towards the camera, their own material is a tile of the painted hay: projected, it ran down their sides in
+    # vertical streaks like a beehive)
+    hm = K.tile((1250, 490, 1420, 565), size=0.6, vary=0.06, soften=0.1)
     heaps = ((1315, 300, 455, D - 0.8), (1120, 280, 555, 1.85), (975, 210, 700, 1.4))
     for px, w, top, y in heaps:
         sz = P.z(top) - zf
-        hm = projected_solid(K, [(880, 445, 1480, 880)], drop=lambda rgb: calf_m, axis_x=P.x(px), squeeze=0.9,
-                             inset=3)
         R = P.m(w) / 2
         K.lathe([(R * a_, zf + sz * b_) for a_, b_ in ((1.0, 0.0), (0.98, 0.2), (0.9, 0.45), (0.72, 0.7), (0.45, 0.88),
                                                        (0.15, 0.98), (0.0, 1.0))], hm, segments=24,
@@ -2855,7 +2858,7 @@ def shop_provisions(K):
     halo_exclude(K, [(0, 0, 1508, 1143)])
     # the mud below the window, right of the pole's shadow, its crack and specks taken out (the old crops took the
     # poles' shadow lines and the parapet's drips, which repeated as dark verticals and 'Y' marks round the walls)
-    mud = clean_tile(K, (240, 840, 520, 975), size=1.4, soften=0.3, thresh=12, radius=7)
+    mud = clean_tile(K, (240, 840, 520, 975), size=1.4, vary=0.12, soften=0.0, thresh=22, radius=7)
     lime = K.tile((280, 1005, 590, 1078), size=1.0, vary=0.04, soften=0.35)     # clear of the poles' shadows
     tin = K.tile((300, 270, 700, 390), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((280, 420, 310, 790), vary=0.08)
@@ -2865,7 +2868,8 @@ def shop_provisions(K):
     X0, X1 = P.x(160), P.x(1350)
     zt, zg = P.z(45), P.z(1088)
     body = K.box(X0, X1, 0.0, D, 0.0, zt, mud, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(990), lime, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(990), lime, name="skirting")
+    K.cut(skirt, P.x(612), P.x(900), -0.05, 0.25, P.z(1072), P.z(985))    # (not across the door's foot)
     K.box(P.x(95), P.x(1415), -1.55, D + 0.1, 0.0, P.z(1100) - 0.02, clean_tile(K, (300, 1092, 1200, 1110),
           vary=0.1, soften=0.0, thresh=40, strip=True), name="ground")
     # the roof: a coping round a real deck
@@ -3006,7 +3010,9 @@ def shop_tailor_cycle(K):
     ze, zr = P.z(296), P.z(42)
     zg = P.z(1090)
     body = K.box(X0, X1, 0.0, D, 0.0, ze + 0.1, mud, name="walls")
-    K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(995), lime, name="skirting")
+    skirt = K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(995), lime, name="skirting")
+    for x0, x1 in ((233, 683), (785, 1228)):           # (not across the alcoves' feet)
+        K.cut(skirt, P.x(x0 + 18), P.x(x1 - 18), -0.05, 0.95, P.z(1068), P.z(990))
     K.box(P.x(60), P.x(1385), -1.0, D + 0.15, 0.0, zg, clean_tile(K, (300, 1093, 1200, 1115), vary=0.1, soften=0.0, thresh=40, strip=True), bevel=0.01,
           name="floor_slab")
     # (corrugations as deep as real tin's 18 mm: twice that, half of every slope's facets go dark from the side)

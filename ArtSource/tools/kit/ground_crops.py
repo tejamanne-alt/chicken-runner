@@ -460,18 +460,6 @@ def no_halo(P, width=3, bright=150, sat=45, haze=True):
     return a & ~halo & ~hz
 
 
-def plant_mask(P, white=False):
-    """Plants: green, yellow-green, golden and brown stalks, flowers, their dark outline; not the pale halo and haze.
-    white=True also keeps white (cotton bolls)."""
-    rgb = P.rgba[..., :3] * 255
-    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
-    mx, mn = rgb.max(-1), rgb.min(-1)
-    keep = no_halo(P)
-    if not white:
-        keep &= ~((mn > 165) & (mx - mn < 40))
-    return keep
-
-
 def tri_sheet(K, mask, step, yfn, mat, eps=1.2, back_y=None, thickness=0.0, name="sheet", smooth=True,
               extra=None, min_area=30):
     """A sheet on the painted outline of `mask`: its outline (eps px) and points every `step` px inside it (plus
@@ -587,57 +575,6 @@ def ring_cards(K, box, base_px, yaws, y=0.0, scale=(0.85, 1.0), spread=0.0, norm
 
 
 # ====================================================================== the coconut and its husk
-def axis_wrap(K, c_px, d_px, src, squeeze=0.93, name="axiswrap"):
-    """The painting wrapped round a thing lying along a straight axis in the picture's plane (a nut, a pod): the axis
-    through c_px along d_px (px, unit), every point sampling the painting at its own place along the axis and, across
-    it, at the painted point its angle round the axis shows from the front: exactly as painted over the front (out to
-    45 degrees round), then on round the side at an even pace to the outline (squeeze: how near), and the back half
-    mirrored. Fibres and ridges running along the axis carry on round it, and the sides are not the outline's pixels
-    dragged into stripes."""
-    P = K.paint
-    cx, cz = P.x(c_px[0]), P.z(c_px[1])
-    D = (float(d_px[0]), float(-d_px[1]))
-    N = (float(-d_px[1]), float(-d_px[0]))                # the picture's normal to the axis, z up
-    m = Mat(f"{K.name}_{name}{len(K._mats)}")
-    nt = m.nt
-    coord = nt.nodes.new("ShaderNodeTexCoord")
-    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
-    nt.links.new(coord.outputs["Object"], sep.inputs[0])
-
-    def op(kind, a, b=0.0):
-        n = nt.nodes.new("ShaderNodeMath")
-        n.operation = kind
-        for i, v in enumerate((a, b)):
-            if isinstance(v, (int, float)):
-                n.inputs[i].default_value = float(v)
-            else:
-                nt.links.new(v, n.inputs[i])
-        return n.outputs[0]
-    qx = op("SUBTRACT", sep.outputs["X"], cx)
-    qz = op("SUBTRACT", sep.outputs["Z"], cz)
-    t = op("ADD", op("MULTIPLY", qx, D[0]), op("MULTIPLY", qz, D[1]))
-    w = op("ADD", op("MULTIPLY", qx, N[0]), op("MULTIPLY", qz, N[1]))
-    y = sep.outputs["Y"]
-    rho = op("MAXIMUM", op("SQRT", op("ADD", op("MULTIPLY", w, w), op("MULTIPLY", y, y))), 1e-5)
-    ang = op("ARCSINE", op("MINIMUM", op("DIVIDE", op("ABSOLUTE", w), rho), 1.0))
-    k = (squeeze - math.sin(math.pi / 4)) / (math.pi / 4)
-    g = op("ADD", op("SINE", op("MINIMUM", ang, math.pi / 4)),
-           op("MULTIPLY", op("MAXIMUM", op("SUBTRACT", ang, math.pi / 4), 0.0), k))
-    across = op("MULTIPLY", op("MULTIPLY", op("SIGN", w), rho), g)
-    X = op("ADD", op("ADD", op("MULTIPLY", t, D[0]), op("MULTIPLY", across, N[0])), cx)
-    Z = op("ADD", op("ADD", op("MULTIPLY", t, D[1]), op("MULTIPLY", across, N[1])), cz)
-    vec = nt.nodes.new("ShaderNodeCombineXYZ")
-    nt.links.new(op("ADD", op("DIVIDE", X, P.W), 0.5), vec.inputs[0])
-    nt.links.new(op("DIVIDE", Z, P.H), vec.inputs[1])
-    tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(src, f"{m.mat.name}_img")
-    tex.extension = "EXTEND"
-    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
-    m.set_colour(tex.outputs["Color"])
-    K._mats[("axiswrap", len(K._mats))] = m
-    return m
-
-
 def unrolled(P, ok, c, d, half_len, half_w):
     """The painting resampled along an axis (through c, along d, px): a strip 2*half_len px along it by 2*half_w px
     across, the axis running along its rows (fibres that follow the axis come out level); and `ok` resampled with it."""

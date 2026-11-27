@@ -1559,7 +1559,7 @@ def h4_5(K):
     loop = []
     for k in range(41):
         a = math.pi / 2 + 2 * math.pi * k / 40
-        px, py = 322 + 52 * math.cos(a), 815 - 76 * math.sin(a)
+        px, py = 326 + 52 * math.cos(a), 815 - 76 * math.sin(a)
         dy = -tr - P.m(6) - P.m(10) * max(0.0, (py - 760) / 130) - P.m(8) * abs(math.cos(a))
         loop.append((P.x(px), dy, P.z(py)))
     K.tube(loop, P.m(5.2), rope, segments=8, name="rope_loop", cap=False)

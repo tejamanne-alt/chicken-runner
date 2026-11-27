@@ -142,15 +142,16 @@ def wall_patch(K, poly, face, at, plane, inset=0.004, name="patch"):
         else:
             pts.append((plane + inset, at[0] + (u - 0.5) * w, z))
         uvs.append((u, v))
-    f = bm.faces.new([bm.verts.new(c) for c in pts])
+    vs = [bm.verts.new(c) for c in pts]
+    f = bm.faces.new(vs)
     out = {"back": Vector((0, 1, 0)), "left": Vector((-1, 0, 0)), "right": Vector((1, 0, 0))}[face]
     f.normal_update()
     if f.normal.dot(out) < 0:
         f.normal_flip()
+    uv_of = {v: uv for v, uv in zip(vs, uvs)}
     layer = bm.loops.layers.uv.new("decal")
     for lp in f.loops:
-        i = [tuple(round(c, 6) for c in p) for p in pts].index(tuple(round(c, 6) for c in lp.vert.co))
-        lp[layer].uv = uvs[i]
+        lp[layer].uv = uv_of[lp.vert]
     ob = _obj(name, bm, m)
     K.parts.append(ob)
     return ob
@@ -2330,9 +2331,11 @@ def roof_house_b_2(K):
     X, Z = P.x, P.z
     D = 5.0
     # the cream lime plaster from clean patches (the old crop's tan drips repeated as vertical streaks)
-    plaster = ftile(K, (875, 490, 975, 570), vary=0.12, soften=0.25)
-    upper = ftile(K, (475, 650, 575, 730), vary=0.12, soften=0.25)
-    ledge = strip_tile(K, (560, 405, 860, 425), vary=0.05, soften=0.4)
+    plaster = ftile(K, (940, 475, 1040, 555), vary=0.18, soften=0.1)
+    upper = ftile(K, (465, 600, 565, 680), vary=0.18, soften=0.1)
+    # the sunshade and the copings in the plaster (their painted fronts are projected; the painted strip, with its
+    # red line, striped their tops)
+    ledge = ftile(K, (465, 600, 565, 680), vary=0.14, soften=0.2, size=0.5)
     red = ftile(K, (1115, 881, 1195, 911), vary=0.1, soften=0.2)          # the red plinth between its kolams
     door = K.tile((605, 575, 775, 860), P.m(170), vary=0.04)
     planks = K.tile((875, 215, 990, 280), vary=0.06, soften=0.1)
@@ -2385,12 +2388,12 @@ def roof_house_b_2(K):
     K.box(X(842), X(862), ry0 - 0.05, ry0 + 0.15, Z(400), Z(175), wood, name="corner_post")
     ym = (ry0 + ry1) / 2
     # a hipped thatch: its ends lean in to a short ridge, as painted (the left end over the gable, the right hip)
-    K.thatch(X(772), X(1268), ry0 - 0.35, ym, Z(205), Z(22), straw, thickness=0.22, overhang=0.15, shag=0.06,
+    K.thatch(X(772), X(1268), ry0 - 0.35, ym, Z(205), Z(34), straw, thickness=0.22, overhang=0.15, shag=0.06,
              name="thatch_front", hip=0.3)
-    K.thatch(X(772), X(1268), ry1 + 0.35, ym, Z(205), Z(22), straw, thickness=0.22, overhang=0.15, shag=0.06,
+    K.thatch(X(772), X(1268), ry1 + 0.35, ym, Z(205), Z(34), straw, thickness=0.22, overhang=0.15, shag=0.06,
              name="thatch_back", hip=0.3)
     for x in (rx0, rx1):
-        gable = [(ry0, Z(200)), (ry1, Z(200)), (ym, Z(32))]
+        gable = [(ry0, Z(200)), (ry1, Z(200)), (ym, Z(44))]
         bm = bmesh.new()
         vs = [bm.verts.new((x, y, z)) for y, z in gable]
         bm.faces.new(vs)
@@ -2439,8 +2442,8 @@ def roof_house_b_2(K):
                   yaw=K.rng.uniform(-40, 40), pitch=K.rng.uniform(-20, 20), name="jasmine")
     for i in range(14):
         px, py = K.rng.uniform(40, 130), K.rng.uniform(300, 620)
-        blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(80) - 0.04, K.rng.uniform(0.1, 1.4), Z(py)),
-                  yaw=90 + K.rng.uniform(-20, 20), name="jasmine_side")
+        blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(80) - 0.04, K.rng.uniform(0.2, 1.4), Z(py)),
+                  yaw=90 + K.rng.uniform(-4, 4), name="jasmine_side")
     # the hens at the foot of the plinth (animals: painted cut-outs)
     figures(K, [([(506, 953), (508, 905), (518, 898), (532, 912), (552, 928), (567, 944), (574, 953)], -0.6, "hen1"),
                 ([(590, 953), (596, 925), (603, 898), (612, 885), (622, 893), (630, 920), (644, 950), (644, 953)],

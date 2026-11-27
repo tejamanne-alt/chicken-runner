@@ -77,7 +77,7 @@ def tree_mango_2(K):
     # (the rocks a tile of their own painted stone: projected, the leaves painted in front of them streaked them)
     stone = K.tile((470, 655, 540, 688), vary=0.08, soften=0.25)
     ground = mound(K, 365, 300, P.m(300) * 0.7, 719, 702, (565, 702, 640, 712), rise=0.5)
-    for px, w, h, y in ((130, 70, 55, -0.5), (522, 115, 65, -0.35), (300, 70, 40, 1.1)):     # traced off the grid
+    for px, w, h, y in ((186, 80, 55, -0.5), (522, 115, 65, -0.35), (300, 70, 40, 1.1)):     # traced off the grid
         x = P.x(px)
         K.boulder(x, y, ground(x, y) + P.m(h) * 0.45, P.m(w), P.m(w) * 0.75, P.m(h) * 1.1, stone, name="rock")
     # the low plants at the foot: cards covering every painted leaf there (exactly the painting from the front), a
@@ -870,8 +870,13 @@ def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rin
     for setting stones and roots on it."""
     P = K.paint
     soil = strip_tile(K, tile_box, soften=0.45, blur=1.0, quilt=True)
-    # the white cut-out halo along the painted ground's edge is not projected onto the mound's rim (a white streak)
+    # the white cut-out halo along the painted ground's edge (and its pale pink blend into the earth) is not
+    # projected onto the mound's rim (a white streak)
     clear_sky(K, (0, py_top - 25, P.w, P.h))
+    a = np.asarray(P.img).copy()
+    pale = (a[..., :3].min(2) > 150) & (a[..., 0] >= a[..., 2]) & box_mask(a.shape[:2], [(0, py_top - 10, P.w, P.h)])
+    a[pale, 3] = 0
+    P.img = Image.fromarray(a, "RGBA")
     rx, z0 = P.m(rx_px), P.z(py_rim)
     h = max(0.005, (P.z(py_top) - z0) * rise)
     prof = [(rx, 0.0)]
@@ -1145,7 +1150,7 @@ class Crown:
         H, W = lm.shape
         if layer == "top":
             return self.top_cards(int(round(n * 3.0)), size_px, region=(x0, y0, x1, y1), name=name)
-        if layer == "volume":
+        if layer == "volume" and not getattr(self, "shear_volume", False):
             # the cards inside the crown, hidden from the front by the shell: turned truly (rotated about their
             # centres), so from every side their leaves are at their own size (sheared ones dragged them out into
             # horizontal streaks from the side and above)
@@ -1159,7 +1164,7 @@ class Crown:
             total = max(1, int(target.sum()))
             covered = np.zeros_like(target)
             free = None
-            n_max = max(n * 4, 60)
+            n_max = max(n * 10, 150)                     # (enough to reach `cover` on sparse, airy crowns)
         else:
             n = int(round(n * 1.6))                     # blobs cover less than rectangles: more of them
             grow = max(2, int(min(size_px) * 0.2))
@@ -1198,6 +1203,8 @@ class Crown:
             if shell and abs(a) < 0.45:
                 # never square to the camera: such a card is a sliver seen from the side
                 a = math.copysign(0.45, a if a else rng.choice([-1, 1]))
+            if shell:
+                b = float(np.clip(b, -0.45, 0.45))         # tipped further, it is a horizontal streak from the side
             elif layer == "top":
                 yy = self.y0 + rng.uniform(-1, 1) * ext * 0.9
                 a = rng.uniform(-0.4, 0.4)
@@ -1267,7 +1274,7 @@ class Crown:
             if not lm[int(np.clip(sy, 0, H - 1)), c]:
                 continue
             ext = self.extent(px, pt + size_px[1] * 1.5)
-            u = rng.uniform(-0.72, 0.92)
+            u = rng.uniform(-0.6, 0.75)
             yy = self.y0 + u * ext
             # its height: on a dome over the crown, the painted top where it is deepest, falling to front and back
             z = P.z(pt) - (1 - math.sqrt(max(0.0, 1 - u * u))) * ext * 0.8
@@ -1371,7 +1378,7 @@ def tree_mango_1(K):
     # rocks, and the low plants at the foot
     stone = K.tile((160, 655, 250, 695), vary=0.08, soften=0.2)
     rock(K, 206, 704, 130, 66, -0.55, stone)
-    rock(K, 441, 704, 92, 50, -0.45, stone)
+    rock(K, 444, 704, 84, 40, -0.45, stone)
     rock(K, 300, 704, 80, 44, 1.2, stone)
     rock(K, 120, 704, 50, 30, 0.9, stone)
     K.leaves_only((0, 470, 560, 712), foliage_pixels)
@@ -1382,7 +1389,7 @@ def tree_mango_1(K):
     cover_cards(K, low, (75, 65), clumps(K, -1.0, 0.45), slope=(0.6, 0.15), name="undergrowth", normal=(0, -0.3, 1))
     cover_cards(K, low, (75, 65), clumps(K, 1.1, 0.45), slope=(0.6, 0.15), name="undergrowth_back",
                 normal=(0, 0.3, 1))
-    earth(K, 270, 250, 1.7, (300, 700, 420, 712), h=0.035)
+    earth(K, 175, 185, 1.7, (300, 700, 420, 712), h=0.035)      # the painted band of earth, x 0-360
 
 
 # ====================================================================== solids traced off the painting
@@ -1568,7 +1575,7 @@ class Katte:
 def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
                  crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
                  crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360), sky_exclude=(), bark_tile=None,
-                 bark_exclude=()):
+                 bark_exclude=(), fuse_faces=8500):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
     the painting's heart-shaped leaves."""
     P = K.paint
@@ -1674,7 +1681,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         q = [(P.x(trunk[0][0]) + math.cos(a) * r0 * f, y0 + math.sin(a) * r0 * f, z)
              for f, z in ((0.3, r0 * 0.9), (0.8, r0 * 0.35), (1.0 + L / r0 * 0.5, 0.06), (1.0 + L / r0, 0.02))]
         wood.append(K.tube(q, [r0 * 0.4, r0 * 0.3, r0 * 0.15, r0 * 0.05], bark, segments=10, name="root"))
-    trunk_ob = K.fuse(wood, voxel=P.H / 180, faces=8500)
+    trunk_ob = K.fuse(wood, voxel=P.H / 180, faces=fuse_faces)
     # the crown: everything painted in its box but the wood modelled there
     # (grown by a pixel only: a wider ring round the modelled wood showed as a see-through slit along every limb
     # once the cards show exactly their painted place)
@@ -1958,7 +1965,7 @@ def shrine_tree(K):
                       SHRINE_LIMBS[2][:3], SHRINE_LIMBS[3][:3], SHRINE_LIMBS[4][:6], SHRINE_LIMBS[5][:7]],
         crown_extra_exclude=box_mask((P.h, P.w), [(380, 470, 1350, 800)]), y0=yt, ground_roots=6,
         crown_extra_keep=skein, bark_tile=(835, 300, 900, 400), root_dirs=(55, 125),
-        bark_exclude=[(590, 420, 1260, 1412), (760, 420, 1085, 820)],
+        bark_exclude=[(590, 420, 1260, 1412), (760, 420, 1085, 820)], fuse_faces=7000,
         sky_exclude=[(760, 420, 1085, 820)])
     # ---- the threads tied round its limbs and trunk, hanging in skeins (the painted skeins as cards in front)
     red = K.colour((0.6, 0.06, 0.02), vary=0.12)
@@ -2476,6 +2483,7 @@ def field_tree_5(K):
     P = K.paint
     rng = K.rng
     crown = Crown(K, (0, 0, 401, 640), P.m(330) * 0.42, (205, 380), core=0.3, dome=(420, 0, 640), dome_pow=0.6)
+    crown.shear_volume = True                         # wispy spires: the painted sky between the needles stays
     clear_sky(K, (0, 0, 401, 640))
     bark = K.tile((198, 700, 212, 840), vary=0.08, soften=0.2)
     ys = [-0.35, 0.05, 0.45, -0.1]
@@ -2506,7 +2514,6 @@ def field_tree_5(K):
     crown.cards(230, (60, 70), "volume", yaw=85, pitch=40)
     crown.cards(120, (70, 80), "front", yaw=30, pitch=20)
     crown.cards(60, (60, 70), "back", yaw=30, pitch=20)
-    crown.cards(20, (60, 70), "top", yaw=90, region=(0, 0, 401, 300))
     # the mound of red earth, stones
     ground = mound(K, 228, 110, 0.8, 881, 855, (180, 866, 300, 878))
     stone = K.colour((245, 858, 255, 866), vary=0.1)
@@ -2636,7 +2643,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
                 root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=1.0, fuse_faces=9000,
                 rscale=0.95, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
                 min_r_px=0.0, trunk=None, tile_box=None, straight_py=None, foot=None, bark_mask=None,
-                leaf_all=False, r_cap_px=None, bark_inset=2):
+                leaf_all=False, r_cap_px=None, bark_inset=2, airy=False):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
     on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
     roots turned round the trunk as well; returns (wood, crown, bark material, thin parts). trunk = (py at the ground,
@@ -2661,6 +2668,9 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     cw = crown_box[2] - crown_box[0]
     crown = Crown(K, crown_box, P.m(cw) * depth_ratio, crown_centre, core=core, dome=dome, dome_pow=dome_pow,
                   mask=crown_mask)
+    # an airy crown (sky painted between its sprays): its volume cards sheared too, so from the front each shows only
+    # its own painted place (turned cards filled the painted gaps from the front with leaves from elsewhere)
+    crown.shear_volume = airy
     clear_sky(K, crown_box)
     if root_z_px is not None:
         # and the white cut-out halo round the roots (and its pale pink blend into the earth): a root's tip reaching
@@ -2802,7 +2812,7 @@ def h1_2(K):
     traced_tree(K, mask, (272, 955), (0, 0, 528, 520), (265, 280), (280, 0, 520), sage_inked, spread=0.6,
                 root_z_px=900, limb_py_max=520, limb_py_min=150, n_limbs=6, n_roots=4, root_py=920,
                 n_cards=(170, 80, 45, 15), card_px=(75, 65), min_r_px=3.5, trunk=(950, 530, 275, 910, 0.4),
-                leaf_all=True)
+                leaf_all=True, airy=True)
 
 
 TRACE["h1_3"] = lambda K: _trace_grey(K, [(0, 190, 864, 1024)], (150, 1000),
@@ -3024,7 +3034,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
                                           dome_pow=0.6, min_r_px=7.0, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
-                                          bark_inset=1, tile_box=DRUM_BARK[K.name])
+                                          bark_inset=1, tile_box=DRUM_BARK[K.name], airy=True)
     # the pods: long, thin, ribbed green tubes hanging from the branches, and one more of each round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=1, flatten=0.85, lump=0.05, min_len=40,
               segments=7, rscale=0.72)                # (inside their painted ink line, as the trunk)

@@ -882,7 +882,7 @@ def stall_c_3(K):
         return 0.0
     earth_patch(K, 0.0, 0.55, P.W / 2 + 0.05, 1.45, earth, h=0.02)
     # ---------------------------------------------------------------- the roof
-    straw = ktile(K, (250, 30, 450, 100), vary=0.06)
+    straw = pole_tile(K, (250, 30, 450, 100), soften=0.1, vary=0.06)       # squared: no stretch down the slopes
     y_e0, y_e1, yr = -0.66, 1.46, 0.4
     hip_thatch(K, P.x(38), P.x(932), y_e0, y_e1, Z(152), P.x(132), P.x(858), yr, Z(34), straw, thick=0.1,
                shag=0.03, fringe=P.m(13))
@@ -1384,7 +1384,7 @@ def stall_d_3(K):
         return K.projected(axis_x=P.x(cx if cx is not None else (box[0] + box[2]) / 2), squeeze=sq, keep=[box],
                            inset=2)
     # ---------------------------------------------------------------- the thatch and the booth under it
-    straw = ktile(K, (300, 40, 700, 140), vary=0.06)
+    straw = pole_tile(K, (300, 40, 700, 140), soften=0.1, vary=0.06)       # squared: no stretch down the slopes
     hip_thatch(K, P.x(150), P.x(950), -0.5, 1.0, Z(196), P.x(222), P.x(875), 0.25, Z(28), straw, thick=0.1,
                shag=0.03, fringe=P.m(16))
     roof_z = Z(205)
@@ -2463,7 +2463,7 @@ def stall_f_4(K):
         for y in (-0.5, 0.86):
             K.box(P.x(x0), P.x(x1), y - P.m(9), y + P.m(9), 0.0, Z(190), batten, name="post")
     K.box(P.x(290), P.x(520), 0.7, 0.74, Z(332), Z(325), batten, name="rail")
-    straw = ktile(K, (300, 30, 500, 90), vary=0.06)
+    straw = pole_tile(K, (300, 30, 500, 90), soften=0.1, vary=0.06)        # squared: no stretch down the slopes
     hip_thatch(K, P.x(12), P.x(764), -0.8, 1.2, Z(192), P.x(105), P.x(680), 0.2, Z(22), straw, thick=0.1, shag=0.03,
                fringe=P.m(16))
     # ---------------------------------------------------------------- the seat

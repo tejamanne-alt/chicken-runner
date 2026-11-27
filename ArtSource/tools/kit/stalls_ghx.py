@@ -356,7 +356,7 @@ def stall_g_1(K):
         x = P.x(x_px)
         K.tube([(x, ye0 + 0.1, roof_under(ye0 + 0.1) + 0.04), (x, yr, roof_under(yr) + 0.04),
                 (x, ye1 - 0.1, roof_under(ye1 - 0.1) + 0.04)], P.m(5), bam, segments=6, name="rafter")
-    straw = ktile(K, (330, 60, 760, 190), vary=0.06)
+    straw = pole_tile(K, (330, 60, 760, 190), soften=0.1, vary=0.06)       # squared: no stretch down the slopes
     hip_thatch(K, P.x(38), P.x(1062), ye0, ye1, z_eave, P.x(212), P.x(898), yr, z_ridge - 0.06, straw, thick=0.12,
                shag=0.035, fringe=P.m(8), nu=150, nv=9)
     # a roll of straw capping the ridge, the bamboo ridge pole on it
@@ -965,7 +965,8 @@ def stall_h_1(K):
     straw = pole_tile(K, (292, 866, 345, 884), soften=0.1, vary=0.06)
     # level ground, and the mat on a raked bamboo stand (a bank of earth rising to the back was a wedge of ground)
     earth_patch(K, P.x(540), bank.y1 - 0.1, (xr - xl) / 2 + 0.12, bank.y1 - bank.y0 + 0.65, earth, h=0.015)
-    raked_stand(K, bank, P.x(70), P.x(1010), straw, pole_tile(K, line=((498, 380), (498, 700)), half=5), back=0.6)
+    raked_stand(K, bank, P.x(70), P.x(1010), pole_tile(K, (292, 866, 345, 884), soften=0.45, vary=0.08),
+                pole_tile(K, line=((498, 380), (498, 700)), half=5), back=0.6)
 
     def mat_sheet(corners, mat, lift, name):
         FL, FR, BR, BL = corners
@@ -984,8 +985,9 @@ def stall_h_1(K):
     rib = K.colour((600, 196, 640, 206), vary=0.08)
     cy = 0.62
     tilt = 8.8
-    tip, axis = rib_umbrella(K, P.x(498), cy, Z(232), P.m(488), P.m(188) / math.cos(math.radians(tilt)), tilt, black,
-                             under, rib, ribs=10, phase=math.pi / 10, tears=0.0)
+    # its rim at the painted rim's height at the sides (py 256: the scalloped edge hangs lower than its middle)
+    tip, axis = rib_umbrella(K, P.x(498), cy, Z(256), P.m(488), (P.m(188) + P.m(24)) / math.cos(math.radians(tilt)),
+                             tilt, black, under, rib, ribs=10, phase=math.pi / 10, tears=0.0)
     ax = Vector(axis)
     poleshaft = lean_projected(K, (498, 40), (498, 750), 0.85, [(482, 255, 516, 745)])
     zb = bank.z(cy - 0.05)
@@ -2355,7 +2357,7 @@ def stall_vessels(K):
         bamboo(K, (P.x(xf), yfp - 0.08, zb + 0.03), (P.x(xb), ybp + 0.08, zb + 0.03), P.m(8), bam, node_at=[0.5],
                taper=1.0, name="tie")
         lashing(K, (P.x(xf), yfp, zb), (0, 0, 1), P.m(13), rope, turns=2.5)
-    straw = ktile(K, (300, 40, 700, 120), vary=0.06)
+    straw = pole_tile(K, (300, 40, 700, 120), soften=0.1, vary=0.06)       # squared: no stretch down the slopes
     ye0, ye1, yr = -1.0, 1.15, 0.17
     hip_thatch(K, P.x(60), P.x(965), ye0, ye1, Z(148), P.x(150), P.x(870), yr, Z(14), straw, thick=0.14, shag=0.035,
                fringe=P.m(8), nu=140, nv=9)

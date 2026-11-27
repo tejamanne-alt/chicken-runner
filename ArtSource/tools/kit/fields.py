@@ -331,6 +331,15 @@ def brick_bond(K, boxes, mortar, brick=(62, 26), joint=6, nx=4, ny=4, seed=0, so
     return out
 
 
+def seam_x(img, band=10):
+    """An image made to tile across only: its right edge cross-faded into its left (its rows, a wall's foot and top,
+    left where they are)."""
+    a = np.asarray(img.convert("RGB")).astype(np.float32)
+    ramp = np.linspace(0, 1, band)[None, :, None]
+    a[:, -band:] = a[:, -band:] * (1 - ramp) + a[:, :band] * ramp
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8))
+
+
 def pattern_tile(K, img, size, z0=0.0, vary=0.0, key=None, name=None):
     """A material tiling a periodic image (brickwork, coursed stone) `size` metres across, sampled once (no blend of
     two scales, which would double a regular pattern into ghosts), box-projected; z0: a height its bottom edge (a
@@ -2075,9 +2084,22 @@ def granary(K):
                        (400, 340, 566, 400),                # the platform's right side
                        (420, 400, 566, 568),                # the far staddle
                        ("poly", [(318, 0), (566, 0), (566, 214), (404, 214), (400, 196)])]   # the right hip
-    plaster = K.tile((92, 222, 186, 300), soften=0.45, vary=0.04)
-    stone_m = K.tile((52, 350, 160, 372), soften=0.3, vary=0.05)
-    pillar = K.tile((70, 420, 110, 520), soften=0.3, vary=0.05)
+    # the lime plaster as painted, foot to wall plate: strips of the lit front wall (its damp brown blotches low down,
+    # the clean cream above) side by side with a mirror, lined up with the wall's foot; the stone of the platform,
+    # caps, footings and staddles the painted stone's grain (no painted ink, no streaks) in soft lighter and darker
+    # patches
+    strips = [P.crop((88, 222, 148, 340)).convert("RGB"), P.crop((282, 222, 335, 340)).convert("RGB")]
+    run = Image.new("RGB", (strips[0].width * 2 + strips[1].width, strips[0].height))
+    run.paste(strips[0], (0, 0))
+    run.paste(strips[1], (strips[0].width, 0))
+    run.paste(strips[0].transpose(Image.FLIP_LEFT_RIGHT), (strips[0].width + strips[1].width, 0))
+    plaster = pattern_tile(K, seam_x(run, 10), P.m(run.width), z0=P.z(340), vary=0.04, key="plaster")
+    st_px = delined(P.crop((60, 352, 160, 368)), 5)
+    stone_m = img_tile(K, speckle(st_px, sigma=4.0, amount=1.8, base=lit_median(K, (50, 345, 400, 400), 120)),
+                       P.m(100), vary=0.06, mottle=0.3, mottle_size=0.3, key="stone")
+    pl_px = delined(P.crop((66, 430, 98, 500)), 5)
+    pillar = img_tile(K, speckle(pl_px, sigma=4.0, amount=1.8, base=lit_median(K, (60, 410, 110, 520), 120)),
+                      P.m(64), vary=0.06, mottle=0.3, mottle_size=0.22, key="pillar")
     tiles = K.tile((160, 100, 330, 180), soften=0.15, vary=0.04)
     xl, xr = P.x(82), P.x(370)
     body = K.box(xl, xr, 0.0, D, P.z(345), P.z(200) - 0.05, plaster, name="walls")
@@ -2144,11 +2166,11 @@ def gable_thatch(K, W, L, z_eave, z_ridge, mat, over=0.3, thickness=0.2, shag=0.
     return [a, b, ridge]
 
 
-def pen_fence(K, posts, rails, mat, tie=None, r_post=0.045, r_rail=0.035):
-    """A bamboo fence: posts [(x, y, z_top)] standing from the ground, rails [((x0, y0), (x1, y1), z)] lashed across
-    them, with crossed lashings where they meet (tie)."""
+def pen_fence(K, posts, rails, mat, tie=None, r_post=0.045, r_rail=0.035, z0=-0.05):
+    """A bamboo fence: posts [(x, y, z_top)] standing from the ground (z0), rails [((x0, y0), (x1, y1), z)] lashed
+    across them, with crossed lashings where they meet (tie)."""
     for x, y, zt in posts:
-        K.tube([(x, y, -0.05), (x, y, zt)], r_post, mat, segments=8, name="post")
+        K.tube([(x, y, z0), (x, y, zt)], r_post, mat, segments=8, name="post")
         K.lathe([(0.0, zt), (r_post * 0.9, zt)], K.colour((0.3, 0.22, 0.08)), segments=8, centre=(x, y, 0),
                 name="post_top")
     for (x0, y0), (x1, y1), z in rails:
@@ -2173,15 +2195,24 @@ def hut_with_pen(K):
     phi = 35.0
     W, L = 2.3, 4.2
     C = (P.x(305), 0.0)                                   # the hut's nearest corner
-    mud = K.tile((80, 290, 140, 400), soften=0.4, vary=0.05)
+    zf, zg, ze, zr = P.z(468), P.z(462), P.z(262), P.z(46)   # the painted ground line, the walls' foot, eaves, ridge
+    # the mud walls as painted, foot to eaves: a strip of the lit gable wall its full height (the damp, splashed band
+    # at its foot, the smooth plaster above), two strips and a mirror laid side by side, lined up with the eaves
+    strips = [P.crop((88, 262, 136, 462)).convert("RGB"), P.crop((234, 262, 292, 462)).convert("RGB")]
+    run = Image.new("RGB", (sum(im.width for im in strips) + strips[0].width, 200))
+    run.paste(strips[0], (0, 0))
+    run.paste(strips[1], (strips[0].width, 0))
+    run.paste(strips[0].transpose(Image.FLIP_LEFT_RIGHT), (strips[0].width + strips[1].width, 0))
+    mud = pattern_tile(K, seam_x(run, 12), P.m(run.width), z0=zg, vary=0.05, key="mud")
+    plaster = img_tile(K, quilt(P.crop((88, 270, 150, 330)), 3, seed=2, contrast=1.3), P.m(60), vary=0.05,
+                       mottle=0.12, mottle_size=0.5, key="plaster")      # (the gables: the walls' clean plaster)
     thatch = K.tile((330, 70, 520, 200), soften=0.2, vary=0.04)
-    zg, ze, zr = P.z(462), P.z(262), P.z(54)
     hut = []
-    walls = K.box(-W, 0.0, 0.0, L, zg - 0.05, ze, mud, name="walls")
+    walls = K.box(-W, 0.0, 0.0, L, zg, ze, mud, name="walls")
     hut.append(walls)
     for y0, y1 in ((0.0, 0.22), (L - 0.22, L)):
-        hut.append(K.prism([(0.0, ze - 0.01), (-W, ze - 0.01), (-W / 2, zr - 0.15)], y0, y1, mud, name="gable"))
-    hut += gable_thatch(K, W, L, ze, zr, thatch, over=0.32)
+        hut.append(K.prism([(0.0, ze - 0.01), (-W, ze - 0.01), (-W / 2, zr - 0.2)], y0, y1, plaster, name="gable"))
+    hut += gable_thatch(K, W, L, ze, zr, thatch, over=0.4, thickness=0.28, shag=0.07)
     # the doorway in the gable end, its dark inside; the bamboo pole with pegs over it; the plinth
     d = lambda px: -(305 - px) / P.ppm / math.cos(math.radians(phi))     # along the gable from the corner
     K.cut(walls, d(222), d(160), -0.05, 0.4, zg, P.z(250))
@@ -2191,8 +2222,10 @@ def hut_with_pen(K):
     for px in (125, 172, 215):
         hut.append(K.tube([(d(px), -0.1, P.z(238)), (d(px) + 0.04, -0.14, P.z(218))], 0.02, bamboo, segments=6,
                           name="peg"))
-    plinth = K.tile((100, 425, 180, 445), soften=0.4)
-    hut.append(K.box(d(212), d(40) + 0.1, -0.42, 0.02, 0.0, P.z(425) - 0.05, plinth, bevel=0.02, name="plinth"))
+    # the mud plinth the hut stands on, a little proud of its walls all round, from the painted ground line
+    foot = img_tile(K, quilt(delined(P.crop((90, 430, 160, 452)), 5), 4, seed=4, contrast=1.2), P.m(60), vary=0.05,
+                    mottle=0.12, mottle_size=0.4, key="foot")
+    hut.append(K.box(-W - 0.1, 0.1, -0.12, L + 0.1, zf, P.z(428), foot, bevel=0.03, name="plinth"))
     # bamboo bargeboards up both gables' thatch edges, with their cross ties
     for yb, dy in ((-0.36, -0.02), (L + 0.36, 0.02)):
         for sgn in (-1, 1):
@@ -2222,7 +2255,7 @@ def hut_with_pen(K):
     yf, yb = 0.25, 2.5
     x_l, x_r = P.x(452), P.x(806)
     wall_x = lambda y: C[0] + y * math.tan(math.radians(phi))   # the hut's side wall at depth y (in plan)
-    posts = [(P.x(455), yf, P.z(286)), (P.x(662), yf, P.z(280)), (P.x(745), yf, P.z(290)), (P.x(803), yf, P.z(285)),
+    posts = [(P.x(457), yf, P.z(284)), (P.x(662), yf, P.z(280)), (P.x(744), yf, P.z(287)), (P.x(802), yf, P.z(285)),
              (P.x(549), yb, P.z(300)), (P.x(628), yb, P.z(300)), (x_r, yb, P.z(290)), (x_r, (yf + yb) / 2, P.z(290)),
              (P.x(455), (yf + wall_x(0) * 0 + 1.2) / 2 + 0.3, P.z(290))]
     rails = []
@@ -2230,7 +2263,8 @@ def hut_with_pen(K):
         z = P.z(row)
         rails += [((P.x(445), yf), (P.x(812), yf), z), ((x_r, yf), (x_r, yb), z),
                   ((wall_x(yb), yb), (x_r, yb), z), ((P.x(455), yf), (P.x(455), 1.45), z)]
-    pen_fence(K, posts, rails, bamboo, tie=K.colour((0.42, 0.3, 0.12), vary=0.1))
+    pen_fence(K, posts, rails, bamboo, tie=K.colour((0.42, 0.3, 0.12), vary=0.1), r_post=P.m(6.5), r_rail=P.m(7),
+              z0=zf)                                        # as thick as painted, from the painted ground line
     tub = K.projected(axis_x=P.x(585), squeeze=0.92, keep=[(474, 404, 696, 466)], exclude=[(440, 410, 812, 432)],
                       inset=2)
     K.lathe([(P.m(50), P.z(466)), (P.m(85), P.z(452)), (P.m(105), P.z(430)), (P.m(111), P.z(410)), (P.m(108), P.z(406))],
