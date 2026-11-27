@@ -2329,7 +2329,8 @@ def field_shrine(K):
     K.box(P.x(124), P.x(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back")
     K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image")
     # blind niches in the other three walls of the cella, and in the first tier
-    niche_m = K.colour((166, 350, 194, 440), vary=0.08)
+    niche_m = img_tile(K, quilt(P.crop((100, 336, 122, 470)), 3, seed=1, contrast=1.4), P.m(40), vary=0.06,
+                       mottle=0.15, mottle_size=0.3, key="niche")      # the painted niche's own shadowed stone
     for ang in (90, 180, 270):
         a = math.radians(ang)
         nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction

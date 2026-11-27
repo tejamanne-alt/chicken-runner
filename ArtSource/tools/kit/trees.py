@@ -1718,9 +1718,9 @@ def peepal_platform(K):
     face = K.tile((300, 1245, 640, 1330), vary=0.05, soften=0.35)
     plinth = K.tile((260, 1345, 640, 1385), vary=0.05, soften=0.3)
     coping = K.tile((300, 1201, 640, 1228), vary=0.05, soften=0.3)
-    # the top: a tile of its painted stone, squared (a thin strip streaked) and softened (its cracks, mirrored,
-    # made a chevron pattern)
-    top = strip_tile(K, (200, 1158, 440, 1192), soften=0.6, blur=2.0)
+    # the top: a tile of its painted stone, quilted from the strip (a thin strip streaked; mirror-stacked, its
+    # cracks made a chevron pattern)
+    top = strip_tile(K, (200, 1158, 440, 1192), soften=0.5, blur=1.0, quilt=True)
     zb = P.z(1409)                                   # the painted foot of the steps (the game sets it down)
     K.box(P.x(177), P.x(1669), -hy - 0.11, hy + 0.11, zb, P.z(1337), plinth, bevel=0.01, name="plinth")
     K.box(P.x(206), P.x(1644), -hy, hy, P.z(1337), P.z(1231), face, name="body")
@@ -2767,7 +2767,7 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     K.leaves_only(box, mask_rule(leafpix, box))
     cp = card_px or (cw * 0.14, cw * 0.12)
     nv, nf, nb, nt = n_cards
-    crown.cards(nv, cp, "volume", yaw=85, pitch=45)
+    crown.cards(int(nv * 1.25), cp, "volume", yaw=85, pitch=45)     # (the sides see only these: no gaps)
     crown.cards(nf, (cp[0] * 1.1, cp[1] * 1.1), "front", yaw=30, pitch=20)
     crown.cards(nb, cp, "back", yaw=30, pitch=20)
     if nt:
@@ -2895,7 +2895,7 @@ def hang_pods(K, mask, crown, mat, copies=2, flatten=0.6, lump=0.12, rscale=1.0,
         s_ = np.concatenate([[0], np.cumsum(np.hypot(*np.diff(a, axis=0).T))])
         s_ /= s_[-1]
         pp = np.stack([np.interp(t, s_, a[:, 0]), np.interp(t, s_, a[:, 1])], 1)
-        rr = r_px * np.sqrt(np.clip(np.sin(np.pi * (0.06 + 0.88 * t)), 0.25, 1))
+        rr = r_px * np.clip(np.sin(np.pi * (0.02 + 0.96 * t)), 0.12, 1) ** 0.45      # rounded to both ends
         pw.paths.append(dict(pts=pp, r=rr.astype(np.float32), a=None, b=None, ends=(1, 1)))
     out = []
     for p in pw.paths:
@@ -3090,9 +3090,9 @@ def h2_3(K):
     pm = pod_mask(K, (100, 60, 500, 460))
     mat = masked_material(K, pm, inset=1)
     pm = pm & ~box_mask(pm.shape, [(398, 345, 478, 440)])          # the bunch of three, traced by hand
-    bunch = [([(418, 362), (416, 385), (410, 405), (405, 420)], 9), ([(430, 356), (432, 380), (428, 405), (433, 430)], 9),
-             ([(446, 366), (450, 390), (456, 410), (462, 430)], 9)]
-    hang_pods(K, pm, crown, mat, copies=2, flatten=0.6, lump=0.12, segments=8, stalk=K.colour((0.12, 0.08, 0.03)),
+    bunch = [([(418, 362), (416, 385), (410, 405), (405, 422)], 7), ([(430, 356), (432, 380), (428, 405), (433, 432)], 7),
+             ([(446, 366), (450, 390), (456, 410), (462, 432)], 7)]
+    hang_pods(K, pm, crown, mat, copies=2, flatten=0.6, lump=0.12, segments=10, stalk=K.colour((0.12, 0.08, 0.03)),
               traced=bunch)
 
 
