@@ -671,7 +671,7 @@ def mask_rings(K, box, py0, py1, step=10, alpha=0.5):
     return [tuple(r) for r in arr]
 
 
-def banana_bunch(K, box, py0, py1, y, mat, core=0.64, depth=0.82, hands=5, per=10, finger=None, scale=1.0, dz=0.0,
+def banana_bunch(K, box, py0, py1, y, mat, core=0.84, depth=0.82, hands=5, per=10, finger=None, scale=1.0, dz=0.0,
                  name="bunch"):
     """A hanging bunch of bananas traced off the painting: a core the shape of the painted bunch (inside box, from
     py0 down to py1, its stalk trimmed off) hung at depth y, wrapped in hands of curved fingers lying up its sides,
@@ -712,12 +712,12 @@ def banana_bunch(K, box, py0, py1, y, mat, core=0.64, depth=0.82, hands=5, per=1
         ph = K.rng.uniform(0, 6.28)
         for j in range(per):
             a = ph + 2 * math.pi * (j + K.rng.uniform(-0.15, 0.15)) / per
-            if math.sin(a) < -0.25:                      # the front stays smooth: the painting's own bananas
-                continue
+            if math.sin(a) < 0.15:                       # the front half stays the painted outline: the painting's
+                continue                                 # own bananas; fingers round its back
             n = Vector((math.cos(a), math.sin(a), 0))
             rb = Vector((rx * math.cos(a), ry * math.sin(a), 0))
-            base = Vector((cx, cy, zh - fl * 0.42)) + rb * 0.92
-            tip = Vector((cx, cy, zh + fl * 0.45)) + rb * 1.0 + n * fr * 0.6
+            base = Vector((cx, cy, zh - fl * 0.42)) + rb * 0.85
+            tip = Vector((cx, cy, zh + fl * 0.45)) + rb * 0.95
             MP.pod(K, tuple(base), tuple(tip), fr, fr * 0.55, mat, bend=tuple(n * fr * 0.9), n=4, seg=5,
                    name=name + "_finger")
     return rings
