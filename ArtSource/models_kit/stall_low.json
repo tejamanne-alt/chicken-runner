@@ -5,7 +5,8 @@
  "width": 2.546,
  "height": 2.0,
  "depth": 2.108,
- "lift": 0.095,
- "faces": 7528,
- "source": "blender"
+ "lift": 0.0,
+ "faces": 7529,
+ "source": "blender",
+ "oblique": 0.05
 }

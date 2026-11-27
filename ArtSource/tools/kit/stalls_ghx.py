@@ -1754,21 +1754,32 @@ def stall_high(K):
 def stall_low(K):
     """A small low stall, painted turned a little to its left: a striped awning on a gable of bamboo poles over
     four lashed bamboo posts, a low bamboo table with folded banana leaves (for plates) and a cane basket heaped with
-    coconuts."""
+    coconuts.
+
+    The painting looks down on it a little: its feet are painted higher the further back they stand (front-left
+    py 185, front-right and back-left 181, back-right 179), a slope of 0.05 (K.oblique) for the posts' depths; its
+    shadow band on the ground (py 178-187) is the ground under it along that slope, laid as a cut-out on the ground
+    (a card: no solid, no thickness). Every part is level at its real depth (y = 0 at the front-left foot)."""
     P = K.paint
     Z = P.z
-    K.front_min = 0.12
-    # turned and sized from the painted posts (their centres at py 100: 33, 62.5, 183, 212.5); the painted feet stand
-    # at py ~181, so the stall stands at z0 (the game sets it down by its lift, at most 0.1 m)
+    K.oblique = 0.05
+    K.front_min = 0.1
+    k = K.oblique
+    # turned and sized from the painted posts (their centres at py 100: 33, 62.5, 183, 212.5); the front-left foot
+    # stands at py 185, so the stall stands at z0 (the game sets it down by its lift, at most 0.1 m)
     T = Turned(P, 17.7, 0.0228)
-    z0 = 0.095
+    z0 = Z(185)
     n0 = collect(K)
     bam = pole_tile(K, line=((62, 78), (62, 132)), half=3)
     rope = K.colour((0.35, 0.2, 0.06), vary=0.1)
     yf, yb = -0.4, 0.6
     a_ = 0.8116
+    dy = -T.l2w(-a_, yf, 0.0).y                           # the front-left foot at y = 0
+    wy = lambda x, y: T.l2w(x, y, 0.0).y + dy            # noqa: E731  the depth a local point ends up at
+    # (built at painted heights; every part is set down by k * its depth at the end, so a foot standing on the ground
+    # starts that much higher)
     for x, y, top, r in ((-a_, yf, Z(8), 0.055), (a_, yf, Z(8), 0.055), (-a_, yb, Z(52), 0.05), (a_, yb, Z(62), 0.05)):
-        bamboo(K, (x, y, z0), (x, y, top), r, bam, nodes=0.45, bend=0.0, taper=0.97, name="post")
+        bamboo(K, (x, y, z0 + k * wy(x, y)), (x, y, top), r, bam, nodes=0.45, bend=0.0, taper=0.97, name="post")
         K.lathe([(r * 1.2, top - 0.02), (r * 1.25, top + 0.02), (r * 0.8, top + 0.05)], bam, segments=10,
                 centre=(x, y, 0.0), name="post_cap")
     zr = Z(16)
@@ -1790,8 +1801,8 @@ def stall_low(K):
     zr_ = Z(149)
     rr_ = P.m(9)
     slat = bam
-    for k in range(9):
-        y = yf - 0.03 + (yb - yf + 0.06) * (k + 0.5) / 9
+    for j in range(9):
+        y = yf - 0.03 + (yb - yf + 0.06) * (j + 0.5) / 9
         bamboo(K, (-a_ - 0.04, y, zt - 0.03), (a_ + 0.06, y, zt - 0.03), 0.03, slat, node_at=[0.3, 0.7], taper=1.0,
                name="slat")
     for y in (yf - 0.07, yb + 0.07):
@@ -1802,11 +1813,12 @@ def stall_low(K):
                name="table_rail")
     for x in (-a_, a_):
         for y in (yf, yb):
-            K.tube([(x, y, z0), (x, y, zr_ - 0.04)], P.m(7.5), bam, segments=12, name="table_leg")
+            K.tube([(x, y, z0 + k * wy(x, y)), (x, y, zr_ - 0.04)], P.m(7.5), bam, segments=12, name="table_leg")
             lashing(K, (x, y, zr_ + 0.02), (0, 0, 1), P.m(6), rope, turns=2)
     T.apply(K.parts[n0:])
     # ---------------------------------------------------------------- the awning
-    stripes = K.projected(squeeze=1.0, keep=[(48, 14, 242, 73)], exclude=[(30, 0, 60, 25), (195, 0, 220, 25)], inset=1)
+    stripes = K.projected(squeeze=1.0, keep=[(48, 14, 242, 73)], exclude=[(30, 0, 60, 25), (195, 0, 220, 25)], inset=1,
+                          dz=k * wy(0.0, yf - 0.21))
     n1 = collect(K)
     scallop_cloth(K, -a_ - 0.06, a_ + 0.16, yf, zr + 0.03, yf - 0.42, Z(56), stripes, hem=P.m(6), n_scallop=10,
                   drop=Z(56) - Z(66), sag=0.02, name="awning")
@@ -1836,19 +1848,42 @@ def stall_low(K):
     K.sheet(lambda u, v: (-a_ + 0.05 + 0.75 * u + 0.03 * math.sin(v * 7), -0.3 + 0.55 * v, zt + 0.006 + 0.01 * math.sin(u * 9)),
             10, 6, leaf, name="leaf_sheet", thickness=0.004)
     T.apply(K.parts[n2:])
-    weave = K.projected(axis_x=P.x(165), squeeze=0.93, keep=[(125, 110, 206, 145)], inset=1)
     p = T.w(165, 0.15, 0.0)
+    weave = K.projected(axis_x=P.x(165), squeeze=0.93, keep=[(125, 110, 206, 145)], inset=1, dz=k * (p.y + dy))
     K.lathe([(0.0, zt), (P.m(26), zt), (P.m(36), Z(130)), (P.m(41), Z(115)), (P.m(40), Z(112))], weave, segments=28,
             centre=(p.x, p.y, 0.0), cap=False, wobble=0.01, name="basket")
     K.tube([(p.x + P.m(40) * math.cos(2 * math.pi * i / 32), p.y + P.m(40) * math.sin(2 * math.pi * i / 32), Z(113))
             for i in range(33)], P.m(3), weave, segments=6, name="basket_rim")
-    nut = K.projected(squeeze=1.0, keep=[(132, 88, 200, 120)], inset=3)
+    nut = K.projected(squeeze=1.0, keep=[(132, 88, 200, 120)], inset=3, dz=k * (p.y + dy))
     import market_props as MP
-    for cxp, cyp, r, dy in ((148, 106, 17, -0.08), (183, 106, 17, -0.06), (160, 114, 15, -0.12), (162, 94, 16, 0.05),
-                            (172, 112, 15, 0.1), (140, 112, 14, 0.12)):
-        q = T.w(cxp, 0.15 + dy, P.z(cyp))
+    for cxp, cyp, r, dyl in ((148, 106, 17, -0.08), (183, 106, 17, -0.06), (160, 114, 15, -0.12), (162, 94, 16, 0.05),
+                             (172, 112, 15, 0.1), (140, 112, 14, 0.12)):
+        q = T.w(cxp, 0.15 + dyl, P.z(cyp))
         MP.ellipsoid(K, tuple(q), (P.m(r) * 0.9, P.m(r) * 0.86, P.m(r) * 0.84), nut, seg=12, rings=8, lumps=0.05,
                      name="coconut")
+    # ---------------------------------------------------------------- along the slope: every part back by dy and
+    # down by k * its depth (level parts stay level)
+    for ob in K.parts[n0:]:
+        ys_ = [v.co.y for v in ob.data.vertices]
+        yc_ = (min(ys_) + max(ys_)) / 2 + dy
+        ob.data.transform(Matrix.Translation((0.0, dy, -k * yc_)))
+    # ---------------------------------------------------------------- its shadow on the ground, a cut-out card lying
+    # on it: the painted band (py 178-187) spread along the slope to its depth, the legs' feet left out of it
+    legs = [(24, 45), (52, 73), (171, 193), (202, 224)]
+
+    def band(rgb, x0=0):
+        keep_ = np.ones(rgb.shape[:2], bool)
+        for a, b in legs:
+            keep_[:, max(0, a - x0):max(0, b - x0)] = False
+        return keep_
+    K.leaves_only((0, 176, 247, 194), band)
+    y0_, y1_ = (Z(188) - z0) / k, (Z(177) - z0) / k
+    zg = z0 + 0.002
+    uv = lambda x_, y_: (P.px(x_) / P.w, (zg + k * y_) / P.H)   # noqa: E731
+    xa, xb = P.x(4), P.x(242)
+    corners = [(xa, y0_, zg), (xb, y0_, zg), (xb, y1_, zg), (xa, y1_, zg)]
+    K.card(corners, [uv(c[0], c[1]) for c in corners], name="shadow", normal=(0.0, 0.0, 1.0))
+    unify_cards(K)
 
 
 

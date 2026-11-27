@@ -864,122 +864,188 @@ def stall_c_2(K):
     """A betel-leaf (paan) seller's pitch: a woven palm-leaf umbrella, tilted back on a leaning bamboo pole lashed to
     a low wooden bench, an old woman (a painted cut-out) sitting cross-legged on it on a palm mat, a basket heaped
     with betel leaves, a brass areca-nut cutter, loose leaves; in front on the ground two more baskets (leaves, areca
-    nuts), a heap of areca nuts on banana leaf and a small basket of sprouting leaves, on a rise of red earth."""
+    nuts), a heap of areca nuts on banana leaf and a small basket of sprouting leaves, on a patch of red earth.
+
+    The painting looks down on the pitch (K.oblique 0.30, the slope of the market's other pitches by the same hand):
+    the bench's front legs stand where their feet are painted (py 815, 0.21 m back), so its top is 0.44 m high and
+    its painted top (py 640-700) 0.71 m deep; the red band (py 745-836) is the ground 1.05 m deep. Everything stands
+    level at its real depth; the umbrella's cone was fitted to its painted outline (it leans back 25 degrees, its
+    underside showing, as painted) and its pole runs from behind the bench's back-left leg up to it."""
     P = K.paint
     Z = P.z
+    K.oblique = 0.30
     K.front_min = 0.1
-    # ---------------------------------------------------------------- the ground: a level patch of red earth
-    # (the painting's red band is the ground seen from above; a mound rising to the back looked wrong from the sides)
-    earth = ktile(K, (770, 770, 870, 830), vary=0.08, soften=0.3)
-
-    def ground(x, y):
-        return 0.0
-    earth_patch(K, 0.0, 0.25, P.W / 2 + 0.05, 1.25, earth, h=0.02)
-    # ---------------------------------------------------------------- the bench: level and square, at the height of its
-    # painted front edge (its top, painted from above, is a wood tile; the front projection paints its front edge)
+    k = K.oblique
+    hg = 0.012                                            # the earth's top
+    vendor = [(398, 352), (425, 355), (446, 375), (455, 410), (452, 440), (470, 458), (490, 490), (504, 520),
+              (502, 560), (503, 593), (535, 598), (556, 612), (556, 640), (530, 656), (505, 664), (498, 690),
+              (470, 696), (420, 694), (360, 690), (330, 680), (302, 668), (282, 648), (276, 625), (284, 603),
+              (315, 590), (318, 560), (320, 510), (330, 478), (352, 456), (368, 445), (366, 410), (372, 378)]
+    # ---------------------------------------------------------------- the ground: a level patch of red earth, 1.05 m
+    # deep, its top the painted band along the slope (where baskets and legs are painted over it, its own earth)
+    earth = ktile(K, (762, 760, 868, 832), vary=0.08, soften=0.3)
+    gtop = slope_proj(K, boxes=[(28, 728, 258, 836), (212, 770, 418, 836), (418, 750, 672, 836), (638, 640, 748, 836),
+                                (258, 712, 296, 790), (730, 700, 766, 822)], fill_tile=(762, 760, 868, 832), inset=4)
+    y_gb = yk(K, 749, hg)
+    topped(K, [(P.x(6), 0.0), (P.x(871), 0.0), (P.x(871), y_gb), (P.x(6), y_gb)], 0.0, hg, earth, gtop, name="ground")
+    # ---------------------------------------------------------------- the bench: level, its front legs at their
+    # painted feet; its top as painted (narrowing to the back: the painting's vanishing lines), the painted top along
+    # the slope on it
     wood = pole_tile(K, (430, 702, 545, 716), soften=0.2, vary=0.08)      # squared: no stretch on the top
     wood_dark = K.colour((300, 720, 400, 728), vary=0.1)
     legw = pole_tile(K, (741, 735, 755, 800), soften=0.2)
-    yF, yB = -0.4, 0.58
-    zF = Z(698)
-
-    def top_z(y):
-        return zF
-    slab(K, [(P.x(35), yF, zF), (P.x(800), yF, zF), (P.x(800), yB, zF), (P.x(35), yB, zF)], P.m(20), wood,
-         name="bench_top")
-    # its apron under the front and back edges, and the legs (front ones as painted, more behind the baskets)
-    for y0, y1 in ((yF + 0.03, yF + 0.06), (yB - 0.06, yB - 0.03)):
-        K.box(P.x(60), P.x(775), y0, y1, Z(730), zF - P.m(20), wood_dark, name="apron")
+    y_lf = yk(K, 815, hg)                                 # the front legs' feet
+    yF = y_lf - 0.04
+    zF = zk(K, 699, yF)                                   # the top
+    yB = (Z(615) - zF) / k                                # its back edge, painted at py 615 (behind the cutter)
+    th = P.m(14)
+    btop = slope_proj(K, fill=[vendor], boxes=[(60, 556, 282, 698), (574, 440, 712, 694)],
+                      fill_tile=(300, 690, 420, 700), inset=3)
+    xl_f, xr_f, xl_b, xr_b = 34, 800, 153, 670            # its ends as painted, front and back (px)
+    back_x = lambda px_: xl_b + (px_ - xl_f) * (xr_b - xl_b) / (xr_f - xl_f)   # noqa: E731
+    topped(K, [(P.x(xl_f), yF), (P.x(xr_f), yF), (P.x(xr_b), yB), (P.x(xl_b), yB)], zF - th, zF, wood, btop,
+           name="bench_top")
+    K.box(P.x(60), P.x(771), yF + 0.03, yF + 0.06, zk(K, 731, yF + 0.03), zF - th, wood_dark, name="apron")
+    K.box(P.x(back_x(60)), P.x(back_x(771)), yB - 0.08, yB - 0.05, zk(K, 731, yF + 0.03), zF - th, wood_dark,
+          name="apron")
+    y_lb = yB - 0.06
     for x0, x1 in ((263, 290), (735, 760), (55, 80)):
-        for y in (yF + 0.07, yB - 0.08):
-            K.box(P.x(x0), P.x(x1), y - 0.035, y + 0.035, 0.0, zF - P.m(18), legw, name="leg")
+        for y, xa, xb in ((y_lf, P.x(x0), P.x(x1)), (y_lb, P.x(back_x(x0)), P.x(back_x(x1)))):
+            K.box(xa, xb, y - 0.035, y + 0.035, 0.0, zF - th, legw, name="leg")
     for x_px in (67, 748):
-        K.box(P.x(x_px) - 0.02, P.x(x_px) + 0.02, yF + 0.07, yB - 0.08, 0.1, 0.15, legw, name="stretcher")
+        K.tube([(P.x(x_px), y_lf, 0.12), (P.x(back_x(x_px)), y_lb, 0.12)], 0.022, legw, segments=6, name="stretcher")
     # the palm mat she sits on
     mat_w = ktile(K, (150, 205, 280, 240), vary=0.06)
-    K.grid_plane(P.x(285), P.x(560), yF + 0.08, yB - 0.12, 0.0, 10, 8, mat_w,
-                 height=lambda x, y: top_z(y) + 0.008, name="mat")
-    # ---------------------------------------------------------------- the umbrella
+    K.box(P.x(285), P.x(560), yF + 0.06, yB - 0.1, zF, zF + 0.008, mat_w, name="mat")
+    # ---------------------------------------------------------------- the umbrella and its leaning pole
     weave = ktile(K, (290, 105, 420, 170), vary=0.06)
     under = ktile(K, (150, 200, 280, 240), vary=0.05)
     pole_mat = pole_tile(K, line=((325, 262), (296, 560)), half=4)
-    yc = 0.92
-    umbrella(K, P.x(340), yc, Z(206), P.m(314), P.m(156), 5.9, weave, under, pole_mat, teeth=46, tooth=0.055)
-    # the pole: leaning, lashed to the bench's back-left leg, up to the collar under the canopy
-    bot = (P.x(258), yc - 0.24, ground(P.x(258), yc - 0.24) - 0.05)
-    bamboo(K, bot, (P.x(331), yc - 0.01, Z(212)), P.m(11), pole_mat, node_at=[0.42, 0.78], bend=0.0, taper=0.9,
-           name="pole")
+    # (the fitted cone is its outline: the tiers' teeth reach 2.75 % past it and droop 4.5 cm below it, the upper
+    # tiers sit 5 cm above it)
+    t = math.radians(24.93)
+    Vc, R, H = 2.2348 + 0.045, P.m(316) / 1.0275, 0.616 - 0.095
+    # the pole is the umbrella's axis (leaning back as far), through its painted line (x 331 at py 212, x 296 at
+    # py 560), passing just behind the bench top's back edge and planted in the ground under it
+    tt = math.tan(t)
+    z1, z2 = Z(212), Z(560)
+    dyy = (z1 - z2) * tt / (1 + k * tt)                   # how far back the painted top is from the lower point
+    yB2 = (1.24 + (z2 - zF) * tt) / (1 + k * tt)          # at the bench top's height it is 1.24 m back
+    zB2 = z2 - k * yB2
+    yA2, zA2 = yB2 + dyy, z1 - k * (yB2 + dyy)
+    dxz = (P.x(331) - P.x(296)) / (zA2 - zB2)
+    foot = Vector((P.x(296) - dxz * zB2, yB2 - zB2 * tt, hg - 0.01))
+    top_ = Vector((P.x(331), yA2, zA2))
+    off = (Vc - z1) / (math.cos(t) + k * math.sin(t))     # the rim's centre a little above the painted collar
+    y_c, z_c = yA2 + off * math.sin(t), zA2 + off * math.cos(t)
+    umbrella(K, P.x(340), y_c, z_c, R, H, math.degrees(t), weave, under, pole_mat, teeth=46, tooth=0.055)
+    bamboo(K, tuple(foot), tuple(top_), P.m(11), pole_mat, node_at=[0.42, 0.78], bend=0.0, taper=0.9, name="pole")
     rope = K.colour((0.12, 0.07, 0.03), vary=0.1)
-    lashing(K, (P.x(281), yc - 0.24 + 0.24 * 0.32, top_z(yB) - 0.08), (0.08, 0.1, 1.0), P.m(11), rope, turns=4)
-    K.lathe([(P.m(13), Z(238)), (P.m(15), Z(232)), (P.m(15), Z(212)), (P.m(12), Z(206))], pole_mat, segments=12,
-            centre=(P.x(331), yc, 0.0), name="collar")
-    # ---------------------------------------------------------------- on the bench
+    d_ = (top_ - foot).normalized()
+    K.tube([tuple(top_ - d_ * 0.14), tuple(top_ - d_ * 0.02)], P.m(15), pole_mat, segments=12, name="collar")
+    # ---------------------------------------------------------------- on the bench: the basket of betel leaves
     bask = K.projected(axis_x=P.x(170), squeeze=0.92, keep=[(62, 600, 278, 695)], inset=2)
     inside = K.colour((0.1, 0.06, 0.02), vary=0.1)
-    yb1 = 0.02
-    zb1 = top_z(yb1)
-    basket(K, P.x(170), yb1, zb1, [(P.m(62), 0.0), (P.m(85), Z(672) - zb1 * 0 - Z(690) + 0.02),
-                                    (P.m(98), Z(640) - zb1), (P.m(106), Z(603) - zb1)], bask, inside=inside, sy=0.85)
+    r0, rt = P.m(62), P.m(106)
+    yb1 = (Z(694) - zF) / k + r0 * 0.85                   # its foot's front painted at py 694
+    z_rim = zk(K, 612, yb1 - rt * 0.85)                   # the rim's front is painted at py 612
+    zm1 = zk(K, 640, yb1)
+    zl1 = zk(K, 672, yb1 - r0 * 0.85)
+    basket(K, P.x(170), yb1, zF, [(r0, 0.0), (P.m(85), max(0.03, zl1 - zF)), (P.m(98), zm1 - zF), (rt, z_rim - zF)],
+           bask, inside=inside, sy=0.85)
     leafm = ktile(K, (180, 560, 260, 600), vary=0.05)
-    heap(K, P.x(172), yb1, P.m(100), P.m(100) * 0.85, Z(625), Z(606) - Z(625), leafm, name="leaves")
-    # the brass areca-nut cutter, traced off the painting: its base plate on a thick wooden board (painted higher than
-    # the bench's front edge, further back), the box body, the tray at its left, the bell hood and lid on top, the
-    # side column, and the lever with its wooden grip
+    heap(K, P.x(172), yb1, P.m(100), P.m(100) * 0.85, z_rim - 0.02, 0.1, leafm, name="leaves")
+    # the brass areca-nut cutter on its board, traced off the painting at its depth
     brass = K.colour((672, 560, 684, 640), vary=0.08)
     brass_d = K.colour((605, 625, 640, 655), vary=0.08)
-    yt = 0.24
-    zt = Z(668)
-    K.box(P.x(578), P.x(705), yt - 0.13, yt + 0.12, zF, zt - 0.025, wood, bevel=0.006, name="cutter_board")
-    K.box(P.x(585), P.x(700), yt - 0.09, yt + 0.1, zt - 0.025, zt, brass, bevel=0.004, name="cutter_base")
-    K.box(P.x(613), P.x(662), yt - 0.06, yt + 0.06, zt, Z(578), brass_d, bevel=0.004, name="cutter_body")
-    K.block(P.x(608), yt - 0.02, (Z(612) + Z(594)) / 2, P.m(60), 0.11, Z(594) - Z(612), brass, rot=(0, -8, 0),
-            bevel=0.004, name="cutter_tray")
-    K.lathe([(P.m(26), Z(587)), (P.m(26), Z(570)), (P.m(22), Z(556)), (P.m(15), Z(545)), (P.m(12), Z(540)),
-             (P.m(17), Z(538)), (P.m(17), Z(530)), (P.m(8), Z(526)), (0.0, Z(525))], brass, segments=16,
-            centre=(P.x(638), yt, 0.0), scale_y=0.8, name="cutter_hood")
-    K.box(P.x(662), P.x(690), yt - 0.025, yt + 0.025, zt, Z(562), brass, bevel=0.003, name="cutter_column")
-    K.tube([P.pt(676, 565, yt), P.pt(660, 535, yt)], P.m(7), brass, segments=8, name="cutter_arm")
-    K.tube([P.pt(650, 530, yt), P.pt(660, 495, yt)], P.m(6), brass, segments=8, name="lever")
+    # (each part's top is painted where its back edge is, along the slope); its brass base plate's front painted at
+    # py 665: it stands half way back on the bench
+    yt0 = (Z(665) - zF) / k
+    yt = yt0 + 0.15
+    Zt = lambda py, d=0.0: zk(K, py, yt + d)             # noqa: E731
+    zt = zF + 0.03
+    K.box(P.x(588), P.x(698), yt0, yt0 + 0.3, zF, zt, brass, bevel=0.006, name="cutter_base")
+    K.box(P.x(615), P.x(660), yt - 0.045, yt + 0.045, zt, Zt(578, 0.045), brass_d, bevel=0.004, name="cutter_body")
+    K.block(P.x(612), yt - 0.01, (Zt(612, 0.03) + Zt(596, 0.03)) / 2, P.m(48), 0.06, Zt(596, 0.03) - Zt(612, 0.03),
+            brass, rot=(0, -8, 0), bevel=0.004, name="cutter_tray")
+    K.lathe([(P.m(24), Zt(587, 0.04)), (P.m(24), Zt(570, 0.04)), (P.m(20), Zt(556, 0.03)), (P.m(14), Zt(545, 0.02)),
+             (P.m(11), Zt(540, 0.02)), (P.m(15), Zt(538, 0.02)), (P.m(15), Zt(530, 0.02)), (P.m(7), Zt(526, 0.01)),
+             (0.0, Zt(525))], brass, segments=16, centre=(P.x(638), yt, 0.0), scale_y=0.8, name="cutter_hood")
+    K.box(P.x(663), P.x(689), yt - 0.022, yt + 0.022, zt, Zt(562, 0.022), brass, bevel=0.003, name="cutter_column")
+    Pt = lambda px_, py_: (P.x(px_), yt, Zt(py_))        # noqa: E731
+    K.tube([Pt(676, 565), Pt(660, 535)], P.m(7), brass, segments=8, name="cutter_arm")
+    K.tube([Pt(650, 530), Pt(660, 495)], P.m(6), brass, segments=8, name="lever")
     lever = K.colour((670, 455, 685, 490), vary=0.08)
-    K.tube([P.pt(660, 497, yt), P.pt(664, 470, yt), P.pt(667, 448, yt)], [P.m(9), P.m(11), P.m(10)], lever,
-           segments=10, name="lever_grip")
+    K.tube([Pt(660, 497), Pt(664, 470), Pt(667, 448)], [P.m(9), P.m(11), P.m(10)], lever, segments=10,
+           name="lever_grip")
     # loose betel leaves on the bench (one hanging over its front edge), a folded paan on a leaf, the lime tin
     leaf2 = ktile(K, (240, 660, 290, 690), vary=0.06)
 
     def bench_or_edge(x, y):
-        return top_z(y) if y > yF else zF - (yF - y) * 2.5
-    leaf_sheet(K, (P.x(262), yF + 0.06), 0.3, 0.2, 200, leaf2, surface=bench_or_edge, curl=0.012, name="leaf_bench")
-    leaf_sheet(K, (P.x(565), yF + 0.16), 0.3, 0.22, 160, leaf2, surface=lambda x, y: top_z(y), curl=0.015, name="leaf_paan")
+        return zF if y > yF else zF - (yF - y) * 2.5
+    yl = lambda py: (Z(py) - zF) / k                     # noqa: E731  depth on the bench top of a point painted at py
+    leaf_sheet(K, (P.x(262), yl(684)), 0.3, 0.2, 200, leaf2, surface=bench_or_edge, curl=0.012, name="leaf_bench")
+    leaf_sheet(K, (P.x(565), yl(680)), 0.3, 0.22, 160, leaf2, surface=lambda x, y: zF, curl=0.015, name="leaf_paan")
     nutm = K.colour((560, 655, 580, 670), vary=0.1)
     K.lathe([(0.0, 0.0), (0.03, 0.006), (0.034, 0.02), (0.02, 0.034), (0.0, 0.038)], nutm, segments=10,
-            centre=(P.x(570), yF + 0.2, top_z(yF + 0.2)), name="paan_nut")
-    K.lathe([(0.05, 0.0), (0.058, 0.012), (0.06, 0.016)], brass, segments=16,
-            centre=(P.x(632), yF + 0.12, top_z(yF + 0.12)), name="lime_tin")
+            centre=(P.x(572), yl(684), zF), name="paan_nut")
+    K.lathe([(0.05, 0.0), (0.058, 0.012), (0.06, 0.016)], brass, segments=16, centre=(P.x(636), yl(693), zF),
+            name="lime_tin")
     # ---------------------------------------------------------------- on the ground in front
+    def ground_basket(cx_px, foot_py, prof_px, mat, sy=0.85, name="basket"):
+        """A basket standing on the earth, its foot's front where it is painted; prof_px [(r px, py), ...] from the
+        foot up to the rim (the last: where the rim's front is painted)."""
+        rf = P.m(prof_px[0][0])
+        yc = max(0.0, (Z(foot_py) - hg) / k) + rf * sy
+        prof = [(rf, 0.0)]
+        for i, (r_px, py) in enumerate(prof_px[1:]):
+            last = i == len(prof_px) - 2
+            prof.append((P.m(r_px), zk(K, py, yc - (P.m(r_px) * sy if last else 0.0)) - hg))
+        basket(K, P.x(cx_px), yc, hg, prof, mat, sy=sy, name=name)
+        return yc, hg + prof[-1][1]
     bask2 = K.projected(axis_x=P.x(140), squeeze=0.92, keep=[(30, 745, 255, 836)], inset=2)
-    y2 = -0.95
-    basket(K, P.x(140), y2, 0.0, [(P.m(92), 0.0), (P.m(104), Z(810)), (P.m(110), Z(780)), (P.m(112), Z(752))], bask2,
-           sy=0.85)
-    heap(K, P.x(140), y2, P.m(104), P.m(104) * 0.85, Z(775), Z(756) - Z(775), leafm, name="leaves2")
+    y2, zr2 = ground_basket(140, 836, [(92, 836), (104, 810), (110, 785), (112, 762)], bask2)
+    heap(K, P.x(140), y2, P.m(104), P.m(104) * 0.85, zr2 - 0.04, 0.07, leafm, name="leaves2")
     bask3 = K.projected(axis_x=P.x(315), squeeze=0.92, keep=[(215, 785, 415, 836)], inset=2)
-    y3 = -0.98
-    basket(K, P.x(318), y3, 0.0, [(P.m(88), 0.0), (P.m(94), Z(815)), (P.m(100), Z(797))], bask3, sy=0.85)
+    y3, zr3 = ground_basket(318, 836, [(88, 836), (94, 818), (100, 802)], bask3)
     nutsm = ktile(K, (520, 760, 610, 810), vary=0.06)
     nut = K.colour((560, 760, 580, 780), vary=0.12, scale=30)
-    h3 = heap_px(K, 318, y3, [(92, 795), (82, 780), (64, 764), (42, 755), (16, 750), (0, 749)], nutsm, name="nuts3")
+
+    def heap_k(cx_px, yc, prof_px, mat, sy=0.85, name="heap", z0=None):
+        """heap_px at depth yc along the slope: the painted outline's heights set down by k * yc."""
+        prof = [(P.m(r), zk(K, py, yc)) for r, py in prof_px]
+        if z0 is not None:
+            prof[0] = (prof[0][0], z0)
+        K.lathe(prof, mat, segments=28, centre=(P.x(cx_px), yc, 0.0), scale_y=sy, wobble=0.03, name=name)
+        cx = P.x(cx_px)
+
+        def height(x, yy):
+            d = math.sqrt((x - cx) ** 2 + ((yy - yc) / sy) ** 2)
+            best = prof[0][1]
+            for (ra, za), (rb, zb) in zip(prof, prof[1:]):
+                if min(ra, rb) <= d <= max(ra, rb) and abs(rb - ra) > 1e-6:
+                    best = max(best, za + (zb - za) * (d - ra) / (rb - ra))
+                elif d <= min(ra, rb):
+                    best = max(best, max(za, zb))
+            return best
+        return height
+    h3 = heap_k(318, y3, [(92, 795), (82, 780), (64, 764), (42, 755), (16, 750), (0, 749)], nutsm, name="nuts3",
+                z0=zr3 - 0.02)
     pile(K, h3, P.x(318), y3, P.m(88), P.m(75), 40, P.m(15), nut, over=P.m(8))
     banana = K.colour((420, 820, 435, 832), vary=0.1)
-    K.grid_plane(P.x(400), P.x(700), -1.2, -0.6, 0.0, 10, 6, banana, height=lambda x, y: 0.006, name="banana_leaf")
-    h4 = heap_px(K, 540, -0.92, [(120, 836), (100, 825), (76, 806), (56, 792), (36, 777), (16, 766), (0, 762)], nutsm,
-                 sy=0.7, name="nuts_heap", z0=0.0)
-    pile(K, h4, P.x(540), -0.92, P.m(124), P.m(124) * 0.7, 60, P.m(16), nut, over=P.m(11))
+    y4 = P.m(124) * 0.7 + 0.02
+    K.grid_plane(P.x(400), P.x(700), 0.02, y4 * 2 + 0.1, hg, 10, 6, banana, height=lambda x, y: 0.004,
+                 name="banana_leaf")
+    h4 = heap_k(540, y4, [(120, 836), (100, 825), (76, 806), (56, 792), (36, 777), (16, 766), (0, 762)], nutsm,
+                sy=0.7, name="nuts_heap", z0=hg)
+    pile(K, h4, P.x(540), y4, P.m(124), P.m(124) * 0.7, 60, P.m(16), nut, over=P.m(11))
     bask4 = K.projected(axis_x=P.x(693), squeeze=0.92, keep=[(645, 758, 742, 832)], inset=2)
-    basket(K, P.x(693), -0.75, 0.0, [(P.m(42), 0.0), (P.m(45), Z(800)), (P.m(48), Z(764))], bask4, sy=1.0)
-    K.lathe([(P.m(44), Z(764)), (P.m(30), Z(752)), (0.0, Z(748))], leafm, segments=16, centre=(P.x(693), -0.75, 0.0),
-            name="sprout_base")
+    y5, zr5 = ground_basket(693, 832, [(42, 832), (45, 800), (48, 770)], bask4, sy=1.0)
+    K.lathe([(P.m(44), zr5 - 0.03), (P.m(30), zr5 - 0.01), (0.0, zr5)], leafm, segments=16,
+            centre=(P.x(693), y5, 0.0), name="sprout_base")
     # ---------------------------------------------------------------- leaves as cards, the vendor as a cut-out
-    for box, cxp, cyp, y0, depth, n in (((120, 538, 548, 612), 330, 575, yb1, 0.5, 14),
-                                        ((35, 685, 505, 772), 265, 730, y2, 0.55, 14)):
+    for box, cxp, cyp, y0, depth, n in (((38, 538, 548, 612), 293, 575, yb1, 0.5, 14),
+                                        ((35, 685, 505, 772), 270, 728.5, y2, 0.55, 14)):
         K.leaves_only(box, green_leaves)
         K.card_from_painting(box, (P.x(cxp), y0 - depth * 0.42, P.z(cyp)), name="leaf_front")
         for i in range(n):
@@ -988,15 +1054,12 @@ def stall_c_2(K):
                                  (P.x(px_), y0 + K.rng.uniform(-depth, depth) * 0.4, P.z(py_)),
                                  yaw=K.rng.uniform(-80, 80), pitch=K.rng.uniform(-25, 25), name="leaf")
     K.leaves_only((640, 650, 760, 765), green_leaves)
-    K.card_from_painting((640, 650, 760, 765), (P.x(700), -0.78, P.z(707)), name="sprouts")
+    K.card_from_painting((640, 650, 760, 765), (P.x(700), y5 - 0.03, P.z(707)), name="sprouts")
     for yaw in (60, -60, 90):
-        K.card_from_painting((640, 650, 760, 765), (P.x(700), -0.74, P.z(707)), yaw=yaw, name="sprouts")
-    K.figure([(398, 352), (425, 355), (446, 375), (455, 410), (452, 440), (470, 458), (490, 490), (504, 520),
-              (502, 560), (503, 593), (535, 598), (556, 612), (556, 640), (530, 656), (505, 664), (498, 690),
-              (470, 696), (420, 694), (360, 690), (330, 680), (302, 668), (282, 648), (276, 625), (284, 603),
-              (315, 590), (318, 560), (320, 510), (330, 478), (352, 456), (368, 445), (366, 410), (372, 378)],
-             y=-0.33, name="vendor")
+        K.card_from_painting((640, 650, 760, 765), (P.x(700), y5, P.z(707)), yaw=yaw, name="sprouts")
+    K.figure(vendor, y=(Z(695) - zF - 0.008) / k, name="vendor")
     unify_cards(K)
+    slope_cards(K)
 
 
 def hip_thatch(K, x0, x1, y0, y1, z_eave, rx0, rx1, yr, z_ridge, mat, thick=0.12, shag=0.04, fringe=0.07, nu=140,
@@ -1095,91 +1158,50 @@ def mirror_y(K, ob, y0):
 def stall_c_3(K):
     """A cloth seller's stall: a hipped thatch on bamboo posts, six sarees folded over a bamboo rail under its eave,
     and a big string cot (charpoy) with turned legs and rope wound round its rails, stacked two rows deep with folded
-    sarees and dhotis, on a rise of red earth."""
+    sarees and dhotis, on a patch of red earth.
+
+    The painting looks down on the stall (K.oblique 0.30, the market's slope): everything stands level at its real
+    depth. The cot's front legs stand where their feet are painted (py 643), its back legs at their painted block
+    feet (py 568-575, 0.85-0.93 m back), its rails 0.52 m high; the posts at their painted feet (py 590-595) beside
+    it, the back posts under the back eave; the red band (py 558-642) is the ground 1 m deep. Its folded stacks stand
+    in two rows on the bed, each as high as its painted top along the slope. The painting's perspective draws the
+    back of the cot, the ground and the roof narrower (their vanishing lines): the parts stand where they are painted,
+    so the cot and the roof narrow to the back."""
     P = K.paint
     Z = P.z
+    K.oblique = 0.30
     K.front_min = 0.1
-    # ---------------------------------------------------------------- the ground: a level patch of red earth (the
-    # painting's red band is the ground seen from above; a mound rising to the back looked wrong from the sides)
-    earth = ktile(K, (300, 570, 480, 630), vary=0.08, soften=0.3)
-
-    def ground(x, y):
-        return 0.0
-    earth_patch(K, 0.0, 0.55, P.W / 2 + 0.05, 1.45, earth, h=0.02)
-    # ---------------------------------------------------------------- the roof
-    straw = pole_tile(K, (250, 30, 450, 100), soften=0.1, vary=0.06)       # squared: no stretch down the slopes
-    y_e0, y_e1, yr = -0.66, 1.46, 0.4
-    hip_thatch(K, P.x(38), P.x(932), y_e0, y_e1, Z(152), P.x(132), P.x(858), yr, Z(34), straw, thick=0.1,
-               shag=0.03, fringe=P.m(13))
-    pole = K.projected(axis_x=P.x(142), squeeze=0.9, keep=[(128, 175, 158, 470), (130, 525, 156, 580)], inset=2)
-    pole2 = K.projected(axis_x=P.x(838), squeeze=0.9, keep=[(824, 175, 852, 420)], inset=2)
-    bam = K.colour((132, 300, 152, 400), vary=0.08)
-    rope = K.colour((0.1, 0.06, 0.03), vary=0.1)
-
-    def roof_under(x, y):          # the underside of the thatch over (x, y)
-        if y < yr:
-            t = (y - y_e0) / (yr - y_e0)
-        else:
-            t = (y_e1 - y) / (y_e1 - yr)
-        return Z(152) + (Z(34) - Z(152)) * max(0.0, min(1.0, t)) - 0.09
-    for x_px, mat in ((142, pole), (838, pole2)):
-        x = P.x(x_px)
-        bamboo(K, (x, yr, ground(x, yr) - 0.04), (x, yr, roof_under(x, yr) - 0.06), P.m(12), mat, nodes=0.45,
-               bend=0.0, taper=0.95, name="post")
-        # a brace up to the front eave beam (hidden behind the post from the front)
-        K.tube([(x, yr - 0.02, Z(270)), (x, -0.5, roof_under(x, -0.5) - 0.05)], P.m(7), bam, segments=6, name="brace")
-        lashing(K, (x, yr, Z(270)), (0, 0, 1), P.m(12), rope, turns=2.5)
-    for x_px in (205, 790):
-        x = P.x(x_px)
-        bamboo(K, (x, 1.2, ground(x, 1.2) - 0.04), (x, 1.2, roof_under(x, 1.2) - 0.05), P.m(10), bam, nodes=0.45,
-               bend=0.0, name="post_back")
-    # the beams under the thatch: ridge, front and back eaves, and rafters
-    zr = roof_under(0, yr) - 0.05
-    bamboo(K, (P.x(120), yr, zr), (P.x(870), yr, zr), P.m(10), bam, node_at=[], name="ridge_beam")
-    for yb in (-0.5, 1.2):
-        zb = roof_under(0, yb) - 0.05
-        bamboo(K, (P.x(60), yb, zb), (P.x(910), yb, zb), P.m(8), bam, node_at=[], name="eave_beam")
-    for x_px in np.linspace(140, 830, 8):
-        x = P.x(x_px)
-        K.tube([(x, -0.62, roof_under(x, -0.62) - 0.02), (x, yr, roof_under(x, yr) - 0.02),
-                (x, 1.42, roof_under(x, 1.42) - 0.02)], P.m(5), bam, segments=6, name="rafter")
-    # ---------------------------------------------------------------- the sarees hanging from a rail under the eave
-    y_rail, z_rail = -0.42, Z(163)
-    bamboo(K, (P.x(160), y_rail, z_rail), (P.x(800), y_rail, z_rail), P.m(7), bam, node_at=[], name="rail")
-    for x_px in (162, 798):
-        K.tube([(P.x(x_px), y_rail, z_rail), (P.x(x_px), y_rail, roof_under(P.x(x_px), y_rail))], 0.006, rope,
-               segments=5, name="hanger")
-    hung = [(175, 292, 315), (298, 390, 318), (398, 490, 305), (510, 600, 300), (600, 695, 292), (695, 780, 295)]
-    for x0, x1, bot in hung:
-        mat = K.projected(squeeze=1.0, keep=[(x0 + 3, 160, x1 - 3, bot)], inset=2)
-        hanging_cloth(K, P.x(x0 + 2), P.x(x1 - 2), y_rail, z_rail, Z(bot - 3), mat, back_drop=0.08)
-    # more hung along a rail at the back (the same sarees, swapped round)
-    yb_rail = 1.05
-    zb_rail = roof_under(0, yb_rail) - 0.08
-    bamboo(K, (P.x(220), yb_rail, zb_rail), (P.x(770), yb_rail, zb_rail), P.m(7), bam, node_at=[], name="rail_back")
-    for k, (x0, x1, bot) in enumerate(hung[:5]):
-        sx0, sx1, sbot = hung[(k + 3) % 6]
-        shift = P.m((sx0 + sx1) / 2 - (x0 + x1) / 2)
-        mat = K.projected(squeeze=1.0, dx=shift, keep=[(sx0 + 3, 160, sx1 - 3, sbot)], inset=2)
-        xa = P.x(225) + (P.x(765) - P.x(225)) * k / 5
-        hanging_cloth(K, xa + 0.01, xa + P.m(100), yb_rail, zb_rail, zb_rail - 0.5, mat, back_drop=0.06)
+    ko = K.oblique
+    hg = 0.012                                            # the earth's top
+    # ---------------------------------------------------------------- the ground: a level patch of red earth, its top
+    # the painted band along the slope (where the legs and posts stand on it, its own earth)
+    earth = ktile(K, (310, 566, 430, 598), vary=0.08, soften=0.3)
+    gtop = slope_proj(K, boxes=[(46, 455, 110, 649), (920, 455, 982, 649), (186, 522, 228, 582), (768, 522, 814, 582),
+                                (124, 520, 162, 600), (820, 520, 856, 596)], fill_tile=(310, 566, 430, 598), inset=4)
+    yg0, yg1 = yk(K, 642, hg), yk(K, 558, hg)
+    right = [(918, 642), (911, 628), (909, 610), (880, 590), (852, 570), (838, 558)]   # its painted right end
+    topped(K, [(P.x(6), yg0)] + [(P.x(x_), max(yg0, yk(K, py_, hg))) for x_, py_ in right] + [(P.x(6), yg1)], 0.0, hg,
+           earth, gtop, name="ground")
     # ---------------------------------------------------------------- the string cot
-    wood = K.projected(squeeze=1.0, keep=[(100, 497, 930, 530)], inset=2)
-    leg_mat = K.projected(axis_x=P.x(77), squeeze=0.92, keep=[(50, 465, 106, 645)], inset=2)
-    leg_mat2 = K.projected(axis_x=P.x(950), squeeze=0.92, keep=[(924, 460, 978, 645)], inset=2)
-    cot_wood = ktile(K, (300, 503, 420, 522), vary=0.08)
-    yf, yk = -0.45, 0.42
-    zc = Z(512)
+    y_cf = yk(K, 643, hg)                                 # its front legs' feet
+    y_cbl, y_cbr = yk(K, 575, hg), yk(K, 568, hg)         # its back legs' (painted block feet)
+    y_cb = (y_cbl + y_cbr) / 2
     rr = P.m(16)
-    K.tube([(P.x(92), yf, zc), (P.x(938), yf, zc)], rr, wood, segments=12, name="rail_front")
-    K.tube([(P.x(92), yk, zc), (P.x(938), yk, zc)], rr, cot_wood, segments=12, name="rail_back")
-    for x_px in (77, 950):
-        K.tube([(P.x(x_px), yf, zc), (P.x(x_px), yk, zc)], rr * 0.9, cot_wood, segments=12, name="rail_side")
+    zc = zk(K, 512.5, y_cf)                               # the rails' centre
+    wood = K.projected(squeeze=1.0, keep=[(100, 497, 930, 530)], inset=2, dz=ko * y_cf)
+    leg_mat = K.projected(axis_x=P.x(77), squeeze=0.92, keep=[(50, 465, 106, 645)], inset=2, dz=ko * y_cf)
+    leg_mat2 = K.projected(axis_x=P.x(950), squeeze=0.92, keep=[(924, 460, 978, 645)], inset=2, dz=ko * y_cf)
+    cot_wood = ktile(K, (300, 503, 420, 522), vary=0.08)
+    FL, FR = Vector((P.x(77), y_cf, zc)), Vector((P.x(950), y_cf, zc))
+    BL, BR = Vector((P.x(206), y_cbl, zc)), Vector((P.x(792), y_cbr, zc))
+    K.tube([(P.x(92), y_cf, zc), (P.x(938), y_cf, zc)], rr, wood, segments=12, name="rail_front")
+    K.tube([tuple(BL), tuple(BR)], rr, cot_wood, segments=12, name="rail_back")
+    for a_, b_ in ((FL, BL), (FR, BR)):
+        K.tube([tuple(a_), tuple(b_)], rr * 0.9, cot_wood, segments=12, name="rail_side")
     # rope wound round the rails, and the woven bed
     cord = K.colour((880, 470, 920, 490), vary=0.1)
-    for (xa, ya), (xb, yb) in (((P.x(100), yf), (P.x(930), yf)), ((P.x(100), yk), (P.x(930), yk)),
-                               ((P.x(77), yf + 0.06), (P.x(77), yk - 0.06)), ((P.x(950), yf + 0.06), (P.x(950), yk - 0.06))):
-        a, b = Vector((xa, ya, zc)), Vector((xb, yb, zc))
+    for a, b in ((FL.lerp(FR, 0.027), FL.lerp(FR, 0.98)), (BL.lerp(BR, 0.04), BL.lerp(BR, 0.96)),
+                 (FL.lerp(BL, 0.1), FL.lerp(BL, 0.9)), (FR.lerp(BR, 0.1), FR.lerp(BR, 0.9))):
         L = (b - a).length
         ax = (b - a).normalized()
         u = Vector((0, 0, 1))
@@ -1192,42 +1214,117 @@ def stall_c_3(K):
             pts.append(tuple(a + ax * (L * t) + (u * math.cos(ang) + w * math.sin(ang)) * (rr + 0.006)))
         K.tube(pts, 0.007, cord, segments=5, name="cord")
     weave = ktile(K, (862, 458, 925, 494), vary=0.06)
-    K.grid_plane(P.x(92), P.x(938), yf + 0.02, yk - 0.02, zc + rr * 0.4, 12, 6, weave, name="bed")
-    # the legs: square blocks with pegs, turned below
-    for x_px, blk, mat in ((77, (50, 105, 465, 545), leg_mat), (950, (925, 975, 460, 545), leg_mat2)):
-        for y in (yf, yk):
-            K.box(P.x(blk[0]), P.x(blk[1]), y - 0.09, y + 0.09, Z(blk[3]), Z(blk[2]), mat, bevel=0.012, name="leg_block")
-            prof = [(22, 645), (17, 625), (13, 605), (18, 585), (22, 568), (18, 558), (24, 548), (24, 545)]
-            g = ground(P.x(x_px), y)
-            K.lathe([(P.m(r), max(Z(py), g - 0.03) if i == 0 else Z(py) + (g if y > 0 else 0.0) * 0.0)
-                     for i, (r, py) in enumerate(prof)], mat, segments=14, centre=(P.x(x_px), y, 0.0), name="leg")
-    # the middle legs under the back rail (the painted block feet) and a middle prop
-    foot = K.colour((600, 545, 645, 575), vary=0.08)
-    for x_px, w in ((206, 16), (622, 27)):
-        x = P.x(x_px)
-        g = ground(x, yk)
-        K.lathe([(P.m(w), g - 0.03), (P.m(w), Z(548)), (P.m(w * 0.7), Z(540)), (P.m(w * 0.55), Z(525)),
-                 (P.m(w * 0.7), zc - rr)], foot, segments=12, centre=(x, yk, 0.0), name="leg_mid")
-    K.lathe([(P.m(18), ground(P.x(718), 0.0) - 0.03), (P.m(16), zc - rr)], foot, segments=10,
-            centre=(P.x(718), 0.0, 0.0), name="prop")
-    # ---------------------------------------------------------------- the stacks of folded cloth
     zt = zc + rr * 0.4
+    K.quad([tuple(FL + Vector((0.02, 0.02, rr * 0.4))), tuple(FR + Vector((-0.02, 0.02, rr * 0.4))),
+            tuple(BR + Vector((-0.02, -0.02, rr * 0.4))), tuple(BL + Vector((0.02, -0.02, rr * 0.4)))], weave,
+           name="bed", double=True)
+    # the front legs: square blocks with pegs, turned below; the back legs: the painted turned block feet
+    for x_px, blk, mat in ((77, (50, 105, 465, 545), leg_mat), (950, (925, 975, 460, 545), leg_mat2)):
+        y = y_cf
+        K.box(P.x(blk[0]), P.x(blk[1]), y - 0.06, y + 0.06, zk(K, blk[3], y - 0.06), zk(K, blk[2], y + 0.06), mat,
+              bevel=0.012, name="leg_block")
+        prof = [(22, 645), (17, 625), (13, 605), (18, 585), (22, 568), (18, 558), (24, 548), (24, 545)]
+        K.lathe([(P.m(r), hg - 0.01 if i == 0 else zk(K, py, y)) for i, (r, py) in enumerate(prof)], mat, segments=14,
+                centre=(P.x(x_px), y, 0.0), name="leg")
+    foot = K.colour((600, 545, 645, 575), vary=0.08)
+    for x_px, w, yb_ in ((206, 16, y_cbl), (792, 17, y_cbr)):
+        x = P.x(x_px)
+        K.lathe([(P.m(w), hg - 0.01), (P.m(w), zk(K, 548, yb_)), (P.m(w * 0.7), zk(K, 540, yb_)),
+                 (P.m(w * 0.55), zk(K, 525, yb_)), (P.m(w * 0.7), zc - rr)], foot, segments=12, centre=(x, yb_, 0.0),
+                name="leg_back")
+    # ---------------------------------------------------------------- the stacks of folded cloth, two rows on the bed
     front = [(105, 268, 392), (232, 380, 422), (360, 492, 440), (490, 612, 435), (602, 735, 440), (710, 890, 415)]
     back = [(180, 312, 342), (290, 400, 350), (392, 492, 342), (495, 595, 350), (590, 700, 355), (683, 830, 332)]
-    # every fold wears its own painted cloth (a strip of the painting at its height, all round it), so from the sides
+    # every fold wears its own painted cloth (a strip of the painting where its front is painted), so from the sides
     # and back a stack is the same folded sarees; projected through, its sides were dragged into streaks and ink
-    for row, y, d in ((back, 0.2, 0.36), (front, -0.2, 0.38)):
+    for row, y0, d, bot in ((back, y_cf + 0.43, 0.36, 438), (front, y_cf + 0.07, 0.36, 500)):
         for x0, x1, top in row:
-            bot = 500 if row is front else 440
+            z_top = zk(K, top + 4, y0 + d)                # its painted top is its back edge
 
-            def fold_mat(i, n, za, zb, x0=x0, x1=x1, top=top, bot=bot):
-                seen = [k for k in range(n) if P.py(zt + (Z(top + 4) - zt) * k / n) <= bot + 2]
-                k = i if i in seen else (seen[i % len(seen)] if seen else n - 1)
-                h = (Z(top + 4) - zt) / n
-                pb, pt = P.py(zt + h * k), P.py(zt + h * (k + 1))
+            def fold_mat(i, n, za, zb, x0=x0, x1=x1, top=top, bot=bot, y0=y0, z_top=z_top):
+                h = (z_top - zt) / n
+                rows = [(P.py(zt + h * q + ko * y0), P.py(zt + h * (q + 1) + ko * y0)) for q in range(n)]
+                seen = [q for q in range(n) if rows[q][1] <= bot + 2]
+                q = i if i in seen else (seen[i % len(seen)] if seen else n - 1)
+                pb, pt = rows[q]
                 pt = max(pt, top + 1)
                 return pole_tile(K, (x0 + 8, pt + 2, x1 - 8, max(pt + 6, pb - 2)), soften=0.12, vary=0.04)
-            fold_stack(K, P.x(x0 + 3), P.x(x1 - 3), y, d, zt, Z(top + 4), fold_mat, fold=P.m(13))
+            fold_stack(K, P.x(x0 + 3), P.x(x1 - 3), y0 + d / 2, d, zt, z_top, fold_mat, fold=P.m(13))
+    # ---------------------------------------------------------------- the posts, at their painted feet beside the cot,
+    # and the roof on them, level, narrowing to the back as the posts do
+    straw = pole_tile(K, (250, 30, 450, 100), soften=0.45, vary=0.06)      # squared: no stretch down the slopes
+    bam = pole_tile(K, (137, 300, 150, 380), soften=0.2)
+    rope = K.colour((0.1, 0.06, 0.03), vary=0.1)
+    ye0, ye1 = 0.0, 1.42
+    yr = (ye0 + ye1) / 2
+    z_e = zk(K, 160, ye0)
+    z_r = zk(K, 26, yr) - 0.03
+    xc = P.x(487.5)
+    s = 0.16                                              # narrowing per metre of depth
+
+    def roof_under(y):                                    # the underside of the thatch at depth y
+        tt = (y - ye0) / (yr - ye0) if y < yr else (ye1 - y) / (ye1 - yr)
+        return z_e + (z_r - z_e) * max(0.0, min(1.0, tt)) - 0.08
+
+    def taper(parts):
+        for ob in parts:
+            for v in ob.data.vertices:
+                v.co.x = xc + (v.co.x - xc) * (1 - s * (v.co.y - ye0))
+    n0 = len(K.parts)
+    half_r = P.m((858 - 132) / 2) / (1 - s * (yr - ye0))
+    hip_thatch(K, P.x(55), P.x(915), ye0, ye1, z_e, xc - half_r, xc + half_r, yr, z_r, straw, thick=0.06,
+               shag=0.025, fringe=P.m(13))
+    # the beams under the thatch: ridge, front and back eaves, and rafters
+    bamboo(K, (xc - half_r * 1.02, yr, roof_under(yr) - 0.05), (xc + half_r * 1.02, yr, roof_under(yr) - 0.05),
+           P.m(10), bam, node_at=[], name="ridge_beam")
+    for yb_ in (0.15, ye1 - 0.12):
+        zb_ = roof_under(yb_) - 0.05
+        bamboo(K, (P.x(70), yb_, zb_), (P.x(905), yb_, zb_), P.m(8), bam, node_at=[], name="eave_beam")
+    for x_px in np.linspace(150, 825, 8):
+        x = P.x(x_px)
+        K.tube([(x, ye0 + 0.04, roof_under(ye0 + 0.04) - 0.02), (x, yr, roof_under(yr) - 0.02),
+                (x, ye1 - 0.04, roof_under(ye1 - 0.04) - 0.02)], P.m(5), bam, segments=6, name="rafter")
+    taper(K.parts[n0:])
+    for x_px, foot_py, rpx in ((142, 595, 12), (839, 586, 12)):
+        y = yk(K, foot_py, hg)
+        x = P.x(x_px)
+        zu = roof_under(y)
+        bamboo(K, (x, y, hg - 0.01), (x, y, zu - 0.02), P.m(rpx) - 0.006, bam, nodes=0.45, bend=0.0, taper=0.95,
+               name="post")
+        # a brace up to the front eave beam
+        xb = xc + (x - xc) * (1 - s * 0.15)
+        K.tube([(x, y - 0.02, zu - 0.45), (xb, 0.17, roof_under(0.15) - 0.06)], P.m(6), bam, segments=6, name="brace")
+        lashing(K, (x, y, zu - 0.45), (0, 0, 1), P.m(12), rope, turns=2.5)
+    yb_post = ye1 - 0.12
+    for x_px in (205, 790):
+        x = P.x(x_px)
+        bamboo(K, (x, yb_post, -0.01), (x, yb_post, roof_under(yb_post) - 0.04), P.m(10) - 0.006, bam, nodes=0.45,
+               bend=0.0, name="post_back")
+    # ---------------------------------------------------------------- the sarees hanging from a rail under the eave
+    y_rail = 0.22
+    z_rail = zk(K, 163, y_rail)
+    bamboo(K, (P.x(160), y_rail, z_rail), (P.x(800), y_rail, z_rail), P.m(7), bam, node_at=[], name="rail")
+    for x_px in (162, 798):
+        K.tube([(P.x(x_px), y_rail, z_rail), (P.x(x_px), y_rail, roof_under(y_rail))], 0.006, rope, segments=5,
+               name="hanger")
+    hung = [(175, 292, 315), (298, 390, 318), (398, 490, 305), (510, 600, 300), (600, 695, 292), (695, 780, 295)]
+    for x0, x1, bot in hung:
+        mat = K.projected(squeeze=1.0, keep=[(x0 + 3, 160, x1 - 3, bot)], inset=2, dz=ko * y_rail)
+        hanging_cloth(K, P.x(x0 + 2), P.x(x1 - 2), y_rail, z_rail, zk(K, bot - 3, y_rail), mat, back_drop=0.08)
+    # more hung along a rail at the back (the same sarees, swapped round)
+    yb_rail = ye1 - 0.3
+    zb_rail = roof_under(yb_rail) - 0.08
+    xb0, xb1 = xc + (P.x(220) - xc) * (1 - s * yb_rail), xc + (P.x(770) - xc) * (1 - s * yb_rail)
+    bamboo(K, (xb0, yb_rail, zb_rail), (xb1, yb_rail, zb_rail), P.m(7), bam, node_at=[], name="rail_back")
+    for q, (x0, x1, bot) in enumerate(hung[:5]):
+        sx0, sx1, sbot = hung[(q + 3) % 6]
+        xa = xb0 + 0.02 + (xb1 - xb0 - 0.04) * q / 5
+        wq = (xb1 - xb0 - 0.04) / 5 - 0.02
+        shift = xa + wq / 2 - P.x((sx0 + sx1) / 2)
+        mat = K.projected(squeeze=1.0, dx=-shift, keep=[(sx0 + 3, 160, sx1 - 3, sbot)], inset=2,
+                          dz=ko * y_rail + (z_rail - zb_rail))
+        hanging_cloth(K, xa, xa + wq, yb_rail, zb_rail, zb_rail - 0.45, mat, back_drop=0.06)
+    slope_cards(K)
 
 
 def ball(K, c, r, mat, squash=1.0, segs=8, rings=5, name="ball"):

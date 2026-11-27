@@ -1940,6 +1940,17 @@ def front_rim(K, ob, top_py, edge):
         v.co.z = top - (top - v.co.z) * max(0.002, want) / max(1e-6, drop0)
 
 
+def earth_band(ob, cx, rx, ry, y_front, y_back):
+    """Reshapes an earth patch (from earth(), centred at x = cx, radii rx, ry metres) in plan into the band of
+    ground a painting drawn from above shows: at each x from y_front(x) (where the painted ground's front edge
+    puts it, along the slope) back to y_back(x), its top level."""
+    for v in ob.data.vertices:
+        t = max(-1.0, min(1.0, v.co.y / ry))          # across the patch, -1 at its front rim, +1 at its back
+        yf, yb = y_front(v.co.x), y_back(v.co.x)
+        yf = min(yf, yb - 0.3)
+        v.co.y = yf + (t + 1) / 2 * (yb - yf)
+
+
 # the painted rims' inner edges, fitted to the painting's alpha (cx, cy, a, b, tilt deg; px)
 BIKE_RIMS = {"front": (87.08, 210.13, 61.08, 79.57, 6.04), "rear": (346.23, 207.46, 70.76, 81.33, -0.29)}
 
@@ -2183,7 +2194,7 @@ def bullock_cart(K):
     from mathutils import Vector
     P = K.paint
     X, Z = P.x, P.z
-    phi = math.radians(18)
+    phi = math.radians(0)
     cphi, sphi = math.cos(phi), math.sin(phi)
     ax = Vector((cphi, -sphi, 0.0))                  # along the cart, towards the pole (and the camera)
     nrm = Vector((sphi, cphi, 0.0))                  # across it, towards its far side
@@ -2201,11 +2212,12 @@ def bullock_cart(K):
         return O.y + ax.y * s_ + nrm.y * off
 
     def C(px, py, off=0.0, ref=-W):
-        """The point painted at (px, py) on the plane `off` metres across the cart from its middle (negative:
-        the near side): its x as painted, its height that of the point painted there on the plane `ref` (the near
-        side, where the body is painted; 0 for the pole down the middle), so the body is level and its far side
-        stands further back, painted higher along the slope."""
-        return (X(px), yW(px, off), Z(py) - kob * yW(px, ref))
+        """The point painted at (px, py) on the plane `ref` metres across the cart from its middle (the near side,
+        where the body is painted; 0 for the pole down the middle), carried straight across the cart to the plane
+        `off` (negative: the near side): the body is a true box turned in plan, level, its far side standing
+        further back (and to the right), painted higher along the slope."""
+        p = Vector((X(px), yW(px, ref), Z(py) - kob * yW(px, ref))) + nrm * (off - ref)
+        return tuple(p)
     # the cart's own painted wood and blue boards, quilted into square tiles (a strip of one rail laid on a stake
     # or a beam runs into bands)
     wood = quilt_tile(K, (0, 90, 500, 240), keep=wood_pixels, patch_px=14, size_px=84, soften=0.2,
@@ -2235,11 +2247,11 @@ def bullock_cart(K):
         ob = _obj(name, bm, mat)
         K.parts.append(ob)
         return ob
-    # slab() keeps painted x for its corners on each plane; the body is thus a box turned 18 degrees
-    slab(30, 485, 206, 196, -W, W, beam_m, "floor")
+    # slab() traces each board on the near side and carries it straight across: a true box, level
+    slab(40, 485, 206, 196, -W, W, beam_m, "floor")
     for off in (-W, W):
-        slab(40, 482, 200, 110, off - 0.02 * (1 if off < 0 else -1), off, blue, "side_panel")
-    for px in (36, 482):
+        slab(44, 482, 200, 110, off - 0.02 * (1 if off < 0 else -1), off, blue, "side_panel")
+    for px in (44, 482):
         slab(px - 4, px + 4, 200, 112, -W, W, blue, "end_board")
     # flowers on the far side and the back, as painted on the near side
     flower = K.decal((80, 147, 122, 190))
@@ -2249,28 +2261,29 @@ def bullock_cart(K):
         K.quad(q, flower, name="flower")
     # the chassis beams under it, running forward into the pole
     for off in (-0.5, 0.5):
-        K.tube([C(18, 220, off, -0.5), C(470, 216, off, -0.5), C(560, 205, 0.06 * (1 if off > 0 else -1), 0.0)],
+        K.tube([C(25, 220, off, -0.5), C(470, 216, off, -0.5), C(560, 205, 0.06 * (1 if off > 0 else -1), 0.0)],
                P.m(15), beam_m, segments=6, name="beam")
     K.tube([C(540, 202, 0.0, 0.0), C(650, 194, 0.0, 0.0), C(830, 186, 0.0, 0.0)], [P.m(18), P.m(16), P.m(13)], beam_m,
            segments=8, name="pole")
     # the rails along both sides on their knobbed stakes, and the cross bars
     for off in (-W - 0.03, W + 0.03):
-        for py0, py1 in ((95, 112), (62, 78)):
-            slab(10, 490, py1, py0, off - 0.025, off + 0.025, wood, "rail")
-        stakes = ((48, 45), (108, 30), (309, 12), (478, 22)) if off < 0 else ((48, 45), (108, 30), (413, 7), (478, 22))
+        for x0r, py0, py1 in ((10, 95, 112), (40, 62, 78)):
+            slab(x0r, 490, py1, py0, off - 0.025, off + 0.025, wood, "rail")
+        stakes = ((48, 45), (108, 30), (309, 12), (478, 22))      # the far side's straight across
         for px, top in stakes:
             K.tube([C(px, 232, off), C(px, top + 26, off)], P.m(10), stake_m, segments=8, name="stake")
+            tp = C(px, top + 26, off)
             K.lathe([(P.m(10.5), 0.0), (P.m(11.5), P.m(8)), (P.m(9), P.m(18)), (P.m(4), P.m(25)), (0.0, P.m(26))],
-                    wood, segments=12, centre=(C(px, top, off)[0], C(px, top, off)[1], Z(top + 26)), name="knob")
+                    wood, segments=12, centre=tp, name="knob")
             for dz in (0, 7):
                 K.lathe([(P.m(11.2), Z(top + 30 + dz)), (P.m(11.2), Z(top + 33 + dz))], iron, segments=12,
-                        centre=(C(px, top, off)[0], C(px, top, off)[1], 0), name="band", cap=False)
+                        centre=(tp[0], tp[1], tp[2] - Z(top + 26)), name="band", cap=False)
     for px in (20, 485):
         slab(px - 5, px + 5, 112, 95, -W - 0.05, W + 0.05, wood, "cross_rail")
     # the hay heaped in it, above the rails, a few loose straws
     def hay(u, v):
         px = 60 + 420 * u
-        top = 30 + 45 * (abs(px - 235) / 175) ** 1.6
+        top = 35 + 42 * (abs(px - 235) / 175) ** 1.6
         h = max(0.0, Z(top) - Z(112))
         a_ = math.pi * v
         p = Vector(C(px, 112, -(W - 0.06) * math.cos(a_)))
@@ -2286,7 +2299,7 @@ def bullock_cart(K):
                           inset=2)
     # both wheels on one axle, level: the near one where it is painted (centre 243, 232), the far one 1.8 m along
     # the axle, so it stands to the right and, being further back, is painted higher
-    axle_c = Vector((X(304), O.y, 0.0))
+    axle_c = Vector((X(243) + 0.9 * nrm.x, O.y, 0.0))
     near_c = axle_c + nrm * (-0.9)
     z_axle = Z(232) - kob * near_c.y
     axle_c.z = z_axle
@@ -2316,7 +2329,8 @@ def bullock_cart(K):
     K.tube([tuple(axle_c + nrm * -0.9), tuple(axle_c + nrm * 0.9)], 0.04, iron, segments=10, name="axle")
     # the prop under the pole, the clamp holding it, the coils of rope
     z_ground = z_axle - P.m(ro_px)
-    K.block(*C(776, 190, 0.0, 0.0), P.m(46), 0.16, P.m(42), wood, rot=(0, 0, -18), bevel=0.01, name="clamp")
+    K.block(*C(776, 190, 0.0, 0.0), P.m(46), 0.16, P.m(42), wood, rot=(0, 0, -math.degrees(phi)), bevel=0.01,
+            name="clamp")
     foot = Vector(C(788, 352, 0.0, 0.0))
     foot.z = z_ground + P.m(1)
     K.tube([C(778, 205, 0.0, 0.0), C(783, 280, 0.0, 0.0), tuple(foot)], [P.m(15), P.m(14), P.m(12)], stake_m,
@@ -2342,15 +2356,15 @@ def bullock_cart(K):
         K.tube(pts, P.m(3.5), rope, segments=6, name="hung_rope", cap=False)
     # the earth: level under the wheels, from 1.2 m in front of the axle's middle to 1.6 m behind it (painted from
     # 376 back to 345); its grass and pebbles each at the depth its painted foot gives
-    n0 = len(K.parts)
-    earth(K, 420, P.py(z_ground), P.py(z_ground) + 4, 412, 1.4, (0.45, 0.22, 0.1),
-          dirt_box=(0, 345, 839, 381), dirt_exclude=[(100, 330, 500, 381)])
-    for ob in K.parts[n0:]:
-        for v in ob.data.vertices:
-            v.co.y += 0.2
-
     def depth_of(py_foot):
-        return (P.py(z_ground) - py_foot) / (kob * P.ppm) + near_c.y
+        return (P.py(z_ground) - py_foot) / (kob * P.ppm)
+    n0 = len(K.parts)
+    earth(K, 420, P.py(z_ground), P.py(z_ground) + 3, 414, 1.4, (0.45, 0.22, 0.1),
+          dirt_box=(0, 345, 839, 381), dirt_exclude=[(100, 330, 500, 381)], segments=96)
+    edge = ground_edge(P, 340, (4, 836))
+    earth_band(K.parts[n0], X(420), P.m(414), 1.4,
+               lambda x: max(-1.3, min(0.6, depth_of(interp(edge, P.px(x)) - 2))),
+               lambda x: interp([(0, 1.5), (380, 1.5), (520, 0.75), (839, 0.75)], P.px(x)))
     for box in ((98, 318, 148, 358), (300, 336, 352, 372), (444, 322, 522, 352), (735, 318, 832, 355)):
         K.leaves_only(box, grass_pixels)
         gx, gy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2

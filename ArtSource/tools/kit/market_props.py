@@ -1054,68 +1054,6 @@ class Tray:
         return Vector((P.x(px), self.y(py) + h / self.n.y, P.z(py)))
 
 
-def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=5.0, height=None, goods=None):
-    """The tray T: four bamboo poles along poles = (front-left, front-right, back-right, back-left) corner centres
-    in px (crossing a little at the corners, lashed with cord at lashings [(pole 0 front, 1 back, 2 left, 3 right,
-    t along it)]), the woven mat stretched between them (its top wears
-    the painting, as it lies; height(px, py) -> metres raises it into a heap of goods), its woven underside, two
-    bamboo legs lashed under the back pole propping it up, and flat stones under the front one."""
-    P = K.paint
-    pale_halo(K)
-    fl, fr, br, bl = poles
-    pr = P.m(pole_r_px)
-    bamboo = K.tile((60, 117, 120, 131), vary=0.08)
-    for a, b in ((fl, fr), (bl, br), (fl, bl), (fr, br)):
-        A, B = T.at(*a), T.at(*b)
-        d = (B - A).normalized()
-        K.tube([tuple(A - d * pr * 1.3), tuple(A.lerp(B, 0.5)), tuple(B + d * pr * 1.3)], pr, bamboo, segments=10,
-               name="pole")
-    cord = K.colour((0.5, 0.27, 0.07), vary=0.1)
-    edges = ((fl, fr), (bl, br), (fl, bl), (fr, br))
-    for k, t in lashings:
-        a, b = edges[k]
-        A, B = T.at(*a), T.at(*b)
-        d = (B - A).normalized()
-        c = A.lerp(B, t)
-        ob = ring(K, 0, 0, 0, pr * 1.06, pr * 0.2, cord, axis="x", n=12, name="lashing")
-        ob.data.transform(Matrix.Translation(c) @ d.to_track_quat("X", "Z").to_matrix().to_4x4())
-    # the mat, its top the painting as it lies (straight through, without the cut-out's pale halo)
-    top = wrapped(K, 0.0, squeeze=1.0, front_deg=179.9, inset=0, halo=3)
-    drop = P.m(mat_drop_px)
-    nu, nv = 44, 26
-
-    def corner_lerp(u, v):
-        x0 = fl[0] + (bl[0] - fl[0]) * v
-        x1 = fr[0] + (br[0] - fr[0]) * v
-        return x0 + (x1 - x0) * u, fl[1] + (bl[1] - fl[1]) * v
-
-    def surf(u, v):
-        px, py = corner_lerp(u, v)
-        h = -drop - 0.004 * math.sin(math.pi * u) * math.sin(math.pi * v)
-        if height is not None:
-            h += height(px, py)
-        return tuple(T.over(px, py, h))
-    K.sheet(surf, nu, nv, top, name="mat", smooth=True)
-    # its woven underside: a tile of the painted weave (from a clean strip between the poles and the goods)
-    weave = K.tile(weave_box, vary=0.1, soften=0.2)
-    K.sheet(lambda u, v: tuple(T.at(*corner_lerp(1 - u, v), -drop - 0.006)), 8, 6, weave, name="mat_under",
-            smooth=False)
-    # propped up: two bamboo legs under the back pole, lashed to it, flat stones under the front one
-    stone = K.colour((0.25, 0.22, 0.19), vary=0.2, scale=45.0)
-    for t in (0.12, 0.88):
-        c = T.at(bl[0] + (br[0] - bl[0]) * t, bl[1])
-        top_z = c.z - pr * 0.2
-        K.tube([(c.x, c.y + pr * 0.9, 0.0), (c.x, c.y + pr * 0.9, top_z)], pr * 0.85, bamboo, segments=10,
-               name="leg")
-        K.lathe([(0.0, top_z), (pr * 0.85, top_z)], bamboo, segments=10, centre=(c.x, c.y + pr * 0.9, 0), name="leg_top")
-        ob = ring(K, c.x, c.y + pr * 0.45, c.z - pr * 0.5, pr * 1.25, pr * 0.22, cord, axis="z", n=12, name="lashing")
-        c = T.at(fl[0] + (fr[0] - fl[0]) * t, fl[1])
-        zs = c.z - pr
-        if zs > 0.003:
-            K.block(c.x, c.y + pr * 0.6, zs / 2, 0.045, 0.04, zs, stone, rot=(0, 0, K.rng.uniform(0, 30)),
-                    bevel=zs * 0.3, jitter=0.002, name="stone")
-
-
 # ---------------------------------------------------------------- drying trays painted from above, built level
 # chilli_mat and papad_mat paint one drying tray from above, in perspective: its back pole drawn higher up (and
 # shorter), the mat's top seen from above. They are built true, level and square on the ground, every part at its real
@@ -1123,10 +1061,13 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
 # the real top and the audit compares the front along that slope.
 # The slope, measured on papad_mat, whose papads are round: lying flat, each is painted as an ellipse k times as high as
 # it is wide. The two drawn whole and flat: 0.56 (the top one, 112, 72) and 0.51 (front left, 71, 93); the back one,
-# propped on the back pole, 0.65 (tilted 6 degrees). k = 0.55. The tray's depth follows from its painted rise (front
-# pole's centre at row 122, back pole's at 17: 0.185 m): 0.34 m deep by 0.38 m between its side poles, a near-square
-# drying tray. chilli_mat is the same tray painted from the same place (its poles within a pixel of papad_mat's), so
-# it takes the same k. Neither painting shows legs, stones or bricks: the tray lies on the ground.
+# propped on the back pole, 0.65 (tilted 6 degrees). k = 0.55. The tray's depth then follows from how high its back
+# pole is painted (centre at row 17, the front pole's at 123.5): 0.35 m deep by 0.38 m between its side poles, a
+# near-square drying tray, as they are made. chilli_mat is the same tray painted from the same place (its poles within a
+# pixel of papad_mat's), so it takes the same k. Neither painting shows legs, stones or bricks: it lies on the ground.
+# What the slope cannot undo: the painting's perspective also draws the back pole shorter (178 px against the front's
+# 232), so the true, square tray's back corners stand past the painted ones (blue wedges in the audit's front) until
+# the kit projects with that convergence too (kit_requests/market_props_round3.md).
 TRAY_K = 0.55
 
 
@@ -1379,7 +1320,7 @@ def mat_mirrored(K, left, right, front_row, back_row, goods, weave_box, heap=Non
     return m
 
 
-def bamboo(K, axis, hc, zc, r, a0, box=(30, 114, 214, 127), vary=0.06):
+def bamboo_wrap(K, axis, hc, zc, r, a0, box=(30, 114, 214, 127), vary=0.06):
     """A bamboo pole's own material, wrapped round it: a strip along the painted front pole's lit middle (its node
     marks and mottling, box px), its shading across evened out (the toon light shades the pole), laid along the pole
     and round it about its own axis (axis 'x' or 'y', through (hc, zc): the other horizontal coordinate and the
@@ -1452,25 +1393,26 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
         ("poly", [(247, 96), (219.5, 96), (201, 30), (199, 27), (196, 27), (196, 0), (247, 0)])]
     # the poles
     zf, zb = T.zg + T.rf, T.zg + T.r
-    K.tube([(T.x0, 0.0, zf), (T.x1, 0.0, zf)], T.rf, bamboo(K, "x", 0.0, zf, T.rf, P.x(30)), segments=16,
+    K.tube([(T.x0, 0.0, zf), (T.x1, 0.0, zf)], T.rf, bamboo_wrap(K, "x", 0.0, zf, T.rf, P.x(30)), segments=16,
            name="pole_front")
-    K.tube([(T.x0, T.yb, zb), (T.x1, T.yb, zb)], T.r, bamboo(K, "x", T.yb, zb, T.r, P.x(30)), segments=12,
-           name="pole_back")
+    # the back pole as long as the frame needs (its painted ends reach as far past the side poles as the front's do)
+    K.tube([(T.xl - P.m(6), T.yb, zb), (T.xr + P.m(6), T.yb, zb)], T.r, bamboo_wrap(K, "x", T.yb, zb, T.r, P.x(30)),
+           segments=12, name="pole_back")
     for xs in (T.xl, T.xr):
         K.tube([(xs, -T.rf - T.r * 0.15, T.zs), (xs, T.yb + T.r * 0.7, T.zs)], T.r,
-               bamboo(K, "y", xs, T.zs, T.r, -T.rf), segments=12, name="pole_side")
+               bamboo_wrap(K, "y", xs, T.zs, T.r, -T.rf), segments=12, name="pole_side")
     # the bamboo's nodes, low ridges round the poles where the painting draws them (on the front and back poles at
     # their painted places, on the side poles at the depths their painted bands land)
     for px in nodes_front:
-        ring(K, P.x(px), 0.0, zf, T.rf * 1.0, T.rf * 0.11, bamboo(K, "x", 0.0, zf, T.rf, P.x(30)), axis="x", n=14,
+        ring(K, P.x(px), 0.0, zf, T.rf * 1.0, T.rf * 0.11, bamboo_wrap(K, "x", 0.0, zf, T.rf, P.x(30)), axis="x", n=14,
              name="node")
     for px in nodes_back:
-        ring(K, P.x(px), T.yb, zb, T.r, T.r * 0.13, bamboo(K, "x", T.yb, zb, T.r, P.x(30)), axis="x", n=12,
+        ring(K, P.x(px), T.yb, zb, T.r, T.r * 0.13, bamboo_wrap(K, "x", T.yb, zb, T.r, P.x(30)), axis="x", n=12,
              name="node")
     for xs in (T.xl, T.xr):
         for row in node_rows:
-            ring(K, xs, (P.z(row) - T.zs) / k, T.zs, T.r, T.r * 0.13, bamboo(K, "y", xs, T.zs, T.r, -T.rf), axis="y",
-                 n=12, name="node")
+            ring(K, xs, (P.z(row) - T.zs) / k, T.zs, T.r, T.r * 0.13, bamboo_wrap(K, "y", xs, T.zs, T.r, -T.rf),
+                 axis="y", n=12, name="node")
     # cane wraps where the poles cross: round the front pole at the painted bands (21-28 px, 215-222 px), round the
     # back pole as far in from the side poles, round the side poles in front of the back pole and behind the front one
     cane = K.colour((22, 114, 27, 126), vary=0.12, pct=55)
@@ -1483,17 +1425,15 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
         for y in (T.rf + T.r * 0.9, T.rf + T.r * 1.5, T.yb - T.r * 1.8, T.yb - T.r * 2.4):
             ring(K, xs, y, T.zs, T.r * 1.06, T.r * 0.2, cane, axis="y", n=10, name="lashing")
     # the mat: lying on the ground between the poles; a heap of goods raises it where the painting has them. Its
-    # top at a plan point (x, y) shows the painted row its slope ray meets: the heap is found there (a few steps).
-    # Behind a crest that only finds the rays themselves (the painted rows would be smeared down a slope as shallow
-    # as the view): the heap falls away there as heaped goods do, at 40 degrees, out of the painting's sight.
+    # top at a plan point (x, y) shows the painted row its slope ray meets: the heap is found there (a few damped
+    # steps). The heap's back must stay gentler than the view (height() thins it out towards the back pole), or the
+    # painted rows would be smeared down it.
     zm = T.zm
     xa, xb = T.xl, T.xr
     nu, nv = (56, 60) if height is not None else (10, 8)
     xs, ys = np.linspace(xa, xb, nu + 1), np.linspace(0.0, T.yb, nv + 1)
     Z = np.full((nv + 1, nu + 1), zm)
-    back = np.zeros((nv + 1, nu + 1), bool)
     if height is not None:
-        dy, fall = ys[1] - ys[0], math.tan(math.radians(40))
         for i, x in enumerate(xs):
             px = P.px(x)
             for j, y in enumerate(ys):
@@ -1501,18 +1441,6 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
                 for _ in range(14):
                     z = 0.5 * z + 0.5 * (zm + hmax * height(px, T.row(y, z)))
                 Z[j, i] = z
-            col, anchor = Z[:, i].copy(), None
-            for j in range(1, nv + 1):
-                grazing = (col[j] - col[j - 1]) / dy < -0.35 * k
-                if anchor is None and grazing:
-                    anchor = j - 1
-                if anchor is not None:
-                    steep = Z[anchor, i] - fall * (ys[j] - ys[anchor])
-                    if not grazing and col[j] >= steep:
-                        anchor = None
-                    else:
-                        Z[j, i] = max(zm, min(col[j], steep))
-                        back[j, i] = True
 
     def surf_z(x, y):
         fi = min(nu - 1e-6, max(0.0, (x - xa) / (xb - xa) * nu))
@@ -1521,7 +1449,6 @@ def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), no
         u, v = fi - i, fj - j
         return float(Z[j, i] * (1 - u) * (1 - v) + Z[j, i + 1] * u * (1 - v) + Z[j + 1, i] * (1 - u) * v
                      + Z[j + 1, i + 1] * u * v)
-    surf_z.back = [(xs[i], ys[j], Z[j, i]) for j, i in zip(*np.nonzero(back)) if Z[j, i] > zm + 0.3 * hmax]
     own = mat_mirrored(K, ((26, 96), (41, 30)), ((219.5, 96), (201, 30)), 111.0, 24.0, goods, weave_box,
                        (zm + 0.002, zm + 0.004) if height is not None else None)
     K.sheet(lambda u, v: (xa + (xb - xa) * u, T.yb * v, float(Z[int(round(v * nv)), int(round(u * nu))])), nu, nv,
@@ -1606,7 +1533,8 @@ def chilli_mat(K):
     # back slope stays gentle: the painted chillies are spread over it no more than a quarter longer)
     rows, cols = np.mgrid[0:P.h, 0:P.w].astype(np.float32)
     t = np.clip((rows - 22.0) / 38.0, 0.0, 1.0)
-    pile *= (0.15 + 0.85 * t * t * (3 - 2 * t)) * (0.8 + 0.2 * np.exp(-((cols - 123) / 70.0) ** 2 - ((rows - 70) / 35.0) ** 2))
+    dome = 0.8 + 0.2 * np.exp(-((cols - 123) / 70.0) ** 2 - ((rows - 70) / 35.0) ** 2)
+    pile *= (0.15 + 0.85 * t * t * (3 - 2 * t)) * dome
 
     def height(px, py):
         return float(ndimage.map_coordinates(pile, [[min(P.h - 1.0, max(0.0, py))], [min(P.w - 1.0, max(0.0, px))]],
@@ -1629,31 +1557,37 @@ def chilli_mat(K):
         for _ in range(10):
             z = 0.5 * z + 0.5 * (surf_z(P.x(px), T.on(px, py, z).y) + lift)
         return T.on(px, py, z)
+    body = chillies & (P.rgba[..., 3] > 0.5)
+
+    def fit_body(a_, b_):
+        # the painted chilli round its bright core: the middle of its red body across, and its width there (inside its
+        # ink line), sampled at three places along it
+        a_, b_ = np.array(a_), np.array(b_)
+        d = (b_ - a_) / max(1e-6, np.linalg.norm(b_ - a_))
+        n_ = np.array([-d[1], d[0]])
+        offs, wids = [], []
+        for t_ in (0.25, 0.5, 0.75):
+            c_ = a_ + (b_ - a_) * t_
+            ext = []
+            for sgn in (1, -1):
+                e = 0.0
+                while e < 7.0:
+                    q = c_ + n_ * sgn * (e + 0.5)
+                    if not body[int(min(P.h - 1, max(0, round(q[1])))), int(min(P.w - 1, max(0, round(q[0]))))]:
+                        break
+                    e += 0.5
+                ext.append(e)
+            offs.append((ext[0] - ext[1]) / 2)
+            wids.append(ext[0] + ext[1])
+        o = float(np.median(offs))
+        return tuple(a_ + n_ * o), tuple(b_ + n_ * o), float(np.median(wids))
     for (ax, ay), (bx, by), w in strokes(core, min_px=18, ratio=2.0, grow=1.45):
-        r = P.m(min(5.0, max(3.6, w * 0.75)))
+        (ax, ay), (bx, by), width = fit_body((ax, ay), (bx, by))
+        # as thick as the painted chilli inside its own ink line (the game draws its outline outside it)
+        r = P.m(min(3.6, max(2.4, width / 2 - 0.8)))
         A = lying_at(ax, ay, r * 0.5)
         B = lying_at(bx, by, r * 0.3)
         pod(K, tuple(A), tuple(B), r, r * 0.45, chilli, bend=(0.0, 0.0, r * 0.3), n=6, seg=6, name="chilli")
-    # and lying down the back of the heap, out of the painting's sight (the heap's crest hides them along the slope),
-    # more of them, in a painted chilli's red
-    red_mat = K.colour(tuple(float(c) for c in np.median(P.rgba[core][:, :3], axis=0) ** 2.2), vary=0.18, scale=60.0)
-
-    def hidden(p):
-        return any(surf_z(p.x, p.y - t) > p.z + T.k * t + 0.001 for t in np.arange(0.004, 0.08, 0.003))
-    spots, rng, placed = surf_z.back, K.rng, 0
-    for _ in range(400):
-        if placed >= 24 or not spots:
-            break
-        x, y, z = spots[int(rng.integers(0, len(spots)))]
-        r = P.m(rng.uniform(3.2, 4.2))
-        L = P.m(rng.uniform(24, 38))
-        yaw = math.radians(rng.uniform(-50, 50))
-        d = Vector((math.cos(yaw), math.sin(yaw), 0.0)) * L / 2
-        A, B = Vector((x, y, 0)) - d, Vector((x, y, 0)) + d
-        A.z, B.z = surf_z(A.x, A.y) + r * 0.6, surf_z(B.x, B.y) + r * 0.4
-        if all(hidden(q + Vector((0, 0, r * 1.3))) for q in (A, B, A.lerp(B, 0.5))):
-            pod(K, tuple(A), tuple(B), r, r * 0.45, red_mat, bend=(0.0, 0.0, r * 0.3), n=6, seg=6, name="chilli")
-            placed += 1
 
 
 @model("papad_mat", "market", kind="prop")

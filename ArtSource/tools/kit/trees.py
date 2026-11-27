@@ -3887,8 +3887,10 @@ def katte_mat(K, katte, tile, top=None, back=None, name=None):
 
 def katte_top_masks(K, stones, boxes):
     """Where the painting shows h3_1's katte's stone (its top, coping and walls: pale cream, olive and the
-    shaded olive, not the brown roots and trunk), outside the stones' outlines and the lamps' and flowers' boxes;
-    and, stricter, clear of the lamps' glow and the shadows round the stones (for the half-turned copy)."""
+    shaded olive, not the brown roots and trunk), outside the stones' outlines and the lamps' and flowers' own
+    pixels (inside their boxes, whatever is not stone: the clay, the flames, the petals heaped there; the stone
+    round them, its scattered petals and the lamps' glow on it stay); and, stricter, lit stone clear of the boxes
+    by far (for the half-turned copy). Returns (keep, keep_mirror, stone)."""
     P = K.paint
     a = (P.rgba * 255).astype(np.int32)
     r, g, b, mx, mn = chan(a[..., :3])
@@ -3898,14 +3900,14 @@ def katte_top_masks(K, stones, boxes):
     stone &= np.arange(H)[:, None] > 1040
     from PIL import ImageDraw
     m = Image.new("L", (W, H), 0)
-    d = ImageDraw.Draw(m)
-    for p in stones:
-        d.polygon(p, fill=255)
-    for bx in boxes:
-        d.rectangle(bx, fill=255)
-    objs = np.asarray(m) > 127
+    ImageDraw.Draw(m).polygon(stones[0], fill=255)
+    for p in stones[1:]:
+        ImageDraw.Draw(m).polygon(p, fill=255)
+    nagas = np.asarray(m) > 127
+    inbox = box_mask(al.shape, boxes)
+    things = nagas | ndimage.binary_dilation(inbox & al & ~stone, iterations=3)
 
-    def clean(s):
+    def clean(s, out):
         lab, n = ndimage.label(s)
         if n:
             sizes = ndimage.sum(s, lab, range(1, n + 1))
@@ -3915,12 +3917,14 @@ def katte_top_masks(K, stones, boxes):
         if hn:
             hs = ndimage.sum(holes, hl, range(1, hn + 1))
             s |= np.isin(hl, 1 + np.nonzero(hs < 600)[0])
-        return ndimage.binary_erosion(s, iterations=1)
-    keep = clean(stone & ~ndimage.binary_dilation(objs, iterations=5))
+        return ndimage.binary_erosion(s & ~out, iterations=1)
+    out = ndimage.binary_dilation(nagas, iterations=5) | things
+    keep = clean(stone & ~out, out)
     # (the copy for the back half: lit stone only, clear of the lamps' glow and the stones' shadows; the tree's
     # shade painted over the top's left is light, not stone, and a second one turned onto the back looked a stain)
-    keep_mirror = clean(stone & (mx > 165) & ~ndimage.binary_dilation(objs, iterations=45))
-    return keep, keep_mirror, stone & ~objs
+    far = ndimage.binary_dilation(nagas | inbox, iterations=45)
+    keep_mirror = clean(stone & (mx > 165) & ~far, far)
+    return keep, keep_mirror, stone & ~(nagas | inbox)
 
 
 def upright_crown(K, cards, crown, k, cap=0.08):
@@ -4053,8 +4057,9 @@ def h3_1(K):
     stone = strip_tile(K, (1334, 1252, 1514, 1292), soften=0.3, quilt=True)  # its clean pale stone
     lamps = [(908, 970, 1185, 1212, 966), (1000, 1065, 1195, 1225, 1057), (1185, 1245, 1160, 1186, 1249)]
     flowers = [(1095, 1178, 1185, 1215), (1030, 1140, 1062, 1160)]
-    keep, keep_mirror, stone_px = katte_top_masks(K, NAGA_STONES, [(x0 - 2, t - 30, x1 + 2, b + 4) for x0, x1, t, b, _ in lamps] +
-                                        [(x0 - 3, y0 - 3, x1 + 3, y1 + 3) for x0, y0, x1, y1 in flowers])
+    boxes = [(x0 - 2, t - 30, x1 + 2, b + 4) for x0, x1, t, b, _ in lamps] + \
+        [(x0 - 3, y0 - 3, x1 + 3, y1 + 3) for x0, y0, x1, y1 in flowers]
+    keep, keep_mirror, stone_px = katte_top_masks(K, NAGA_STONES, boxes)
     # the painted front-right wall and its coping band (lit), for the walls and coping turned to the back
     from PIL import ImageDraw
     wall_px = Image.new("L", (P.w, P.h), 0)
@@ -4078,12 +4083,16 @@ def h3_1(K):
     foot = (a[..., 3] > 127) & ~((a[..., :3].min(2) > 175) & (np.ptp(a[..., :3], axis=2) < 45)) & ~stone_px
     foot &= box_mask(foot.shape, [(0, 880, P.w, P.h)])
     foot = ndimage.binary_erosion(foot, iterations=3)
-    # the roots and the low left limb fitted to the painting's alpha (centred in the painted run across them, their
-    # radius half of it less the ink line: traced by eye, their upper edges stood 10-20 px over the sky)
+    # the roots and the low left limb fitted to the painting (centred in the painted run across them, their radius
+    # half of it less the ink line: traced by eye, their upper edges stood 10-20 px over the sky)
     solid = (a[..., 3] > 127) & ~((a[..., :3].min(2) > 175) & (np.ptp(a[..., :3], axis=2) < 45))
-    roots = [fit_limb(pts, solid, every=8.0, ink=3.0, lo=3.0) for pts in H31_ROOTS]
+    # (against the stone too: lying on the top, the roots are bounded by the painted stone below them, not by sky)
+    roots = [fit_limb(pts, solid & ~stone_px, every=8.0, ink=3.0, lo=3.0) for pts in H31_ROOTS]
     limbs = list(H31_LIMBS)
     limbs[3] = fit_limb(H31_LIMBS[3], solid, every=8.0, ink=3.0, lo=4.0)
+    # (each ends in a tip inside the leaves, not a sawn-off end: a turned copy of one stood out under the crown as a
+    # blunt stub from the front-right)
+    limbs = [list(pts[:-1]) + [(pts[-1][0], pts[-1][1], pts[-1][2] * 0.35)] for pts in limbs]
     crown, trunk_ob = _peepal_tree(
         K, (0, 0, 1743, 830), trunk, limbs, roots, katte, (420, 480, 1420, 1200),
         P.m(1700) * 0.34, (430, 0, 830),
@@ -4091,7 +4100,7 @@ def h3_1(K):
         exclude_wood=[H31_TRUNK[1:-1], limbs[3][:len(limbs[3]) * 4 // 5], H31_LIMBS[4][:4], H31_LIMBS[0][:2],
                       H31_LIMBS[2][:2]],
         bark_exclude=[(0, 1170, 1743, 1468)],
-        n_cards=(300, 120, 70), card_px=(180, 160), copy_sag=0.0, root_copies=False, gap_exact=True,
+        n_cards=(300, 120, 70), card_px=(180, 160), copy_sag=0.0, root_copies=False, gap_exact=True, seg_hide=True,
         wood_extra=lambda K_, bark: katte_root_copies(K_, katte, bark, roots, foot))
     # (the crown upright where it really stands, its cards moved in depth: from along the slope it is unchanged)
     upright_crown(K, [c for c in K.cards_parts if c not in cards0], crown, k)

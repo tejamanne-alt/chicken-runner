@@ -535,20 +535,21 @@ def relight(K, poly, ref_box, level=0.8, feather=2.0):
     P.rgba = a.astype(np.float32) / 255
 
 
-def deink(K, thr=28.0, size=7, edge=3, region=None):
+def deink(K, thr=28.0, size=7, edge=3, region=None, lines=True):
     """Takes the painted ink lines (outlines, joints, cracks: thin lines darker than the paint round them) and the
     cut-out's rim out of what the front projection lays on the model, filling them from the paint round them. For a
     painting drawn from above or in perspective, which a level model matches only to a few pixels: a line projected a
     little off its edge reads as a dark stripe across a top seen from the side, and the game draws its own outline.
     Call at the end of a builder (after the tiles are cut). region: boxes (px) to do it in only (round posts whose
-    painted outline would run down their sides as a dark seam), default all of it."""
+    painted outline would run down their sides as a dark seam), default all of it. lines False: the cut-out's rim
+    only, the ink inside (a wall's coursing) kept."""
     P = K.paint
     a = np.asarray(P.img).astype(np.float32)
     rgb, al = a[..., :3], a[..., 3]
     lum = rgb @ np.array([0.3, 0.59, 0.11])
     op = al > 127
     L = np.where(op, lum, 255.0)
-    ink = op & (ndimage.grey_closing(L, size=(size, size)) - L > thr) & (lum < 120)
+    ink = op & (ndimage.grey_closing(L, size=(size, size)) - L > thr) & (lum < 120) if lines else np.zeros_like(op)
     bad = (ndimage.binary_dilation(ink, iterations=1) | (op & ~ndimage.binary_erosion(op, iterations=edge))) & op
     if region is not None:
         inside = np.zeros_like(op)
@@ -2500,79 +2501,118 @@ def hut_with_pen(K):
 def field_shrine(K):
     """A wayside shrine at the field's edge, of whitewashed dressed stone: a stepped plinth, a square cella with a
     deep niche holding a painted Ganesha on his pedestal, a projecting cornice, two diminishing upper tiers (a small
-    niche with a golden image in the first), a squared dome crowned by a ring of kalasha finials, and a saffron
-    swallow-tailed flag on a pole. A true square block facing us: the shaded right side the painting shows in
-    perspective is not projected onto the front; its real sides are the same stone, with blind niches."""
+    niche with a golden image in the first), a barrel-vaulted wagon roof with horseshoe gable ends and a little arched
+    gable on its front, kalasha finials along its ridge, and a saffron swallow-tailed flag on a pole behind them. The
+    painting shows it three-quarters on, at eye level (the plinth's foot and the
+    side's courses level: no slope): it is built as true squares, one inside the other, and turned 21.9 degrees in
+    plan about the cella's front right corner (the turn from the cella's painted front, 199 px, and side, 80 px), its
+    front drawn out to its true width (1 / cos) so the turned front covers the painted front; every tier's right side
+    is a real face and takes the painted side, its shade taken off (the toon light shades it). Blind niches in the
+    back and left walls (the painted right side has none)."""
     P = K.paint
-    K.front_min = 0.2
-    K.front_exclude = [(234, 280, 339, 532), (220, 128, 339, 282)]     # the painted right side, in perspective
+    K.front_min = 0.05
+    phi = 21.9
+    c, s_ = math.cos(math.radians(phi)), math.sin(math.radians(phi))
     stone_m = K.tile((36, 340, 76, 470), soften=0.35, vary=0.04)
-    ax = P.x(140)                                           # the shrine's axis
-    hb = P.m(99)                                            # the cella's half width
-    cy = hb                                                 # its front face on y = 0
+    xr = P.x(230)                                           # the cella's front right corner: the turn's pivot
+    Cx = P.x(170.5)                                         # every tier's centre, painted (their outlines' middles)
+    hc = P.m(107)                                           # the cella's real half width (and depth)
+    ym = hc                                                 # the tiers' centre, back from the cella's front
+    xm = Cx - ym * s_                                       # ... in the turned frame (a point lands at x + y sin)
     parts = {}
 
-    def tier(h_px, r_top, r_bot, mat=stone_m, bevel=0.015, name="tier"):
-        h = P.m(h_px)
-        ob = K.box(ax - h, ax + h, cy - h, cy + h, P.z(r_bot), P.z(r_top), mat, bevel=bevel, name=name)
+    def tier(h_px, r_top, r_bot, mat=stone_m, bevel=0.015, name="tier", dx=0.0):
+        h = P.m(h_px)                                       # its real half width
+        x = xm + P.m(dx)
+        ob = K.box(x - c * h, x + c * h, ym - h, ym + h, P.z(r_bot), P.z(r_top), mat, bevel=bevel, name=name)
         parts[name] = (ob, h)
         return ob, h
-    tier(112, 496, 525, name="plinth")
-    tier(106, 480, 496, name="plinth_top")
-    body, _ = tier(99, 320, 480, name="cella")
-    tier(113, 300, 322, name="cornice")
-    tier(106, 284, 300, name="cornice_top")
-    t1, h1 = tier(74, 232, 284, name="tier1")
-    tier(66, 226, 234, name="tier1_cap")
-    t2, h2 = tier(58, 172, 226, name="tier2")
-    hd = P.m(56)
-    dome = K.lathe([(hd * 1.414, P.z(172)), (hd * 1.38, P.z(160)), (hd * 1.25, P.z(145)), (hd * 0.95, P.z(133)),
-                    (hd * 0.5, P.z(127)), (0.0, P.z(125))], stone_m, segments=4, centre=(ax, cy, 0), name="dome",
-                   smooth=False)
-    rotate(dome, 45, "Z", (ax, cy, 0))
-    for i in range(4):
-        for j in range(3):
-            a = math.radians(90 * i)
-            t = (j - 1) * hd * 0.6
-            fx = ax + math.cos(a) * hd * 0.95 - math.sin(a) * t
-            fy = cy + math.sin(a) * hd * 0.95 + math.cos(a) * t
-            K.lathe([(0.0, P.z(136)), (P.m(9), P.z(132)), (P.m(10), P.z(126)), (P.m(6), P.z(120)), (0.0, P.z(116))],
-                    stone_m, segments=8, centre=(fx, fy, 0), name="kalasha")
+
+    def frustum(prof, name, dx=0.0):                        # a square tier whose sides slope: [(half px, py)]
+        ob = K.lathe([(P.m(hp) * math.sqrt(2), P.z(py)) for hp, py in prof], stone_m, segments=4,
+                     centre=(xm + P.m(dx), ym, 0), name=name, smooth=False)
+        rotate(ob, 45, "Z", (xm + P.m(dx), ym, 0))
+        ob.data.transform(Matrix.Translation((xm, 0, 0)) @ Matrix.Diagonal((c, 1, 1, 1)) @ Matrix.Translation((-xm, 0, 0)))
+        return ob
+    # the tiers' real half widths from their painted outlines ((right - left) / 2 / (cos + sin)), row by row; the
+    # upper tiers' centres 2-4 px right of the cella's, as painted
+    tier(124, 501, 525, name="plinth")
+    tier(119, 478, 501, name="plinth_top")
+    body, _ = tier(107, 320, 478, name="cella")
+    frustum([(116, 321), (120.5, 313), (121, 306), (118, 299), (113, 293), (109, 288), (0, 288)], "cornice")
+    tier(107, 278, 288.5, name="cornice_top")
+    tier(75, 253, 279, name="tier1", dx=2)
+    t1, h1 = tier(72, 231, 254, name="tier1_upper", dx=2)
+    tier(63, 206, 232, name="tier2", dx=2)
+    # the crown: a barrel-vaulted wagon roof (shala) along the front, its ends horseshoe gables (the right one painted
+    # in shade), a small arched gable (kudu) on its front, kalasha finials along its ridge
+    va, vb, vdx = P.m(62), P.m(37.5), 4.0                   # its half length, half depth; its centre right of the axis
+    xv = xm + P.m(vdx)
+    zb, zs, zt = P.z(207), P.z(155), P.z(130)               # its foot, the arch's springing, its ridge
+    arch = [(ym + vb * math.cos(t), zs + (zt - zs) * math.sin(t)) for t in np.linspace(0, math.pi, 17)]
+    yz_prism(K, [(ym - vb, zb), (ym + vb, zb)] + arch, xv - c * va, xv + c * va, stone_m, name="vault")
+    y0 = ym - vb                                            # the vault's front face
+    kudu = [(153, 187), (186, 187), (186, 160), (181, 151), (174, 145), (169, 143), (169, 139), (164, 139), (164, 143),
+            (159, 145), (155, 151), (153, 160)]
+    K.prism([(P.x(px) - y0 * s_, P.z(py)) for px, py in kudu], y0 - 0.06, y0 + 0.03, stone_m, name="kudu")
+
+    def at(x_px, y):                                        # a painted x at depth y, in the turned frame
+        return P.x(x_px) - y * s_
+
+    def shifted(ob, y):                                     # a panel built at its painted box, set back to depth y
+        ob.data.transform(Matrix.Translation((-y * s_, 0, 0)))
+        return ob
     # the niche in the front with the painted image on its pedestal; the small upper niche with the golden one
     K.cut(body, P.x(80), P.x(182), -0.05, 0.42, P.z(478), P.z(330))
     K.box(P.x(80), P.x(182), 0.36, 0.4, P.z(478), P.z(330), stone_m, name="niche_back")
-    K.box(P.x(112), P.x(178), 0.2, 0.36, P.z(478), P.z(462), stone_m, bevel=0.01, name="pedestal")
-    K.panel((116, 372, 182, 462), 0.27, depth=0.08, name="image")
-    fy1 = cy - h1
-    K.cut(t1, P.x(124), P.x(172), fy1 - 0.05, fy1 + 0.22, P.z(282), P.z(234))
-    K.box(P.x(124), P.x(172), fy1 + 0.18, fy1 + 0.22, P.z(282), P.z(234), stone_m, name="niche_back")
-    K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image")
-    # blind niches in the other three walls of the cella, and in the first tier
+    shifted(K.box(P.x(112), P.x(178), 0.2, 0.36, P.z(478), P.z(462), stone_m, bevel=0.01, name="pedestal"), 0.2)
+    shifted(K.panel((116, 372, 182, 462), 0.27, depth=0.08, name="image"), 0.27)
+    fy1 = ym - h1
+    K.cut(t1, at(125, fy1), at(173, fy1), fy1 - 0.05, fy1 + 0.22, P.z(277), P.z(233))
+    K.box(at(125, fy1), at(173, fy1), fy1 + 0.18, fy1 + 0.22, P.z(277), P.z(233), stone_m, name="niche_back")
+    shifted(K.panel((136, 240, 162, 276), fy1 + 0.15, depth=0.04, name="image"), fy1 + 0.15)
+    # blind niches in the back and left walls of the cella and the first tier (the painted right side is plain)
     niche_m = img_tile(K, retint(P.crop((36, 340, 76, 470)), (150, 140, 146)), P.m(40), vary=0.05, mottle=0.1,
                        mottle_size=0.3, key="niche")        # the same coursed stone, in the niche's shade
-    for ang in (90, 180, 270):
-        a = math.radians(ang)
-        nx, ny = math.sin(a), -math.cos(a)                  # the wall's outward direction
-        tx, ty = math.cos(a), math.sin(a)
-        for hh, w, d, z0, z1, ob in ((hb, 0.32, 0.12, P.z(470), P.z(345), body), (h1, 0.16, 0.08, P.z(280), P.z(238), t1)):
-            mx, my = ax + nx * hh, cy + ny * hh
-            x0, x1 = sorted((mx - tx * w - nx * d, mx + tx * w + nx * d))
-            y0, y1 = sorted((my - ty * w - ny * d, my + ty * w + ny * d))
-            K.cut(ob, x0, x1, y0, y1, z0, z1)
-            bx_, by_ = ax + nx * (hh - d * 0.6), cy + ny * (hh - d * 0.6)     # its shaded back, a little proud
-            x0, x1 = sorted((bx_ - tx * w - nx * 0.015, bx_ + tx * w + nx * 0.015))
-            y0, y1 = sorted((by_ - ty * w - ny * 0.015, by_ + ty * w + ny * 0.015))
-            K.box(x0, x1, y0, y1, z0, z1, niche_m, name="blind_niche")
-    # the flag on its pole, standing at the back of the dome and leaning over to the right as painted
+    for hh, w, d, z0, z1, ob in ((hc, 0.32, 0.12, P.z(470), P.z(345), body), (h1, 0.16, 0.08, P.z(276), P.z(236), t1)):
+        # the back wall (along x: widths drawn in by cos), the left wall (along y: depths drawn in by cos)
+        K.cut(ob, xm - c * w, xm + c * w, ym + hh - d, ym + hh + d, z0, z1)
+        K.box(xm - c * w, xm + c * w, ym + hh - d * 0.6 - 0.015, ym + hh - d * 0.6 + 0.015, z0, z1, niche_m,
+              name="blind_niche")
+        K.cut(ob, xm - c * (hh + d), xm - c * (hh - d), ym - w, ym + w, z0, z1)
+        K.box(xm - c * (hh - d * 0.6) - c * 0.015, xm - c * (hh - d * 0.6) + c * 0.015, ym - w, ym + w, z0, z1, niche_m,
+              name="blind_niche")
+    # turned in plan about the cella's front right corner, the front first drawn out to its true width
+    M = (Matrix.Translation((xr, 0.0, 0.0)) @ Matrix.Rotation(math.radians(-phi), 4, "Z")
+         @ Matrix.Diagonal((1 / c, 1.0, 1.0, 1.0)) @ Matrix.Translation((-xr, 0.0, 0.0)))
+    for ob in with_cutters(list(K.parts)):
+        ob.data.transform(M)
+    # the kalasha finials along the vault's ridge (placed after the turn, round), where painted
+    for px in (128, 147, 166, 184, 202, 220):
+        wpt = M @ Vector((P.x(px) - ym * s_, ym, 0.0))
+        K.lathe([(0.0, P.z(135)), (P.m(6.5), P.z(133)), (P.m(7), P.z(128)), (P.m(4.5), P.z(123)), (0.0, P.z(119))],
+                stone_m, segments=8, centre=(wpt.x, wpt.y, 0), name="kalasha")
+    # the flag on its pole, standing on the vault's back slope and leaning over to the right as painted
     pole = K.colour((186, 60, 196, 110), vary=0.08)
-    by = cy + hd * 0.5
-    K.tube([(P.x(186), by, P.z(140)), (P.x(205), by, P.z(10))], P.m(4), pole, segments=8, name="pole")
-    K.leaves_only((196, 4, 312, 126), no_halo)
+    by = (M @ Vector((P.x(188) - (ym + 0.2) * s_, ym + 0.2, 0.0))).y
+    K.tube([(P.x(187), by, P.z(140)), (P.x(205), by, P.z(10))], P.m(4), pole, segments=8, name="pole")
+    def cloth(rgb):                                         # the flag's cloth: no halo, and not the painted pole
+        yy, xx = np.mgrid[4:4 + rgb.shape[0], 196:196 + rgb.shape[1]]
+        return no_halo(rgb) & (xx > 186 + (140 - yy) * 19 / 130 + 5)
+    K.leaves_only((196, 4, 312, 126), cloth)
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by, P.z(64)), name="flag", normal=(0, -0.5, 0.5))
     K.card_from_painting((198, 4, 312, 124), (P.x(255), by + 0.12, P.z(64)), yaw=-20, name="flag",
                          normal=(0, -0.5, 0.5))
     K.card_from_painting((198, 4, 312, 124), (P.x(248), by + 0.22, P.z(64)), yaw=-55, scale=0.9, name="flag",
                          normal=(0.5, -0.5, 0.5))           # the cloth curling back in the wind: full from the side
+    # the painted shade off the tiers' right sides (each from its painted front right corner), to the lit stone
+    ref = (36, 340, 76, 470)
+    for poly in ([(239, 499), (332, 499), (332, 527), (239, 527)], [(237, 477), (328, 477), (328, 500), (237, 500)],
+                 [(231, 318), (312, 318), (312, 478), (231, 478)], [(233, 289), (328, 289), (328, 321), (233, 321)],
+                 [(230, 276), (312, 276), (312, 290), (230, 290)], [(223, 229), (272, 229), (272, 279), (223, 279)],
+                 [(210, 204), (258, 204), (258, 230), (210, 230)], [(217, 120), (252, 120), (252, 206), (217, 206)]):
+        relight(K, poly, ref, feather=1.0)
+    deink(K, region=[(205, 100, 339, 532)], lines=False)    # the cut-out's rim off the sides (their coursing kept)
 
 
 def ladder(K, top_l, top_r, bot_l, bot_r, rungs, mat, r_rail=0.035, r_rung=0.025, name="ladder"):
