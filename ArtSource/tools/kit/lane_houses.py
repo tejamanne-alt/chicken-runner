@@ -15,7 +15,7 @@ from mathutils import Matrix, Vector
 from kitlib import Mat, _image, _vary, model, seamless
 
 
-def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True):
+def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True, turn=True):
     """K.tile for a thin strip of the painting (a cornice, a coping, a ledge, a beam, a pillar's face, a band of
     thatch): the strip stacked into about a square first (rows for a band, columns for a column), so on a slab's top,
     a cap or a deep side it does not stretch into streaks or show a seam every strip's width (like
@@ -27,7 +27,7 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True):
     (default as painted)."""
     from PIL import Image
     P = K.paint
-    key = ("lh_strip", tuple(int(v) for v in box), soften, size, mirror)
+    key = ("lh_strip", tuple(int(v) for v in box), soften, size, mirror, turn)
     if key in K._mats:
         return K._mats[key]
     a = np.asarray(P.crop(box).convert("RGB")).astype(np.float32)
@@ -57,7 +57,7 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True):
         else:
             sq = join(a, n, 0, 1)
     else:
-        sq = join(a, max(1, int(round(h / max(1, w)))), 1, 0)
+        sq = quilt(a, h, K.rng, turn=turn)
     sq = Image.fromarray(sq.clip(0, 255).astype(np.uint8))
     sw = size or P.m(sq.width)
     sh = sw * sq.height / sq.width
@@ -95,6 +95,34 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True):
     m.set_colour(col)
     K._mats[key] = m
     return m
+
+
+def quilt(a, size, rng, patch=None, turn=True):
+    """A size x size texture from a narrow column a (HxWx3, a pillar's face): square patches cut from random heights
+    of the column, flipped at random, laid on a grid at half their size and feathered into each other, so it has the
+    column's grain but no seam every column's width (copies side by side read as vertical stripes round a pillar)."""
+    h, w = a.shape[:2]
+    p = patch or w
+    step = max(2, p // 2)
+    win = np.hanning(p + 2)[1:-1]
+    win = (win[:, None] * win[None, :])[..., None] + 1e-4
+    acc = np.zeros((size + p, size + p, 3))
+    wt = np.zeros((size + p, size + p, 1))
+    for y in range(0, size, step):
+        for x in range(0, size, step):
+            y0 = int(rng.integers(0, max(1, h - p)))
+            t = a[y0:y0 + p, :p]
+            if rng.uniform() < 0.5:
+                t = t[:, ::-1]
+            if rng.uniform() < 0.5:
+                t = t[::-1]
+            if turn:                                 # (stone has no grain: turned patches break the column's
+                t = np.rot90(t, int(rng.integers(0, 4)))   # vertical streaks up too)
+            acc[y:y + p, x:x + p] += t * win
+            wt[y:y + p, x:x + p] += win
+    out = acc / np.maximum(wt, 1e-6)
+    # wrap the overhang round so the square tiles
+    return out[:size, :size]
 
 
 def clean_tile(K, box, size=None, vary=0.05, soften=0.2, thresh=16, radius=5, strip=False):
@@ -861,8 +889,8 @@ def doorway_garland(K):
     d = 0.9                                                       # the doorway's depth through the wall
     # laterite with its pits and lime splashes: each pillar's face stacked side by side with its mirror into a square
     # (a 30 px column box-projected round a 0.9 m deep side shows a seam every 30 cm)
-    lat = strip_tile(K, (50, 100, 80, 345), soften=0.25)
-    lat2 = strip_tile(K, (284, 100, 310, 345), soften=0.25)
+    lat = strip_tile(K, (54, 100, 77, 345), soften=0.25)
+    lat2 = strip_tile(K, (287, 100, 307, 345), soften=0.25)
     slab = strip_tile(K, (100, 15, 300, 33), soften=0.35)   # the lintel's face clear of its edges, stacked square
     wood = K.tile((112, 235, 172, 330), vary=0.05)                  # the planks below the thoranam's leaf tips
     frame_w = wood                                                  # the frame's inner faces: the door's planks
@@ -1856,7 +1884,7 @@ def house_weaver(K):
         K.box(P.x(1072), P.x(1098), y - 0.025, y + 0.025, P.z(1074), P.z(820), wheel, name="wheel_leg")
     K.box(P.x(1060), P.x(1110), yr - 0.55, yr - 0.2, P.z(1090), P.z(1074), wheel, name="wheel_base")
     # the back and the sides: a plank back door, small barred windows
-    door = strip_tile(K, (527, 790, 546, 985), soften=0.15)          # planks: the loom's leg, side by side
+    door = strip_tile(K, (527, 790, 546, 985), soften=0.15, turn=False)   # planks: the loom's leg, side by side
     K.box(P.x(700), P.x(880), D - 0.02, D + 0.03, P.z(925), P.z(560), door, name="back_door")
     for py in (610, 860):                                              # its two battens
         K.box(P.x(706), P.x(874), D + 0.03, D + 0.05, P.z(py + 14), P.z(py), timber, name="back_door_batten")
@@ -2283,7 +2311,7 @@ def house_being_built(K):
     inner = brick
     # the earth: a clean patch between the straw by the pallets, its stray stalks taken out, stacked square (the long
     # ground strip took the heaps' shadows and straw, which repeated in rows of chevrons over the apron's top)
-    earth = clean_tile(K, (1490, 1058, 1640, 1084), size=1.0, soften=0.25, thresh=24, strip=True)
+    earth = clean_tile(K, (1490, 1058, 1640, 1084), size=1.0, vary=0.1, soften=0.0, thresh=45, strip=True)
     floor = earth
     bamboo = K.colour((1262, 150, 1276, 240), vary=0.1, scale=20)
     rope = K.colour((0.32, 0.14, 0.05), vary=0.12)
@@ -2342,7 +2370,10 @@ def house_being_built(K):
         K.tube([a, b], r, bamboo, segments=8, name="pole")
         for py, hx0, hx1 in horiz:
             if top[1] < py < bot[1]:
-                p = pole_pt(top, bot, py, lean)
+                f = (P.z(py) - a[2]) / (b[2] - a[2])          # where the pole as built passes that ledger's height
+                if not 0.0 <= f <= 1.0:
+                    continue
+                p = Vector(a).lerp(Vector(b), f)
                 if P.x(hx0) < p[0] < P.x(hx1):
                     lashing(K, (p[0], p[1] - r * 0.9, p[2]), (Vector(a) - Vector(b)), r * 1.5, rope)
     for py, hx0, hx1 in horiz:

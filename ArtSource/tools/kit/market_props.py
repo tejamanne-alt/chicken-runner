@@ -110,6 +110,42 @@ def square_tile(K, box, vary=0.06, soften=0.3, size=None, image=None, key=None, 
     return m
 
 
+def opaque_crop(K, box):
+    """The painting inside box (px) as an RGB image with its transparent specks and holes filled from the nearest
+    opaque pixel (a tile crop must be fully opaque, or its holes turn pale or white on every face it covers)."""
+    from PIL import Image
+    a = np.asarray(K.paint.crop(box)).astype(np.float32)
+    ok = a[..., 3] > 127
+    if ok.any() and not ok.all():
+        _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+        a = a[iy, ix]
+    return Image.fromarray(a[..., :3].clip(0, 255).astype(np.uint8))
+
+
+def ftile(K, box, vary=0.05, soften=0.45, size=None):
+    """A tile (sampled twice, as K.tile) of the painting inside box with its transparent specks filled."""
+    return square_tile(K, box, vary=vary, soften=soften, size=size, image=opaque_crop(K, box),
+                       key=("ftile", tuple(int(v) for v in box), soften, vary, size))
+
+
+def skin(K, box, y, holes=(), name="skin"):
+    """A thin face over a front wall at depth y (just in front of it) for the painted part inside box (px) minus the
+    openings `holes` (px boxes): it wears the painting itself, its transparent specks filled from their neighbours,
+    so where the cut-out has holes the front still shows the painted wall, not the wall's tile in pale patches."""
+    P = K.paint
+    m = wrapped(K, 0.0, squeeze=1.0, front_deg=179.9, keep=[box], inset=0, halo=0)
+    x0, y0, x1, y1 = box
+    xs = sorted({x0, x1} | {v for h in holes for v in (h[0], h[2]) if x0 < v < x1})
+    ys = sorted({y0, y1} | {v for h in holes for v in (h[1], h[3]) if y0 < v < y1})
+    for xa, xb in zip(xs, xs[1:]):
+        for ya, yb in zip(ys, ys[1:]):
+            cx, cy = (xa + xb) / 2, (ya + yb) / 2
+            if any(h[0] <= cx <= h[2] and h[1] <= cy <= h[3] for h in holes):
+                continue
+            K.quad([(P.x(xa), y, P.z(yb)), (P.x(xb), y, P.z(yb)), (P.x(xb), y, P.z(ya)), (P.x(xa), y, P.z(ya))], m,
+                   name=name)
+
+
 def rake_tile(K, a, b, offset_px, thick_px, vary=0.1, soften=0.1):
     """A tile of a band painted along a slanting line (the thatch along a gable's rake) from a to b (px): the
     painting turned so the band lies flat, and the band offset_px below the line, thick_px thick, cut out."""
@@ -1784,11 +1820,12 @@ def roof_house_b_1(K):
     P = K.paint
     X, Z = P.x, P.z
     D = 5.0
-    blue = K.tile((578, 345, 650, 465), vary=0.05, soften=0.45)
-    white = K.tile((578, 475, 650, 590), vary=0.05, soften=0.5)
-    pier = K.tile((135, 25, 240, 160), vary=0.05, soften=0.5)
-    red = K.tile((395, 628, 500, 705), vary=0.06, soften=0.5)
-    ledge = strip_tile(K, (300, 170, 700, 186), vary=0.05, soften=0.4)
+    # tiles from clean, fully opaque patches (the cut-out's plaster is speckled with transparent holes)
+    blue = ftile(K, (160, 350, 250, 460), vary=0.05, soften=0.35)
+    white = ftile(K, (160, 525, 230, 585), vary=0.05, soften=0.35)
+    pier = ftile(K, (130, 60, 215, 150), vary=0.05, soften=0.5)
+    red = ftile(K, (420, 635, 500, 695), vary=0.06, soften=0.35)
+    ledge = pier
     tiles = K.tile((300, 205, 560, 285), vary=0.05)
     wood = K.tile((95, 380, 112, 520), P.m(17), vary=0.06)
     green = K.colour((290, 380, 320, 470), vary=0.06)
@@ -1796,8 +1833,11 @@ def roof_house_b_1(K):
     dark = K.colour((0.03, 0.035, 0.04), vary=0.05)
     iron = K.colour((0.02, 0.02, 0.025), vary=0.05)
     # the plinth and its steps
-    K.box(X(55), X(1440), -1.8, D + 0.05, 0.0, Z(605), red, bevel=0.01, name="plinth")
+    K.box(X(55), X(1440), -1.8, D + 0.05, Z(713), Z(605), red, bevel=0.01, name="plinth")
     stairs(K, [(635, 885, 620), (620, 900, 645), (605, 915, 670)], red, tread=0.3, y0=-1.8)
+    for ob in K.parts[-3:]:
+        for v in ob.data.vertices:
+            v.co.z = max(v.co.z, Z(713))             # the steps too stand on the painted foot
     # the house: its walls (blue above, lime-white below), cornice, door, windows, nameplate
     upper = K.box(X(60), X(1440), 0.0, D, Z(470), Z(185), blue, name="walls_upper")
     lower = K.box(X(60), X(1440), 0.0, D, Z(605), Z(470), white, name="walls_lower")
@@ -1874,8 +1914,15 @@ def roof_house_b_1(K):
         papad(K, trays[2], px, py, r, P.m(2) + 0.003 * k, top)
     # the bamboo ladder, its feet on the ground, resting on the eave
     bamboo = K.tile((1440, 420, 1460, 600), P.m(20), vary=0.08)
-    lean_ladder(K, (X(1505), -2.34, 0.0), (X(1550), -2.34, 0.0), (X(1352), -1.68, Z(15)), (X(1398), -1.68, Z(15)),
-                bamboo, rungs=12)
+    lean_ladder(K, (X(1514), -2.34, Z(705)), (X(1564), -2.34, Z(705)), (X(1355), -1.68, Z(15)),
+                (X(1405), -1.68, Z(15)), bamboo, rungs=12)
+    # the painted plaster's transparent specks: skins wearing the painting itself over the front faces
+    skin(K, (60, 300, 1440, 606), -0.003, holes=[(330, 352, 445, 495), (1110, 352, 1225, 495), (690, 325, 845, 606),
+                                                 (198, 318, 248, 352)])
+    skin(K, (120, 15, 250, 165), -0.003)
+    skin(K, (1330, 20, 1430, 165), -0.003)
+    skin(K, (250, 46, 1330, 165), D - 0.253)
+    skin(K, (105, 165, 1430, 190), -0.153)
 
 
 def dung_cakes(K, cakes, y, mat_side, facing=-1, name="dung_cake"):

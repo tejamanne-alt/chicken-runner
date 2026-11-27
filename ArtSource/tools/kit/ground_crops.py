@@ -989,9 +989,24 @@ def twigs(K):
             if math.hypot(sx - x, sy - y) > 7:
                 sx, sy = x, y
             snapped.append((sx, sy, float(np.clip(sr, 0.75 * r, 1.3 * r))))
+        # its free ends carried out to where the painted twig ends (the traced ends stop short of the cut faces)
+        for end, nb in ((0, 1), (len(snapped) - 1, len(snapped) - 2)):
+            if ti in branches and end == 0:
+                continue
+            ex, ey, er = snapped[end]
+            d = np.array((ex - snapped[nb][0], ey - snapped[nb][1]))
+            d = d / max(1e-6, np.linalg.norm(d))
+            k = 0
+            while k < 12 and body[int(np.clip(round(ey + d[1] * (k + 1)), 0, P.h - 1)),
+                                  int(np.clip(round(ex + d[0] * (k + 1)), 0, P.w - 1))]:
+                k += 1
+            reach = max(0.0, k - 1.5)
+            snapped[end] = (ex + d[0] * reach, ey + d[1] * reach, er)
         rr = ndimage.uniform_filter1d(np.array([r for _, _, r in snapped]), 3)
         xs = ndimage.uniform_filter1d(np.array([x for x, _, _ in snapped]), 3)
         ys = ndimage.uniform_filter1d(np.array([y for _, y, _ in snapped]), 3)
+        xs[[0, -1]] = [snapped[0][0], snapped[-1][0]]                  # the ends stay where they reach
+        ys[[0, -1]] = [snapped[0][1], snapped[-1][1]]
         radius_of[id(pts)] = list(zip(xs, ys, rr))
     ground = P.m(max(r for d in radius_of.values() for _, _, r in d))   # the plane the twigs lie on (backs touch it)
     for pts in TWIGS:
@@ -1555,7 +1570,7 @@ def card_frame(K, box, centre, yaw, scale):
     return f
 
 
-def ragged_card(K, box_px, centre, yaw=0.0, scale=1.0, normal=None, name="leaf", n=7, rag=0.22):
+def ragged_card(K, box_px, centre, yaw=0.0, scale=1.0, normal=None, name="leaf", n=7, rag=0.22, bottom=0.0):
     """A card like K.card_from_painting, but its two sides ragged instead of straight (each a zigzag of n points
     pulled in at random up to `rag` of its half-width; the foot and the top kept whole): the leaves the box cuts at
     its sides end raggedly, not in a straight edge, seen from the side or above."""
@@ -1569,7 +1584,11 @@ def ragged_card(K, box_px, centre, yaw=0.0, scale=1.0, normal=None, name="leaf",
                                  -P.m((cy0 + cy1) / 2 - (y0 + y1) / 2))) * scale
     x0, y0, x1, y1 = cx0, cy0, cx1, cy1
     R = Matrix.Rotation(math.radians(yaw), 3, "Z")
-    pts = [(-1.0, -1.0), (1.0, -1.0)]
+    pts = [(-1.0, -1.0)]
+    if bottom:                                                      # a ragged foot too (leaves over bare canes)
+        for k in range(1, n + 1):
+            pts.append((-1.0 + 2.0 * k / (n + 1), -1.0 + 2 * bottom * K.rng.uniform(0, 1) * (k % 2)))
+    pts.append((1.0, -1.0))
     for k in range(1, n + 1):                                       # up the right side
         pts.append((1.0 - rag * K.rng.uniform(0, 1) * (k % 2), -1.0 + 2.0 * k / (n + 1)))
     pts += [(1.0, 1.0), (-1.0, 1.0)]
@@ -1593,7 +1612,8 @@ def ragged_card(K, box_px, centre, yaw=0.0, scale=1.0, normal=None, name="leaf",
     return ob
 
 
-def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", normal=(0, -0.3, 0.9), ragged=False):
+def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", normal=(0, -0.3, 0.9), ragged=False,
+               ragged_foot=0.0):
     """A plant: a card of the painting inside `box` stood with its foot (bottom middle) at `foot` (x, y, z metres),
     turned and scaled (ragged: its sides ragged, for a plant behind the painted ones, seen from the side); and its
     solid parts (features [(px, py, data)] painted inside the box) made by make(K, frame, feature, yaw, scale) where
@@ -1602,7 +1622,7 @@ def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", no
     h = P.m(box[3] - box[1]) * scale
     centre = (foot[0], foot[1], foot[2] + h / 2)
     if ragged:
-        c = ragged_card(K, box, centre, yaw=yaw, scale=scale, name=name, normal=normal)
+        c = ragged_card(K, box, centre, yaw=yaw, scale=scale, name=name, normal=normal, bottom=ragged_foot)
     else:
         c = K.card_from_painting(box, centre, yaw=yaw, scale=scale, name=name, normal=normal)
     if make is not None:
@@ -1615,7 +1635,7 @@ def plant_card(K, box, foot, yaw, scale, features=(), make=None, name="crop", no
 
 def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_px, features=(), make=None,
               scale=(0.8, 0.97), yaw=35.0, cross=True, front_yaw=8.0, src=None, at=None, name="crop",
-              front_cross=True, same=0.75, cross_scale=0.9):
+              front_cross=True, same=0.75, cross_scale=0.9, ragged_foot=0.0):
     """A crop in rows: the front row (rows[0]) is the painting from x0 to x1 cut into cards standing where they are
     painted (one per painted plant, cut midway between them, when `at` gives the plants), each crossed by the same
     plant turned square to the painting and set going back from it (front_cross), so from the side the front row is
@@ -1664,7 +1684,8 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
                 # the crossed card square to the painting (give or take a little): turned further, its plant would
                 # show mirrored beside the painted ones from the front
                 plant_card(K, box, (fx, fy, z_foot), (90 + K.rng.uniform(-12, 12)) if k else base_yaw,
-                           s * (0.92 if k else 1.0), () if k else features, make, name=name, ragged=True)
+                           s * (0.92 if k else 1.0), () if k else features, make, name=name, ragged=True,
+                           ragged_foot=ragged_foot)
                 if not k:
                     feet.append((fx, fy, z_foot, base_yaw, s, sx))
             if spots is None:
@@ -1961,13 +1982,13 @@ def sugarcane(K):
     traced = []
     for x0 in peaks[r0]:
         p1 = peaks[r1][np.argmin(np.abs(peaks[r1] - x0))]
-        if abs(p1 - x0) > 10:
+        if abs(p1 - x0) > 14:
+            lean = 0.0 if abs(x0 - P.w / 2) < 300 else float(np.sign(x0 - P.w / 2)) * 0.1   # the outer canes lean out
+            traced.append((float(x0 + lean * (r0 - bed_py)), lean))
             continue
         guess = p1 + (p1 - x0)
         p2 = peaks[r2][np.argmin(np.abs(peaks[r2] - guess))]
-        if abs(p2 - guess) > 10:
-            continue
-        lean = (p2 - x0) / (r0 - r2)                                 # px across per px up
+        lean = ((p2 - x0) / (r0 - r2) if abs(p2 - guess) <= 12 else (p1 - x0) / (r0 - r1))  # px across per px up
         traced.append((float(x0 + lean * (r0 - bed_py)), float(lean)))
     lo_x = np.nonzero(alpha_mask(P)[bed_py - 8])[0].min() + 10
     hi_x = np.nonzero(alpha_mask(P)[bed_py - 8])[0].max() - 10
@@ -1990,5 +2011,5 @@ def sugarcane(K):
     # the leaves: the painted tangle in front, and rows of it behind, on top of the canes
     card_mask(K, haze_free(P) & (np.arange(P.h)[:, None] < 330))
     crop_rows(K, 8, 946, 0, leafy_py + 30, rows[:1], P.z(leafy_py + 30), 12, 120, 90, yaw=35)
-    crop_rows(K, 130, 830, 0, leafy_py + 30, [rows[0]] + rows[1:], P.z(leafy_py + 30), 0, 120, 90,
-              scale=(0.85, 1.0), yaw=35, src=list(range(190, 770, 20)))
+    crop_rows(K, 170, 790, 0, leafy_py + 30, [rows[0]] + rows[1:], P.z(leafy_py + 30), 0, 120, 90,
+              scale=(0.85, 0.97), yaw=30, src=list(range(190, 770, 20)), same=0.9, ragged_foot=0.12)

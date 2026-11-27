@@ -1901,8 +1901,12 @@ def pump_house(K):
     D = 2.3
     # the painted right side (and the roof's and plinth's side) recede in perspective: not projected onto the front
     K.front_exclude = [(415, 0, 494, 374), (0, 314, 148, 374)]
-    brick = K.tile((156, 104, 250, 300), soften=0.12, vary=0.03)
-    plinth = K.tile((150, 322, 230, 356), soften=0.2, vary=0.04)
+    # the walls' brick: ten painted courses (a joint along its bottom edge), sampled once so the courses never
+    # ghost, lined up with the painted courses so they run on round the corners; the plinth's stone without the
+    # grass painted at its foot
+    brick = pattern_tile(K, seamless(P.crop((158, 108, 238, 308)), 0.15), P.m(80), z0=P.z(308), vary=0.04,
+                         key="brick")
+    plinth = K.tile((150, 320, 250, 343), soften=0.2, vary=0.04)
     coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
     body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")
     K.box(P.x(146), P.x(414), -0.04, D + 0.04, 0.0, P.z(318), plinth, bevel=0.01, name="plinth")

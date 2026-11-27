@@ -2955,8 +2955,12 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     box = tuple(int(v) for v in crown_box)
     tx, ty, tr = tpts[0]
 
+    # the trunk's painted width: its pale bark and ink line (not the hand-drawn strokes added to the trace, wider)
+    painted = ndimage.binary_dilation(full & pale_wood(rgb) & (P.rgba[..., 3] > 0.5), iterations=2)
+    painted = ndimage.binary_fill_holes(ndimage.binary_closing(painted, iterations=2))
+
     def foot(bark):
-        rows = trunk_runs(full, ty, tpts[-1][1] - 25, tpts[-1][0], grow=1.35)      # up into the fork
+        rows = trunk_runs(painted, ty, tpts[-1][1] - 25, tpts[-1][0], grow=1.35)      # up into the fork
         out = [loft_trunk(K, rows, bark, y=0.0, depth=0.92, segments=16)]
         for k in range(5):                           # a few roots into the ground
             a = 2 * math.pi * (k + rng.uniform(-0.3, 0.3)) / 5
@@ -2969,7 +2973,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6, min_r_px=2.0, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
+                                          dome_pow=0.6, min_r_px=4.5, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
                                           bark_inset=1, tile_box=DRUM_BARK[K.name])
     # the pods: long, thin, ribbed green tubes hanging from the branches, and one more of each round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=1, flatten=0.85, lump=0.05, min_len=40,
@@ -2986,8 +2990,9 @@ def h2_2(K):
                    (240, 1060, 300, 1075))
     stone = K.projected(squeeze=1.0, keep=[(160, 1000, 390, 1085)], inset=3)
     zg = P.z(1080)
-    for px, w, h, y in ((240, 95, 62, -0.06), (175, 50, 25, -0.08), (320, 45, 25, -0.07), (275, 60, 28, 0.08),
-                        (200, 50, 25, 0.07)):
+    # the rocks as painted (traced off the grid), and two behind the trunk
+    for px, w, h, y in ((250, 100, 75, 0.0), (220, 85, 33, -0.05), (168, 24, 18, -0.04), (283, 34, 20, -0.07),
+                        (322, 45, 26, -0.05), (365, 42, 24, -0.03), (275, 60, 28, 0.08), (200, 50, 25, 0.07)):
         K.boulder(P.x(px), y, zg + P.m(h) * 0.5, P.m(w), P.m(w) * 0.7, P.m(h) * 1.1, stone, name="rock")
     K.leaves_only((320, 985, 395, 1062), plant_pixels)
     for yaw in (0, 60, -60):

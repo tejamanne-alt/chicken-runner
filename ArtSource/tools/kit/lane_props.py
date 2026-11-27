@@ -1799,8 +1799,8 @@ def bicycle(K):
         Rt = P.m(w["tyre"])
         ring = [(Rt + a * math.cos(2 * math.pi * k / 12), a * 1.05 * math.sin(2 * math.pi * k / 12)) for k in range(13)]
         axis_lathe(K, ring, tyre, tuple(C), tuple(n_w), segments=60, name="tyre", cap=False)
-        rr = P.m(w["rim"])
-        rim = [(rr + P.m(2.4) * math.cos(2 * math.pi * k / 8), P.m(3.0) * math.sin(2 * math.pi * k / 8))
+        rr = P.m(w["rim"] - 1.5)                      # the painted rim is a gold band some 7 px wide
+        rim = [(rr + P.m(3.6) * math.cos(2 * math.pi * k / 8), P.m(3.0) * math.sin(2 * math.pi * k / 8))
                for k in range(9)]
         axis_lathe(K, rim, gold, tuple(C), tuple(n_w), segments=60, name="rim", cap=False)
         hub = [(0.0, -0.05), (P.m(4), -0.05), (P.m(9), -0.03), (P.m(5.5), -0.022), (P.m(5.5), 0.022), (P.m(9), 0.03),
