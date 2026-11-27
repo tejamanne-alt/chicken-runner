@@ -2216,14 +2216,14 @@
     },
     {
      "kind": "stall",
-     "x": 146.856,
+     "x": 147.156,
      "piece": "stall_vessels",
      "width": 3.977,
      "height": 2.6,
      "visuals": [
       {
        "piece": "stall_vessels",
-       "x": 148.845,
+       "x": 149.145,
        "y": 0.0,
        "z": 0.55,
        "w": 3.977,
@@ -2237,14 +2237,14 @@
     },
     {
      "kind": "stall",
-     "x": 151.083,
+     "x": 151.683,
      "piece": "stall_e_3",
      "width": 3.103,
      "height": 2.873,
      "visuals": [
       {
        "piece": "stall_e_3",
-       "x": 152.635,
+       "x": 153.235,
        "y": 0.0,
        "z": 0.55,
        "w": 3.102,
@@ -2429,13 +2429,13 @@
     },
     {
      "kind": "feather",
-     "x": 148.593,
+     "x": 148.893,
      "y": 4.7,
      "index": 1,
      "visuals": [
       {
        "piece": "Feather",
-       "x": 148.593,
+       "x": 148.893,
        "y": 4.7,
        "z": 0.0,
        "w": 0.35,
@@ -5844,14 +5844,14 @@
     },
     {
      "kind": "stall",
-     "x": 384.443,
+     "x": 384.743,
      "piece": "stall_h_1",
      "width": 3.254,
      "height": 3.0,
      "visuals": [
       {
        "piece": "stall_h_1",
-       "x": 386.07,
+       "x": 386.37,
        "y": 0.0,
        "z": 0.55,
        "w": 3.254,
@@ -5865,14 +5865,14 @@
     },
     {
      "kind": "stall",
-     "x": 387.947,
+     "x": 388.547,
      "piece": "stall_c_3",
      "width": 3.541,
      "height": 2.329,
      "visuals": [
       {
        "piece": "stall_c_3",
-       "x": 389.718,
+       "x": 390.318,
        "y": 0.0,
        "z": 0.55,
        "w": 3.54,
@@ -8461,14 +8461,14 @@
     },
     {
      "kind": "stall",
-     "x": 552.252,
+     "x": 552.552,
      "piece": "stall_potter",
      "width": 4.33,
      "height": 2.977,
      "visuals": [
       {
        "piece": "stall_potter",
-       "x": 554.418,
+       "x": 554.718,
        "y": 0.0,
        "z": 0.55,
        "w": 4.33,
@@ -8482,14 +8482,14 @@
     },
     {
      "kind": "stall",
-     "x": 556.833,
+     "x": 557.433,
      "piece": "stall_flowers",
      "width": 3.606,
      "height": 3.0,
      "visuals": [
       {
        "piece": "stall_flowers",
-       "x": 558.636,
+       "x": 559.236,
        "y": 0.0,
        "z": 0.55,
        "w": 3.606,

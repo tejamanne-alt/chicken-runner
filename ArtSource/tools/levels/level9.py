@@ -13,14 +13,18 @@ import math
 
 from levelkit import Plan, ROOF, run
 
+# Room between neighbouring stalls: each stands as far back as its own goods reach (Kit.FrontAt), so neighbours sit at
+# different depths and their sides would overlap if they stood shoulder to shoulder.
+STALL_GAP = 0.55
+
 IND, PINK, LIME = "house_indigo_veranda", "house_pink", "house_limewash"
 
 
 def stalls(p, s, x, pieces, feather=None):
     start = x
     for piece in pieces:
-        x = p.stall(s, x, piece) + 0.25
-    end = x - 0.25
+        x = p.stall(s, x, piece) + STALL_GAP
+    end = x - STALL_GAP
     p.mango_line(s, start + 0.6, int((end - start - 1.0) // 1.1), 1.1, 3.4)
     if feather is not None:
         p.feather(s, (start + end) / 2, 4.7, feather)

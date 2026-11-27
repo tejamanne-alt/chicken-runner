@@ -34,7 +34,7 @@ temple's own steps, and the temple court.
 | 66 | 106 | Rooftops | roofs 68 to 81.4 (ladder); water tank 74 on the roof; roofs 83.401 to 91.7; 15 mangoes | Up a ladder onto the terraces, a tank, a gap, and down. |
 | 106 | 122 | Clothesline | clothesline 113; 4 mangoes | A clothesline: slide. |
 | 122 | 140 | Breather | chilli 123; 10 mangoes | A breather: mangoes and a chilli. |
-| 140 | 170 | Awnings | stall 143; stall 146.856; stall 151.083; feather 2 at 148.593, 4.7 m up; 9 mangoes | A row of stalls: bounce along the awnings. |
+| 140 | 170 | Awnings | stall 143; stall 147.156; stall 151.683; feather 2 at 148.893, 4.7 m up; 9 mangoes | A row of stalls: bounce along the awnings. |
 | 170 | 198 | Mischief | pot stack 174; hens' basket 182.5 (knocked in by the rooster); mischief 183.5; clothesline 192; 14 mangoes | Pots; the rooster knocks a hens' basket into the road; a clothesline. |
 | 198 | 230 | StepsWithPots | temple steps 203 to 217.4; pot stack 210.2 on the roof; 7 mangoes | Temple steps with a pot stack on the landing: jump it up there. |
 | 230 | 248 | ChilliLane | chilli 231; 10 mangoes | A chilli to win back ground. |
@@ -42,12 +42,12 @@ temple's own steps, and the temple court.
 | 274 | 314 | RoofsAgain | roofs 277 to 290.4 (ladder); water tank 283 on the roof; roofs 292.401 to 300.7; 15 mangoes | The terraces again. |
 | 314 | 340 | LinesPots | clothesline 318; pot stack 324.5; clothesline 334; 13 mangoes | Clothesline, pots, clothesline. |
 | 340 | 358 | ChilliStraight | chilli 341; 10 mangoes | A chilli and a long straight. |
-| 358 | 402 | StepsAwnings | temple steps 361 to 375.4; stall 379.4; stall 384.443; stall 387.947; 17 mangoes | Temple steps, then a row of stalls. |
+| 358 | 402 | StepsAwnings | temple steps 361 to 375.4; stall 379.4; stall 384.743; stall 388.547; 17 mangoes | Temple steps, then a row of stalls. |
 | 402 | 438 | CrowdedStreet | 3 hens 410; hens' basket 418; pot stack 426; clothesline 435; 19 mangoes | Hens, the basket, pots, a clothesline. |
 | 438 | 458 | FinalChilli | chilli 441; 10 mangoes | A chilli. |
 | 458 | 500 | LastRoofs | roofs 461 to 474.4 (ladder); water tank 467 on the roof; roofs 476.401 to 484.7; 15 mangoes | The last rooftops. |
 | 500 | 544 | StepsTwice | temple steps 503 to 517.4; temple steps 521.4 to 535.8; pot stack 528.6 on the roof; 14 mangoes | Two flights of steps, pots on the second landing. |
-| 544 | 578 | LastAwnings | stall 547; stall 552.252; stall 556.833; 11 mangoes | The last row of stalls. |
+| 544 | 578 | LastAwnings | stall 547; stall 552.552; stall 557.433; 11 mangoes | The last row of stalls. |
 | 578 | 596 | ChilliLane2 | chilli 579; 10 mangoes | One more chilli. |
 | 596 | 646 | LastTest | 3 hens 600; pot stack 608; clothesline 617; hens' basket 623; 2 hens 632; 30 mangoes | Everything once more: hens, pots, a clothesline, the basket, hens. |
 | 646 | 686 | TempleApproach | temple steps 652 to 666.4; 7 mangoes | The temple's own steps, the last flight. |

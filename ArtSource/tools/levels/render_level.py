@@ -195,6 +195,7 @@ HIDDEN_BOXES = ("branch",)
 STONE_BOXES = ("bank",)            # Kit.Canal's granite kerbs: looks only, the lane's ground ends at the same edges
 COVERED_BOXES = ("wall", "haystack", "buffalo", "body", "bed", "stack")
 LADDER_REST = 2.43                 # Kit.StandLadder: on the parapet's coping, Roof + 0.08
+PLANK_BRIDGE_LENGTH = cs_number("Editor/GameBuilder.Kit.cs", "PlankBridgeLength", 3.9)
 KID_RUN_FRAME = int(arg("--kid-frame", "4"))
 ROOSTER_RUN_FRAME = int(arg("--rooster-frame", "3"))
 
@@ -478,14 +479,46 @@ class Level:
                     x0_ = min((r.x - r.w / 2 for r in steps), default=it["x"])
                     x1_ = max((r.x + r.w / 2 for r in steps), default=it.get("end", it["x"]))
                     mid = (x0_ + x1_) / 2
+                    zs = steps[0].z if steps else 0.6           # Kit.Steps: the model at the colliders' depth (0.6)
                     stand = Rec(role="platform_art", mode="ladder", src="plan", section=s["name"], item=it, item_id=item_id,
                                 item_kind=k, piece="temple_steps", name=f"{s['name']}/steps@{it['x']:.1f}/temple_steps",
-                                x=mid, y=0.0, z=0.4, w=x1_ - x0_, h=1.5, flat=False, outline=0.004, vis_kind="art",
+                                x=mid, y=0.0, z=zs, w=x1_ - x0_, h=1.5, flat=False, outline=0.004, vis_kind="art",
                                 entry={"name": "temple_steps", "folder": "market", "width": 1.0, "height": 1.0,
-                                       "depth": 2.2, "kind": "volume"})
-                    stand.head = (mid, 1.0, 0.4)
+                                       "depth": 1.8, "kind": "volume"})
+                    stand.head = (mid, 1.0, zs)
                     recs.append(stand)
                     self.recs.append(stand)
+                if k == "canal" and it.get("bridge") and (ART / "Models" / "fields" / "plank_bridge.fbx").exists():
+                    # Kit.Canal: the hand-built plank bridge stood on the walkway's top and stretched to width + 0.4; the
+                    # plank box stays as a collider, the rails and posts are not made
+                    for r in recs:
+                        if r.mode == "box" and r.piece == "plank":
+                            r.mode = "solid"
+                        elif r.mode == "box" and r.piece in ("rail", "post"):
+                            r.mode = "hole"            # not built at all
+                    width = float(it.get("width", it.get("span", 3.5)))
+                    mid = it["x"] + width / 2
+                    bridge = Rec(role="platform_art", mode="ladder", src="plan", section=s["name"], item=it,
+                                 item_id=item_id, item_kind=k, piece="plank_bridge",
+                                 name=f"{s['name']}/canal@{it['x']:.1f}/plank_bridge", x=mid, y=0.0, z=0.0, w=width + 0.4,
+                                 h=0.6, flat=False, outline=0.004, vis_kind="art",
+                                 entry={"name": "plank_bridge", "folder": "fields", "width": 1.0, "height": 1.0,
+                                        "depth": 1.0, "kind": "volume"})
+                    bridge.head = (mid, 1.0, 0.0)
+                    bridge.stand_scale_x = (width + 0.4) / PLANK_BRIDGE_LENGTH
+                    recs.append(bridge)
+                    self.recs.append(bridge)
+                for r in recs:
+                    # Kit.FrontAt: pushed back until the front of its renderers is at this depth (never forward)
+                    if k == "stall" and r.vis_kind == "art":
+                        r.front_at = 0.45
+                    elif k == "mangotree" and r.piece == "tree_mango_1":
+                        r.front_at = 0.45
+                    elif k == "cart" and r.piece == "bullock_cart":
+                        r.front_at = -0.3
+                    # Kit.RoofRow: its house fronts placed with roomBehind 1.0 (Place squashes their depth to fit)
+                    if k == "roofs" and r.vis_kind == "art" and r.role == "platform_art":
+                        r.room = 1.0
                 if is_obstacle(it):
                     if k == "cart":
                         x0, x1, top = it["x"], it["x"] + it.get("span", 3.6 * 0.62), it.get("bed", 0.95)
@@ -543,6 +576,20 @@ class Level:
             if piece in HIDDEN_BOXES or (piece in COVERED_BOXES and any(abs(q["x"] - rec.x) < max(q["w"], rec.w) / 2
                                                                          for q in fronts)):
                 rec.mode = "solid"
+            return rec
+        if vk == "model":
+            # ArtModels.Stand at the visual's foot, upright, its own size (Kit.Clothesline's clothesline_line); mirrored,
+            # the pivot's x scale is -1
+            folder = next((f.name for f in (ART / "Models").iterdir() if (f / f"{piece}.fbx").exists()), None) \
+                if (ART / "Models").exists() else None
+            entry = {"name": piece, "folder": folder or "lane", "width": 1.0, "height": 1.0, "depth": 0.1, "kind": "volume"}
+            role = "obstacle" if is_obstacle(it) else "prop"
+            rec = Rec(role=role, mode="ladder" if folder else "missing", entry=entry, w=v.get("w", 1.0), h=v.get("h", 1.0),
+                      flat=False, outline=0.004, **common)
+            rec.head = (rec.x, rec.y + 1.0, rec.z)
+            rec.stand_scale_x = -1.0 if rec.mirror else 1.0
+            if not folder:
+                rec.notes.append(f"Models/*/{piece}.fbx is missing")
             return rec
         if vk == "ladder":
             entry = {"name": piece if piece else "bamboo_ladder", "folder": v.get("folder", "lane"), "width": 1.0,
@@ -1479,7 +1526,7 @@ def blender_main():
         foot = Vector((rec.x, rec.z, rec.y))
         head = Vector((rec.head[0], rec.head[2], rec.head[1]))
         R = Vector((0, 0, 1)).rotation_difference(head - foot).to_matrix().to_4x4()
-        M = Matrix.Translation(foot) @ R
+        M = Matrix.Translation(foot) @ R @ Matrix.Diagonal((getattr(rec, "stand_scale_x", 1.0), 1.0, 1.0, 1.0))
         rec.M = M
         build_model(rec, M)
 
@@ -1525,6 +1572,16 @@ def blender_main():
             M = card_matrix(rec.x, rec.y, rec.z, rec.w, rec.h, rec.mirror, rec.flat, rec.turn)
             rec.M = M
             build_card(rec, M)
+        if getattr(rec, "front_at", None) is not None and rec.aabb is not None:
+            shift = rec.front_at - float(rec.aabb[0][1])
+            if shift > 0:
+                T = Matrix.Translation((0.0, shift, 0.0))
+                rec.parts = [(pt, ob, T @ Mw, (T @ Mw).inverted_safe()) for pt, ob, Mw, _ in rec.parts]
+                for pt, ob, Mw, _ in rec.parts:
+                    ob.matrix_world = Mw
+                rec.M = T @ rec.M
+                rec.aabb = rec.aabb + np.array([0.0, shift, 0.0])
+                rec.z += shift
         if rec.role == "basket":
             basket_recs.append(rec)
     # obstacles whose extent the plan does not give: from their placed visuals
