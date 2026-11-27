@@ -70,5 +70,17 @@
   "frames": 24,
   "loop": true,
   "face": "straining"
+ },
+ {
+  "name": "Tiptoe",
+  "frames": 36,
+  "loop": true,
+  "face": "grin"
+ },
+ {
+  "name": "BasketLift",
+  "frames": 30,
+  "loop": false,
+  "face": "straining"
  }
 ]

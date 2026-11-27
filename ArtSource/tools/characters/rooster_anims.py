@@ -14,7 +14,16 @@ def body_loc(up=0.0, forward=0.0):
     return (0.0, 0.65 * up + 0.76 * forward, 0.76 * up - 0.65 * forward)
 
 
+# Meshy modelled his folded wings as part of his body's surface, not as flaps: they can lift and spread a little (a
+# shrug, a flutter of the wing tips) but a real flap would fold his whole side. WING_SCALE maps the clips' wing beats onto
+# that range, and nothing goes past WING_MAX.
+WING_SCALE = 0.3
+WING_MAX = 20.0
+
+
 def wings(P, lift=0.0, spread=0.0, fold=0.0):
+    lift = max(-WING_MAX, min(WING_MAX, lift * WING_SCALE))
+    spread = max(-WING_MAX, min(WING_MAX, spread * WING_SCALE))
     P["LeftWing"] = [lift, fold, -spread]
     P["RightWing"] = [lift, -fold, spread]
 
@@ -46,8 +55,8 @@ def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0, swing=42.0):
     for side, p in (("Left", phi), ("Right", phi + math.pi)):
         sp = math.sin(p)
         fold = max(0.0, math.cos(p + 0.9)) ** 2            # most early in the swing, none while the foot is down
-        legs(P, side, thigh=swing * sp, shank=-8 - 74 * fold + 10 * g(p, math.pi, 0.25 * math.pi),
-             foot=8 * g(p, 0.5 * math.pi, 0.35 * math.pi) - 58 * fold + 6 * g(p, math.pi, 0.25 * math.pi))
+        legs(P, side, thigh=swing * sp, shank=-8 - 56 * fold + 10 * g(p, math.pi, 0.25 * math.pi),
+             foot=8 * g(p, 0.5 * math.pi, 0.35 * math.pi) - 50 * fold + 6 * g(p, math.pi, 0.25 * math.pi))
     spread = abs(math.sin(phi))
     lift = max(0.0, (spread - 0.5) / 0.5) ** 2           # between the steps
     pump = math.cos(2 * phi)                               # the body's pitch, twice a stride
@@ -64,13 +73,13 @@ def run_cycle(t, T, lean, wing_lift, wing_flap, beak=0.0, swing=42.0):
 
 
 def run(t):
-    P, up = run_cycle(t, RUN_T, lean=16, wing_lift=12, wing_flap=10)
+    P, up = run_cycle(t, RUN_T, lean=16, wing_lift=12, wing_flap=10, swing=36.0)
     return out(P, up)
 
 
 def panic(t):
     P, up = run_cycle(t, PANIC_T, lean=26, wing_lift=44, wing_flap=42, beak=18 + 10 * math.sin(2 * math.pi * t / 0.13),
-                      swing=50.0)
+                      swing=42.0)
     return out(P, up - 0.004)
 
 
@@ -80,7 +89,7 @@ def flutter(t):
     q = 2 * math.pi * t / (8 / 30)
     wings(P, lift=35 + 70 * math.sin(q), spread=55 + 22 * math.sin(q))
     for side in ("Left", "Right"):
-        legs(P, side, thigh=-38, shank=-58, foot=-50)
+        legs(P, side, thigh=-18, shank=-36, foot=-40)        # tucked, clear of his wings
     P["Body"] = [16 + 3 * math.sin(q), 0, 0]
     P["Neck1"] = [-6, 0, 0]
     P["Head"] = [-10, 0, 0]
@@ -98,8 +107,9 @@ def crow(t):
     wings(puff, lift=-6, spread=22)
     puff["Tail1"] = [14, 0, 0]
     open_ = mix(puff, pose(), 0)
-    open_["Jaw"] = [-38, 0, 0]
-    open_["Head"] = [-34, 0, 0]
+    open_["Jaw"] = [-30, 0, 0]
+    open_["Neck2"] = [-14, 0, 0]
+    open_["Head"] = [-20, 0, 0]
     keys = [(0, stand, (0, 0, 0)), (8, puff, (0, 0.02, 0)), (11, open_, (0, 0.025, 0)), (28, open_, (0, 0.025, 0)),
             (35, stand, (0, 0, 0))]
     P, loc = keyed(keys, t)
@@ -115,7 +125,7 @@ def startled(t):
     leap = pose()
     wings(leap, lift=72, spread=52)
     for side in ("Left", "Right"):
-        legs(leap, side, thigh=-20, shank=-50, foot=-45)
+        legs(leap, side, thigh=-14, shank=-40, foot=-40)
     leap["Body"], leap["Neck1"], leap["Head"], leap["Jaw"] = [12, 0, 0], [-8, 0, 0], [-16, 0, 0], [-34, 0, 0]
     leap["Tail1"] = [20, 0, 0]
     keys = [(0, rest, (0, up, 0)), (4, leap, (0, 0.09, 0)), (9, rest, (0, up, 0))]
@@ -142,12 +152,13 @@ def tumble(t):
 # ------------------------------------------------------------------ idle: looks about, pecks twice
 def idle(t):
     look = pose()
-    look["Neck1"], look["Head"] = [2, 18, 0], [0, 22, 0]
+    look["Neck1"], look["Neck2"], look["Head"] = [2, 10, 0], [0, 10, 0], [0, 18, 0]
     wings(look, lift=2)
     look2 = pose()
-    look2["Neck1"], look2["Head"] = [2, -16, 0], [0, -20, 0]
+    look2["Neck1"], look2["Neck2"], look2["Head"] = [2, -9, 0], [0, -9, 0], [0, -16, 0]
     peck = pose()
-    peck["Body"], peck["Neck1"], peck["Neck2"], peck["Head"] = [-16, 0, 0], [56, 0, 0], [12, 0, 0], [26, 0, 0]
+    # a peck bends him down through his body, both neck joints and his head, not at one joint
+    peck["Body"], peck["Neck1"], peck["Neck2"], peck["Head"] = [-28, 0, 0], [34, 0, 0], [26, 0, 0], [10, 0, 0]
     peck["Tail1"] = [10, 0, 0]
     up = pose()
     keys = [(0, up, (0, 0, 0)), (8, look, (0, 0, 0)), (18, look, (0, 0, 0)), (24, look2, (0, 0, 0)), (31, up, (0, 0, 0)),

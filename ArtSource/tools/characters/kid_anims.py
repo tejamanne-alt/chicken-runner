@@ -26,21 +26,12 @@ def pose():
     return defaultdict(lambda: [0.0, 0.0, 0.0])
 
 
-ARM_MAX = 180.0                 # the most the upper arm turns from hanging (see arm)
-SHRUG = 0.0                     # the share of a big raise the shoulder takes (see arm)
+ARM_MAX = 120.0                 # the most the upper arm turns from hanging (see out)
+SHRUG = 0.3                     # the share of a raise past 70 degrees the shoulder takes (see out)
 
 
 def arm(P, side, forward=0.0, out=0.0, elbow=0.0, hand=0.0):
-    """A raise past 70 degrees is shared with the shoulder (it shrugs up, as a real shoulder does, so the puffed sleeve
-    and the hair resting on it ride up with the arm instead of being crushed under it); the upper arm never turns past
-    ARM_MAX from hanging."""
     s = 1 if side == "Left" else -1
-    raise_ = max(forward, abs(out))
-    shrug = SHRUG * max(0.0, raise_ - 70.0)
-    if raise_ > 0:
-        k = min(1.0, max(0.0, (min(raise_, ARM_MAX) - shrug)) / raise_)
-        forward, out = forward * k if forward > 0 else forward, out * k
-    P[f"{side}Shoulder"] = [0.0, 0.0, shrug * s]
     P[f"{side}UpperArm"] = [forward, 0.0, out * s]
     P[f"{side}LowerArm"] = [elbow, 0.0, 0.0]
     P[f"{side}Hand"] = [hand, 0.0, 0.0]
@@ -84,7 +75,88 @@ def keyed(keys, t, fps=30):
     return keys[-1][1], keys[-1][2]
 
 
+def shoulders(P):
+    """A raise of the arm past 70 degrees is shared with the shoulder (it shrugs up, as a real shoulder does, so the
+    puffed sleeve and the hair resting on it ride up with the arm instead of being crushed under it), and the upper arm
+    never turns more than ARM_MAX from hanging: past that Meshy's sleeve folds into her neck."""
+    for side, s in (("Left", 1), ("Right", -1)):
+        fwd, twist, out_ = P[f"{side}UpperArm"]
+        o = out_ * s
+        raise_ = max(fwd, abs(o))
+        if raise_ <= 70.0:
+            continue
+        shrug = SHRUG * (raise_ - 70.0)
+        k = max(0.0, min(raise_, ARM_MAX) - shrug) / raise_
+        P[f"{side}Shoulder"] = [P[f"{side}Shoulder"][0], P[f"{side}Shoulder"][1], P[f"{side}Shoulder"][2] + shrug * s]
+        P[f"{side}UpperArm"] = [fwd * k if fwd > 0 else fwd, twist, o * k * s]
+
+
+# the frock's measurements (meshy_kid sets them from the model): the waist's height, how far in front of (and behind)
+# her middle the front and back skirt bones turn, how long they are from the waist to the hem and how far they lean out
+SKIRT_FIT = {"waist": 0.667, "pivot": 0.077, "length": 0.435, "lean": 15.5}
+DRESS_SPARE = 0.025             # metres the skirt clears a leg by (its gathers fold in 1-2 cm inside its line)
+
+
+def dress(P):
+    """The skirt clears her legs: each panel flares at least as far as the thigh, knee, shin and foot under it need,
+    worked out in the hips' frame from the leg's angles (its swing and its spread to the side). For each point of the
+    leg the skirt's surface where the point lies round it (its azimuth) must come out past it, DRESS_SPARE metres to
+    spare (the gathers fold in inside the skirt's line); the panels share that by azimuth (cos^2 round to the front or
+    back panel, sin^2 to the side's), so a knee in front lifts the front, a knee spread wide flares the side out, and a
+    heel behind the back. Each side also swings forward with its own leg's need in front (back with a heel behind),
+    sharing the flare round the hem. The clip's own values stand where they are larger."""
+    a, b, hz = LEGS["thigh"], LEGS["shank"], LEGS["hip"]
+    W, pv, L, lean = SKIRT_FIT["waist"], SKIRT_FIT["pivot"], SKIRT_FIT["length"], SKIRT_FIT["lean"]
+    tl = math.tan(math.radians(lean))
+    need = {}
+    for side, s in (("Left", 1), ("Right", -1)):
+        up = math.radians(P[f"{side}UpperLeg"][0]) + LEGS["thigh_rest"]
+        spread = math.sin(math.radians(max(0.0, P[f"{side}UpperLeg"][2] * s)))
+        lo = up + math.radians(P[f"{side}LowerLeg"][0]) + (LEGS["shank_rest"] - LEGS["thigh_rest"])
+        kf, kz = a * math.sin(up), hz - a * math.cos(up)
+        af, az = kf + b * math.sin(lo), kz - b * math.cos(lo)
+        toe = lo + math.radians(90.0 + P[f"{side}Foot"][0])           # the foot, square to the shin at rest
+        tf, tz = af + 0.09 * math.sin(toe), az - 0.09 * math.cos(toe)
+        x0 = LEGS.get("x", 0.058)
+        pts = [(a * 0.35 * math.sin(up), hz - a * 0.35 * math.cos(up), 0.075, 0.35 * a),
+               (a * 0.7 * math.sin(up), hz - a * 0.7 * math.cos(up), 0.065, 0.7 * a), (kf, kz, 0.055, a),
+               ((kf + af) / 2, (kz + az) / 2, 0.05, a + b / 2), (af, az, 0.048, a + b), (tf, tz, 0.04, a + b)]
+        nf = nb = no = 0.0
+        for f, z, r, along in pts:
+            depth = W - z
+            x = x0 + along * spread
+            if depth < 0.02 or math.hypot(math.hypot(abs(f), x) - pv, depth) > L + r:
+                continue                       # above the waist, or past the hem's reach
+            R = pv + depth * tl                # the skirt's radius at that height, at rest
+            if depth > L * math.cos(math.radians(lean)) - 0.05:
+                R -= 0.03                      # the lining turned up inside the hem
+            gap = math.hypot(abs(f), x) + r + DRESS_SPARE - R
+            if gap <= 0:
+                continue
+            n = min(80.0, math.degrees(math.atan2(gap, depth)))
+            c2 = f * f / (f * f + x * x)       # cos^2 of its azimuth: the front's (or back's) share there
+            if c2 > 0.5:
+                n /= c2 + 0.4 * (1 - c2)
+                if f >= 0:
+                    nf = max(nf, n)
+                else:
+                    nb = max(nb, n)
+            else:
+                no = max(no, n / ((1 - c2) + 0.3 * c2))
+        need[side] = (min(80.0, nf), min(80.0, nb), min(80.0, no))
+    P["SkirtFront"] = [max(P["SkirtFront"][0], need["Left"][0], need["Right"][0]), 0.0, P["SkirtFront"][2]]
+    P["SkirtBack"] = [max(P["SkirtBack"][0], need["Left"][1], need["Right"][1]), 0.0, P["SkirtBack"][2]]
+    for side, s in (("Left", 1), ("Right", -1)):
+        k = f"Skirt{side}"
+        swing = 0.4 * (need[side][0] - need[side][1])      # forward with a knee in front, back with a heel behind
+        flare = max(P[k][2] * s, need[side][2])
+        P[k] = [max(P[k][0], swing) if swing >= 0 else min(P[k][0], swing), 0.0, flare * s]
+
+
 def out(P, hips=(0.0, 0.0, 0.0)):
+    if not P.pop("_ik", None):
+        shoulders(P)
+    dress(P)
     return {k: tuple(v) for k, v in P.items()}, {"Hips": tuple(hips)}
 
 
@@ -175,10 +247,8 @@ def run_pose(t, lean=8.0):
     hair(P, back=-10 - 4 * lag, sides=-5 - 2 * lag, out=2 + lag)
     # The skirt flares only as far as the legs need: its front clears the knee driving up, its back the heel flicking
     # up behind, and each side swings forward with its own thigh (never back, which would tear it from the front).
-    fwd = max(thighs["Left"], thighs["Right"], 0.0)
-    heel = max(0.0, max(shins.values()) - 55.0)
-    skirt(P, front=3 + 0.45 * fwd + 2 * lag, back=8 + 0.3 * heel + 2 * lag,
-          left=(0.25 * max(thighs["Left"], 0.0), 5 + 2 * lag), right=(0.25 * max(thighs["Right"], 0.0), 5 + 2 * lag))
+    # the skirt's sway; dress() (in out) flares it as far as the knee driving up and the heel flicking up behind need
+    skirt(P, front=3 + 2 * lag, back=6 + 2 * lag, left=(0.0, 5 + 2 * lag), right=(0.0, 5 + 2 * lag))
     # each half stride: a stance (both hips at the planted leg's height), then a flight that rises and falls
     h = (u % 0.5) / 0.5
     flight = 0.0 if h < 2 * RUN_DUTY else math.sin(math.pi * (h - 2 * RUN_DUTY) / (1 - 2 * RUN_DUTY))
@@ -222,8 +292,8 @@ def rising_pose(rise=1.0, fall_=0.0):
     P["Chest"] = [lean * 0.4, 0, 0]
     P["Head"] = [-0.6 * lean, 0, 0]
     hair(P, back=lerp(-30, -6, rise), sides=lerp(-8, -4, rise), out=lerp(18, 2, rise))
-    skirt(P, front=lerp(26, 38, rise), back=lerp(24, -2, rise), left=(lerp(6, 22, rise), lerp(20, 3, rise)),
-          right=(lerp(-4, -10, rise), lerp(20, 3, rise)))
+    skirt(P, front=lerp(8, 10, rise), back=lerp(8, 0, rise), left=(lerp(2, 8, rise), lerp(8, 3, rise)),
+          right=(lerp(0, -3, rise), lerp(8, 3, rise)))
     return P
 
 
@@ -255,15 +325,15 @@ def land(t):
     P = mix(rest, rest, 0)
     for side in ("Left", "Right"):
         P[f"{side}UpperLeg"][0] += 30 * k
-        P[f"{side}LowerLeg"][0] -= 60 * k
+        P[f"{side}LowerLeg"][0] = max(P[f"{side}LowerLeg"][0] - 60 * k, -120.0)   # never folded flat
         P[f"{side}Foot"][0] += 14 * k
         P[f"{side}LowerArm"][0] += 20 * k
         P[f"{side}UpperArm"][2] += 14 * k * (1 if side == "Left" else -1)
     P["Spine"][0] += 10 * k
     P["Head"][0] -= 8 * k
     P["HairBack"][0] += 14 * k
-    P["SkirtFront"][0] += 12 * k
-    P["SkirtBack"][0] += 16 * k
+    P["SkirtFront"][0] += 4 * k
+    P["SkirtBack"][0] += 6 * k
     return out(P, (0, rest_hips[1] - 0.047 * k, 0))
 
 
@@ -292,8 +362,7 @@ def double_jump(t):
         for bone, value in pose_.items():
             to(bone, 0, value, k)
     hair(P, back=-30 * push + 6 * gather - 20 * max(0.0, ft - 0.7), sides=-8, out=6 + 12 * max(0.0, ft - 0.6))
-    skirt(P, front=30 + 20 * push + 26 * gather, back=10 * gather - 6 * push, left=(18 * gather + 20 * push, 10),
-          right=(18 * gather - 8 * push, 10))
+    skirt(P, front=8 + 6 * push + 6 * gather, back=4 * gather, left=(6 * gather + 6 * push, 6), right=(6 * gather, 6))
     return out(P, (0, 0.02 * push - 0.02 * gather, 0))
 
 
@@ -310,7 +379,7 @@ def slide(t):
     for side in ("Left", "Right"):
         arm(P, side, forward=-48 + 2 * w, out=36, elbow=18, hand=-10)
     hair(P, back=-38, sides=-20, out=8)
-    skirt(P, front=62, back=8, left=(34, 10), right=(6, 8))
+    skirt(P, front=10, back=4, left=(8, 6), right=(4, 6))
     return out(P, (0, -0.31, 0.02))
 
 
@@ -328,14 +397,14 @@ def vault(t):
         arm(plant, side, forward=40, out=16, elbow=0)
         leg(plant, side, thigh=96, knee=-126, foot=-10)
     hair(plant, back=-6, sides=-4, out=6)
-    skirt(plant, front=50, back=10, left=(30, 10), right=(30, 10))
+    skirt(plant, front=12, back=4, left=(8, 6), right=(8, 6))
     over = pose()
     over["Spine"], over["Head"] = [20, 0, 0], [-14, 0, 0]
     for side in ("Left", "Right"):
         arm(over, side, forward=8, out=26, elbow=10)
         leg(over, side, thigh=62, knee=-58, foot=0)
     hair(over, back=-20, sides=-8, out=6)
-    skirt(over, front=34, back=18, left=(18, 12), right=(18, 12))
+    skirt(over, front=10, back=6, left=(6, 6), right=(6, 6))
     ready, ready_hips = run_pose(0.0)
     keys = [(0, reach, (0, 0, 0)), (5, plant, (0, 0.12, 0)), (10, over, (0, 0.06, 0)), (13, ready, ready_hips)]
     P, hips = keyed(keys, t)
@@ -354,7 +423,7 @@ def climb(t):
     P["Spine"] = [12, 0, 0]
     P["Head"] = [-22, 0, 0]
     hair(P, back=-4, sides=-2, out=3)
-    skirt(P, front=30, back=4, left=(14, 6), right=(14, 6))
+    skirt(P, front=8, back=2, left=(4, 5), right=(4, 5))
     return out(P, (0, 0.015 * math.sin(2 * q), 0))
 
 
@@ -366,7 +435,7 @@ def stumble(t):
     leg(trip, "Left", thigh=52, knee=-30, foot=10)
     leg(trip, "Right", thigh=-46, knee=-22, foot=-30)
     hair(trip, back=10, sides=6, out=14)
-    skirt(trip, front=30, back=30, left=(20, 16), right=(-15, 16))
+    skirt(trip, front=10, back=10, left=(6, 8), right=(-4, 8))
     wind = pose()
     wind["Spine"], wind["Chest"], wind["Head"] = [32, 0, 6], [6, -8, 0], [-20, 0, 0]
     arm(wind, "Left", forward=-22, out=52, elbow=30)
@@ -374,7 +443,7 @@ def stumble(t):
     leg(wind, "Left", thigh=-8, knee=-62, foot=-10)
     leg(wind, "Right", thigh=42, knee=-40, foot=8)
     hair(wind, back=-14, sides=-6, out=18)
-    skirt(wind, front=24, back=24, left=(-4, 18), right=(16, 18))
+    skirt(wind, front=8, back=8, left=(-2, 8), right=(6, 8))
     start, start_hips = run_pose(0.0)
     settle = pose()
     settle["Spine"], settle["Head"] = [20, 0, 0], [-14, 0, 0]
@@ -397,12 +466,13 @@ def dive(t):
         arm(crouch, side, forward=-42, out=16, elbow=20)
     fly = pose()
     fly["Hips"] = [72, 0, 0]
-    fly["Spine"], fly["Chest"], fly["Neck"], fly["Head"] = [12, 0, 0], [4, 0, 0], [-20, 0, 0], [-48, 0, 0]
+    # prone, she looks ahead under her arms (a head thrown further back pushes her bob into her shoulders)
+    fly["Spine"], fly["Chest"], fly["Neck"], fly["Head"] = [12, 0, 0], [4, 0, 0], [-14, 0, 0], [-30, 0, 0]
     for side in ("Left", "Right"):
         arm(fly, side, forward=168, out=10, elbow=6, hand=-6)
         leg(fly, side, thigh=-12, knee=-24, foot=-40)
     hair(fly, back=-48, sides=-30, out=10)
-    skirt(fly, front=6, back=40, left=(-10, 12), right=(-10, 12))
+    skirt(fly, front=4, back=15, left=(-4, 6), right=(-4, 6))
     keys = [(0, crouch, (0, -0.06, 0)), (5, fly, (0, 0.02, 0.04)), (14, fly, (0, 0.02, 0.04))]
     P, hips = keyed(keys, t)
     return out(P, hips)
@@ -420,8 +490,250 @@ def wade(t):
     P["Spine"] = [6, 0, 6 * math.sin(phi)]
     P["Head"] = [-6, 0, -4 * math.sin(phi)]
     hair(P, back=-6 + 4 * math.cos(2 * phi), sides=-3, out=4)
-    skirt(P, front=14 + 10 * max(0.0, math.cos(phi)), back=6, left=(8, 10), right=(8, 10))
+    skirt(P, front=6 + 4 * max(0.0, math.cos(phi)), back=4, left=(3, 6), right=(3, 6))
     return out(P, (0.02 * math.sin(phi), -0.03 + 0.02 * math.cos(2 * phi), 0))
+
+
+# ------------------------------------------------------------------ level 1 intro: the sneak to the basket, and the lift
+# Tiptoe: a slow, exaggerated sneak at 1.1 m/s, 1.2 s a stride (both steps). Each foot is planted on its toes by IK
+# (as run_leg plants it) and slides back under her at the walking speed while it is down; she is lowered and leaning in,
+# so a leg on tiptoe reaches about 0.28 m either side of her hips, and each foot is down 42 % of the stride (a light,
+# floating sneak: both feet are off the ground for a moment between the steps). In the swing the knee lifts high and the
+# toes stay pointed; the elbows are bent with the hands up by her chest; the head is forward and turns slowly, watching.
+TIPTOE_SPEED = 1.1
+TIPTOE_T = 1.2
+TIPTOE_DROP = 0.05              # how far her hips are lowered
+TIPTOE_POINT = 42.0             # degrees the foot points down: she stands on the balls of her feet
+TIPTOE_LIFT = 0.12              # how high the foot is carried (the knee lifts high; higher, the skirt would tear)
+
+
+def tiptoe_leg(u, bob=0.0):
+    """The leg at stride phase u (0..1, toes down at 0): thigh, knee and foot angles (degrees)."""
+    a, b = LEGS["thigh"], LEGS["shank"]
+    ball = LEGS.get("ball", 0.07)
+    ankle_h = LEGS["ankle"] + ball * math.sin(math.radians(TIPTOE_POINT))      # the ankle up, the ball on the ground
+    hip_ankle = LEGS["hip"] - TIPTOE_DROP + bob - ankle_h
+    reach = math.sqrt(max(0.0, (0.97 * (a + b)) ** 2 - hip_ankle ** 2))
+    duty = min(0.46, 2 * reach / (TIPTOE_SPEED * TIPTOE_T))
+    half = TIPTOE_SPEED * duty * TIPTOE_T / 2                 # the planted ball travels from +half to -half
+    u = u % 1.0
+    if u < duty:
+        w = u / duty
+        x, lift, point = half - 2 * half * w, 0.0, TIPTOE_POINT
+    else:
+        w = (u - duty) / (1 - duty)
+        # the knee lifts high and the foot is carried forward, toes pointed, and set down gently on the toes
+        x = -half * math.cos(math.pi * w)
+        lift = TIPTOE_LIFT * math.sin(math.pi * w) ** 1.2
+        point = TIPTOE_POINT + 12 * math.sin(math.pi * w)
+    # the ball is planted; the ankle sits behind and above it by the pitched foot
+    ax = x - ball * math.cos(math.radians(point)) + ball
+    upper, lower = two_bone(ax, hip_ankle - lift, a, b, 1.0)
+    thigh = math.degrees(upper - LEGS["thigh_rest"])
+    knee = math.degrees((lower - upper) - (LEGS["shank_rest"] - LEGS["thigh_rest"]))
+    foot = -math.degrees(lower - LEGS["shank_rest"]) - point
+    return thigh, knee, foot
+
+
+def tiptoe(t):
+    P = pose()
+    u = (t / TIPTOE_T) % 1.0
+    phi = 2 * math.pi * u
+    bob = 0.008 * math.cos(2 * phi)            # a little lift through each step
+    for side, uu in (("Left", u), ("Right", u + 0.5)):
+        thigh, knee, foot = tiptoe_leg(uu, bob)
+        leg(P, side, thigh, knee, foot)
+    for side, p in (("Left", phi), ("Right", phi + math.pi)):
+        c = math.cos(p)
+        # elbows bent, hands up near the chest, held loose, swinging a touch against the legs
+        arm(P, side, forward=24 - 8 * c, out=12, elbow=108 + 6 * c, hand=-18)
+    P["Hips"] = [0, -4 * math.cos(phi), 0]
+    P["Spine"] = [9, 2 * math.cos(phi), 0]
+    P["Chest"] = [7, 4 * math.cos(phi), 0]
+    P["Neck"] = [6, 0, 0]
+    look = 9 * math.sin(phi * 0.5 + 0.4)      # the head turns slowly, once a stride, watching the sleeping neighbour
+    P["Head"] = [-8 + 1.5 * math.cos(2 * phi), look - 4 * math.cos(phi), 0]
+    hair(P, back=-2, sides=-1, out=1)
+    skirt(P, front=4, back=4, left=(0.0, 4), right=(0.0, 4))
+    return out(P, (0.006 * math.cos(phi), -TIPTOE_DROP + bob, 0.0))
+
+
+# BasketLift: she lifts an upturned dome basket by its near rim, hinging it up on its far rim. The game scrubs the clip
+# from its first frame to its last as the player holds, so frame k of N - 1 is the lift's progress p = k / (N - 1). The
+# basket, in her own frame (she faces forward): BASKET_DIAMETER across, its far rim (the hinge) on the ground
+# BASKET_HINGE_FORWARD in front of her root; the game turns it about the far rim by theta(p) = BASKET_MAX_ANGLE x
+# smoothstep(p), so the near rim's middle is at forward HINGE - DIAMETER cos(theta), height DIAMETER sin(theta) (+ the
+# rim's thickness). Her hands grip the near rim BASKET_GRIP either side of her middle (solved by IK each frame). At p = 0
+# she squats with her heels down and her hands on the rim at the ground (ArtSource/references/F4_story_basket.png); as
+# it rises she rises, leaning back, and shuffles her hips forward; at p = 1 she is half standing, the basket propped
+# open at chest height, and she peers under it.
+BASKET_DIAMETER = 0.90
+BASKET_HINGE_FORWARD = 1.15
+BASKET_MAX_ANGLE = 40.0
+BASKET_RIM = 0.03               # the rim's thickness: its middle is this far above where it rests
+BASKET_GRIP = 0.20              # her hands, either side of her middle along the near rim
+BASKET_FRAMES = 30
+
+# the rig at rest, for solving her arms: {bone: (parent, rest matrix 4x4 as rows, length)} (meshy_kid fills it)
+RIG = {}
+
+
+def basket_theta(p):
+    return math.radians(BASKET_MAX_ANGLE * smooth(p))
+
+
+def basket_grip(p, side):
+    """Where a hand holds the near rim at progress p: (x to her left, forward, up) in metres, in her root's frame."""
+    th = basket_theta(p)
+    r = BASKET_DIAMETER / 2
+    s = 1 if side == "Left" else -1
+    d = r + math.sqrt(max(0.0, r * r - BASKET_GRIP ** 2))     # from the hinge line toward her, along the basket
+    return (s * BASKET_GRIP, BASKET_HINGE_FORWARD - d * math.cos(th), d * math.sin(th) + BASKET_RIM)
+
+
+def _mat_mul(A, B):
+    return [[sum(A[i][k] * B[k][j] for k in range(4)) for j in range(4)] for i in range(4)]
+
+
+def _inv_rigid(M):
+    R = [[M[j][i] for j in range(3)] for i in range(3)]
+    t = [-sum(R[i][k] * M[k][3] for k in range(3)) for i in range(3)]
+    return [R[0] + [t[0]], R[1] + [t[1]], R[2] + [t[2]], [0, 0, 0, 1]]
+
+
+def _basis(rot, loc=(0.0, 0.0, 0.0)):
+    """Blender's pose basis: translation, then Euler XYZ (applied X first)."""
+    x, y, z = (math.radians(v) for v in rot)
+    cx, sx, cy, sy, cz, sz = math.cos(x), math.sin(x), math.cos(y), math.sin(y), math.cos(z), math.sin(z)
+    Rx = [[1, 0, 0], [0, cx, -sx], [0, sx, cx]]
+    Ry = [[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]]
+    Rz = [[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]]
+    R = [[sum(Ry[i][k] * Rx[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    R = [[sum(Rz[i][k] * R[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    return [R[0] + [loc[0]], R[1] + [loc[1]], R[2] + [loc[2]], [0, 0, 0, 1]]
+
+
+def _pose_matrix(P, hips, bone, cache):
+    if bone in cache:
+        return cache[bone]
+    parent, rest, _ = RIG[bone]
+    basis = _basis(P[bone] if bone in P else (0, 0, 0), hips if parent is None else (0, 0, 0))
+    if parent is None:
+        M = _mat_mul(rest, basis)
+    else:
+        M = _mat_mul(_mat_mul(_pose_matrix(P, hips, parent, cache), _mat_mul(_inv_rigid(RIG[parent][1]), rest)), basis)
+    cache[bone] = M
+    return M
+
+
+def wrist_at(P, hips, side):
+    """Where her wrist is (armature space, Blender axes) in pose P with the Hips moved by `hips`."""
+    M = _pose_matrix(P, hips, f"{side}LowerArm", {})
+    ln = RIG[f"{side}LowerArm"][2]
+    return [M[i][1] * ln + M[i][3] for i in range(3)]
+
+
+def reach(P, hips, side, target, guess=(60.0, 0.0, 20.0), prefer=(70.0, 0.0, 15.0), pull=0.04, out_=8.0):
+    """Solves her arm so the wrist meets target (armature space): the upper arm's forward swing (X) and its sweep
+    across (Y: with the arm raised forward, Blender's XYZ order makes Y the sideways sweep and Z a twist), and the
+    elbow, by damped Newton with numeric derivatives, gently pulled toward a natural forward reach (`prefer`), the elbow
+    kept bending the right way. Out of reach, the arm points straight at the target."""
+    s = 1 if side == "Left" else -1
+    q = list(guess)
+
+    def put(q_):
+        P[f"{side}UpperArm"] = [q_[0], q_[1], out_ * s]
+        P[f"{side}LowerArm"] = [q_[2], 0.0, 0.0]
+
+    for _ in range(40):
+        put(q)
+        w = wrist_at(P, hips, side)
+        err = [(target[i] - w[i]) * 100.0 for i in range(3)]          # in centimetres, so the solve is well scaled
+        if math.sqrt(sum(e * e for e in err)) < 1e-2 and _ > 5:
+            break
+        Jc = []
+        for k in range(3):
+            dq = list(q)
+            dq[k] += 0.5
+            put(dq)
+            w2 = wrist_at(P, hips, side)
+            Jc.append([(w2[i] - w[i]) * 100.0 / 0.5 for i in range(3)])
+        # solve (J^T J + l I) d = J^T err
+        JtJ = [[sum(Jc[a][i] * Jc[b][i] for i in range(3)) + (pull if a == b else 0) for b in range(3)] for a in range(3)]
+        Jte = [sum(Jc[a][i] * err[i] for i in range(3)) + pull * (prefer[a] - q[a]) for a in range(3)]
+        d = _solve3(JtJ, Jte)
+        step = max(abs(x) for x in d) or 1.0
+        d = [x * min(1.0, 15.0 / step) for x in d]
+        q = [q[0] + d[0], max(-60.0, min(60.0, q[1] + d[1])), max(0.0, min(140.0, q[2] + d[2]))]
+    put(q)
+    return q
+
+
+def _solve3(A, b):
+    det = (A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0])
+           + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]))
+    if abs(det) < 1e-12:
+        return [0.0, 0.0, 0.0]
+    out = []
+    for c in range(3):
+        M = [row[:] for row in A]
+        for r in range(3):
+            M[r][c] = b[r]
+        out.append((M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0])
+                    + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0])) / det)
+    return out
+
+
+def basket_lift(t):
+    p = min(1.0, max(0.0, t * 30 / (BASKET_FRAMES - 1)))
+    e = smooth(p)
+    P = pose()
+    lerp = lambda a_, b_, k: a_ + (b_ - a_) * k  # noqa: E731
+    # The rim is a long way off for a toddler's arms (0.3 m ahead of her at the ground, 0.5 m ahead at chest height):
+    # she reaches it with her hips shuffled forward and her body leaning in over her knees, hunched low at the start
+    # and rising and straightening (leaning back from the hunch) as the basket comes up, her arms nearly straight.
+    fwd = 0.08                                     # her hips shuffled forward as far as they go
+    hip_h = lerp(0.26, 0.46, e)                    # the hip joints: a deep squat, heels down, up to half standing
+    tilt = lerp(32.0, 18.0, e)                     # the pelvis tipped forward
+    drop_head = LEGS.get("pelvis", 0.074)          # the hip joints sit this far below the Hips bone's head
+    up = hip_h + drop_head * math.cos(math.radians(tilt)) - (LEGS["hip"] + drop_head)
+    hips = (0.0, up, fwd)
+    P["Hips"] = [tilt, 0, 0]
+    a, b = LEGS["thigh"], LEGS["shank"]
+    hip_fwd = LEGS.get("hip_fwd", 0.0) + fwd - drop_head * math.sin(math.radians(tilt))
+    for side in ("Left", "Right"):
+        x = LEGS.get("ankle_fwd", -0.02) - hip_fwd       # feet flat where they stand
+        upper, lower = two_bone(x, hip_h - LEGS["ankle"], a, b, 1.0)
+        thigh = math.degrees(upper - LEGS["thigh_rest"]) + tilt
+        knee = math.degrees((lower - upper) - (LEGS["shank_rest"] - LEGS["thigh_rest"]))
+        foot = -math.degrees(lower - LEGS["shank_rest"])        # the sole flat on the ground: heels down
+        leg(P, side, thigh, knee, foot, out=lerp(40, 10, e))          # knees wide, as a toddler squats
+    P["Spine"] = [lerp(44, 30, e), 0, 0]
+    P["Chest"] = [lerp(26, 16, e), 0, 0]
+    for side in ("Left", "Right"):
+        P[f"{side}Shoulder"] = [lerp(25.0, 20.0, e), 0.0, 0.0]           # shoulders reaching forward
+    P["Neck"] = [lerp(-24, -14, e), 0, 0]
+    # her head up to watch the rim, then tipped to one side to peer in under the basket as it opens
+    P["Head"] = [lerp(-26, -16, e), lerp(0, 10, e), lerp(0, 8, e)]
+    hair(P, back=lerp(4, -2, e), sides=lerp(2, -1, e), out=1)
+    # squatting, her skirt spreads out round her so its hem stays off the ground
+    skirt(P, front=4, back=lerp(34, 6, e), left=(0.0, lerp(20, 4, e)), right=(0.0, lerp(20, 4, e)))
+    # her hands on the near rim: the wrist 5.5 cm short of the grip, toward her shoulder
+    for side in ("Left", "Right"):
+        if not RIG:
+            arm(P, side, forward=lerp(60, 75, e), out=10, elbow=lerp(10, 20, e), hand=-20)
+            continue
+        gx, gf, gz = basket_grip(p, side)
+        grip = [gx, -gf, gz]                                 # Blender: forward is -Y
+        sh = _pose_matrix(P, hips, f"{side}UpperArm", {})
+        shp = [sh[i][3] for i in range(3)]
+        dv = [shp[i] - grip[i] for i in range(3)]
+        dl = math.sqrt(sum(v * v for v in dv)) or 1.0
+        target = [grip[i] + 0.055 * dv[i] / dl for i in range(3)]
+        reach(P, hips, side, target)
+        P[f"{side}Hand"] = [lerp(-25, -10, e), 0.0, 0.0]
+    P["_ik"] = [1, 0, 0]
+    return out(P, hips)
 
 
 CLIPS = [
@@ -437,4 +749,6 @@ CLIPS = [
     ("Stumble", 21, False, "shocked", stumble),
     ("Dive", 15, False, "straining", dive),
     ("Wade", 24, True, "straining", wade),
+    ("Tiptoe", round(TIPTOE_T * 30), True, "grin", tiptoe),
+    ("BasketLift", BASKET_FRAMES, False, "straining", basket_lift),
 ]

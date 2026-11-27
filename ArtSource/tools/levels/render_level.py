@@ -3,12 +3,11 @@
     S=<scratchpad>; $S/blender/venv/bin/python ArtSource/tools/levels/render_level.py -- \\
         --plan Assets/ChickenRunner/Art/Levels/level1.json --out DIR \\
         [--every 8] [--from X --to X] [--gap 10] [--shots x1,x2,...] [--samples N] [--orbit] \\
-        [--no-render] [--res 1280x720] [--threads 2] [--level N] [--fix-pickup-normals]
+        [--no-render] [--res 1280x720] [--threads 2] [--level N] [--sweep 1.0]
 
   --level N               plan Assets/ChickenRunner/Art/Levels/levelN.json (instead of --plan); without --out, writes
                           to $LEVEL_RENDER_DIR/levelN (default /tmp/level_render/levelN)
-  --fix-pickup-normals    preview only: draw the pickups with their faces turned outward, as they will look once
-                          Characters/Mango|Chilli|Feather.fbx are fixed (by default they are drawn as the game draws them)
+  --sweep M               the step of check i's sweep along the course (default 1 m)
 
 Writes:
   DIR/shots/x+024.0.png   one 1280x720 frame per shot: the kid at that course x, the rooster `gap` metres ahead, framed
@@ -53,8 +52,10 @@ What it mirrors, file by file:
   * GameBuilder.cs ZoneGround/GroundMaterial + PaintedGround.shader: the red earth tiled 3.5 m in world space, the turned
     second sample, the slow drifts and the depth haze 6..40 m; ground only where the game has it (the chunks' slabs from
     x = -10, z -40..4.5; the streamer's plane z 4.4..95); the sky is the haze colour.
-  * ChaseCamera.cs: FOV 30 (vertical), the kid on the left third, the rooster's framed gap (clamped to framingMaxGap),
-    13 m minimum width, the ground 28% up, 0.8 m raise, 45% vertical follow.
+  * ChaseCamera.cs (Kick Off's framing): a 34 degree vertical lens pitched 4 degrees down; half-height
+    max(2.7, minHalf / aspect) with minHalf = max(5.5, 1 s of the zone's run speed / (2 x 2/3)); the screen's centre on
+    the lane plane, the kid on the left third, 1.75 m above the ground she stands on (not following jumps); a close
+    rooster pulls the view back up to 1.25 (2.4 in the Ready state before the first tap; the basket intro stays close).
   * GameBuilder.Characters.cs PlaceModel: the kid and rooster turned by s_facing (115 degrees: run toward +x, 25
     degrees toward the camera), toon with 4 mm ink; RoosterBrain: his hops (sine arcs between the ground under their
     ends), the highest surface under him otherwise.
@@ -71,6 +72,8 @@ CHECKS (checks.json / checks.md), each with course x, section, piece and what is
   f repeat       the same house within 20 m, the same figure or animal within 30 m, a plan prop beside the same piece
                  in the scenery
   g pickups      pickups inside or poking through solid geometry, or two on one spot
+  i hidden       the kid or rooster hidden behind anything (scenery in front of the lane, a prop, the cart), swept
+                 along the whole course every metre (--sweep) with the close camera, as x ranges
   h other        standing litter big enough to read as an obstacle, decals drawn far over their real size, plan sizes
                  that no longer match the art, the plan's flat flag against the game's rule, scenery decals on the
                  running line at an obstacle, pickups hidden behind things, the kid or rooster hidden in a shot, bare
@@ -120,18 +123,31 @@ def cs_number(rel, name, default):
     return float(eval(m.group(1).replace("f", ""), {"__builtins__": {}}, {}))
 
 
-CAMERA = {
-    "kidScreenX": cs_number("Gameplay/View/ChaseCamera.cs", "kidScreenX", 1 / 3),
-    "roosterScreenX": cs_number("Gameplay/View/ChaseCamera.cs", "roosterScreenX", 0.88),
-    "minVisibleWidth": cs_number("Gameplay/View/ChaseCamera.cs", "minVisibleWidth", 13.0),
-    "groundScreenY": cs_number("Gameplay/View/ChaseCamera.cs", "groundScreenY", 0.28),
-    "cameraRaise": cs_number("Gameplay/View/ChaseCamera.cs", "cameraRaise", 0.8),
-    "verticalFollow": cs_number("Gameplay/View/ChaseCamera.cs", "verticalFollow", 0.45),
-    "fov": cs_number("Editor/GameBuilder.cs", "fieldOfView", 30.0),
-    "near": cs_number("Editor/GameBuilder.cs", "nearClipPlane", 0.3),
-    "far": cs_number("Editor/GameBuilder.cs", "farClipPlane", 260.0),
-    "framingMaxGap": cs_number("Core/ChaseTuning.cs", "framingMaxGap", 14.0),
-}
+_CC = "Gameplay/View/ChaseCamera.cs"
+CAMERA = {k: cs_number(_CC, k, d) for k, d in (
+    ("viewHalfHeight", 2.7), ("minHalfWidth", 5.5), ("lookAheadSeconds", 1.0), ("kidScreenX", 1 / 3),
+    ("focusHeight", 1.75), ("pitch", 4.0), ("maxRoosterZoom", 1.25), ("roosterScreenX", 0.9),
+    ("maxEstablishingZoom", 2.4))}
+BUILDER_FOV = cs_number("Editor/GameBuilder.cs", "fieldOfView", 34.0)
+# The Kick Off framing is made for a 34 degree lens (GameBuilder.BuildScene); --fov overrides.
+CAMERA["fov"] = float(arg("--fov", "34"))
+CAMERA["near"] = cs_number("Editor/GameBuilder.cs", "nearClipPlane", 0.3)
+CAMERA["far"] = cs_number("Editor/GameBuilder.cs", "farClipPlane", 260.0)
+
+
+def zone_run_speed(zone):
+    """ChaseTuning.ForZone: the kid's run speed in a zone (the default, or its case's override)."""
+    try:
+        src = (SCRIPTS / "Core" / "ChaseTuning.cs").read_text()
+    except OSError:
+        return 6.0
+    speed = cs_number("Core/ChaseTuning.cs", "kidRunSpeed", 6.0)
+    m = re.search(r"case\s+%d\s*:(.*?)(?:break|return)" % zone, src, re.S)
+    if m:
+        k = re.search(r"kidRunSpeed\s*=\s*(-?[\d.]+)f?", m.group(1))
+        if k:
+            speed = float(k.group(1))
+    return speed
 ZAB = {k: cs_number("Editor/ZoneArtBuilder.cs", k, d) for k, d in (
     ("StripWidth", 20.0), ("LaneFront", -2.0), ("LaneBack", 1.4), ("NearDepth", 11.0), ("CameraDistance", 30.0),
     ("ViewSpread", 0.6), ("groundTo", 95.0))}
@@ -158,6 +174,21 @@ NOT_OBSTACLES = ("prop", "decal", "mango", "chilli", "feather", "hop", "mischief
                  "roof", "box", "house", "houses", "bridge", "plank")
 STARTS_AT_X = ("cart", "cot", "haystack", "buffalo", "canal", "steps", "stall")     # Kit calls that start at x
 CANAL_BED = cs_number("Editor/GameBuilder.Kit.cs", "CanalBed", -0.28)
+ROAD = {"front": cs_number("Editor/GameBuilder.cs", "RoadFront", -2.4), "back": cs_number("Editor/GameBuilder.cs", "RoadBack", 1.0),
+        "tile": cs_number("Editor/GameBuilder.cs", "RoadTile", 4.0), "soft": 0.32, "wave": 0.2,
+        "tiles": ["road_mud_lane", "road_cart_track", "road_cement"]}
+for _k in ("soft", "wave"):                    # ZoneGround: ground.SetFloat("_RoadSoft", 0.32f) and "_RoadWave"
+    try:
+        _m = re.search(r'"_Road%s"\s*,\s*([\d.]+)f' % _k.capitalize(), (SCRIPTS / "Editor" / "GameBuilder.cs").read_text())
+        if _m:
+            ROAD[_k] = float(_m.group(1))
+    except OSError:
+        pass
+RUNNING_LINE = cs_number("Editor/ZoneArtBuilder.cs", "RunningLine", 0.9)
+SIDE_LANE = {"image": "ArtSource/cutouts/ground/side_lane_mud.png", "length": 8.0}
+# Kit boxes drawn only as colliders: always (the mango tree's branch), or where the piece's art was drawn over them
+HIDDEN_BOXES = ("branch",)
+COVERED_BOXES = ("wall", "haystack", "buffalo", "body", "bed", "stack")
 LADDER_REST = 2.43                 # Kit.StandLadder: on the parapet's coping, Roof + 0.08
 KID_RUN_FRAME = int(arg("--kid-frame", "4"))
 ROOSTER_RUN_FRAME = int(arg("--rooster-frame", "3"))
@@ -274,19 +305,29 @@ def outline_for(w, h):
 
 
 # ====================================================================== the chase camera and who stands where
-def frame_camera(kid_x, kid_y, gap, aspect=16 / 9):
-    """ChaseCamera.Frame (snapped): position and aim, in course axes (x along, y up, z into the picture)."""
+def frame_camera(kid_x, ground_y, gap, aspect=16 / 9, run=6.0, establishing=False):
+    """ChaseCamera.Frame (snapped), Kick Off's framing: position and aim in course axes (x along, y up, z in).
+    The half-height comes from the zone's run speed; the screen's centre is on the lane plane, 1.75 m over the ground
+    she stands on (it does not follow jumps); a close rooster pulls the view back (up to 1.25, or 2.4 before the chase)."""
     c = CAMERA
-    framed = min(max(gap, 0.0), c["framingMaxGap"])
-    width = max(c["minVisibleWidth"], (framed + 0.8) / max(0.05, c["roosterScreenX"] - c["kidScreenX"]))
-    tv = math.tan(math.radians(c["fov"]) / 2)
-    th = tv * aspect
-    dist = width / (2 * th)
-    height = kid_y * c["verticalFollow"]
-    vw, vh = 2 * dist * th, 2 * dist * tv
-    cx = kid_x + (0.5 - c["kidScreenX"]) * vw
-    look_y = height + (0.5 - c["groundScreenY"]) * vh
-    return {"pos": (cx, look_y + c["cameraRaise"], -dist), "target": (cx, look_y, 0.0), "width": vw, "distance": dist}
+    min_half = max(c["minHalfWidth"], c["lookAheadSeconds"] * run / (2 * (1 - c["kidScreenX"])))
+    base_h = max(c["viewHalfHeight"], min_half / aspect)
+    zoom = 1.0
+    if gap > 0:
+        needed = (gap + 0.6) / (2 * max(0.05, c["roosterScreenX"] - c["kidScreenX"])) / max(0.1, base_h * aspect)
+        if establishing:
+            zoom = min(max(needed, 1.0), c["maxEstablishingZoom"])
+        else:
+            zoom = max(1.0, needed) if needed <= c["maxRoosterZoom"] else 1.0
+    half_h = base_h * zoom
+    half_w = half_h * aspect
+    cy = max(ground_y + c["focusHeight"], ground_y + 1.3 - half_h * 0.85)
+    cy = min(cy, ground_y + half_h * 0.8)
+    cx = kid_x + (0.5 - c["kidScreenX"]) * 2 * half_w
+    dist = half_h / math.tan(math.radians(c["fov"]) / 2)
+    pitch = math.radians(c["pitch"])
+    return {"pos": (cx, cy + math.sin(pitch) * dist, -math.cos(pitch) * dist), "target": (cx, cy, 0.0),
+            "width": 2 * half_w, "distance": dist, "zoom": zoom, "half_height": half_h}
 
 
 def support(x, surf):
@@ -364,6 +405,8 @@ class Level:
         self.holes = []          # (x0, x1): gaps in the ground (canals)
         self.solids = []         # boxes, drawn or not: what a prop can stand on
         self.surf = (self.beds, self.holes)
+        self.rooster_beds = []
+        self.rooster_surf = (self.beds + self.rooster_beds, self.holes)
         self.hops = []           # (x0, x1, height)
         self.pickups = []
         self.basket = None
@@ -464,12 +507,17 @@ class Level:
             rec = Rec(role="platform", mode="box", w=v["w"], h=v["h"], d=v.get("d", 1.2), flat=False,
                       color=tuple(v.get("color") or (0.6, 0.6, 0.6)), **common)
             if abs(rec.z) <= rec.d / 2 + 0.05:
-                self.beds.append((rec.x - rec.w / 2, rec.x + rec.w / 2, rec.y + rec.h))
+                bed = (rec.x - rec.w / 2, rec.x + rec.w / 2, rec.y + rec.h)
+                # the kid runs under the mango tree's branch (she climbs it, she does not stand on it); the rooster, who
+                # runs on whatever is highest under him, flutters up onto it
+                (self.rooster_beds if piece in HIDDEN_BOXES else self.beds).append(bed)
             self.solids.append({"x0": rec.x - rec.w / 2, "x1": rec.x + rec.w / 2, "z0": rec.z - rec.d / 2,
                                 "z1": rec.z + rec.d / 2, "top": rec.y + rec.h, "piece": piece})
-            # Kit.RoofRow: a house's wall box is only a collider (its renderer off) where the house front was drawn
+            # Kit: a box is only a collider (its renderer off) where its piece's art was drawn over it (a house's wall in
+            # RoofRow, a haystack's stack, the buffalo's body), and the mango tree's branch always
             fronts = [q for q in it.get("visuals", []) if q.get("kind", "art") == "art" and cutout(q["piece"])]
-            if piece == "wall" and any(abs(q["x"] - rec.x) < max(q["w"], rec.w) / 2 for q in fronts):
+            if piece in HIDDEN_BOXES or (piece in COVERED_BOXES and any(abs(q["x"] - rec.x) < max(q["w"], rec.w) / 2
+                                                                         for q in fronts)):
                 rec.mode = "solid"
             return rec
         if vk == "ladder":
@@ -487,13 +535,16 @@ class Level:
         # roles: the obstacle's own art; the other visuals of an obstacle (the hand pump) stand beside the lane; a
         # roof's or plank's house front or post is part of its platform
         platform_item = any(q.get("kind") == "box" for q in it.get("visuals", []))
-        first_art = next((i for i, q in enumerate(it.get("visuals", [])) if q.get("kind", "art") in ("art", "water")), 0)
-        if vk == "decal":
+        first_art = next((i for i, q in enumerate(it.get("visuals", []))
+                          if q.get("kind", "art") in ("art", "water", "decal")), 0)
+        if is_obstacle(it) and vi == first_art:
+            role = "obstacle"                 # (Kit.Puddle's water is a flat puddle_water card, laid as a decal)
+        elif vk == "decal":
             role = "decal"
-        elif platform_item and not (is_obstacle(it) and vi == first_art):
+        elif platform_item:
             role = "platform_art"
         elif is_obstacle(it):
-            role = "obstacle" if vi == first_art else "lane"
+            role = "lane"
         elif k == "basket":
             role = "basket"
         elif k == "neighbour":
@@ -573,7 +624,8 @@ class Level:
         why = []
         entry = model_entry(piece, why)
         path = ROOT / c["image"]
-        x = c["x"] + k * tr["period"]
+        cx = tr["axis"] - c["x"] if tr.get("axis") is not None and (k & 1) else c["x"]
+        x = cx + k * tr["period"]
         rec = Rec(src="scenery", role="scenery", section=self.section_at(x), item_kind=c["layer"], layer=c["layer"],
                   piece=piece, name=f"{c['name']}@{k}" + (f"/t{ti}" if tr["kind"] == "strip" else ""), x=x, y=c["y"],
                   z=c["z"], w=c["w"], h=c["h"], mirror=bool(c["mirror"]), flat=bool(c["flat"]),
@@ -598,10 +650,13 @@ def scenery_tracks(layout, zone=1):
         if c["layer"] in ("Characters", "Ground"):
             return False
         if c["flat"]:
-            return zone != 2 or c["z"] < ZAB["LaneFront"] or c["z"] > ZAB["LaneBack"]
+            # nothing lies on the running line itself, where a husk reads as an obstacle (the plans lay their own)
+            return (zone != 2 or c["z"] < ZAB["LaneFront"] or c["z"] > ZAB["LaneBack"]) and abs(c["z"]) >= RUNNING_LINE
         return c["z"] <= ZAB["LaneFront"] or c["z"] >= ZAB["LaneBack"]
 
     cards = [c for c in layout["cards"] if keep(c)]
+    if zone != 2:
+        cards += side_lanes(cards)
     wide = [c for c in cards if not c["flat"] and c["w"] >= ZAB["StripWidth"]]
     rest = [c for c in cards if not (not c["flat"] and c["w"] >= ZAB["StripWidth"])]
     tracks = []
@@ -620,7 +675,37 @@ def scenery_tracks(layout, zone=1):
         period = max(c["x"] for c in near) - start + 2
         inside = [c for c in rest if start <= c["x"] < start + period]
         tracks.append(save_track(inside, period, "set"))
+        # ZoneArtBuilder.Set's alternate: the same set mirrored about the middle of its stretch (positions only), which
+        # BackdropStreamer lays for the odd copies
+        tracks[-1]["axis"] = start * 2 + period
     return tracks
+
+
+def side_lanes(cards):
+    """ZoneArtBuilder.SideLanes: a mud lane running back from the road wherever the set leaves a gap of 3 m or more
+    between buildings with nobody standing in it, at most one every 20 m."""
+    if not (ROOT / SIDE_LANE["image"]).exists():
+        return []
+    blocks = sorted((c["x"] - c["w"] / 2, c["x"] + c["w"] / 2) for c in cards
+                    if not c["flat"] and ZAB["LaneBack"] < c["z"] < ZAB["NearDepth"]
+                    and (c["layer"] == "Houses" or (c["w"] >= 2.5 and c["h"] >= 2 and c["layer"] not in ("Backdrop", "Plants"))))
+    figures = [c for c in cards if not c["flat"] and c["layer"] != "Houses" and c["w"] < 2.5 and ZAB["LaneBack"] < c["z"] < 6
+               and c["h"] > 0.5]
+    out, last = [], float("-inf")
+    for i in range(len(blocks) - 1):
+        frm = max(b[1] for b in blocks[:i + 1])
+        to = blocks[i + 1][0]
+        if to - frm < 3:
+            continue
+        cx = (frm + to) / 2
+        if cx - last < 20 or any(abs(f["x"] - cx) < 1.2 + f["w"] / 2 for f in figures):
+            continue
+        last = cx
+        out.append({"name": f"side_lane_{len(out)}", "image": SIDE_LANE["image"], "layer": "Ground", "x": cx, "y": 0.0,
+                    "z": ROAD["back"] - 0.3 + SIDE_LANE["length"] / 2, "w": min(2.6, to - frm - 0.6),
+                    "h": SIDE_LANE["length"], "flat": True, "mirror": False, "turn": 0.0, "haze": 0.0,
+                    "fade_bottom": 0.0, "fade_sides": 0.0})
+    return out
 
 
 def save_track(cards, period, kind):
@@ -690,29 +775,37 @@ def blender_main():
             xs.append(round(x, 3))
             x += every
     intro_level = L.basket is not None
+    if intro_level and not arg("--shots") and xs and xs[0] >= 0:
+        # the opening is what the player sees first: the tiptoe in from walkFrom, half way, and the lift at 0
+        walk = float(L.basket.get("walkFrom") or -4.4)
+        xs = [round(walk, 2), round(walk / 2, 2)] + xs
+
+    run_speed = zone_run_speed(L.zone)
 
     def shot_state(x):
-        """Who stands where for a shot with the kid at x."""
+        """Who stands where for a shot with the kid at x: the basket intro (close framing) at x <= 0 in a level that
+        opens with one; the Ready state (kid idle, the view pulled back to show the rooster) at x = 0 in any other;
+        else the chase."""
         intro = intro_level and x <= 1e-6
+        ready = not intro_level and abs(x) < 1e-6
         if intro:
             kid_y, clip, frame = 0.0, "Idle", 1
             rx = L.basket["x"] if L.basket else ROOSTER_UNDER_BASKET
             ry, rclip, rframe = 0.0, "Idle", 1
-            framed = rx - x
         else:
-            kid_y, clip, frame = support(x, L.surf), "Run", KID_RUN_FRAME
+            kid_y, clip, frame = support(x, L.surf), ("Idle" if ready else "Run"), (1 if ready else KID_RUN_FRAME)
             if in_hole(x, L.surf) and kid_y < 0:
                 clip = "Wade"            # KidModelVisual: on the canal's bed, in its water
             rx = x + gap
-            ry, rclip = rooster_at(rx, L.hops, L.surf)
+            L.rooster_surf = (L.beds + L.rooster_beds, L.holes)
+            ry, rclip = rooster_at(rx, L.hops, L.rooster_surf)
             rframe = ROOSTER_RUN_FRAME
-            framed = gap
-        cam = frame_camera(x, kid_y, framed, aspect)
-        return {"x": x, "intro": intro, "kid": (x, kid_y, clip, frame), "rooster": (rx, ry, rclip, rframe),
-                "cam": cam, "rooster_x": rx}
+        cam = frame_camera(x, kid_y, rx - x, aspect, run_speed, establishing=ready)
+        return {"x": x, "intro": intro, "ready": ready, "kid": (x, kid_y, clip, frame),
+                "rooster": (rx, ry, rclip, rframe), "cam": cam, "rooster_x": rx}
 
     # scenery for every camera the game could have on this course (so the checks see all of it)
-    cams = [frame_camera(x, 0, gap, aspect)["pos"][0] for x in (L.start, L.end)]
+    cams = [frame_camera(x, 0, gap, aspect, run_speed)["pos"][0] for x in (L.start, L.end)]
     cams += [shot_state(x)["cam"]["pos"][0] for x in xs]
     L.scenery_recs(min(cams) - 2, max(cams) + 2)
     log(f"{len(L.recs)} visuals ({sum(1 for r in L.recs if r.src == 'scenery')} scenery copies)")
@@ -791,8 +884,8 @@ def blender_main():
         def smooth(self, v, lo, hi):
             n = self.new("ShaderNodeMapRange", interpolation_type="SMOOTHSTEP", clamp=True)
             self.feed(n.inputs["Value"], v)
-            n.inputs["From Min"].default_value = lo
-            n.inputs["From Max"].default_value = hi
+            self.feed(n.inputs["From Min"], lo)
+            self.feed(n.inputs["From Max"], hi)
             return n.outputs["Result"]
 
         def mix(self, fac, a, b, blend="MIX"):
@@ -911,7 +1004,7 @@ def blender_main():
         return m
 
     def ground_material(name, path, tile, tint, drift, haze_from, haze_to, far=None, far_tile=6.0, band_front=-40.0,
-                        band_back=1.8, band_soft=0.5):
+                        band_back=1.8, band_soft=0.5, road=None):
         """ChickenRunner/PaintedGround, node for node (with zone 2's field texture away from the lane band)."""
         m = bpy.data.materials.new(name)
         N = Nodes(m)
@@ -942,7 +1035,8 @@ def blender_main():
         c = tiled(path, tile)
         d1 = N.math("SINE", N.math("ADD", N.math("MULTIPLY", px, 0.09), N.math("MULTIPLY", pz, 0.05)))
         d2 = N.math("SINE", N.math("ADD", N.math("SUBTRACT", N.math("MULTIPLY", px, 0.031), N.math("MULTIPLY", pz, 0.11)), 1.7))
-        k = N.math("MULTIPLY_ADD", N.math("MULTIPLY", d1, d2), drift, 1.0)
+        dd = N.math("MULTIPLY", d1, d2)
+        k = N.math("MULTIPLY_ADD", dd, drift, 1.0)
         mul = N.new("ShaderNodeVectorMath", operation="SCALE")
         N.feed(mul.inputs[0], c)
         N.feed(mul.inputs["Scale"], k)
@@ -951,6 +1045,23 @@ def blender_main():
             band = N.math("MULTIPLY", N.smooth(pz, band_front - band_soft, band_front),
                           N.math("SUBTRACT", 1.0, N.smooth(pz, band_back, band_back + band_soft)))
             c = N.mix(band, tiled(far, far_tile), c)
+        if road is not None:
+            # GameBuilder.ZoneGround's road: its own tile across its width, its edges wandering and fading into the earth
+            def wave(a, b, c_, d_):
+                return N.math("MULTIPLY_ADD", N.math("ADD", N.math("MULTIPLY", N.math("SINE", N.math("MULTIPLY_ADD", px, a, b)), 0.6),
+                                                     N.math("MULTIPLY", N.math("SINE", N.math("MULTIPLY_ADD", px, c_, d_)), 0.4)),
+                              ROAD["wave"], 0.0)
+            front = N.math("ADD", wave(1.3, 0.0, 0.47, 1.1), ROAD["front"])
+            back = N.math("ADD", wave(1.1, 2.0, 0.53, 0.3), ROAD["back"])
+            soft = ROAD["soft"]
+            mask = N.math("MULTIPLY", N.smooth(pz, N.math("SUBTRACT", front, soft), N.math("ADD", front, soft)),
+                          N.math("SUBTRACT", 1.0, N.smooth(pz, N.math("SUBTRACT", back, soft), N.math("ADD", back, soft))))
+            rv = N.math("DIVIDE", N.math("SUBTRACT", pz, ROAD["front"]), max(0.01, ROAD["back"] - ROAD["front"]), clamp=True)
+            r = sample(N.math("DIVIDE", px, ROAD["tile"]), rv, road)
+            rk = N.new("ShaderNodeVectorMath", operation="SCALE")
+            N.feed(rk.inputs[0], r)
+            N.feed(rk.inputs["Scale"], N.math("MULTIPLY_ADD", dd, 0.5 * drift, 1.0))
+            c = N.mix(mask, c, rk.outputs["Vector"])
         c = N.mix(1.0, c, lin(tint), "MULTIPLY")
         hz = N.math("POWER", N.math("DIVIDE", N.math("SUBTRACT", pz, haze_from), max(0.01, haze_to - haze_from),
                                     clamp=True), 0.85)
@@ -1238,13 +1349,6 @@ def blender_main():
             bpy.data.meshes.remove(me_tmp)
             tmp.free()
         me = bpy.data.meshes.new(f"pickup_{name}")
-        if flag("--fix-pickup-normals"):
-            # a preview of the fix: the pickup as it will look once its faces wind outward
-            tmp_me = bpy.data.meshes.new("tmp")
-            bm.to_mesh(tmp_me)
-            if signed_volume(tmp_me) < 0:
-                bmesh.ops.reverse_faces(bm, faces=list(bm.faces))
-            bpy.data.meshes.remove(tmp_me)
         bm.to_mesh(me)
         bm.free()
         for m in mats:
@@ -1354,14 +1458,18 @@ def blender_main():
         build_model(rec, M)
 
     earth = cutout("plain_red_earth") or cutout("ground_earth_lane")
+    road_tex = cutout(ROAD["tiles"][min(max(L.zone, 1), 3) - 1])
     if L.zone == 2 and cutout("paddy_water"):
-        # GameBuilder.ZoneGround: the bund's earth along the lane, paddy water beyond it, a longer haze
-        GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 10.0, 55.0, far=cutout("paddy_water"))
+        # GameBuilder.ZoneGround: the bund's earth along the lane, paddy water beyond it, a longer haze; the zone's road
+        GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 10.0, 55.0, far=cutout("paddy_water"),
+                                     road=road_tex)
     else:
-        GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 6.0, 40.0)
+        GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 6.0, 40.0, road=road_tex)
     water_tex = cutout("canal_water")
     WATER_MAT = ground_material("water", water_tex, 2.5, (0.82, 0.92, 1.0), 0.05, 6.0, 40.0) if water_tex else GROUND_MAT
-    disc.materials.append(WATER_MAT)
+    # GameBuilder: the hand pump's puddle is the same water, lighter and bluer, in a smaller tile
+    PUDDLE_MAT = ground_material("puddle", water_tex, 1.2, (0.95, 1.05, 1.25), 0.03, 6.0, 40.0) if water_tex else GROUND_MAT
+    disc.materials.append(PUDDLE_MAT)
     flat_quad.materials.append(WATER_MAT)
 
     # ------------------------------------------------------------------ build every visual
@@ -1772,7 +1880,7 @@ def blender_main():
         mask = state_mask(st) & frustum_mask(pos_b, cam_ob.rotation_euler.to_quaternion(), math.radians(CAMERA["fov"]), aspect)
         show(mask)
         place_characters(st)
-        meta = {"x": x, "name": name_for(x), "section": L.section_at(x), "intro": st["intro"],
+        meta = {"x": x, "name": name_for(x), "section": L.section_at(x), "intro": st["intro"], "ready": st["ready"],
                 "kid": st["kid"], "rooster": st["rooster"], "camera": st["cam"], "visible_objects": int(mask.sum())}
         # who can see the kid and the rooster (things between them and the camera)
         meta["blocked"] = {}
@@ -1857,6 +1965,14 @@ def blender_main():
         findings.append(f)
 
     in_course = [r for r in RECS if L.start - 2 <= r.x <= L.end + 2]
+    COVER = ("crop", "paddy", "grass", "reed", "weed", "tuft", "bank", "sugarcane", "hedge", "bush", "fern", "flower",
+             "lotus", "bund")
+
+    def ground_cover(r):
+        """Crops, grasses and banks the layouts tile edge to edge: not things that read as a copy or a clash."""
+        folder = r.image.parent.name if r.image else ""
+        return (r.layer in ("Plants", "Ground", "Decals") or folder in ("plants", "ground")
+                or any(k in r.piece for k in COVER))
     plan_recs = [r for r in L.recs if r.src == "plan"]
     near_scenery = [r for r in in_course if r.src == "scenery" and r.z < ZAB["NearDepth"] and not r.flat]
 
@@ -1974,6 +2090,8 @@ def blender_main():
     for r in plan_recs + near_scenery:
         if r.mode not in ("model", "card", "box") or r.flat or r.role in ("pickup", "decal", "basket_tossed") or not r.objs:
             continue
+        if r.src == "scenery" and ground_cover(r):
+            continue
         if r.state == "never" or max(r.w, r.h) < 0.5 and r.src == "scenery":
             continue
         lo, hi = r.aabb[0].copy(), r.aabb[1].copy()
@@ -2082,7 +2200,8 @@ def blender_main():
 
     # (f) repeated scenery
     standing = [r for r in in_course if r.src in ("scenery", "plan") and r.mode in ("model", "card") and not r.flat
-                and r.role not in ("pickup", "decal", "obstacle", "basket_tossed") and r.state != "never"]
+                and r.role not in ("pickup", "decal", "obstacle", "basket_tossed", "platform_art")
+                and r.state != "never" and not ground_cover(r)]
     by_piece = {}
     for r in standing:
         by_piece.setdefault(r.piece, []).append(r)
@@ -2091,16 +2210,28 @@ def blender_main():
         folder = rs[0].image.parent.name if rs[0].image else ""
         for a, b in zip(rs, rs[1:]):
             dx = b.x - a.x
-            big = max(a.h, b.h) >= 2.5 and min(a.z, b.z) < 20
+            big = max(a.h, b.h) >= 2.5 and min(a.z, b.z) < 20 and (
+                a.layer in ("Houses", "Backdrop") or (a.entry or {}).get("kind") == "building")
             figure = folder in ("people", "animals") or piece in ("bicycle", "bullock_cart", "hand_pump", "tulsi_planter",
                                                                    "chicken_basket", "hens_basket", "water_pot_stand")
             mixed = a.src != b.src
             limit = 12.0 if mixed else 20.0 if big else 30.0 if figure else 0.0
-            if dx < limit and dx > 0.01:
+            if limit > dx > 0.5:
                 sev = "medium" if (mixed or (big and a.z < 12)) else "low"
                 add("f", sev, a.x, piece, f"the same {piece} again {dx:.1f} m on (x {a.x:.1f} z {a.z:.1f}"
                     f"{' mirrored' if a.mirror else ''} and x {b.x:.1f} z {b.z:.1f}{' mirrored' if b.mirror else ''})"
                     + (": a plan prop beside the scenery's own" if mixed else ""), a, x1=b.x)
+    fronts = sorted((r for r in plan_recs if r.role == "platform_art" and r.mode in ("model", "card")), key=lambda r: r.x)
+    if fronts:
+        count = {}
+        for r in fronts:
+            count[r.piece] = count.get(r.piece, 0) + 1
+        twins = [(a_.x, b_.x) for a_, b_ in zip(fronts, fronts[1:]) if a_.piece == b_.piece and b_.x - a_.x < 4.0]
+        add("f", "medium" if twins else "low", fronts[0].x, "house fronts",
+            f"{len(fronts)} house fronts from {len(count)} paintings ("
+            + ", ".join(f"{k} x{v}" for k, v in sorted(count.items(), key=lambda kv: -kv[1])) + ")"
+            + (f"; the same front twice side by side {len(twins)} times (at x "
+               + ", ".join(f"{u:.1f}" for u, _ in twins[:10]) + ")" if twins else ""), section="(roof rows)")
     for tr in L.tracks:
         if tr["kind"] == "set":
             houses = sorted({stem(c["image"]) for c in tr["cards"] if c["layer"] == "Houses"})
@@ -2227,13 +2358,67 @@ def blender_main():
                 + (" (scenery)" if hit.src == "scenery" else ""), p, other=hit.name)
         elif hit == "ground":
             add("h", "medium", p.x, p.piece, f"at y {p.y:.2f} is below the ground line from the camera", p)
-    # the kid or rooster hidden in a shot
-    for m in shots_meta:
-        for who, b in m.get("blocked", {}).items():
-            if b["share"] >= 0.3:
-                add("h", "high" if b["share"] >= 0.6 else "medium", m["x"], who,
-                    f"the {who} is {b['share'] * 100:.0f}% hidden in shot {m['name']} by "
-                    f"{', '.join(f'{k}' for k in b['by'])}", section=m["section"])
+    # (i) the kid or rooster hidden behind something, swept along the course every metre with the close camera
+    t_i = time.time()
+    no_pick = np.array([r.role != "pickup" for r in RECS])
+    sweep_from = (L.basket.get("walkFrom", -4.4) if L.basket else 0.0) if intro_level else 0.0
+    runs = {}
+    for kx in np.arange(sweep_from, L.end - 2.0, float(arg("--sweep", "1.0"))):
+        st = state_for_shot(float(kx))
+        pos_b = to_b(st["cam"]["pos"])
+        cand = np.nonzero(state_mask(st) & no_pick)[0]
+        for who, (x, y, clip, _f) in (("kid", st["kid"]), ("rooster", st["rooster"])):
+            if who == "rooster" and st["intro"]:
+                continue                     # under the basket, as the opening has him
+            hw, hh = (0.18, 1.05) if who == "kid" else (0.25, 0.6)
+            hit_by = {}
+            n = 0
+            for fx in (-0.6, 0.0, 0.6):
+                for fy in (0.2, 0.5, 0.85):
+                    p_ = Vector((x + fx * hw, -0.1, y + fy * hh))
+                    dvec = p_ - pos_b
+                    n += 1
+                    t, hit = cast(pos_b, dvec, cand, tmax=dvec.length - 0.05)
+                    if hit is not None and hit != "ground":
+                        hit_by[hit.name] = hit
+            share = 0.0
+            if hit_by:
+                # the share of rays any one thing blocks, for each blocker
+                for nm, rec in hit_by.items():
+                    blocked = 0
+                    for fx in (-0.6, 0.0, 0.6):
+                        for fy in (0.2, 0.5, 0.85):
+                            p_ = Vector((x + fx * hw, -0.1, y + fy * hh))
+                            dvec = p_ - pos_b
+                            if ray_rec(rec, pos_b, dvec.normalized(), dvec.length - 0.05) is not None:
+                                blocked += 1
+                    share = blocked / n
+                    if share >= 0.3:
+                        key = (who, nm)
+                        r_ = runs.setdefault(key, {"rec": rec, "xs": [], "worst": 0.0})
+                        r_["xs"].append(float(kx))
+                        r_["worst"] = max(r_["worst"], share)
+    for (who, nm), r_ in runs.items():
+        rec = r_["rec"]
+        xs_r = r_["xs"]
+        spans, a0 = [], xs_r[0]
+        for u, v in zip(xs_r, xs_r[1:] + [None]):
+            if v is None or v - u > 1.5:
+                spans.append((a0, u))
+                if v is not None:
+                    a0 = v
+        for a0, a1 in spans:
+            fg = rec.src == "scenery" and rec.z < -0.5
+            add("i", "high" if r_["worst"] >= 0.6 and (fg or a1 - a0 >= 2) else "medium", a0, who,
+                f"the {who} is up to {r_['worst'] * 100:.0f}% hidden behind the {rec.piece}"
+                + (f" (scenery card {rec.card['name']}, z {rec.z:.1f})" if rec.src == "scenery" else f" (z {rec.z:.2f})")
+                + f" with the kid at x {a0:.0f}" + (f"..{a1:.0f}" if a1 > a0 else ""), rec, x1=a1 + 4)
+    log(f"sweep for hidden characters: {time.time() - t_i:.0f} s")
+    if abs(BUILDER_FOV - CAMERA["fov"]) > 0.01:
+        add("h", "high", 0, "camera", f"GameBuilder.BuildScene sets camera.fieldOfView = {BUILDER_FOV:g}, but the Kick Off "
+            f"framing (ChaseCamera) is made for {CAMERA['fov']:g}: these renders use {CAMERA['fov']:g}; the game would "
+            f"show {math.tan(math.radians(BUILDER_FOV) / 2) / math.tan(math.radians(CAMERA['fov']) / 2):.2f} of the "
+            "height and width, its kid bigger", section="(camera)")
     # bare sky where the game has no ground (in front of the runway start)
     for m in shots_meta:
         pos_b = to_b(m["camera"]["pos"])
@@ -2260,7 +2445,8 @@ def blender_main():
 
     if render and shots_meta:
         paths = [shots_dir / f"{m['name']}.png" for m in shots_meta]
-        labels = [f"x={m['x']:g}  {m['section']}" + ("  (opening)" if m["intro"] else "") for m in shots_meta]
+        labels = [f"x={m['x']:g}  {m['section']}" + ("  (opening)" if m["intro"] else "  (ready)" if m.get("ready")
+                                                     else "") for m in shots_meta]
         sheet(paths, labels, out / "contact_sheet.jpg", cols=4, thumb=(480, 270))
         for page in range(0, len(paths), 16):
             sheet(paths[page:page + 16], labels[page:page + 16], out / f"contact_{page // 16 + 1:02d}.jpg", cols=4,
@@ -2301,7 +2487,7 @@ def sheet(paths, labels, out, cols=4, thumb=(480, 270)):
 def write_md(path, findings, L, plan_path, shots_meta, xs):
     names = {"a": "Floating or sunk", "b": "Props reaching into the running lane", "c": "Overlaps in plan",
              "d": "Obstacles hidden from the camera", "e": "Missing art", "f": "Repeated scenery",
-             "g": "Pickups in solid geometry", "h": "Other"}
+             "g": "Pickups in solid geometry", "h": "Other", "i": "Kid or rooster hidden (close camera)"}
     lines = [f"# Level render checks: {L.plan.get('title', plan_path.stem)}", "",
              f"Plan `{plan_path.relative_to(ROOT) if plan_path.is_relative_to(ROOT) else plan_path}`, "
              f"{len(L.sections)} sections, {L.start:.0f}..{L.end:.0f} m; {len(shots_meta)} shots "
@@ -2312,7 +2498,7 @@ def write_md(path, findings, L, plan_path, shots_meta, xs):
     for f in findings:
         counts[(f["check"], f["severity"])] = counts.get((f["check"], f["severity"]), 0) + 1
     lines += ["| Check | High | Medium | Low |", "| --- | --- | --- | --- |"]
-    for c in "abcdefgh":
+    for c in "abcdefghi":
         lines.append(f"| {c}: {names[c]} | {counts.get((c, 'high'), 0)} | {counts.get((c, 'medium'), 0)} | "
                      f"{counts.get((c, 'low'), 0)} |")
     for sev in ("high", "medium", "low"):
@@ -2320,7 +2506,7 @@ def write_md(path, findings, L, plan_path, shots_meta, xs):
         if not fs:
             continue
         lines += ["", f"## {sev.capitalize()}", ""]
-        for c in "abcdefgh":
+        for c in "abcdefghi":
             sub = [f for f in fs if f["check"] == c]
             if not sub:
                 continue

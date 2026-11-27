@@ -800,15 +800,15 @@ for side, sx in (("Left", 1), ("Right", -1)):
     axis = (Wv - Ev).normalized()
     arm_v = [i for i, w in enumerate(weights) if w.get(f"{side}LowerArm", 0) + w.get(f"{side}Hand", 0) > 0.6]
     pts = co[arm_v]
-    c0 = np.array(Wv - axis * 0.011)
+    c0 = np.array(Wv - axis * 0.014)
     along = (pts - c0) @ np.array(axis)
     radial = np.linalg.norm((pts - c0) - along[:, None] * np.array(axis), axis=1)
     # each bangle clears the widest point of the wrist under it by 1.5 mm, so it hangs loose and never cuts in
     radii = []
     for k, mat in enumerate(("gold", "red", "gold", "green", "gold")):
-        off = 0.0045 + k * 0.0024
+        off = 0.0075 + k * 0.0024          # up the forearm, clear of the wrist's bend
         c = Wv - axis * off
-        slab = (np.abs(along - (0.011 - off)) < 0.0035) & (radial < 0.045)
+        slab = (np.abs(along - (0.014 - off)) < 0.0035) & (radial < 0.045)
         r_k = float(radial[slab].max()) if slab.any() else 0.022
         radii.append(r_k)
         part(f"Bangle{side}{k}", torus(c, axis, r_k + 0.0011 + 0.0015, 0.0011), mat, {f"{side}LowerArm": 1.0})
@@ -881,8 +881,9 @@ for side, sx in (("Left", 1), ("Right", -1)):
 # the seat of the bloomers, from round both thighs up to under the waist
 legx = abs(J["LeftUpperLeg"].x)
 seat_rings = []
-for z, rx, ry in ((0.425, legx + 0.068, 0.07), (0.47, legx + 0.064, 0.072), (0.52, legx + 0.05, 0.074),
-                  (0.565, legx + 0.036, 0.072), (0.6, legx + 0.026, 0.066)):
+# (its top tucked inside the frock's waist, clear of it at rest)
+for z, rx, ry in ((0.425, legx + 0.066, 0.068), (0.47, legx + 0.056, 0.066), (0.52, legx + 0.038, 0.062),
+                  (0.565, legx + 0.024, 0.056), (0.6, legx + 0.012, 0.048)):
     seat_rings.append(K.ring(Vector((0, y0, z)), rx, ry, 24))
 
 
@@ -971,7 +972,9 @@ def audit_parts():
         m = names[vmat[i]]
         part[i] = "bloomers" if m == "KidBloomers" else "thighs" if m == "KidThighs" else "jewel"
     bones_ = [b.name for b in arm.data.bones]
-    dom = np.array(bones_)[K.weight_matrix(body, bones_).argmax(1)]
+    Wb = K.weight_matrix(body, bones_)
+    dom = np.array(bones_)[Wb.argmax(1)]
+    on_hips = Wb[:, bones_.index("Hips")] > 0.01
     part = part.astype(str)
 
     def on(*keys):
@@ -989,7 +992,7 @@ def audit_parts():
     sets["bodice"] = (part == "frock") & (co_[:, 2] >= WAIST + 0.04)
     sets["bloomers"] = part == "bloomers"
     for side, sx in (("Left", 1), ("Right", -1)):
-        sets[f"bloomer{side[0]}"] = (part == "bloomers") & on(f"{side}UpperLeg")
+        sets[f"bloomer{side[0]}"] = (part == "bloomers") & on(f"{side}UpperLeg") & ~on_hips   # the leg tubes
         sets[f"thigh{side[0]}"] = (part == "thighs") & (co_[:, 0] * sx > 0)
     sets["thighs"] = part == "thighs"
     sets["hair"] = part == "hair"
@@ -1010,16 +1013,40 @@ for side in ("Left",):
     A.LEGS.update(thigh=(knee_ - hip_).length, shank=(ankle_ - knee_).length, hip=hip_.z, ankle=ankle_.z,
                   thigh_rest=math.atan2(-(knee_.y - hip_.y), hip_.z - knee_.z),
                   shank_rest=math.atan2(-(ankle_.y - knee_.y), knee_.z - ankle_.z),
-                  ball=abs(J[f"{side}Toes"].y - ankle_.y))
+                  ball=abs(J[f"{side}Toes"].y - ankle_.y), ankle_fwd=-ankle_.y, hip_fwd=-hip_.y, x=abs(hip_.x),
+                  pelvis=J["Hips"].z - hip_.z)
+# the rig at rest, for the clips that solve her arms by IK (BasketLift)
+A.RIG.clear()
+for b in arm.data.bones:
+    A.RIG[b.name] = (b.parent.name if b.parent else None, [list(r) for r in b.matrix_local], b.length)
 print("legs", {k: round(v, 3) for k, v in A.LEGS.items()})
+# the skirt's measurements, for dress() to keep it clear of her legs
+A.SKIRT_FIT.update(waist=WAIST, pivot=rw, length=math.hypot(R_HEM - rw, WAIST - HEM),
+                   lean=math.degrees(math.atan2(R_HEM - rw, WAIST - HEM)))
+print("skirt", {k: round(v, 3) for k, v in A.SKIRT_FIT.items()})
 actions = {}
 for clip, frames, loop, face, fn in A.CLIPS:
     actions[clip] = K.bake(arm, clip, frames, fn, loop=loop)
 # feet on the ground (Kick Off's ground contact), and how well the run's planted foot keeps pace with the ground
 print("ground (lowest point before, per clip):",
-      K.ground(arm, body, actions, "Hips", settle=("Idle", "Land", "Slide", "Stumble", "Wade"), cycle=("Run",)))
+      K.ground(arm, body, actions, "Hips", settle=("Idle", "Land", "Slide", "Stumble", "Wade", "BasketLift"),
+               cycle=("Run", "Tiptoe")))
 ratio, down = K.gait(arm, body, actions["Run"], {"Left": ["LeftFoot"], "Right": ["RightFoot"]}, A.RUN_SPEED)
 print(f"run at {A.RUN_SPEED} m/s: the planted foot sweeps back at {ratio} of the run speed; down {down}")
+ratio, down = K.gait(arm, body, actions["Tiptoe"], {"Left": ["LeftFoot"], "Right": ["RightFoot"]}, A.TIPTOE_SPEED)
+print(f"tiptoe at {A.TIPTOE_SPEED} m/s: the planted foot sweeps back at {ratio} of the speed; down {down}")
+# the basket lift: how far each hand is from its grip on the near rim, frame by frame
+miss = []
+arm.animation_data.action = actions["BasketLift"]
+for f in range(A.BASKET_FRAMES):
+    scene.frame_set(f)
+    p_ = f / (A.BASKET_FRAMES - 1)
+    for side in ("Left", "Right"):
+        gx, gf, gz = A.basket_grip(p_, side)
+        wrist = arm.matrix_world @ arm.pose.bones[f"{side}Hand"].head
+        miss.append((Vector((gx, -gf, gz)) - wrist).length)
+print(f"basket lift: wrists {min(miss):.3f}-{max(miss):.3f} m from the grips on the rim (aimed at 0.055); by frame",
+      [round(max(miss[2 * f], miss[2 * f + 1]), 3) for f in range(0, A.BASKET_FRAMES, 4)])
 if "--no-fbx" not in ARGS:
     arm.animation_data.action = actions[A.CLIPS[0][0]]
     K.export_fbx(OUT / f"{NAME}.fbx", [arm, body])
