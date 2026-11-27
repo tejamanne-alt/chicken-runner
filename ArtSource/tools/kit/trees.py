@@ -2199,7 +2199,7 @@ def field_tree_3(K):
     # (low, inside the painted knot of roots, and a tile of the painted root knot: a tall plain lump read as a sack)
     # (a low dome inside the knot: the fibrous roots round it are cards; a full lump showed as a block)
     soil = K.colour((0.09, 0.06, 0.035), vary=0.15, scale=8)
-    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((44, 837), (40, 826), (32, 815), (20, 808), (0.0, 805))],
+    K.lathe([(P.m(r_), P.z(py)) for r_, py in ((30, 837), (27, 828), (20, 820), (10, 815), (0.0, 813))],
             soil, segments=18, centre=(P.x(cx), 0.0, 0.0), scale_y=0.85, wobble=0.12, name="root_mound")
     K.front_exclude.append((150, 790, 340, 840))     # the painted root tangle is on the cards, not the dome
 
@@ -3043,7 +3043,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6, min_r_px=4.5, foot=foot, bark_mask=full, r_cap_px=tr * 0.8,
+                                          dome_pow=0.6, min_r_px=7.0, foot=foot, bark_mask=full, r_cap_px=tr * 1.0,
                                           bark_inset=1, tile_box=DRUM_BARK[K.name], airy=True)
     # the pods: long, thin, ribbed green tubes hanging from the branches, and one more of each round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=1, flatten=0.85, lump=0.05, min_len=40,
