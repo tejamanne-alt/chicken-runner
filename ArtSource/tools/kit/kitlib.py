@@ -926,7 +926,9 @@ def _smart_uv(ob, margin=0.004):
     me.polygons.foreach_set("material_index", np.full(len(me.polygons), len(me.materials) - 1, dtype=np.int32))
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, correct_aspect=False,
+    # 44 degrees, under a 45-degree bevel: at 60 the unwrap projected a bevelled box's big faces along the bevel's
+    # normal, squashing half its area 1.41:1 (the parapet); it also halves the stretch over pots and posts.
+    bpy.ops.uv.smart_project(angle_limit=math.radians(44), island_margin=margin, area_weight=0.0, correct_aspect=False,
                              scale_to_bounds=False)
     bpy.ops.uv.pack_islands(margin=margin, rotate=True)
     bpy.ops.object.mode_set(mode="OBJECT")

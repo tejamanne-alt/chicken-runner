@@ -116,6 +116,8 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   `correct_aspect` says, so a wide painting as a part's material squashed whole atlases one way (h7_5 3.3:1, stall_d_1,
   field_tree_6, hens_basket 1.7:1): `_smart_uv` now points every face at an image-less material while it unwraps and
   packs. The audit's `uv_squash` (the area-weighted median stretch, above 1.3) catches it.
+- The unwrap's 60-degree angle limit projected a bevelled box's big faces along its 45-degree bevel, squashing half of
+  it 1.41:1 (the parapet): `_smart_uv` unwraps at 44 degrees, which also halves the stretch over pots and posts.
 - `K.decal(image=...)` cached by `id(image)`, which Python reuses: keyed by content now.
 - Review renders ran out of transparent bounces (black shards in crowns): 128 bounces.
 - The review's ink outline scaled with model size: it now matches the game's (3-12 mm).
