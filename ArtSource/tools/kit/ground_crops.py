@@ -1943,15 +1943,38 @@ def sugarcane(K):
         src = Image.fromarray(np.dstack([img, np.full(img.shape[:2], 255.0)]).clip(0, 255).astype(np.uint8), "RGBA")
         canes += [proj_material(K, src, name="cane", dz=P.m(dz)) for dz in (-9, 6)]
     leafy_py = 300
-    # the canes: the painted ones where they are painted (jointed: swollen a little at every node), and more in
-    # every row behind
-    xs = [114, 123, 133, 150, 171, 192, 212, 231, 240, 262, 294, 312, 328, 337, 365, 385, 412, 441, 465, 488, 503,
-          514, 528, 552, 572, 597, 621, 643, 665, 693, 714, 751, 776, 797, 820]
+    # the canes: the painted ones where they are painted (each traced up the painting: its middle found at three
+    # heights, so it leans as painted; jointed: swollen a little at every node), and more in every row behind, inside
+    # the painted stand's outline
+    from scipy.signal import find_peaks
+    rgb = P.rgba[..., :3] * 255
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    cane = alpha_mask(P) & ~((mn > 150) & (mx - mn < 45)) & (rgb.sum(-1) > 200)     # not haze, not the ink
+    peaks = {}
+    for row in (bed_py - 8, bed_py - 63, bed_py - 118):
+        prof = ndimage.uniform_filter1d(cane[row - 4:row + 5].mean(0), 5)
+        peaks[row] = find_peaks(prof, height=0.6, distance=7)[0]
+    r0, r1, r2 = sorted(peaks, reverse=True)
+    traced = []
+    for x0 in peaks[r0]:
+        p1 = peaks[r1][np.argmin(np.abs(peaks[r1] - x0))]
+        if abs(p1 - x0) > 10:
+            continue
+        guess = p1 + (p1 - x0)
+        p2 = peaks[r2][np.argmin(np.abs(peaks[r2] - guess))]
+        if abs(p2 - guess) > 10:
+            continue
+        lean = (p2 - x0) / (r0 - r2)                                 # px across per px up
+        traced.append((float(x0 + lean * (r0 - bed_py)), float(lean)))
+    lo_x = np.nonzero(alpha_mask(P)[bed_py - 8])[0].min() + 10
+    hi_x = np.nonzero(alpha_mask(P)[bed_py - 8])[0].max() - 10
+    behind = np.arange(lo_x + 6, hi_x - 6, 26).astype(float)
     node = 25
     for k, y in enumerate(rows):
-        for x in (xs if k == 0 else list(np.arange(120, 830, 26) + K.rng.uniform(-10, 10, len(np.arange(120, 830, 26))))):
+        plants = traced if k == 0 else [(x + K.rng.uniform(-10, 10), K.rng.uniform(-0.08, 0.08)) for x in behind]
+        for x, slope in plants:
             top = K.rng.uniform(250, 295)
-            lean = K.rng.uniform(-16, 16)
+            lean = slope * (bed_py - top)
             yy = y + (K.rng.uniform(-0.03, 0.03) if k else 0.0)
             dy = K.rng.uniform(-0.08, 0.08)
             n = max(2, int((bed_py - top) / node * 2)) if k == 0 else 3

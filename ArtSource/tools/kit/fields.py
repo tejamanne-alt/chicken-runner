@@ -1286,9 +1286,9 @@ def canal_bridge(K):
         return interp([(0.0, 0.0), (0.05, sh - 0.06), (0.3, sh), (0.45, (sh + cr) / 2 + 0.02), (0.58, cr),
                        (0.7, cr - 0.05), (0.82, cr * 0.62), (0.92, cr * 0.25), (0.97, cr * 0.08), (1.0, 0.0)])(u)
     _, left = channel_bank(K, lambda y: xL, -1, lambda y: xL - P.x(22), y_front, y_end, prof, earth, rough=0.02,
-                           taper=0.06, name="bank")         # out to the painted banks' outer edges, no further;
+                           taper=0.3, name="bank")          # out to the painted banks' outer edges, no further
     _, right = channel_bank(K, xR, 1, lambda y: P.x(528) - xR(y), y_front, y_end, prof, earth, rough=0.02,
-                            taper=0.06, name="bank")        # cut off at the back as at the front (a stretch of canal)
+                            taper=0.3, name="bank")
     # the dry-stone walling lining both sides of the channel, three courses up to the banks' shoulders
     courses = [(0.0, 0.36), (0.36, 0.69), (0.69, 1.0)]
     lining(K, [(xL, y_front), (xL, y_end - 0.06)], -1, y_front, courses, stone_m, top=zl)

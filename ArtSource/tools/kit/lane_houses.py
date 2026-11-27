@@ -2767,9 +2767,9 @@ def shop_provisions(K):
     D = 3.6
     K.front_min = 0.05
     halo_exclude(K, [(0, 0, 1508, 1143)])
-    # the mud above the awning right of the sign (below the window the crop took the poles' shadow lines, which
-    # repeat as dark verticals down the side walls)
-    mud = K.tile((1215, 115, 1345, 245), size=1.0, vary=0.05, soften=0.25)
+    # the mud below the window, right of the pole's shadow, its crack and specks taken out (the old crops took the
+    # poles' shadow lines and the parapet's drips, which repeated as dark verticals and 'Y' marks round the walls)
+    mud = clean_tile(K, (240, 840, 520, 975), size=1.4, soften=0.3, thresh=12, radius=7)
     lime = K.tile((280, 1005, 590, 1078), size=1.0, vary=0.04, soften=0.35)     # clear of the poles' shadows
     tin = K.tile((300, 270, 700, 390), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((280, 420, 310, 790), vary=0.08)

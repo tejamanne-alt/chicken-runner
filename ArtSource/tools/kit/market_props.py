@@ -1522,7 +1522,7 @@ def parapet_gap(K):
     wall2 = K.tile((25, 30, 80, 148), vary=0.05, soften=0.45)
     coping = square_tile(K, (30, 12, 86, 21), vary=0.06, soften=0.25)        # the painted red-oxide coping
     # the plinth's red-oxide plaster (its kolam is painted on the front only: the projection paints it there)
-    red = square_tile(K, (100, 188, 290, 194), vary=0.06, soften=0.3)
+    red = square_tile(K, (100, 187, 290, 192), vary=0.08, soften=0.5)
     d = 0.26
     # the plinth all along, the piers standing proud of the wall, the steps and the low middle
     # (it stands on its painted foot, py 195; the record's lift sets it down)

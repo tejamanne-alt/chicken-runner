@@ -2653,8 +2653,8 @@ def h7_2(K):
     cover = blade_cards(K, keep, [(110, 662, 400, 696)], 360, (7, 14), shape, len_px=(30, 700), arch=0.35,
                         widen=2.0, target=0.985, min_gain=14, base_r=0.06)
     rest = keep & ~ndimage.binary_dilation(cover, iterations=2)
-    cover_cards(K, rest, (26, 26), lambda px, py: K.rng.uniform(-0.6, 0.6) * shape.extent(px, py), need=0.97,
-                yaw=30, pitch=20, name="blade_bits", max_cards=320)
+    cover_cards(K, rest, (26, 26), lambda px, py: K.rng.uniform(-0.4, 0.4) * shape.extent(px, py), need=0.97,
+                yaw=25, pitch=15, name="blade_bits", max_cards=320)
     # the matted root of the clump: a low mound wearing the painted dark bases of the blades
     base = patch_tile(K, keep & (chan(rgb)[3] < 150), (150, 640, 350, 690), vary=0.08, soften=0.15)
     K.lathe([(P.m(r_), P.z(py)) for r_, py in ((136, 690), (128, 682), (94, 671), (40, 665), (0.0, 663))], base,
@@ -2721,7 +2721,10 @@ def h5_5(K):
     cane_ok = opaque & box_mask(opaque.shape, [(145, 500, 350, 860)]) & not_ink(rgb, 70)
     cane_mat = masked_material(K, cane_ok, inset=1)
     node = K.colour((0.09, 0.1, 0.03), vary=0.1)
-    for pts, y in H55_CANES:
+    # the painted canes, and more behind them (each straight behind a painted one, so hidden by it from the front):
+    # a clump as deep as it is wide
+    canes = list(H55_CANES) + [(pts, y + d) for (pts, y), d in zip(H55_CANES[1:6], (0.08, 0.1, 0.09, 0.11, 0.08))]
+    for pts, y in canes:
         sp = spline(pts, 12)
         p3 = [(P.x(x), y * (0.3 + 0.7 * i / 11), P.z(z)) for i, (x, z) in enumerate(sp)]
         rr = [P.m(10.5 - 2.5 * i / 11) for i in range(12)]
@@ -2740,8 +2743,8 @@ def h5_5(K):
     cover = blade_cards(K, leaf_ok, [(150, 385, 345, 470)], 220, (11, 20), shape, len_px=(40, 480), arch=0.45,
                         widen=1.5, target=0.97, min_gain=25, base_r=0.04, profile="strap")
     rest = leaf_ok & ~ndimage.binary_dilation(cover, iterations=1)
-    cover_cards(K, rest, (34, 34), lambda px, py: K.rng.uniform(-0.6, 0.6) * shape.extent(px, py), need=0.95,
-                yaw=70, pitch=30, name="blade_bits", max_cards=200)
+    cover_cards(K, rest, (34, 34), lambda px, py: K.rng.uniform(-0.4, 0.4) * shape.extent(px, py), need=0.95,
+                yaw=25, pitch=15, name="blade_bits", max_cards=200)
     # grass at the foot, either side of the canes (each box the whole tuft)
     gl = [(136, 775, 194, 884), (310, 775, 360, 884)]
     gm = opaque & ~halo(rgb) & ((mx - mn > 18) | (mx < 110)) & ~canes_px
