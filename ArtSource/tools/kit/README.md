@@ -101,6 +101,17 @@ Geometry (metres; every call returns the part, a Blender object):
 
 ## Lessons already learnt
 
+**All of them are in [LEARNINGS.md](LEARNINGS.md)**, with the audit checklist every model must pass: read it before
+building or fixing anything. Audit models with `audit.py` (the exported FBX, eight directions round it and from above,
+its front against the painting):
+
+```bash
+ArtSource/blender/venv/bin/python ArtSource/tools/kit/audit.py --out /tmp/audit --only house_pink
+ArtSource/blender/venv/bin/python ArtSource/tools/kit/audit.py --out /tmp/audit --jobs 4      # all of them
+```
+
+A few of the first ones:
+
 - A recess (door, window) must be cut deeper than the panel inside it, or the two faces fight and the painting misses.
 - A tile with a door, a vent, a kolam border or a neighbour's ladder in it repeats that thing all over the sides:
   crop around it.
