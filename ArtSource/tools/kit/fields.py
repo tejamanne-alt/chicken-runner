@@ -1841,7 +1841,8 @@ def well(K):
     zg = P.z(374)                                            # the ground round its foot
     stone_m = K.tile((215, 236, 300, 262), soften=0.3, vary=0.06)       # one clean dressed stone's face
     rim = K.tile((320, 240, 392, 262), soften=0.45, vary=0.05)
-    zb, zt = zg - 0.06, P.z(208)                             # level courses, the rim's top as high as painted
+    zb, zt = P.z(388), P.z(208)                              # level courses from the painted ground (the rocks'
+                                                             # feet), the rim's top as high as painted
     levels = [zb, P.z(348), P.z(305), P.z(264), zt]          # the courses where they are painted
     ring_wall(K, cx, 0.0, R, r_in, zb, zt, 4, 12, stone_m, rim=rim, name="course", levels=levels)
     inner = K.colour((0.06, 0.05, 0.07), vary=0.1)
@@ -1852,13 +1853,13 @@ def well(K):
     # the posts: rough round timbers leaning in a little, standing inside the wall; the log beam across their heads
     timber = K.tile((104, 92, 122, 212), soften=0.15, vary=0.05)
     post = K.projected(squeeze=0.9, keep=[(84, 8, 145, 214), (356, 8, 418, 214)], inset=2)
-    for bx, tx in ((106, 120), (396, 380)):
+    for bx, tx in ((88, 123), (409, 378)):                  # leaning in as painted, set in the wall's masonry
         x0, x1 = P.x(bx), P.x(tx)
         h = P.z(10) - zg
-        ob = K.lathe([(P.m(19), zg), (P.m(18.5), zg + h * 0.4), (P.m(18), zg + h * 0.85), (P.m(18), P.z(10)),
+        ob = K.lathe([(P.m(19), zb), (P.m(18.5), zg + h * 0.4), (P.m(18), zg + h * 0.85), (P.m(18), P.z(10)),
                       (P.m(15), P.z(10) + 0.01), (0.0, P.z(10) + 0.015)], post, segments=10, centre=(x0, 0.0, 0.0),
                      wobble=0.05, name="post")              # as thick as painted
-        rotate(ob, math.degrees(math.atan2(x1 - x0, h)), "Y", (x0, 0.0, zg))
+        rotate(ob, math.degrees(math.atan2(x1 - x0, P.z(10) - zb)), "Y", (x0, 0.0, zb))
     beam = K.projected(squeeze=1.0, keep=[(78, 28, 422, 58)], exclude=[(228, 15, 290, 70)], inset=2)
     K.tube([P.pt(80, 43), P.pt(420, 41)], P.m(13), beam, segments=14, name="beam")
     for x in (80, 420):
@@ -1876,7 +1877,7 @@ def well(K):
     for v in wl.data.vertices:
         v.co.z += P.z(90)
     K.box(P.x(250), P.x(266), -0.05, 0.05, P.z(78), P.z(55), timber, name="pulley_hanger")
-    K.tube([P.pt(232, 92, -0.02), P.pt(222, 140, -0.05), P.pt(210, 190, -0.2), P.pt(196, 214, -0.9)], P.m(4.5), rope,
+    K.tube([P.pt(233, 92, -0.02), P.pt(217, 140, -0.05), P.pt(203, 190, -0.2), P.pt(194, 214, -0.9)], P.m(4.5), rope,
            segments=6, name="rope")
     K.tube([P.pt(286, 96, 0.0), P.pt(285, 126, 0.0)], P.m(4), rope, segments=6, name="rope")
     pail = K.projected(axis_x=P.x(275), squeeze=0.9, keep=[(234, 146, 318, 222)], inset=2)
@@ -1907,11 +1908,11 @@ def well(K):
                      (40, 30, 14), (480, 30, 14)):
         dxm = P.x(px) - cx
         y = -math.sqrt(max(0.0, (R + 0.12) ** 2 - dxm ** 2)) - 0.04
-        stone(K, P.x(px), y, zg + P.m(h) * 0.4, P.m(w), P.m(w) * 0.7, P.m(h), rocks, lumps=0.15, name="rock")
-    for a in (30, 75, 120, 160):
+        stone(K, P.x(px), y, zb + P.m(h) * 0.42, P.m(w), P.m(w) * 0.7, P.m(h), rocks, lumps=0.15, name="rock")
+    for a in (30, 75, 120, 160):                            # (resting on the same ground as the wall's foot)
         t = math.radians(a)
-        stone(K, cx + (R + 0.15) * math.cos(t), (R + 0.15) * math.sin(t), zg + 0.05, 0.3, 0.22, 0.14, rocks,
-                  lumps=0.15, name="rock")
+        stone(K, cx + (R + 0.15) * math.cos(t), (R + 0.15) * math.sin(t), zb + 0.06, 0.3, 0.22, 0.14, rocks,
+              lumps=0.15, name="rock")
     K.leaves_only((0, 300, 515, 394), grass_pixels)
     for box in ((30, 306, 116, 372), (336, 310, 420, 372), (430, 300, 515, 366), (140, 340, 220, 384)):
         bx = (box[0] + box[2]) / 2

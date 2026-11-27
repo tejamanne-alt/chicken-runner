@@ -2274,6 +2274,11 @@ def roof_house_a_2(K):
         y = -K.rng.uniform(0.03, 0.25) if py > 160 else K.rng.uniform(-0.1, 0.4)
         blob_card(K, (px - 34, py - 30, px + 34, py + 30), (X(px), y, Z(py)), yaw=K.rng.uniform(-50, 50),
                   pitch=K.rng.uniform(-25, 25), name="vine")
+    for i in range(12):
+        # the leaves hanging past the wall's left corner, as painted
+        px, py = K.rng.uniform(12, 60), K.rng.uniform(110, 420)
+        blob_card(K, (px - 26, py - 24, px + 26, py + 24), (X(px), -K.rng.uniform(0.03, 0.2), Z(py)),
+                  yaw=K.rng.uniform(-40, 40), pitch=K.rng.uniform(-20, 20), name="vine")
     for i in range(18):
         px, py = K.rng.uniform(20, 140), K.rng.uniform(170, 560)
         blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(70) - 0.04, K.rng.uniform(0.1, 1.6), Z(py)),

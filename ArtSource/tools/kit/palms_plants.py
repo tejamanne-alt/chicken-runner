@@ -2357,11 +2357,11 @@ def h6_7(K):
     bush(K, (0, 0, P.w, 345), (290, 200), P.m(560) * 0.3, (440, 160, 120, 70), (80, 70), keep,
          dome=(230, 0, 345), core=0.2, dome_pow=0.85, crown_mask=crown_mask)
     # the bed's mound of earth, its front the painted band of soil under the leaves
-    soil = patch_tile(K, opaque & soil_px, (180, 300, 430, 338), vary=0.08, soften=0.2)
+    soil = patch_tile(K, opaque & soil_px, (180, 300, 430, 338), vary=0.15, soften=0.0)
     # (the painted bed's foot rises to the right in perspective; the level mound sits under its left and middle)
     rx = P.m(135)
     K.lathe([(P.m(r_), P.z(py)) for r_, py in ((135, 353), (128, 344), (105, 334), (60, 328), (0.0, 326))], soil,
-            segments=36, centre=(P.x(218), 0.03, 0.0), scale_y=0.32 / rx, wobble=0.06, name="earth")
+            segments=36, centre=(P.x(218), 0.0, 0.0), scale_y=0.2 / rx, wobble=0.06, name="earth")
     gm = leafy(rgb) & opaque & ~halo(rgb) & ~stone_m
     K.leaves_only((30, 250, 120, 350), mask_rule(gm, (30, 250, 120, 350)))
     tufts(K, [(34, 252, 112, 348)], [-0.12])

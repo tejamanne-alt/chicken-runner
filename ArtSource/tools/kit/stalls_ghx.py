@@ -2008,8 +2008,9 @@ def stall_sweets(K):
                                    ((348, 615), (308, 568)), ((432, 603), (330, 566))):
         K.tube([P.pt(ax_, ay_, yh - 0.42), P.pt(bx_, by_, yh)], P.m(14), logw, segments=8, name="log")
     ember = ktile(K, (262, 562, 318, 582), vary=0.1)
-    K.lathe([(0.0, 0.0), (0.14, 0.0), (0.11, 0.03), (0.0, 0.045)], ember, segments=16, centre=(P.x(287), yh + 0.06, 0.0),
-            name="embers")
+    # a bed of ash and embers under the fire, filling the hearth between the stones as painted
+    K.lathe([(0.0, 0.0), (0.34, 0.0), (0.3, 0.05), (0.18, 0.1), (0.0, 0.12)], ember, segments=20,
+            centre=(P.x(287), yh - 0.05, 0.0), scale_y=0.6, wobble=0.08, name="embers")
     K.leaves_only((235, 500, 350, 595), fire_pixels)
     for yaw in (0, 60, -60):
         K.card_from_painting((235, 500, 350, 595), (P.x(292), yh - (0.18 if yaw == 0 else 0.0), P.z(547)), yaw=yaw,

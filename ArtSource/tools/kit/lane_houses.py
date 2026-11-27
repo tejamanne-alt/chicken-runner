@@ -2257,6 +2257,7 @@ def house_village_head(K):
     # the tulsi planter before the steps, the plant on it
     # (squeezed so its sides take its own paint, not the ink outline and the shadow below it)
     tp = K.projected(axis_x=P.x(790), squeeze=0.82, keep=[(705, 1148, 877, 1358)], inset=3)   # (above its foot's ink)
+    K.front_exclude.append((700, 1362, 882, 1377))      # its painted foot line: a black band on the bottom tier's face
     yt = yv - 1.0
     for x0, x1, t, b in ((705, 876, 1331, 1377), (720, 872, 1305, 1331), (731, 850, 1198, 1305),
                          (712, 865, 1178, 1198)):
