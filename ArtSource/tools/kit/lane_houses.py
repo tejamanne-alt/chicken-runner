@@ -308,7 +308,7 @@ def house_pink(K):
                   yaw=K.rng.uniform(-50, 50), pitch=K.rng.uniform(-25, 25), name="vine")
     # the vine comes round the corner onto the right side: thick at the corner, from the parapet down as far as it
     # is painted, thinning out going back; and trailing back along the top of the cornice (ragged blob cards)
-    corner_climber(K, (285, 55, 325, 255), 16, 52, P.x(312), 1, 55, 255, 0.67, ledge=(P.z(104), 0.07, 7, 0.45, 1.6))
+    corner_climber(K, (285, 55, 325, 255), 24, 40, P.x(312), 1, 55, 255, 0.67, ledge=(P.z(104), 0.07, 10, 0.45, 1.6))
 
 
 # ====================================================================== helpers for the rest of the lane
@@ -445,7 +445,7 @@ def crown_cards(K, box, keep, centre_px, centre_y, depth, n=150, size_px=110, st
         card(px, py, yy, size_px * K.rng.uniform(0.8, 1.2), K.rng.uniform(-yaw, yaw), K.rng.uniform(-pitch, pitch))
 
 
-def corner_climber(K, box, n, size, x_wall, side, top_py, bottom_py, reach, name="vine_side", ledge=None):
+def corner_climber(K, box, n, size, x_wall, side, top_py, bottom_py, reach, name="vine_side", ledge=None, rag=0.4):
     """A climber come round a front corner onto a side wall (x_wall, facing side -1/+1): n ragged blob cards cut from
     the painting inside box, hugging the corner, most of them high up and growing furthest back there (reach m at
     top_py, a little at bottom_py), so from the side it is one mass joined to the front's, never loose patches out on
@@ -460,14 +460,15 @@ def corner_climber(K, box, n, size, x_wall, side, top_py, bottom_py, reach, name
         cx = K.rng.uniform(x0, x1)
         blob_card(K, (cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2),
                   (x_wall + side * K.rng.uniform(0.015, 0.05), K.rng.uniform(0.02, far), P.z(cy)),
-                  yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-15, 15), name=name)
+                  yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-15, 15), name=name, n=11, rag=rag)
     if ledge:
         z, out, count, ya, yb = ledge
         for i in range(count):
             cx, cy = K.rng.uniform(x0, x1), K.rng.uniform(y0, min(y1, y0 + (y1 - y0) * 0.5))
             blob_card(K, (cx - size / 2, cy - size * 0.4, cx + size / 2, cy + size * 0.4),
                       (x_wall + side * (out + K.rng.uniform(0.0, 0.04)), ya + (yb - ya) * (i + K.rng.uniform(0, 1)) / count,
-                       z), yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 10), name=name + "_ledge")
+                       z), yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 10), name=name + "_ledge", n=11,
+                      rag=rag)
 
 
 def pot(K, cx_px, prof_px, keep, y, exclude=(), name="pot", segments=28, mouth=True, squeeze=0.93, wobble=0.01):
@@ -579,7 +580,7 @@ def house_limewash(K):
         K.card_from_painting(box, (P.x((box[0] + box[2]) / 2), -0.21, P.z((box[1] + box[3]) / 2)), name="vine_front")
     scatter_cards(K, vine[0], 20, (60, 60), (-0.2, -0.02), yaw=45, pitch=25, name="vine", blob=True)
     scatter_cards(K, vine[1], 10, (50, 50), (-0.2, -0.02), yaw=45, pitch=25, name="vine", blob=True)
-    corner_climber(K, (5, 20, 75, 300), 16, 58, X0, -1, 25, 300, 0.9, ledge=(P.z(117), 0.1, 6, 0.4, 1.6))
+    corner_climber(K, (5, 20, 75, 300), 26, 42, X0, -1, 25, 300, 0.9, ledge=(P.z(117), 0.1, 9, 0.4, 1.6))
     scatter_cards(K, (20, 0, 120, 60), 6, (50, 45), (0.08, 0.45), yaw=30, pitch=70, name="vine_roof", blob=True,
                   x_range=(20, 85))                       # trailing over the parapet's corner, not out on the deck
     # the bush at the bottom right
@@ -1453,7 +1454,7 @@ def house_potter(K):
     K.box(P.x(0), P.x(2190), -1.25, D + 0.4, 0.0, P.z(1108), earth, bevel=0.03, name="ground")
     # the hut's thatch, its ridge pole, palm fronds weighting it front (painted) and back (cards)
     hip_thatch(K, (P.x(334), P.x(1500), -0.55, D + 0.55), (P.x(506), P.x(1414)), P.z(474), P.z(40), thatch_m,
-               thickness=0.25, shag=0.05, fringe=0.1, pull=0.05)
+               thickness=0.25, shag=0.05, fringe=0.1, pull=(0.13, 0.05, 0.12, 0.05))
     K.tube([P.pt(506, 28, D / 2), P.pt(1414, 28, D / 2)], P.m(17), K.colour((560, 15, 1300, 40), vary=0.06),
            segments=10, name="ridge_pole")
     K.leaves_only((440, 40, 1310, 470), frond_pixels)
@@ -2861,7 +2862,7 @@ def shop_provisions(K):
     halo_exclude(K, [(0, 0, 1508, 1143)])
     # the mud below the window, right of the pole's shadow, its crack and specks taken out (the old crops took the
     # poles' shadow lines and the parapet's drips, which repeated as dark verticals and 'Y' marks round the walls)
-    mud = clean_tile(K, (240, 840, 520, 975), size=1.4, vary=0.12, soften=0.0, thresh=22, radius=7)
+    mud = clean_tile(K, (240, 840, 520, 975), size=1.1, vary=0.18, soften=0.0, thresh=40, radius=7)
     lime = K.tile((280, 1005, 590, 1078), size=1.0, vary=0.04, soften=0.35)     # clear of the poles' shadows
     tin = K.tile((300, 270, 700, 390), size=1.0, vary=0.04, soften=0.1)
     timber = K.colour((280, 420, 310, 790), vary=0.08)

@@ -2378,12 +2378,13 @@ def field_bldg_2(K):
     bamboo stilts, under a steep thatched gable roof with bamboo battens over its front; a doorway in front with a coil
     of rope hung beside it, a bamboo rail along its sides, and a bamboo ladder leaning up to the deck. Square to us:
     its right side, the roof's long slope and the far stilt the painting shows in perspective are not projected onto
-    the front; the real ones are the same matting, thatch and bamboo."""
+    the front. The painting shows it three-quarters on (its gable end and its right side, the roof's long slope over
+    it): it is built square and turned 29 degrees in plan about its nearest corner, so the right side, the far stilt
+    and the long slope are real and take the painting; the ladder stands in front where it is painted."""
     P = K.paint
     K.front_min = 0.2
-    K.front_exclude = [("poly", [(208, 0), (544, 0), (544, 696), (440, 696), (440, 402), (372, 402), (372, 352),
-                                 (340, 352), (340, 236), (392, 236)])]
     D = 2.0
+    phi = 29.0
     bamboo = K.tile((80, 520, 98, 660), soften=0.2, vary=0.05)
     mat_wall = K.tile((92, 250, 152, 355), soften=0.25, vary=0.04)
     thatch = K.tile((290, 140, 420, 200), soften=0.2, vary=0.04)
@@ -2433,6 +2434,20 @@ def field_bldg_2(K):
                                 ((P.x(150), P.z(85)), (P.x(225), P.z(85)))):
         for yb in (-0.47, D + 0.47):                       # on the front gable, and the same on the back one
             K.tube([(ax, yb, az), (bx, yb, bz)], P.m(5), bamboo, segments=6, name="batten")
+    # a little window in the back wall, two bamboo bars across it (the watcher looks out over the field behind)
+    wx0, wx1, wz0, wz1 = P.x(170), P.x(250), P.z(320), P.z(268)
+    K.cut(walls, wx0, wx1, D - 0.1, D + 0.05, wz0, wz1)
+    K.box(wx0, wx1, D - 0.08, D - 0.06, wz0, wz1, K.colour((0.05, 0.035, 0.03), vary=0.0), name="window_dark")
+    for k in (1, 2):
+        z = wz0 + (wz1 - wz0) * k / 3
+        K.tube([(wx0 - 0.03, D + 0.02, z), (wx1 + 0.03, D + 0.02, z)], P.m(5), bamboo, segments=8, name="window_bar")
+    # turned in plan about the nearest corner (the front-right stilt): its front first drawn out to its true width
+    # (along x, by 1 / cos), so turned it covers the painted front again
+    c = math.cos(math.radians(phi))
+    M = (Matrix.Translation((x1, 0.0, 0.0)) @ Matrix.Rotation(math.radians(-phi), 4, "Z")
+         @ Matrix.Diagonal((1 / c, 1.0, 1.0, 1.0)) @ Matrix.Translation((-x1, 0.0, 0.0)))
+    for ob in with_cutters(list(K.parts)):
+        ob.data.transform(M)
     # the ladder leaning up to the deck (in front, where the painting has it)
     ladder(K, (P.x(176), -0.1, P.z(360)), (P.x(256), -0.1, P.z(360)), (P.x(100), -1.25, 0.0), (P.x(206), -1.25, 0.0),
            (0.18, 0.34, 0.51, 0.67, 0.84), bamboo, r_rail=P.m(8), r_rung=P.m(7))
@@ -2466,7 +2481,6 @@ def field_bldg_3(K):
     front."""
     P = K.paint
     K.front_min = 0.2
-    K.front_exclude = [("poly", [(752, 0), (1165, 0), (1165, 466), (878, 466), (878, 176), (752, 8)])]
     D = 3.4
     bamboo = K.tile((628, 260, 640, 440), soften=0.2, vary=0.05)
     slats = K.tile((900, 280, 1080, 395), soften=0.15, vary=0.04)
@@ -2508,6 +2522,15 @@ def field_bldg_3(K):
         for (ax, az), (bx, bz) in (((xm, zr), (x0 - 0.22, ze - 0.1)), ((xm, zr), (x1 + 0.22, ze - 0.1)),
                                     ((xm, zr), (xm, ze)), ((P.x(650), P.z(115)), (P.x(840), P.z(115)))):
             K.tube([(ax, yf, az), (bx, yf, bz)], P.m(6), bamboo, segments=6, name="frame")
+    # the shed, painted three-quarters on (its gable end and its long slatted right side receding to x 1165), turned
+    # in plan about its nearest corner (the front-right post) so its right side and the roof's long slope are real
+    # faces; its front first drawn out to its true width (1 / cos) so the turned front covers the painted front
+    phi = math.degrees(math.asin(min(0.85, P.m(1165 - 878) / (D + 0.3))))
+    c = math.cos(math.radians(phi))
+    M = (Matrix.Translation((x1, 0.0, 0.0)) @ Matrix.Rotation(math.radians(-phi), 4, "Z")
+         @ Matrix.Diagonal((1 / c, 1.0, 1.0, 1.0)) @ Matrix.Translation((-x1, 0.0, 0.0)))
+    for ob in with_cutters(list(K.parts)):
+        ob.data.transform(M)
     # the straw heaps: round mounds as deep as they are wide, ragged with straw all over and round their skirts
     big = interp([(170, 10), (185, 22), (195, 40), (205, 58), (215, 75), (245, 92), (270, 107), (303, 122), (350, 133),
                   (400, 138), (462, 140)])

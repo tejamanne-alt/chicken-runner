@@ -1604,10 +1604,15 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     # over the sky painted between the limbs (from the front, bark where the painting shows sky)
     dsolid = ndimage.distance_transform_edt((P.rgba[..., 3] > 0.5) & ~((mn > 175) & (mx - mn < 45)))
 
-    def fit(pts, lo=4.0):
+    def fit(pts, lo=4.0, every=12.0):
+        # (resampled every `every` px first: between two traced points the straight tube cut across the sky)
+        dense = [pts[0]]
+        for (x0, y0, r0), (x1, y1, r1) in zip(pts, pts[1:]):
+            n = max(1, int(math.hypot(x1 - x0, y1 - y0) / every))
+            dense += [(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, r0 + (r1 - r0) * k / n) for k in range(1, n + 1)]
         return [(px, py, float(min(r, max(lo, dsolid[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))]
                                            + 1))))
-                for px, py, r in pts]
+                for px, py, r in dense]
     limbs = [fit(pts) for pts in limbs]              # (not the trunk: behind the shrine it is hidden, not thin)
     wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
@@ -1636,7 +1641,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                 y = dist * math.sin(a)
                 lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
                 y = y0 + float(np.clip(y, -lim, lim))
-                q.append((x, y, P.z(py) + (rng.uniform(-0.1, 0.0) if i else 0.0)))
+                q.append((x, y, P.z(py) - 0.05 * math.sin(math.pi * i / max(1, len(pts) - 1))))
             wood.append(K.tube(q, [P.m(r) * 0.9 for _, _, r in pts], bark, segments=12, name="limb_turned"))
     # roots lying on the platform: the painted ones on the slope facing the camera, more round the sides and back
     for pts in roots:
@@ -2031,7 +2036,7 @@ def field_tree_1(K):
         K, mask, (470, 930), (0, 0, 938, 510), (470, 300), (300, 0, 510), foliage_pixels, spread=0.55,
         root_z_px=860, card_px=(110, 95), n_cards=(230, 90, 50, 30), limb_py_max=560, limb_py_min=300, n_limbs=7,
         n_roots=6, root_py=880, depth_ratio=0.365, core=0.18, dome_pow=0.9, seed_dy=seed, min_r_px=1.5,
-        trunk=(940, 560, 465, 860, 0.95), leaf_all=True)          # its dark shaded leaves are not "foliage" green
+        trunk=(940, 560, 465, 830, 1.5), leaf_all=True)          # its dark shaded leaves are not "foliage" green
     # the aerial roots again, hanging in curtains through the crown's depth behind and before the painted ones
     for i, p in enumerate(wood.paths):
         if hanging(p):
@@ -3033,7 +3038,7 @@ def drumstick_tree(K, crown_box, centre, dome, root, n_cards, card_px, ground):
     wood, crown, bark, thin = traced_tree(K, mask, tpts[-1][:2], crown_box, centre, dome, mask_rule(leaves, box),
                                           spread=0.6, root_z_px=None, limb_py_max=dome[2], limb_py_min=dome[1],
                                           n_limbs=6, n_roots=0, n_cards=n_cards, card_px=card_px, core=0.2,
-                                          dome_pow=0.6, min_r_px=7.0, foot=foot, bark_mask=full, r_cap_px=tr * 0.45,
+                                          dome_pow=0.6, min_r_px=4.5, foot=foot, bark_mask=full, r_cap_px=tr * 0.8,
                                           bark_inset=1, tile_box=DRUM_BARK[K.name], airy=True)
     # the pods: long, thin, ribbed green tubes hanging from the branches, and one more of each round the back
     hang_pods(K, pods, crown, masked_material(K, pods, inset=1), copies=1, flatten=0.85, lump=0.05, min_len=40,
