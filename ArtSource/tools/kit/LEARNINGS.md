@@ -133,6 +133,9 @@ every model against the audit checklist at the end.** Add to it whenever somethi
 - `K.decal(image=...)` cached by `id(image)`, which Python reuses: keyed by content now.
 - Review renders ran out of transparent bounces (black shards in crowns): 128 bounces.
 - The review's ink outline scaled with model size: it now matches the game's (3-12 mm).
+- A Blender object's matrix cannot hold a shear: setting `matrix_world` to a sheared matrix keeps only its location,
+  rotation and scale, so the audit's front along the painted slope was not sheared at all (canal_piece_2 judged 0.48
+  instead of 0.89). Shear the mesh data (`o.data.transform`) and shear it back after.
 - `K.prism` extrudes only along y (`palms_plants.along_x`), `K.thatch`'s hip is symmetric (`market_props.lean_thatch`,
   `lane_houses.hip_thatch`), there is no hipped tiled roof in the kit (`fields.hip_roof`, `lane_houses.hip_roof_tiles`).
 

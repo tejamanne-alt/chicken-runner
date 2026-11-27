@@ -341,12 +341,17 @@ def audit_one(name, out):
         shear = Matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, k, 1, 0), (0, 0, 0, 1)))
         for o in scene.objects:
             if o.type == "MESH":
-                sheared.append((o, o.matrix_world.copy()))
-                o.matrix_world = shear @ o.matrix_world
+                # an object's matrix cannot hold a shear (Blender keeps only its location, rotation and scale and
+                # drops the rest), so the mesh itself is sheared, in world space, and sheared back after the render
+                if o.data.users > 1:
+                    o.data = o.data.copy()
+                M = o.matrix_world.inverted() @ shear @ o.matrix_world
+                o.data.transform(M)
+                sheared.append((o, M.inverted()))
         bpy.context.view_layer.update()
     front = render(tmpdir / f"{name}_front.png", rx, ry)
-    for o, mw in sheared:
-        o.matrix_world = mw
+    for o, back in sheared:
+        o.data.transform(back)
     if sheared:
         bpy.context.view_layer.update()
     paint = KL.Painting(name, folder).img.convert("RGBA").resize((rx, ry), Image.LANCZOS)
