@@ -272,8 +272,8 @@ A = [
 CHARACTERS = [
     ("kid", "The kid", ["A0_kid_pattu_frock_sheet.png"],
      "Four new images, one per view, made from her model sheet (A0) and given to Meshy as front, left, right and back. "
-     "They add what the model needs beyond the sheet: gold jhumka earrings, gold and glass bangles, and maruthani "
-     "(henna) on her hands and legs. They are drawn the way Meshy and rigging need them: one square frame and scale for "
+     "They change the sheet's leopard-print hairband for a simple plain one in peacock blue and add what the model "
+     "needs beyond it: gold jhumka earrings, gold and glass bangles, and maruthani (henna) on her hands and legs. They are drawn the way Meshy and rigging need them: one square frame and scale for "
      "all four (head and feet at the same heights), an A-pose with the arms clear of the body and the palms forward, "
      "orthographic, evenly lit with no shadows, on plain light grey."),
     ("rooster", "The rooster", ["B11_rooster_front.png", "B13_rooster_left.png", "B14_rooster_right.png",
@@ -293,11 +293,16 @@ KID_STEPS = [
     "Make the front view first, attaching `A0_kid_pattu_frock_sheet.png`. In the same chat, make the left, right and "
     "back views, one per message, attaching the sheet and the front view you made (`kid_meshy_front.png`): the front "
     "fixes her scale, pose, colours, jewellery and henna for the others.",
-    "Check each image: the hem border, hairband, earrings, bangles, anklets and henna are the same in all four; her "
+    "Check each image: the hem border, hairband, earrings, bangles and anklets are the same in all four, and so is "
+    "the henna: the same design in the same places (a big dot ringed by eight dots on each palm, dyed fingertips and "
+    "toes, one leaf vine on the back of each hand, on the top of each foot and up each shin, dot rings round the "
+    "ankles, dyed sole edges); her "
     "arms are clear of her body; in the left view she faces the left edge, in the right view the right edge; no "
     "shadow, floor or text. If a side view faces the wrong way, reply: *Flip this image left to right and keep "
-    "everything else the same.* If something is missing, ask for just that: *Add the gold jhumka earrings and keep "
-    "everything else the same.*",
+    "everything else the same.* If something is missing or comes back from the sheet, ask for just that: *Add the "
+    "gold jhumka earrings and keep everything else the same.* or *Make the henna exactly the design in the front view "
+    "and keep everything else the same.* or *Make the hairband a plain peacock-blue band with no "
+    "pattern and keep everything else the same.*",
     "Save them as `kid_meshy_front.png`, `kid_meshy_left.png`, `kid_meshy_right.png` and `kid_meshy_back.png` in "
     "`ArtSource/references/`.",
     "In Meshy, **Image to 3D** with several images: upload the four as front, left, right and back. If it offers them, "
@@ -309,18 +314,38 @@ KID_STEPS = [
 ]
 KID_LOOKS = ("a South Indian girl of about three, with chubby toddler proportions (a big head about a quarter of her "
              "height, short arms and legs), warm brown skin, a round face with big dark eyes, a small red bindi and a "
-             "gentle closed-mouth smile, and shoulder-length wavy black hair held back by a leopard-print hairband. She "
+             "gentle closed-mouth smile, and shoulder-length wavy black hair held back by a simple plain hairband: a smooth, "
+             "narrow band in solid peacock blue, the colour of her frock, with no pattern, print or bow. She "
              "wears a knee-length peacock-blue silk pattu frock: a fitted bodice with a gold zari neckline with a short "
              "slit at the front, short puffed sleeves edged in gold, a blue sash at the waist, and a gathered, flared "
              "skirt with a wide magenta and gold border at the hem woven with small temple towers. Bare feet with "
              "silver anklets with tiny bells.")
 KID_JEWELS = ("Her jewellery: small gold jhumka earrings, little bell-shaped gold drops hanging from her earlobes, her "
               "ears showing through her hair; and on each wrist a few thin gold bangles with red and green glass "
-              "bangles between them, sitting loosely at the wrist. Fresh maruthani (henna) in a deep orange-red on her "
-              "hands and legs: on each palm a large round dot ringed with small dots, every fingertip dyed, and a fine "
-              "vine of leaves and dots over the backs of her hands and fingers up to the bangles; on her feet the toes "
-              "and the edges of the soles dyed, and a vine of leaves and dots over the tops of her feet, round her "
-              "ankles under the anklets and a little way up her shins. The same pattern on both hands and both legs.")
+              "bangles between them, sitting loosely at the wrist.")
+# One fixed henna design, word for word in every view's prompt, so the four images agree.
+KID_HENNA = ("Her maruthani (henna) is one fixed design, the same in every view, identical on both hands (mirror images) "
+             "and on both legs, in one flat deep orange-red with no other colour: on each palm, one large solid round "
+             "dot in the middle, ringed by eight small dots; every fingertip dyed solid up to the first knuckle; on the "
+             "back of each hand, one vine of small paired leaves running from the base of the middle finger to the "
+             "wrist, ending in a row of small dots just below the bangles; every toe dyed solid; a solid dyed band a "
+             "finger wide round the edge of each sole; on the top of each foot, one vine of small paired leaves from "
+             "the big toe to the ankle; a ring of small dots round each ankle, just below the anklet; and on the front "
+             "of each shin, one vine of small paired leaves rising halfway to the knee, ending in a small dot. Nothing "
+             "else is hennaed: not her arms above the wrists, not her legs above that dot.")
+KID_HENNA_SEEN = {
+    "front": "From the front we see both palms with their big dot ringed by eight dots, the dyed fingertips, the dyed "
+             "toes, the leaf vines on the tops of both feet, the rings of dots round the ankles and the leaf vines up "
+             "the fronts of the shins.",
+    "side": "From the side we see, on her near hand and leg, exactly the design of the front view: the dyed "
+            "fingertips, the edge of the palm's dot design, part of the leaf vine on the back of the hand and the row "
+            "of dots below the bangles, the dyed toes, the dyed band along the edge of the sole, the leaf vine on the "
+            "top of the foot from the side, the ring of dots round the ankle and the leaf vine up the front of the shin.",
+    "back": "From behind we see the backs of both hands, each with its one leaf vine from the middle finger to the "
+            "wrist and its row of dots below the bangles, the dyed fingertips at their ends, the rings of dots round "
+            "the backs of the ankles, and the dyed band round the edges of the soles at her heels; the palms, the "
+            "tops of the feet and the shin vines face away from us.",
+}
 KID_POSE = ("She faces the viewer squarely and stands in a neutral A-pose for rigging: upright and symmetrical, her "
             "weight on both feet, her feet flat, toes forward and a hand's width apart; her arms straight and held out "
             "about 45 degrees from her sides, with clear space between her arms, her body and her skirt; her hands "
@@ -335,11 +360,10 @@ def kid_side(side):
             "the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, "
             "and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the "
             "small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the "
-            "leopard-print hairband over the top of her head, her wavy hair falling to her shoulder at the back, the "
-            "puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the orange-red henna on her "
-            "hand and fingers, the sash at the waist with the end of the bow at the back, the flared skirt with the "
-            "magenta and gold temple-tower border running round it, and her bare feet with the silver anklets, the "
-            "henna on the tops of her feet, round her ankles and up her shins, and the dyed edges of her soles.")
+            "plain peacock-blue hairband over the top of her head, her wavy hair falling to her shoulder at the back, the "
+            "puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the sash at the waist with the end "
+            "of the bow at the back, the flared skirt with the magenta and gold temple-tower border running round it, "
+            "and her bare feet with the silver anklets.\n\n" + KID_HENNA + " " + KID_HENNA_SEEN["side"])
 
 
 KID_BACK = ("The same toddler in the same peacock-blue pattu frock, seen exactly from behind, so her face is hidden. "
@@ -347,12 +371,11 @@ KID_BACK = ("The same toddler in the same peacock-blue pattu frock, seen exactly
             "held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt, her "
             "hands open with the palms forward, so we see the backs of her hands, and her feet flat and a hand's width "
             "apart. Show her back clearly: the back of her head with the shoulder-length wavy black hair, the gold "
-            "jhumka earrings just showing below her hair on each side, the back of the leopard-print hairband, the "
+            "jhumka earrings just showing below her hair on each side, the back of the plain peacock-blue hairband, the "
             "plain back of the bodice with a fine seam down the middle, the puffed sleeves with their gold edges, the "
-            "gold and glass bangles on both wrists, the orange-red henna vines on the backs of her hands and fingers, "
-            "the blue sash tied in a neat bow at the back of the waist, the gathered skirt with the magenta and gold "
-            "temple-tower border continuing all the way round, the backs of her lower legs with the henna round her "
-            "ankles under the silver anklets, and her bare heels with the dyed edges of her soles.")
+            "gold and glass bangles on both wrists, the blue sash tied in a neat bow at the back of the waist, the "
+            "gathered skirt with the magenta and gold temple-tower border continuing all the way round, and the backs "
+            "of her lower legs and bare heels with the silver anklets.\n\n" + KID_HENNA + " " + KID_HENNA_SEEN["back"])
 KID_FRAME_G = ("Show only her: one full-length figure, centred, from the top of her hair to the soles of her feet, "
                "filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw "
                "her orthographic and straight on at her own chest height, with no perspective. Light her evenly and "
@@ -384,25 +407,29 @@ def kid_prompts():
         if v == "front":
             attach = KID_SHEET
             c = (f"Square 1:1 image.\n\nFull-length front view, for 3D modelling, of the toddler hero from the attached "
-                 f"model sheet ({KID_SHEET}). Match her face, skin tone, hair, hairband, frock, anklets, proportions "
-                 f"and painted style exactly, and add the earrings, bangles and henna described below. She is "
-                 f"{KID_LOOKS}\n\n{KID_JEWELS}\n\n{KID_POSE}\n\n{KID_FRAME_C}")
+                 f"model sheet ({KID_SHEET}). Match her face, skin tone, hair, frock, anklets, proportions and painted "
+                 f"style exactly; replace the leopard-print hairband with the plain one described below, and add the "
+                 f"earrings, bangles and henna described below. She is "
+                 f"{KID_LOOKS}\n\n{KID_JEWELS}\n\n{KID_HENNA} {KID_HENNA_SEEN['front']}\n\n{KID_POSE}\n\n{KID_FRAME_C}")
             g = (f"Create a 1:1 square image.\n\nUse the image I've uploaded: the kid's model sheet, for her face, skin "
-                 f"tone, hair, hairband, frock, anklets, proportions and painted style. Match it exactly, and add the "
-                 f"earrings, bangles and henna described below.\n\nA full-length front view of the toddler hero from "
-                 f"the model sheet, for building a 3D model: {KID_LOOKS}\n\n{KID_JEWELS}\n\n{KID_POSE}\n\n{KID_FRAME_G}")
+                 f"tone, hair, frock, anklets, proportions and painted style. Match it exactly, but replace the "
+                 f"leopard-print hairband with the plain one described below, and add the earrings, bangles and henna "
+                 f"described below.\n\nA full-length front view of the toddler hero from "
+                 f"the model sheet, for building a 3D model: {KID_LOOKS}\n\n{KID_JEWELS}\n\n{KID_HENNA} "
+                 f"{KID_HENNA_SEEN['front']}\n\n{KID_POSE}\n\n{KID_FRAME_G}")
         else:
             attach = f"{KID_SHEET}, {KID_FILES['front']}"
             body = KID_BACK if v == "back" else kid_side(v)
             title = "Back view" if v == "back" else f"{v.capitalize()} side view"
             design = "hair" if v == "back" else "face, hair"
             c = (f"Square 1:1 image.\n\n{title}, for 3D modelling, of the same toddler as in the attached images: the "
-                 f"model sheet ({KID_SHEET}) for her {design}, hairband, frock, anklets and painted style, and the "
-                 f"front view ({KID_FILES['front']}) for her exact size, position in the frame, pose, colours, "
-                 f"earrings, bangles and henna. Match them exactly.\n\n{body}\n\n{KID_SAME_C}")
+                 f"model sheet ({KID_SHEET}) for her {design}, frock, anklets and painted style, and the front view "
+                 f"({KID_FILES['front']}) for her exact size, position in the frame, pose, colours, plain hairband "
+                 f"(not the sheet's leopard-print one), earrings, bangles and henna (the same design in the same places). Match them exactly.\n\n{body}\n\n{KID_SAME_C}")
             g = (f"Create a 1:1 square image.\n\nUse the images I've uploaded: the kid's model sheet, for her {design}, "
-                 f"hairband, frock, anklets and painted style; and the front view, for her exact size, position in the "
-                 f"frame, pose, colours, earrings, bangles and henna. Match them exactly.\n\n{body}\n\n{KID_SAME_G}")
+                 f"frock, anklets and painted style; and the front view, for her exact size, position in the frame, "
+                 f"pose, colours, plain hairband (not the sheet's leopard-print one), earrings, bangles and henna "
+                 f"(the same design in the same places). Match them exactly.\n\n{body}\n\n{KID_SAME_G}")
         out.append({"view": v, "file": KID_FILES[v], "attach": attach, "chatgpt": c, "gemini": g})
     return out
 
