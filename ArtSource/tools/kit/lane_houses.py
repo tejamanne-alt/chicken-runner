@@ -12,7 +12,45 @@ import numpy as np
 from scipy import ndimage
 from mathutils import Matrix, Vector
 
-from kitlib import model
+from kitlib import Mat, _image, _vary, model, seamless
+
+
+def strip_tile(K, box, vary=0.05, soften=0.4, size=None):
+    """K.tile for a thin strip of the painting (a cornice, a coping, a ledge, a beam): the strip stacked with its
+    mirror image into about a square first, so on a slab's top or a cap it does not stretch into streaks (the same
+    as market_props.strip_tile; kept here so this module does not depend on another one). size: the strip's width in
+    metres (default as painted)."""
+    from PIL import Image
+    P = K.paint
+    key = ("lh_strip", tuple(int(v) for v in box), soften, size)
+    if key in K._mats:
+        return K._mats[key]
+    a = np.asarray(P.crop(box).convert("RGB")).astype(np.float32)
+    if soften:
+        med = np.median(a.reshape(-1, 3), axis=0)
+        a = a * (1 - soften) + med * soften
+    w, h = a.shape[1], a.shape[0]
+    n = max(1, int(round(w / max(1, h))))
+    sq = Image.fromarray(np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+                         .clip(0, 255).astype(np.uint8))
+    sw = size or P.m(w)
+    m = Mat(f"{K.name}_lhstrip{len(K._mats)}")
+    img = _image(seamless(sq, 0.2), m.mat.name)
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    tex = m.nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    tex.projection = "BOX"
+    tex.projection_blend = 0.25
+    mapping = m.nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (1 / sw, 1 / sw, 1 / (sw * sq.height / sq.width))
+    m.nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+    col = tex.outputs["Color"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / sw)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
 
 
 def stairs(K, steps, mat_top, mat_side=None, tread=0.3, y0=0.0):
@@ -24,7 +62,7 @@ def stairs(K, steps, mat_top, mat_side=None, tread=0.3, y0=0.0):
 
 
 def flat_roof_house(K, x0, x1, body_top_py, depth, wall, plinth=None, plinth_top_py=None, cornice=None,
-                    coping=None, pillars=(), back_door=None):
+                    coping=None, pillars=(), back_door=None, coping_rise=0.06):
     """The shell of a flat-roofed house: walls x0..x1 px from the ground to body_top_py, `depth` m deep; a plinth band
     round it to plinth_top_py; a cornice (y0_py, y1_py, out m) round all four sides; a coping lip on the roof's edge
     (y0_py, y1_py); corner pillars [(x0_px, x1_px, top_py, cap_py), ...] at the front and repeated at the back; a door
@@ -41,7 +79,7 @@ def flat_roof_house(K, x0, x1, body_top_py, depth, wall, plinth=None, plinth_top
     if coping is not None:
         y0, y1, mat = coping
         lip = 0.12
-        z0, z1 = P.z(y1), P.z(y0) + 0.06
+        z0, z1 = P.z(y1), P.z(y0) + coping_rise
         K.box(X0 - 0.03, X1 + 0.03, -0.03, lip, z0, z1, mat, bevel=0.01, name="coping_f")
         K.box(X0 - 0.03, X1 + 0.03, depth - lip, depth + 0.03, z0, z1, mat, bevel=0.01, name="coping_b")
         K.box(X0 - 0.03, X0 + lip, 0.0, depth, z0, z1, mat, bevel=0.01, name="coping_l")
@@ -88,19 +126,22 @@ def house_pink(K):
     P = K.paint
     depth = 4.0
     K.front_exclude = [(0, 360, 24, 513)]                       # the neighbour's ladder at the left edge
-    wall = K.tile((14, 150, 84, 425), vary=0.05, soften=0.55)   # pink plaster, stained: the left strip
+    # pink plaster: the left strip below the sunshade's cast shadow and right of the neighbour's ladder (either one
+    # in the crop repeats down the side walls as a grid of dark triangles and little blocks)
+    wall = K.tile((22, 255, 84, 415), vary=0.05, soften=0.45)
     upper = K.tile((12, 22, 66, 88), vary=0.05, soften=0.4)     # the parapet's plaster, streaked (the left pillar)
-    ledge = K.colour((60, 92, 240, 104), vary=0.06)
-    red = K.tile((28, 460, 78, 510), vary=0.06, soften=0.3)     # the red-oxide plinth and steps, below the kolam
+    ledge = strip_tile(K, (20, 95, 240, 106), soften=0.4)        # the cornice's own plaster, stacked square
+    red = K.tile((36, 456, 60, 508), vary=0.06, soften=0.4)     # the red-oxide plinth, below the kolam, clear of moss
     teal = K.colour((88, 260, 97, 400), vary=0.05)
     wood = K.tile((110, 300, 140, 400), P.m(30))
     body = flat_roof_house(
         K, 8, 312, 22, depth, wall, plinth=red, plinth_top_py=428,
         cornice=(92, 110, 0.07, ledge), coping=(22, 33, upper),
-        pillars=[(8, 70, 5, 18, upper, ledge), (248, 312, 5, 18, upper, ledge)], back_door=(85, 178, 207, 415))
-    # a plain lime-washed roof deck, and a small barred window in each side wall
-    K.box(P.x(70), P.x(250), 0.12, depth - 0.12, P.z(22), P.z(22) + 0.01, K.colour((20, 40, 60, 80), vary=0.08, pct=70),
-          name="roof_deck")
+        pillars=[(8, 70, 5, 18, upper, ledge), (248, 312, 5, 18, upper, ledge)], back_door=(85, 178, 207, 415),
+        coping_rise=0.01)
+    # a lime-washed roof deck (the parapet's plaster, softened), and a small barred window in each side wall
+    K.box(P.x(70), P.x(250), 0.12, depth - 0.12, P.z(22), P.z(22) + 0.01, K.tile((12, 22, 66, 88), vary=0.06,
+          soften=0.65), name="roof_deck")
     iron = K.colour((0.025, 0.02, 0.02), vary=0.05)
     dark = K.colour((0.03, 0.02, 0.025), vary=0.0)
     for side in (-1, 1):
@@ -111,9 +152,10 @@ def house_pink(K):
     for x0, x1 in ((87, 98), (192, 205)):
         K.box(P.x(x0), P.x(x1), -0.03, 0.12, P.z(413), P.z(180), teal, bevel=0.008, name="jamb")
     K.box(P.x(87), P.x(205), -0.03, 0.12, P.z(190), P.z(180), teal, bevel=0.008, name="frame_head")
-    # the vents in the parapet: three small recesses
+    # the vents in the parapet: three small recesses, dark inside
     for x0, x1 in ((85, 98), (115, 128), (145, 157)):
-        K.cut(body, P.x(x0), P.x(x1), -0.05, 0.1, P.z(62), P.z(38))
+        K.cut(body, P.x(x0), P.x(x1), -0.05, 0.14, P.z(62), P.z(38))
+        K.box(P.x(x0), P.x(x1), 0.1, 0.12, P.z(62), P.z(38), dark, name="vent_back")
     # the sunshade over the door
     K.box(P.x(57), P.x(237), -0.16, 0.0, P.z(170), P.z(155), red, bevel=0.01, name="sunshade")
     # the garland: a swag of marigolds across the door and its two hanging strings
@@ -142,11 +184,21 @@ def house_pink(K):
             continue
         K.card_from_painting((cx - 30, cy - 30, cx + 30, cy + 30), (P.x(cx), -K.rng.uniform(0.03, 0.18), P.z(cy)),
                              yaw=K.rng.uniform(-50, 50), pitch=K.rng.uniform(-25, 25), name="vine")
-    # the vine comes round the corner onto the right side
-    for i in range(10):
-        cx, cy = K.rng.uniform(270, 320), K.rng.uniform(60, 260)
-        K.card_from_painting((cx - 28, cy - 28, cx + 28, cy + 28), (P.x(312) + 0.03, K.rng.uniform(0.1, 1.2), P.z(cy)),
-                             yaw=90 + K.rng.uniform(-25, 25), name="vine_side")
+    # the vine comes round the corner onto the right side: thick at the corner, from the parapet down as far as it
+    # is painted, thinning out going back; and trailing back along the top of the cornice, draped over its edge
+    xs = P.x(312)
+    for i in range(16):
+        cy = 55 + 200 * K.rng.uniform() ** 1.6                    # more of it high up, as painted
+        reach = 0.12 + 0.55 * (1 - (cy - 55) / 200)               # how far back from the corner it has grown there
+        cx = K.rng.uniform(285, 325)
+        K.card_from_painting((cx - 26, cy - 26, cx + 26, cy + 26),
+                             (xs + K.rng.uniform(0.015, 0.05), K.rng.uniform(0.02, reach), P.z(cy)),
+                             yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-15, 15), name="vine_side")
+    for i in range(7):
+        cx, cy = K.rng.uniform(170, 320), K.rng.uniform(60, 120)
+        K.card_from_painting((cx - 26, cy - 22, cx + 26, cy + 22),
+                             (xs + 0.07 + K.rng.uniform(0.0, 0.04), 0.45 + i * 0.16 + K.rng.uniform(-0.05, 0.05),
+                              P.z(104)), yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 10), name="vine_ledge")
 
 
 # ====================================================================== helpers for the rest of the lane

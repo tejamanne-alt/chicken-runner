@@ -66,30 +66,53 @@ def prof(P, pts):
     return [(P.m(r), P.z(y)) for r, y in pts]
 
 
+def earth_patch(K, cx_px, y_px, rx_px, ry, box, grass=(), rgb=None):
+    """The patch of earth a painted prop stands on (like lane_props.ground_patch): a low, uneven disc of the
+    painting's own dirt colour, finely mottled so it reads as earth, not a plain disc, with grass cards (box_px)."""
+    P = K.paint
+    dirt = K.colour(rgb if rgb is not None else box, vary=0.28, scale=34.0)
+    rx = P.m(rx_px)
+    K.lathe([(0.0, 0.0), (rx * 0.98, 0.0), (rx * 0.9, 0.012), (rx * 0.55, 0.02), (0.0, 0.022)], dirt, segments=28,
+            centre=(P.x(cx_px), 0.0, P.z(y_px) - 0.012), scale_y=ry / rx, wobble=0.12, name="ground")
+    for box_px in grass:
+        cx, cy = (box_px[0] + box_px[2]) / 2, (box_px[1] + box_px[3]) / 2
+        for yaw in (0, 60, -60):
+            K.card_from_painting(box_px, (P.x(cx), K.rng.uniform(-ry * 0.4, ry * 0.2), P.z(cy)), yaw=yaw, name="grass")
+
+
 @model("black_tank", "market", kind="prop")
 def black_tank(K):
-    """A black ribbed water tank with a domed top and a screw lid, on a mossy stone slab carried by two stone piers,
-    grass at their feet and on the slab."""
+    """A black ribbed water tank on a mossy stone slab carried by two stone piers, grass at their feet and on the
+    slab: its ribbed walls rise to a rim, a low dome climbs from the rim to the collar of the screw lid, and four
+    moulded lugs stand on the dome at the quarters (the front one seen face on, the side ones in profile)."""
     P = K.paint
     cx = 123
-    tank = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(40, 5, 207, 184)])
-    # the tank: ribbed walls, a rim, a dome inside it and the lid
+    X0 = P.x(cx)
+    tank = K.projected(axis_x=X0, squeeze=0.93, keep=[(40, 5, 207, 184)])
+    # the dome wears only the dome's own painted pixels (between the lugs), so its sides do not take a lug's
+    dome_m = K.projected(axis_x=X0, squeeze=0.93, keep=[(86, 33, 114, 58), (148, 33, 164, 58)], inset=1)
+    # the tank: ribbed walls up to the rim, the dome inside it, the collar and the lid
     body = [(80, 184), (82, 181), (82, 156), (84, 154), (84, 148), (82, 146), (82, 126), (84, 124), (84, 116),
-            (82, 114), (82, 96), (84, 94), (84, 86), (82, 84), (82, 68), (84, 66), (84, 60), (82, 58), (82, 34),
-            (80, 32), (72, 32), (70, 38)]
-    K.lathe(prof(P, body), tank, segments=40, centre=(P.x(cx), 0, 0), name="tank", cap=False)
-    dome = [(72, 40), (66, 34), (56, 30), (46, 28), (44, 27)]
-    K.lathe(prof(P, dome), tank, segments=40, centre=(P.x(cx), 0, 0), name="dome", cap=False)
+            (82, 114), (82, 96), (84, 94), (84, 86), (82, 84), (82, 68), (84, 66), (84, 60), (82, 58), (80, 57)]
+    K.lathe(prof(P, body), tank, segments=40, centre=(X0, 0, 0), name="tank", cap=False)
+    dome = [(80, 57), (76, 52), (69, 46), (61, 40), (53, 35), (47, 31), (44, 28.5), (44, 27)]
+    K.lathe(prof(P, dome), dome_m, segments=40, centre=(X0, 0, 0), name="dome", cap=False)
     lid = [(44, 27), (43, 24), (41, 22), (41, 20), (43, 18), (42, 10), (38, 7), (20, 5), (0, 5)]
-    K.lathe(prof(P, lid), tank, segments=40, centre=(P.x(cx), 0, 0), name="lid")
-    K.lathe([(0.0, P.z(184)), (P.m(80), P.z(184))], tank, segments=40, centre=(P.x(cx), 0, 0), name="tank_floor")
-    # the inlet hump on the dome's front, and the outlet nozzle at the back
+    K.lathe(prof(P, lid), tank, segments=40, centre=(X0, 0, 0), name="lid")
+    K.lathe([(0.0, P.z(184)), (P.m(80), P.z(184))], tank, segments=40, centre=(X0, 0, 0), name="tank_floor")
+    # the four lugs, radial blocks on the dome: turned so the front one stands where it is painted (x 115..146)
+    turn = math.degrees(math.asin((130.5 - cx) / 81.0))
+    for k in range(4):
+        a = turn + 90 * k
+        r0, r1 = P.m(40), P.m(82.5)
+        ob = K.box(-P.m(15.5), P.m(15.5), -r1, -r0, P.z(56), P.z(30.5), tank, bevel=0.012, name="lug")
+        ob.data.transform(Matrix.Translation((X0, 0, 0)) @ Matrix.Rotation(math.radians(a), 4, "Z"))
+    # the outlet nozzle at the back
     plastic = K.colour((120, 120, 140, 150), vary=0.08)
-    K.block(P.x(131), -P.m(52), P.z(45), P.m(30), P.m(28), P.m(30), tank, rot=(-28, 0, 0), bevel=0.01, name="hump")
-    K.tube([(P.x(cx), P.m(78), P.z(172)), (P.x(cx), P.m(98), P.z(172))], 0.035, plastic, segments=10, name="outlet")
+    K.tube([(X0, P.m(78), P.z(172)), (X0, P.m(98), P.z(172))], 0.035, plastic, segments=10, name="outlet")
     # the stone slab and its two piers
-    slab_m = strip_tile(K, (60, 190, 220, 207), vary=0.06, soften=0.35)
-    pier_m = K.tile((155, 218, 208, 268), vary=0.06, soften=0.45)
+    slab_m = strip_tile(K, (125, 190, 220, 206), vary=0.06, soften=0.45)
+    pier_m = K.tile((164, 224, 206, 242), vary=0.06, soften=0.5)
     d = P.m(92)
     K.box(P.x(26), P.x(222), -d, d, P.z(210), P.z(184), slab_m, bevel=0.015, name="slab")
     for x0, x1 in ((34, 103), (150, 214)):
@@ -98,8 +121,8 @@ def black_tank(K):
         joint = K.colour((0.12, 0.07, 0.04), vary=0.05)
         K.box(P.x(x0) - 0.004, P.x(x1) + 0.004, -d + 0.056, d - 0.056, P.z(246), P.z(244), joint, name="joint")
     # the patch of ground and grass
-    ground_patch(K, 120, 283, 115, 0.85, (100, 276, 150, 284),
-                 grass=[(8, 246, 52, 284), (198, 252, 232, 284), (160, 262, 200, 284), (52, 262, 92, 284)])
+    earth_patch(K, 120, 283, 115, 0.85, (100, 276, 150, 284),
+                grass=[(8, 246, 52, 284), (198, 252, 232, 284), (160, 262, 200, 284), (52, 262, 92, 284)])
     K.leaves_only((0, 160, 237, 291))
     for box in ((28, 168, 48, 186), (200, 165, 224, 186), (165, 174, 185, 186), (80, 174, 100, 186)):
         cx2 = (box[0] + box[2]) / 2

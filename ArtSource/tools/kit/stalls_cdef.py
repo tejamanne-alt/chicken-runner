@@ -23,26 +23,74 @@ def _smooth(e0, e1, x):
     return t * t * (3 - 2 * t)
 
 
-def ktile(K, box, size=None, vary=0.0, soften=0.0):
-    """K.tile, but cut from the painting with its holes (pixels the cut-out made transparent: gaps in a weave, light
-    patches) and the pale halo round its outline filled from the nearest painted pixel, so a tile never shows the
-    white behind the cut-out."""
-    P = K.paint
+def _filled(K):
+    """The painting with its holes and the pale halo round its outline filled from the nearest painted pixel."""
     if not hasattr(K, "_filled"):
         from scipy import ndimage
         from PIL import Image
-        a = np.asarray(P.img).astype(np.float32)
+        a = np.asarray(K.paint.img).astype(np.float32)
         solid = ndimage.binary_erosion(a[..., 3] > 127, iterations=4)
         _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
         f = a[iy, ix]
         f[..., 3] = 255
         K._filled = Image.fromarray(f.clip(0, 255).astype(np.uint8), "RGBA")
+    return K._filled
+
+
+def ktile(K, box, size=None, vary=0.0, soften=0.0):
+    """K.tile, but cut from the painting with its holes (pixels the cut-out made transparent: gaps in a weave, light
+    patches) and the pale halo round its outline filled from the nearest painted pixel, so a tile never shows the
+    white behind the cut-out."""
+    P = K.paint
+    filled = _filled(K)
     img = P.img
-    P.img = K._filled
+    P.img = filled
     try:
         return K.tile(box, size, vary=vary, soften=soften)
     finally:
         P.img = img
+
+
+def pole_tile(K, box, soften=0.3, vary=0.05):
+    """A material for bamboo poles, stubs, rails and frames, from a narrow strip of a painted pole (box px: down the
+    lit middle of a post, or along a bar, inside its ink edges): the strip mirrored side by side into a square, made
+    seamless and box-projected at its painted size. So every pole wears the painting's bamboo (its mottling and node
+    marks) from every side, not a flat colour, and no pole's shading or ink edge repeats as stripes."""
+    from PIL import Image
+    from kitlib import Mat, _image, _vary, seamless
+    P = K.paint
+    key = ("pole", tuple(int(v) for v in box), soften)
+    if key in K._mats:
+        return K._mats[key]
+    x0, y0, x1, y1 = [int(round(v)) for v in box]
+    a = np.asarray(_filled(K).crop((x0, y0, x1, y1)).convert("RGB")).astype(np.float32)
+    if soften:
+        a = a * (1 - soften) + np.median(a.reshape(-1, 3), axis=0) * soften
+    h, w = a.shape[:2]
+    if h >= w:                       # a post: copies side by side, the pole's length stays vertical
+        n = max(1, int(round(h / max(1, w))))
+        sq = np.concatenate([a if k % 2 == 0 else a[:, ::-1] for k in range(n)], axis=1)
+    else:                            # a bar: copies stacked, its length stays horizontal
+        n = max(1, int(round(w / max(1, h))))
+        sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+    im = Image.fromarray(sq.clip(0, 255).astype(np.uint8))
+    sw, sh = P.m(im.width), P.m(im.height)
+    m = Mat(f"{K.name}_pole{len(K._mats)}")
+    tex = m.nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(seamless(im, 0.2), m.mat.name)
+    tex.projection = "BOX"
+    tex.projection_blend = 0.3
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    mapping = m.nt.nodes.new("ShaderNodeMapping")
+    mapping.inputs["Scale"].default_value = (1 / sw, 1 / sw, 1 / sh)
+    m.nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+    m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+    col = tex.outputs["Color"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / sw)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
 
 
 def green_leaves(rgb):

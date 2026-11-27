@@ -15,7 +15,7 @@ from PIL import Image
 from scipy import ndimage
 from skimage.morphology import skeletonize
 
-from kitlib import Mat, _image, foliage_pixels, model, plant_pixels
+from kitlib import Mat, _image, _vary, foliage_pixels, model, plant_pixels, seamless
 
 
 def limb(K, pts, mat, y=0.0, depth_wobble=0.0, segments=12, name="limb"):
@@ -660,6 +660,284 @@ def clear_sky(K, box, exclude=()):
         sky &= ~box_mask(mx.shape, exclude)
     a[sky, 3] = 0
     P.img = Image.fromarray(a, "RGBA")
+
+
+# ====================================================================== bark, earth, trunks, cards: the audit's fixes
+def _math(nt, kind, a, b):
+    n = nt.nodes.new("ShaderNodeMath")
+    n.operation = kind
+    for i, v in enumerate((a, b)):
+        if isinstance(v, (int, float)):
+            n.inputs[i].default_value = float(v)
+        else:
+            nt.links.new(v, n.inputs[i])
+    return n.outputs[0]
+
+
+def _tile_socket(m, pil, sw, sh, blend=0.25):
+    """In material m: a seamless tile of the image pil, box-projected (one tile sw x sh metres), sampled twice at
+    different scales and offsets blended by a soft noise (as K.tile), so it never repeats in a grid. Returns the
+    colour socket."""
+    nt = m.nt
+    img = _image(seamless(pil, blend), f"{m.mat.name}_tile")
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    samples = []
+    for scale, offset in ((1.0, 0.0), (0.77, 0.381)):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.3
+        mapping = nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sh)
+        mapping.inputs["Location"].default_value = (offset, offset * 0.7, offset * 1.3)
+        nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+        nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        samples.append(tex.outputs["Color"])
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+    noise.inputs["Detail"].default_value = 2.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.4
+    ramp.inputs["From Max"].default_value = 0.6
+    nt.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    nt.links.new(samples[0], mix.inputs["A"])
+    nt.links.new(samples[1], mix.inputs["B"])
+    return mix.outputs["Result"]
+
+
+def _softened(pil, soften):
+    a = np.asarray(pil.convert("RGB")).astype(np.float32)
+    if soften:
+        med = np.median(a.reshape(-1, 3), axis=0)
+        a = a * (1 - soften) + med * soften
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8))
+
+
+def strip_tile(K, box, soften=0.35, vary=0.08, name=None):
+    """A tile of a strip of the painting (the red earth under a tree, painted as a thin band): the strip mirrored and
+    stacked into a square first, so on a wide patch of ground it does not stretch into streaks."""
+    P = K.paint
+    key = ("trees_strip", tuple(int(v) for v in box), soften, vary)
+    if key in K._mats:
+        return K._mats[key]
+    crop = P.crop(box).convert("RGBA")
+    a = np.asarray(crop).astype(np.float32)
+    ok = a[..., 3] > 200
+    if (~ok).any() and ok.any():                         # fill the crop's transparent or halo pixels first
+        _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+        a = a[iy, ix]
+    a = a[..., :3]
+    w, h = a.shape[1], a.shape[0]
+    n = max(1, int(round(w / max(1, h))))
+    sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+    pil = _softened(Image.fromarray(sq.clip(0, 255).astype(np.uint8)), soften)
+    m = Mat(name or f"{K.name}_strip{len(K._mats)}")
+    sw = P.m(w)
+    col = _tile_socket(m, pil, sw, sw * pil.height / pil.width)
+    if vary:
+        col = _vary(m, col, vary, 3.0 / sw)
+    m.set_colour(col)
+    K._mats[key] = m
+    return m
+
+
+def bark_box(mask, near=None, side=(28, 150)):
+    """A box (px) of clean bark for a tile: the square inside the wood mask, round its thickest point (or the
+    thickest point near `near` (px, py)), cut well inside its painted outline."""
+    dt = ndimage.distance_transform_edt(mask)
+    if near is not None:
+        yy, xx = np.mgrid[0:mask.shape[0], 0:mask.shape[1]]
+        dt = dt * (np.hypot(xx - near[0], yy - near[1]) < 120)
+    py, px = np.unravel_index(int(np.argmax(dt)), dt.shape)
+    s = float(np.clip(dt[py, px] * 1.1, *side))
+    return (int(px - s / 2), int(py - s * 0.6), int(px + s / 2), int(py + s * 0.6))
+
+
+def bark_mix(K, mask, tile_box=None, squeeze=0.86, inset=2, lo=0.25, hi=0.6, soften=0.3, name=None):
+    """The bark of traced wood seen from every side. Where a limb or trunk faces the camera or away from it, the
+    painting projected straight through, each pixel squeezed towards the nearest point of the wood's own centre line
+    (so a leaning trunk or a limb running any way keeps its painted bark, never its ink outline or the leaves beside
+    it); where it faces sideways, or wherever that projection would land off the painted wood, a seamless tile of the
+    painted bark (so the sides are bark, not the painting's edge column dragged across into stripes)."""
+    P = K.paint
+    key = ("trees_bark", id(mask), tile_box, squeeze, inset)
+    if key in K._mats:
+        return K._mats[key]
+    m = Mat(name or f"{K.name}_barkmix{len(K._mats)}")
+    nt = m.nt
+    # ---- the projection, squeezed towards the centre lines
+    sm = ndimage.gaussian_filter(mask.astype(np.float32), 1.2) > 0.5
+    sk = skeletonize(sm)
+    if not sk.any():
+        sk = sm
+    dts, (iy, ix) = ndimage.distance_transform_edt(~sk, return_indices=True)
+    H, W = mask.shape
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    qx = np.clip(ix + (xx - ix) * squeeze, 0, W - 1).astype(np.int32)
+    qy = np.clip(iy + (yy - iy) * squeeze, 0, H - 1).astype(np.int32)
+    ok = ndimage.binary_erosion(mask, iterations=inset) if inset else mask
+    a = np.asarray(P.img).astype(np.float32)
+    rgb = a[qy, qx, :3]
+    valid = ok[qy, qx].astype(np.float32)
+    valid = ndimage.gaussian_filter(valid, 1.0)
+    # off the wood (where the tile shows): the colour of the nearest valid sample, so the blend never reaches black
+    good = valid > 0.5
+    if good.any() and (~good).any():
+        _, (jy, jx) = ndimage.distance_transform_edt(~good, return_indices=True)
+        rgb = rgb[jy, jx]
+    img = np.dstack([rgb, valid[..., None] * 255]).clip(0, 255).astype(np.uint8)
+    proj = Image.fromarray(img, "RGBA")
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+    u = _math(nt, "ADD", _math(nt, "DIVIDE", sep.outputs["X"], P.W), 0.5)
+    v = _math(nt, "DIVIDE", sep.outputs["Z"], P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(proj, f"{m.mat.name}_proj")
+    tex.image.alpha_mode = "CHANNEL_PACKED"
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    # ---- the tile
+    box = tile_box or bark_box(mask)
+    crop = _softened(P.crop(box), soften)
+    sw = P.m(box[2] - box[0])
+    tile = _tile_socket(m, crop, sw, sw * (box[3] - box[1]) / max(1, box[2] - box[0]))
+    tile = _vary(m, tile, 0.06, 3.0 / sw)
+    # ---- the blend: how squarely the surface faces front or back, times whether the projection is on the wood
+    nsep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Normal"], nsep.inputs[0])
+    ny = _math(nt, "ABSOLUTE", nsep.outputs["Y"], 0.0)
+    face = nt.nodes.new("ShaderNodeMapRange")
+    face.interpolation_type = "SMOOTHSTEP"
+    face.inputs["From Min"].default_value = lo
+    face.inputs["From Max"].default_value = hi
+    nt.links.new(ny, face.inputs["Value"])
+    w = _math(nt, "MULTIPLY", face.outputs["Result"], tex.outputs["Alpha"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    nt.links.new(w, mix.inputs["Factor"])
+    nt.links.new(tile, mix.inputs["A"])
+    nt.links.new(tex.outputs["Color"], mix.inputs["B"])
+    m.set_colour(mix.outputs["Result"])
+    K._mats[key] = m
+    return m
+
+
+def earth_patch(K, cx_px, rx_px, ry, box, y=0.0, z=0.0, h=0.04, segments=36, name="earth", soften=0.35):
+    """The patch of earth a tree stands on, textured with a tile of the painted earth (box, px) all over (a plain
+    colour reads as untextured from the side and above); its rim tucked down to z."""
+    P = K.paint
+    soil = strip_tile(K, box, soften=soften)
+    rx = P.m(rx_px)
+    return K.lathe([(0.0, 0.0), (rx, 0.0), (rx * 0.95, h * 0.6), (rx * 0.6, h), (0.0, h * 1.05)], soil,
+                   segments=segments, centre=(P.x(cx_px), y, z), scale_y=ry / rx, wobble=0.1, name=name)
+
+
+def trunk_runs(mask, py_bot, py_top, x_start, step=3, grow=1.25, max_w=None):
+    """The painted trunk's width up its height: at each row from py_bot up to py_top, the run of wood pixels that
+    continues the trunk (nearest the centre of the row below), as [(py, x_left, x_right)]. A row where limbs or roots
+    leave the trunk is held to `grow` x the trunk's width below it, round its centre."""
+    rows = []
+    cx, wprev = float(x_start), None
+    for py in range(int(py_bot), int(py_top) - 1, -step):
+        r = mask[py]
+        idx = np.nonzero(np.diff(np.concatenate([[0], r.astype(np.int8), [0]])))[0]
+        runs = [(a, b) for a, b in zip(idx[::2], idx[1::2]) if b - a >= 3]
+        if not runs:
+            continue
+        a, b = min(runs, key=lambda ab: 0 if ab[0] <= cx <= ab[1] else min(abs(ab[0] - cx), abs(ab[1] - cx)))
+        if not (a - 15 <= cx <= b + 15):
+            continue
+        w = b - a
+        if wprev is not None and w > wprev * grow + 4:
+            c = (a + b) / 2 if abs((a + b) / 2 - cx) < wprev * 0.3 else cx
+            a, b, w = c - wprev * grow / 2, c + wprev * grow / 2, wprev * grow
+        if max_w is not None and w > max_w:
+            c = (a + b) / 2
+            a, b, w = c - max_w / 2, c + max_w / 2, max_w
+        rows.append((py, float(a), float(b)))
+        cx, wprev = (a + b) / 2, w
+    return rows
+
+
+def loft_trunk(K, rows, mat, y=0.0, depth=0.85, max_depth_px=None, segments=20, name="trunk_loft", smooth_rows=3):
+    """A trunk lofted through the painted rows [(py, x_left, x_right)]: each row a ring as wide as the trunk is
+    painted there and `depth` x as deep (at most max_depth_px), centred at depth y (a number or fn(px, py)): from
+    the front its outline is exactly the painted trunk's, from the side a round trunk."""
+    P = K.paint
+    if len(rows) < 2:
+        return None
+    arr = np.array(rows, np.float32)
+    if smooth_rows and len(arr) > smooth_rows * 2:
+        for c in (1, 2):
+            arr[:, c] = ndimage.uniform_filter1d(arr[:, c], smooth_rows, mode="nearest")
+    bm = bmesh.new()
+    rings = []
+    for py, a, b in arr:
+        cx, hw = (a + b) / 2, max(1.0, (b - a) / 2)
+        hd = hw * depth if max_depth_px is None else min(hw * depth, max_depth_px)
+        yc = y(cx, py) if callable(y) else y
+        ring = [bm.verts.new((P.x(cx) + P.m(hw) * math.cos(2 * math.pi * k / segments),
+                              yc + P.m(hd) * math.sin(2 * math.pi * k / segments), P.z(py))) for k in range(segments)]
+        rings.append(ring)
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(segments):
+            j = (k + 1) % segments
+            bm.faces.new([r0[k], r0[j], r1[j], r1[k]])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    return _add(K, bm, mat, name)
+
+
+def sheared_card(K, box_px, yc, slope=(0.0, 0.0), normal=None, name="leaf", n=9, rag=0.22):
+    """A leaf card cut from the painting as a ragged blob inscribed in box_px, every vertex at its painted (x, z)
+    and only its depth varying: y = yc + slope[0] (x - x_c) + slope[1] (z - z_c) (a turn about the vertical, or a
+    tilt, sheared into depth instead of rotated). Whatever its depth and slope it shows exactly the painting there
+    from the front, and from the side or above it is a leafy patch at that depth. Returns (object, outline px)."""
+    from kitlib import _obj
+    P = K.paint
+    x0, y0, x1, y1 = max(0, box_px[0]), max(0, box_px[1]), min(P.w, box_px[2]), min(P.h, box_px[3])
+    if x1 - x0 < 3 or y1 - y0 < 3:
+        return None, None
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    hw, hh = (x1 - x0) / 2, (y1 - y0) / 2
+    ph = K.rng.uniform(0, 2 * math.pi)
+    bm = bmesh.new()
+    vs, uvs, poly = [], [], []
+    for k in range(n):
+        a = ph + 2 * math.pi * k / n
+        rr = 1.0 - rag * K.rng.uniform(0, 1)
+        px, py = cx + math.cos(a) * rr * hw, cy - math.sin(a) * rr * hh
+        yy = yc + slope[0] * (P.x(px) - P.x(cx)) + slope[1] * (P.z(py) - P.z(cy))
+        vs.append(bm.verts.new((P.x(px), yy, P.z(py))))
+        uvs.append((px / P.w, 1 - py / P.h))
+        poly.append((px, py))
+    f = bm.faces.new(vs)
+    layer = bm.loops.layers.uv.new("UVMap")
+    for lp, uv in zip(f.loops, uvs):
+        lp[layer].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = list(normal) if normal is not None else [0.0, -0.35, 1.0]
+    K.cards_parts.append(ob)
+    return ob, poly
+
+
+def leaf_mask_of(K, box, rule):
+    """The pixels a leaves_only rule keeps inside box, as a full-painting bool mask."""
+    P = K.paint
+    x0, y0, x1, y1 = [int(round(v)) for v in (max(0, box[0]), max(0, box[1]), min(P.w, box[2]), min(P.h, box[3]))]
+    a = np.asarray(P.img).copy()
+    m = np.zeros((P.h, P.w), bool)
+    sub = a[y0:y1, x0:x1]
+    m[y0:y1, x0:x1] = rule(sub[..., :3]) & (sub[..., 3] > 127)
+    return m
 
 
 class Crown:

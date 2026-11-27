@@ -15,7 +15,8 @@ from mathutils import Matrix, Vector
 
 from kitlib import Mat, _image, _obj, model
 from stalls_cdef import (_smooth, awning, ball, bamboo, basket, basket_stack, beam, blobs, green_leaves, heap_px,
-                         hip_thatch, joint, ktile, lashing, on_heap, rib_umbrella, sack, slab, turned, unify_cards)
+                         hip_thatch, joint, ktile, lashing, on_heap, pole_tile, rib_umbrella, sack, slab, turned,
+                         unify_cards)
 from stalls_cdef import pod as pod_c
 
 
@@ -2571,9 +2572,9 @@ def flower_stall(K):
     loose petals on the ground."""
     P = K.paint
     Z = P.z
-    K.front_min = 0.12
+    K.front_min = 0.2
     T = Turned(P, 14.0, -0.058)
-    bam = K.colour((40, 100, 46, 140), vary=0.08)
+    bam = pole_tile(K, (37, 100, 45, 150))
     rope = K.colour((0.45, 0.3, 0.1), vary=0.1)
     yf, yb = -0.3, 0.35
     a_ = 0.74
@@ -2597,7 +2598,7 @@ def flower_stall(K):
     bamboo(K, (-a_, yf + 0.04, Z(53)), (a_, yf + 0.04, Z(53)), P.m(4), bam, node_at=[0.5], taper=1.0, name="hook_beam")
     # ---------------------------------------------------------------- the counter, its legs and shelf
     zc = Z(203)
-    slat = K.colour((120, 203, 160, 208), vary=0.08)
+    slat = pole_tile(K, (110, 202, 170, 208))
     for k in range(7):
         y = yf + 0.02 + (yb - yf - 0.04) * (k + 0.5) / 7
         bamboo(K, (-a_ - 0.05, y, zc - 0.015), (a_ + 0.08, y, zc - 0.015), P.m(5), slat, node_at=[0.4, 0.8], taper=1.0,
@@ -2617,7 +2618,7 @@ def flower_stall(K):
     T.apply(K.parts[n0:])
     # ---------------------------------------------------------------- the thatch
     import market_props as MP
-    straw = MP.strip_tile(K, (40, 24, 190, 44), vary=0.06, soften=0.2)
+    straw = MP.strip_tile(K, (40, 24, 190, 44), vary=0.08, soften=0.45)
     n1 = collect(K)
 
     def roof(u, v, drop=0.0):
@@ -2644,15 +2645,18 @@ def flower_stall(K):
         p = T.w((box[0] + box[2]) / 2, yg, 0.0)
         bead_garland(K, box, p.y, strands=2 if box[2] - box[0] > 18 else 1, string_to=Z(53))
     # ---------------------------------------------------------------- the heaps on the counter
-    for (x0, x1, top), yl in (((43, 110, 164), -0.02), ((91, 156, 164), 0.06), ((136, 206, 163), -0.02)):
+    # each heap wears a tile of its own painted flowers (the front projection paints its front): projected through
+    # it, its sides and top would be one row of the painting dragged into streaks
+    for (x0, x1, top), yl, tb in (((43, 110, 164), -0.02, (52, 172, 92, 196)), ((91, 156, 164), 0.06, (104, 170, 140, 192)),
+                                  ((136, 206, 163), -0.02, (150, 168, 196, 192))):
         cx = (x0 + x1) / 2
         p = T.w(cx, yl, 0.0)
-        m = K.projected(squeeze=1.0, keep=[(x0, top, x1, 202)], inset=1)
+        m = ktile(K, tb, vary=0.06, soften=0.1)
         hw = (x1 - x0) / 2
         K.lathe([(P.m(hw), zc - 0.01), (P.m(hw) * 0.95, zc + (Z(top) - zc) * 0.4), (P.m(hw) * 0.7, zc + (Z(top) - zc) * 0.8),
                  (P.m(hw) * 0.35, Z(top) - 0.01), (0.0, Z(top))], m, segments=24, centre=(p.x, p.y, 0.0),
                 scale_y=0.8, wobble=0.08, name="flower_heap")
-    m = K.projected(squeeze=1.0, keep=[(15, 178, 33, 200)], inset=1)
+    m = ktile(K, (52, 172, 92, 196), vary=0.06, soften=0.1)
     p = T.w(24, 0.0, 0.0)
     K.lathe([(P.m(10), zc - 0.01), (P.m(8), Z(186)), (0.0, Z(178))], m, segments=16, centre=(p.x, p.y, 0.0),
             name="flower_heap")
@@ -2693,7 +2697,7 @@ def flower_stall(K):
         base = Vector(rc) + Vector((1, 0, 0)) * (d * math.cos(b)) + up_t * (d * math.sin(b)) + ax * (Rm * 0.4)
         K.card_from_painting((px_ - 9, py_ - 6, px_ + 9, py_ + 6), tuple(base), yaw=K.rng.uniform(-60, 60),
                              pitch=-K.rng.uniform(55, 80), name="petals", normal=(0, -0.3, 1))
-    shadow = K.colour((20, 254, 120, 258), vary=0.05)
+    shadow = MP.strip_tile(K, (20, 255, 128, 259), vary=0.05, soften=0.75)
     K.lathe([(0.0, 0.0), (1.1, 0.0), (1.05, 0.005), (0.0, 0.007)], shadow, segments=32, centre=(T.cx, -0.05, -0.004),
             scale_y=0.55, cap=False, name="ground")
     unify_cards(K)

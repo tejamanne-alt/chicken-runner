@@ -244,14 +244,49 @@ def shifted_material(K, ok, dx_m, dz_m, inset=1):
 
 
 # ====================================================================== cards
+def fit_widths(mask, spine_px, hw, profile="frond", n=16, lo=0.35, hi=1.7, gap=3):
+    """The painted frond's own half-widths either side of its spine (px, base to tip): from each spine point, out
+    along the perpendicular to where the painted leaf (mask) ends, kept between lo and hi x the nominal width (so a
+    frond hanging its leaflets below its rachis is covered where it is painted, not a band centred on the spine).
+    Returns (w_minus, w_plus) for the two sides (c = -1 and +1 in ribbon)."""
+    H, W = mask.shape
+    sp = spline(spine_px, n)
+    tg = np.gradient(sp, axis=0)
+    tg /= np.maximum(1e-9, np.linalg.norm(tg, axis=1))[:, None]
+    perp = np.stack([-tg[:, 1], tg[:, 0]], 1)
+    nom = widths(hw, np.linspace(0, 1, n), profile)
+    out = []
+    for sgn in (-1.0, 1.0):
+        ws = []
+        for i in range(n):
+            lim = nom[i] * hi
+            last, miss, d = 0.0, 0, 0.0
+            while d < lim:
+                d += 1.0
+                q = sp[i] + perp[i] * sgn * d
+                x, y = int(round(q[0])), int(round(q[1]))
+                if 0 <= x < W and 0 <= y < H and mask[y, x]:
+                    last, miss = d, 0
+                else:
+                    miss += 1
+                    if miss > gap:
+                        break
+            ws.append(float(np.clip(last + 1.5, nom[i] * lo, lim)))
+        ws = ndimage.median_filter(np.array(ws), size=3, mode="nearest")
+        ws[0], ws[-1] = min(ws[0], nom[0] * 1.2), min(ws[-1], max(nom[-1], 2.0) * 1.5)
+        out.append(ws)
+    return out[0], out[1]
+
+
 def ribbon(K, spine_px, hw, y_of=0.0, rows=5, roll=0.0, fold=0.0, xform=None, normal=None, n=16, name="frond",
-           profile="frond", droop=0.0, twist=0.0):
+           profile="frond", droop=0.0, twist=0.0, fit=None):
     """A cut-out card bent along a painted spine: spine_px the painted centre line [(px, py), ...] (base to tip),
     hw its half-width (px, see widths()), y_of(t) its depth (metres) along it. Every vertex sits where the painting
     has it (x, z), so from the front the ribbon is exactly the painted frond / leaf / blade wherever it is in depth;
     roll (-1..1) tilts it about its spine (one edge forward, the other back), fold (-1..1) creases it along its spine
     into a V (both edges back, or forward), twist adds roll towards the tip. xform(Vector) -> Vector moves the whole
-    thing (a copy turned round the plant's axis). Returns the part."""
+    thing (a copy turned round the plant's axis). fit = (w_minus, w_plus) px per spine point: the two sides' own
+    half-widths (fit_widths) in place of hw. Returns the part."""
     P = K.paint
     sp = spline(spine_px, n)
     tg = np.gradient(sp, axis=0)
@@ -259,6 +294,9 @@ def ribbon(K, spine_px, hw, y_of=0.0, rows=5, roll=0.0, fold=0.0, xform=None, no
     perp = np.stack([-tg[:, 1], tg[:, 0]], 1)
     ts = np.linspace(0, 1, n)
     w = widths(hw, ts, profile)
+    if fit is not None:
+        wm, wp = np.asarray(fit[0], float), np.asarray(fit[1], float)
+        w = (wm + wp) / 2
     cross = np.linspace(-1, 1, rows)
     bm = bmesh.new()
     uvl = bm.loops.layers.uv.new("UVMap")
@@ -269,7 +307,8 @@ def ribbon(K, spine_px, hw, y_of=0.0, rows=5, roll=0.0, fold=0.0, xform=None, no
         rl = roll + twist * ts[i]
         row = []
         for c in cross:
-            q = sp[i] + perp[i] * c * w[i]
+            wc = w[i] if fit is None else (wm[i] if c < 0 else wp[i])
+            q = sp[i] + perp[i] * c * wc
             qx, qy = float(np.clip(q[0], 0.5, P.w - 0.5)), float(np.clip(q[1], 0.5, P.h - 0.5))
             y = yb + c * hwm * rl + abs(c) * hwm * fold
             v = Vector((P.x(qx), y, P.z(qy) - droop * abs(c) * hwm * 0.0))
@@ -409,20 +448,31 @@ class Palm:
     """A palm's crown: fronds as ribbons radiating from the heart (centre_px, at depth 0), each painted frond where it
     is painted, arching to the front (d < 0) or back (d > 0) by d x R metres at its tip; copies turned round the back."""
 
-    def __init__(self, K, centre_px, R, ok_mask=None):
+    def __init__(self, K, centre_px, R, ok_mask=None, fit_mask=None, fit_lim=(0.35, 1.7)):
         self.K, self.P = K, K.paint
         self.c = centre_px
         self.R = R
         self.spines = []                  # 3D spines (for stalks): [(points metres, radius px)]
         P = self.P
         self.alpha = P.rgba[..., 3] > 0.5 if ok_mask is None else ok_mask
+        self.fit_mask, self.fit_lim, self._fits = fit_mask, fit_lim, {}
+
+    def fit_of(self, spine, hw, profile, n, k=1.0):
+        """The painted frond's own widths either side of its spine (when the crown has a fit mask), x k."""
+        if self.fit_mask is None:
+            return None
+        key = (tuple(map(tuple, spine)), n, profile)
+        if key not in self._fits:
+            self._fits[key] = fit_widths(self.fit_mask, spine, hw, profile, n, *self.fit_lim)
+        wm, wp = self._fits[key]
+        return wm * k, wp * k
 
     def y_fn(self, d, power=1.5, y0=0.0):
         R = self.R
         return lambda t: y0 + d * R * (1 - (1 - t) ** power)
 
     def frond(self, spine, hw, d, roll=None, fold=None, xform=None, profile="frond", rows=5, n=16, power=1.5,
-              name="frond", twist=0.0):
+              name="frond", twist=0.0, k=1.0):
         K, P = self.K, self.P
         rng = K.rng
         roll = rng.uniform(-0.6, 0.6) if roll is None else roll
@@ -435,7 +485,7 @@ class Palm:
             o = xform(Vector((P.x(mid[0]), y_of(0.5), P.z(mid[1])))) - xform(Vector((P.x(self.c[0]), 0, P.z(self.c[1]))))
             out = Vector((o.x, o.y * 1.2, o.z + P.m(60)))
         ob = ribbon(K, spine, hw, y_of, rows=rows, roll=roll, fold=fold, xform=xform, n=n, name=name, profile=profile,
-                    normal=tuple(out.normalized()), twist=twist)
+                    normal=tuple(out.normalized()), twist=twist, fit=self.fit_of(spine, hw, profile, n, k))
         pts3 = [Vector((P.x(x), y_of(t), P.z(y))) for (x, y), t in zip(sp, np.linspace(0, 1, n))]
         if xform is not None:
             pts3 = [xform(v) for v in pts3]
@@ -497,7 +547,8 @@ class Palm:
                 if mean_y < self.R * 0.12:
                     continue
                 if self.fits(spine, scale_hw(hw, 0.9), d2, xf, profile=prof, need=need):
-                    self.frond(spine, scale_hw(hw, rng.uniform(0.85, 1.0)), d2, xform=xf, profile=prof, name="frond_back")
+                    kk = rng.uniform(0.85, 1.0)
+                    self.frond(spine, scale_hw(hw, kk), d2, xform=xf, profile=prof, name="frond_back", k=kk)
                     break
 
     def stalks(self, mat, r0_px, r1_px, frac=0.3, heart=None):
