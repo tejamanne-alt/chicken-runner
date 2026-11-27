@@ -1,7 +1,9 @@
 // The painted ground: a tile laid in world space (so the lane's chunks and the big plane behind them meet with no seam),
 // broken up by a second, turned and larger sample and by slow light and dark drifts so the red earth never shows a
-// repeating pattern. Optionally a second texture (zone 2's paddy water) away from the lane band, and the same distance
-// haze as the painted cards. Matches earth_material() and haze_amount() in ArtSource/tools/ground.py.
+// repeating pattern. Optionally a second texture (zone 2's paddy water) away from the lane band; the village road along
+// the lane (a painted tile from ArtSource/tools/models/road_textures.py: 4 m along the lane, its width across), laid as
+// a band with soft, slightly wavy edges into the earth; and the same distance haze as the painted cards. Matches
+// earth_material() and haze_amount() in ArtSource/tools/ground.py.
 Shader "ChickenRunner/PaintedGround"
 {
     Properties
@@ -16,6 +18,13 @@ Shader "ChickenRunner/PaintedGround"
         _BandFront ("Lane band front edge (depth)", Float) = -1.8
         _BandBack ("Lane band back edge (depth)", Float) = 1.8
         _BandSoft ("Band edge softness (m)", Float) = 0.5
+        [Toggle] _UseRoad ("Road along the lane", Float) = 0
+        _RoadTex ("Road tile (u along the lane, v across it, front to back)", 2D) = "white" {}
+        _RoadTile ("Metres per road tile along the lane", Float) = 4
+        _RoadFront ("Road front edge (depth)", Float) = -2.4
+        _RoadBack ("Road back edge (depth)", Float) = 1.0
+        _RoadSoft ("Road edge softness (m)", Float) = 0.22
+        _RoadWave ("Road edge waviness (m)", Float) = 0.12
         _HazeColor ("Haze colour", Color) = (0.98, 0.765, 0.545, 1)
         _HazeFrom ("Haze starts (depth)", Float) = 6
         _HazeTo ("Haze is full (depth)", Float) = 40
@@ -42,6 +51,13 @@ Shader "ChickenRunner/PaintedGround"
             float _BandFront;
             float _BandBack;
             float _BandSoft;
+            sampler2D _RoadTex;
+            float _UseRoad;
+            float _RoadTile;
+            float _RoadFront;
+            float _RoadBack;
+            float _RoadSoft;
+            float _RoadWave;
             fixed4 _HazeColor;
             float _HazeFrom;
             float _HazeTo;
@@ -80,6 +96,18 @@ Shader "ChickenRunner/PaintedGround"
                     float band = smoothstep(_BandFront - _BandSoft, _BandFront, p.y)
                         * (1 - smoothstep(_BandBack, _BandBack + _BandSoft, p.y));
                     c = lerp(Tiled(_FarTex, p, _FarTile), c, band);
+                }
+
+                if (_UseRoad > 0.5)
+                {
+                    // The road: its own tile across its width, its edges wandering a little and fading into the earth.
+                    float front = _RoadFront + _RoadWave * (0.6 * sin(p.x * 1.3) + 0.4 * sin(p.x * 0.47 + 1.1));
+                    float back = _RoadBack + _RoadWave * (0.6 * sin(p.x * 1.1 + 2.0) + 0.4 * sin(p.x * 0.53 + 0.3));
+                    float road = smoothstep(front - _RoadSoft, front + _RoadSoft, p.y)
+                        * (1 - smoothstep(back - _RoadSoft, back + _RoadSoft, p.y));
+                    float2 ruv = float2(p.x / _RoadTile, saturate((p.y - _RoadFront) / max(0.01, _RoadBack - _RoadFront)));
+                    fixed3 r = tex2D(_RoadTex, ruv).rgb * (1 + 0.5 * _Drift * drift);
+                    c = lerp(c, r, road);
                 }
 
                 c *= _Tint.rgb;

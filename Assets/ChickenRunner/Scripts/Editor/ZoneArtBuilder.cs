@@ -51,6 +51,7 @@ namespace ChickenRunner.EditorTools
             else
             {
                 var cards = layout.cards.Where(c => Keep(c, zone)).ToList();
+                if (zone != 2) cards.AddRange(SideLanes(cards));   // the fields have their cart track, no side lanes
                 var wide = cards.Where(c => !c.flat && c.w >= StripWidth).ToList();
                 var rest = cards.Except(wide).ToList();
 
@@ -66,6 +67,49 @@ namespace ChickenRunner.EditorTools
             art.tracks = tracks.ToArray();
             EditorUtility.SetDirty(art);
             return art;
+        }
+
+        const string SideLaneImage = "ArtSource/cutouts/ground/side_lane_mud.png";
+        const float SideLaneLength = 8f;
+
+        /// <summary>
+        /// The village's side lanes: a narrow mud lane running back from the road between two houses, wherever the set
+        /// leaves a gap of 3 m or more between them with nobody standing in it, at most one every 20 m
+        /// (side_lane_mud.png from ArtSource/tools/models/road_textures.py, faded at its edges and far end).
+        /// </summary>
+        static IEnumerable<LayoutCard> SideLanes(List<LayoutCard> cards)
+        {
+            if (!File.Exists(Path.Combine(ArtAssets.RepoRoot, SideLaneImage))) yield break;
+            // Buildings: the lane's houses, and the market's big pieces (its terrace houses, stalls and mandapam are props).
+            var blocks = cards.Where(c => !c.flat && c.z > LaneBack && c.z < NearDepth
+                    && (c.layer == "Houses" || (c.w >= 2.5f && c.h >= 2f && c.layer != "Backdrop" && c.layer != "Plants")))
+                .Select(c => new Vector2(c.x - c.w * 0.5f, c.x + c.w * 0.5f)).OrderBy(b => b.x).ToList();
+            var figures = cards.Where(c => !c.flat && c.layer != "Houses" && c.w < 2.5f && c.z > LaneBack && c.z < 6f && c.h > 0.5f).ToList();
+            float last = float.NegativeInfinity;
+            int made = 0;
+            for (int i = 0; i + 1 < blocks.Count; i++)
+            {
+                float from = blocks[i].y;
+                for (int j = 0; j <= i; j++) from = Mathf.Max(from, blocks[j].y);
+                float to = blocks[i + 1].x;
+                if (to - from < 3f) continue;
+                float cx = (from + to) * 0.5f;
+                if (cx - last < 20f) continue;
+                if (figures.Any(f => Mathf.Abs(f.x - cx) < 1.2f + f.w * 0.5f)) continue;
+                last = cx;
+                yield return new LayoutCard
+                {
+                    name = "side_lane_" + made++,
+                    image = SideLaneImage,
+                    layer = "Ground",
+                    x = cx,
+                    y = 0f,
+                    z = GameBuilder.RoadBack - 0.3f + SideLaneLength * 0.5f,
+                    w = Mathf.Min(2.6f, to - from - 0.6f),
+                    h = SideLaneLength,
+                    flat = true,
+                };
+            }
         }
 
         static bool Keep(LayoutCard c, int zone)

@@ -176,16 +176,48 @@ namespace ChickenRunner.EditorTools
             return material;
         }
 
-        /// <summary>The red earth for zones 1 and 3; zone 2's bund lane runs between paddy water.</summary>
+        // The village road along the lane, as a band of the ground (PaintedGround's _RoadTex): from its front edge toward
+        // the camera to its back edge by the houses, so the running line (z = 0) is on it and the house fronts (z 0.4) stand
+        // at its back edge. ArtSource/tools/models/road_textures.py paints the tiles to these sizes.
+        internal const float RoadFront = -2.4f;
+        internal const float RoadBack = 1.0f;
+        const float RoadTile = 4f;
+        static readonly string[] s_roads = { "road_mud_lane", "road_cart_track", "road_cement" };
+
+        /// <summary>
+        /// The red earth for zones 1 and 3; zone 2's bund lane runs between paddy water. Down the lane, each zone's road: the
+        /// lane's hardened mud street, the fields' cart track, the market's cement road.
+        /// </summary>
         static Material ZoneGround(int zone)
         {
             var earth = ArtAssets.Texture(ArtAssets.Cutout("plain_red_earth") ?? ArtAssets.Cutout("ground_earth_lane"), true);
+            Material ground;
             if (zone == 2)
             {
                 var paddy = ArtAssets.Texture(ArtAssets.Cutout("paddy_water"), true);
-                return GroundMaterial("Ground_Zone2", earth, 3.5f, paddy, Color.white, 0.14f, 10f, 55f);
+                ground = GroundMaterial("Ground_Zone2", earth, 3.5f, paddy, Color.white, 0.14f, 10f, 55f);
             }
-            return GroundMaterial("Ground_Zone" + zone, earth, 3.5f, null, Color.white, 0.14f, 6f, 40f);
+            else
+            {
+                ground = GroundMaterial("Ground_Zone" + zone, earth, 3.5f, null, Color.white, 0.14f, 6f, 40f);
+            }
+            var road = ArtAssets.Texture(ArtAssets.Cutout(s_roads[Mathf.Clamp(zone, 1, 3) - 1]), true);
+            ground.SetFloat("_UseRoad", road != null ? 1f : 0f);
+            if (road != null)
+            {
+                ground.SetTexture("_RoadTex", road);
+                ground.SetFloat("_RoadTile", RoadTile);
+                ground.SetFloat("_RoadFront", RoadFront);
+                ground.SetFloat("_RoadBack", RoadBack);
+                ground.SetFloat("_RoadSoft", 0.22f);
+                ground.SetFloat("_RoadWave", 0.12f);
+            }
+            else
+            {
+                Debug.LogWarning("The road tiles are missing (ArtSource/tools/models/road_textures.py): the lane is bare earth.");
+            }
+            EditorUtility.SetDirty(ground);
+            return ground;
         }
 
         static Material GroundMaterial(string name, Texture2D main, float tile, Texture2D far, Color tint, float drift, float hazeFrom, float hazeTo)
