@@ -20,18 +20,176 @@ slabs) and the prints (decals: cards of the painting).
 import math
 
 import bmesh
+import bpy
 import cv2
 import numpy as np
 from mathutils import Vector
 from PIL import Image
 from scipy import ndimage
 
-from kitlib import Mat, _image, _obj, model
+from kitlib import Mat, _image, _obj, _vary
+from kitlib import model as _kit_model
+
+
+# ====================================================================== registering: the atlas's aspect
+def square_uv_aspect(K):
+    """Blender's island packer scales every UV island by the aspect of the active material's image before packing
+    and back after, so with a wide painting as the first part's image (a projected material) the islands it does not
+    turn come out stretched (a 7 m strip's top sheet 30:1 in the atlas: smeared along one axis). An unlinked square
+    image made the active node of every part's material keeps the packing true; it is not wired to anything."""
+    img = bpy.data.images.get("kit_square_aspect") or bpy.data.images.new("kit_square_aspect", 8, 8)
+    seen = set()
+    for ob in K.parts:
+        for m in ob.data.materials:
+            if m is None or not m.use_nodes or m.name in seen:
+                continue
+            seen.add(m.name)
+            n = m.node_tree.nodes.new("ShaderNodeTexImage")
+            n.image = img
+            n.name = "square_aspect"
+            m.node_tree.nodes.active = n
+
+
+def model(name, folder, kind="prop", **kw):
+    """kitlib's @model, with the atlas packed true (square_uv_aspect) once the parts are built."""
+    def wrap(fn):
+        def build(K):
+            fn(K)
+            square_uv_aspect(K)
+        build.__doc__, build.__name__ = fn.__doc__, fn.__name__
+        _kit_model(name, folder, kind, **kw)(build)
+        return fn
+    return wrap
 
 
 # ====================================================================== helpers: masks and outlines
 def alpha_mask(P, thresh=0.5):
     return P.rgba[..., 3] > thresh
+
+
+def halo_free(P, reach=12, bright=145, sat=38):
+    """The painting's opaque pixels less the pale grey halo a cut-out keeps round its outline and in its gaps: pale,
+    unsaturated pixels reached from the transparent outside through other such pixels (up to `reach` px), so a pale
+    part inside its own ink line (a cotton boll, a seed head) is kept."""
+    a = alpha_mask(P)
+    rgb = P.rgba[..., :3] * 255
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    pale = (mn > bright) & (mx - mn < sat)
+    out = ~a
+    for _ in range(reach):
+        out = out | (ndimage.binary_dilation(out) & pale)
+    return a & ~out
+
+
+def inset_px(mask, px):
+    """A mask pulled in by px pixels (the game's ink line, drawn outside every solid part, takes their place)."""
+    return ndimage.binary_erosion(mask, iterations=px) if px > 0 else mask
+
+
+# ====================================================================== helpers: tiles synthesised from the painting
+def quilt(K, ok, out=256, patch=32, overlap=8, soften=0.25):
+    """A square, seamless tile of a painted material (earth, water, husk fibre) quilted from random square patches
+    of the painting wherever `ok` (bool HxW) holds, each turned and flipped at random (a ground seen from above has no
+    direction) and feathered into its neighbours on a torus. For surfaces the painting shows only in a thin band or
+    in perspective (a field's top, a husk's back): its own colours and brushwork, at its own scale, with no stripes."""
+    P = K.paint
+    rgb = np.asarray(P.img.convert("RGB")).astype(np.float32)
+    okf = ok.astype(np.int32)
+    ii = np.pad(okf.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+    p = patch
+    while p > 6:
+        S = ii[p:, p:] - ii[:-p, p:] - ii[p:, :-p] + ii[:-p, :-p]
+        vy, vx = np.nonzero(S == p * p)
+        if len(vy) >= 12:
+            break
+        p -= 2
+    if len(vy) == 0:
+        raise RuntimeError(f"{K.name}: no clean patch for a tile")
+    ov = max(2, min(overlap, p // 3))
+    step = p - ov
+    n = int(math.ceil(out / step))
+    size = n * step
+    acc = np.zeros((size, size, 3), np.float32)
+    wsum = np.zeros((size, size), np.float32)
+    ramp = np.minimum(1.0, (np.arange(p) + 0.5) / ov)
+    ramp = np.minimum(ramp, ramp[::-1])
+    w = np.outer(ramp, ramp)
+    for gy in range(n):
+        for gx in range(n):
+            k = int(K.rng.integers(len(vy)))
+            pt = rgb[vy[k]:vy[k] + p, vx[k]:vx[k] + p]
+            pt = np.rot90(pt, int(K.rng.integers(4)))
+            if K.rng.uniform() < 0.5:
+                pt = pt[:, ::-1]
+            ys = (np.arange(p) + gy * step) % size
+            xs = (np.arange(p) + gx * step) % size
+            acc[np.ix_(ys, xs)] += pt * w[..., None]
+            wsum[np.ix_(ys, xs)] += w
+    img = acc / np.maximum(wsum, 1e-6)[..., None]
+    if soften:
+        med = np.median(img.reshape(-1, 3), axis=0)
+        img = img * (1 - soften) + med * soften
+    return Image.fromarray(img.clip(0, 255).astype(np.uint8), "RGB"), P.m(size)
+
+
+def colour_ok(P, box, tol=38.0, erode=2, extra=None):
+    """Where the painting inside box is its material: opaque, not halo, within tol of the box's median colour."""
+    x0, y0, x1, y1 = [int(round(v)) for v in box]
+    m = np.zeros((P.h, P.w), bool)
+    m[max(0, y0):y1, max(0, x0):x1] = True
+    m &= halo_free(P)
+    if extra is not None:
+        m &= extra
+    rgb = P.rgba[..., :3] * 255
+    med = np.median(rgb[m], axis=0)
+    m &= np.linalg.norm(rgb - med, axis=-1) < tol
+    return ndimage.binary_erosion(m, iterations=erode)
+
+
+def img_tile(K, pil, size, vary=0.0, name="tile"):
+    """A material from a prepared image (a quilt), box-projected one tile across `size` metres, sampled twice at two
+    scales and offsets blended by a soft noise (as K.tile), so the repeat never lines up."""
+    sw = size
+    sh = sw * pil.height / max(1, pil.width)
+    m = Mat(f"{K.name}_{name}{len(K._mats)}")
+    img = _image(pil, m.mat.name)           # a quilt is seamless already (made on a torus)
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    samples = []
+    for scale, offset in ((1.0, 0.0), (0.77, 0.381)):
+        tex = m.nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.25
+        mapping = m.nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sh)
+        mapping.inputs["Location"].default_value = (offset, offset * 0.7, offset * 1.3)
+        m.nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+        m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        samples.append(tex.outputs["Color"])
+    noise = m.nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+    noise.inputs["Detail"].default_value = 2.0
+    m.nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = m.nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.4
+    ramp.inputs["From Max"].default_value = 0.6
+    m.nt.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    mix = m.nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    m.nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    m.nt.links.new(samples[0], mix.inputs["A"])
+    m.nt.links.new(samples[1], mix.inputs["B"])
+    col = mix.outputs["Result"]
+    if vary:
+        col = _vary(m, col, vary, 3.0 / sw)
+    m.set_colour(col)
+    K._mats[("imgtile", len(K._mats))] = m
+    return m
+
+
+def quilt_tile(K, ok, vary=0.06, soften=0.25, patch=32, out=256):
+    pil, size = quilt(K, ok, out=out, patch=patch, soften=soften)
+    return img_tile(K, pil, size, vary=vary)
 
 
 def lum(P):
@@ -803,26 +961,67 @@ def cart_rut(K):
 
 
 # ====================================================================== crop strips: the field and its rows
-def field_bed(K, x0, x1, top_py, depth, top_box=None, top_rgb=None, ridges=0.0, rows=(), wet=False, side_rgb=None,
-              name="bed"):
-    """A strip of field `depth` metres deep under its crop: a slab of the painted soil (or water) from the ground up
-    to the painted bed's top edge (top_py), its front the painting, its cut ends and back the same layers of soil
-    carried through, its top a sheet of the painted soil (or water) cut from the painting, raised in low ridges along
-    the rows (`rows`: their y; `ridges`: how high)."""
+def side_band(K, start_px, direction, y0, keep, name="ends"):
+    """The painted front band of a slab (its layers of soil, water and mud: keep, a box px) carried round a cut end:
+    a point y metres back along the end samples the band `direction` (+1/-1) px per painted px from start_px, at its
+    own height, so the end shows the same layers at the painted scale, not one column of them dragged into stripes."""
     P = K.paint
-    side = (K.colour(side_rgb, vary=0.1, scale=6.0, pct=35) if side_rgb is not None else
-            K.projected(squeeze=1.0, keep=[(x0 + 4, top_py, x1 - 4, P.h)], inset=3))
-    top_z = P.z(top_py)
+    src = K.source([keep], (), 2)
+    m = Mat(f"{K.name}_{name}{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    px = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["Y"], y0), direction * P.ppm), start_px)
+    u = op("DIVIDE", px, P.w)
+    v = op("DIVIDE", sep.outputs["Z"], P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(src, f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[("sideband", len(K._mats))] = m
+    return m
+
+
+def lowest_row(P, x0, x1):
+    """The lowest painted row under x0..x1 (the band's bottom ink line)."""
+    a = alpha_mask(P)[:, int(x0):int(x1)]
+    rows = np.nonzero(a.mean(1) > 0.3)[0]
+    return int(rows.max()) + 1 if len(rows) else P.h
+
+
+def field_bed(K, x0, x1, top_py, depth, top=None, base_py=None, ridges=0.0, rows=(), wet=False, front=None,
+              name="bed"):
+    """A strip of field `depth` metres deep under its crop: one closed slab of the painted soil (or water) from the
+    painted band's foot (base_py: the game sets it down onto the ground by the record's lift) up to the painted bed's
+    top edge (top_py); its front the painting, its back the same band carried straight through, its cut ends the band
+    carried round them at its painted scale (side_band); its top a sheet of the painted soil or water (`top`, a
+    material: a quilt of the painted material), raised in low ridges along the rows (`rows`: their y; `ridges`: how
+    high). The walls follow the ridged top, so no gap opens between them. front: the band's box, if not x0..x1 from
+    top_py down to its foot."""
+    P = K.paint
+    base_py = base_py if base_py is not None else lowest_row(P, x0 + 20, x1 - 20)
+    band = front or (x0 + 4, top_py, x1 - 4, base_py)
+    back_m = K.projected(squeeze=1.0, keep=[band], inset=2)
+    top_z, zb = P.z(top_py), P.z(base_py)
     X0, X1 = P.x(x0), P.x(x1)
-    # its four sides (no top under the sheet, no bottom on the ground: they would only take atlas space)
-    y0, y1, zt = -depth / 2, depth / 2, top_z - 0.002
-    for corners in (((X0, y0, 0), (X1, y0, 0), (X1, y0, zt), (X0, y0, zt)),
-                    ((X1, y1, 0), (X0, y1, 0), (X0, y1, zt), (X1, y1, zt)),
-                    ((X0, y1, 0), (X0, y0, 0), (X0, y0, zt), (X0, y1, zt)),
-                    ((X1, y0, 0), (X1, y1, 0), (X1, y1, zt), (X1, y0, zt))):
-        K.quad(list(corners), side, name=name)
-    top = (K.tile(top_box, vary=0.08, soften=0.35) if top_box else
-           K.colour(top_rgb, vary=0.1, scale=3.0))
+    y0, y1 = -depth / 2, depth / 2
+    left = side_band(K, band[0] + 6, 1, y0, band)
+    right = side_band(K, band[2] - 6, -1, y0, band)
     nx = max(8, int((X1 - X0) / 0.12))
     ny = max(6, int(depth / 0.05))
 
@@ -834,46 +1033,33 @@ def field_bed(K, x0, x1, top_py, depth, top_box=None, top_rgb=None, ridges=0.0, 
         if not wet:
             h += 0.006 * math.sin(x * 9.1 + y * 3.3) * math.sin(y * 13.0 + 1.0)
         # no lift at the slab's front edge, so it meets the painted front cleanly
-        return h * min(1.0, (y + depth / 2) / 0.06)
-    K.grid_plane(X0 + 0.002, X1 - 0.002, -depth / 2 + 0.001, depth / 2 - 0.002, top_z - 0.003, nx, ny, top,
-                 height=height, name=name + "_top")
+        return h * min(1.0, (y - y0) / 0.06)
+    bm = bmesh.new()
+    xs = [X0 + (X1 - X0) * i / nx for i in range(nx + 1)]
+    ys = [y0 + (y1 - y0) * j / ny for j in range(ny + 1)]
+    g = [[bm.verts.new((x, y, top_z + height(x, y))) for x in xs] for y in ys]
+    for j in range(ny):
+        for i in range(nx):
+            bm.faces.new([g[j][i], g[j][i + 1], g[j + 1][i + 1], g[j + 1][i]]).material_index = 0
+
+    def wall(tops, mat):
+        bots = [bm.verts.new((v.co.x, v.co.y, zb)) for v in tops]
+        for k in range(len(tops) - 1):
+            bm.faces.new([bots[k], bots[k + 1], tops[k + 1], tops[k]]).material_index = mat
+    wall(g[0], 1)                                              # front, x increasing: faces -y
+    wall(g[ny][::-1], 1)                                       # back: faces +y
+    wall([g[j][0] for j in range(ny, -1, -1)], 2)              # left end: faces -x
+    wall([g[j][nx] for j in range(ny + 1)], 3)                 # right end: faces +x
+    ob = _obj(name, bm, top, smooth=False)
+    for m in (back_m, left, right):
+        ob.data.materials.append(m.mat)
+    K.parts.append(ob)
     return top_z
 
 
-def plant_band_cards(K, x0, x1, top_py, base_py, y, n, yaw=12.0, name="crop"):
-    """The front row of a crop: the painted plants from x0 to x1 px cut into n slices that tile it exactly, each a
-    card standing where it is painted at depth y (turned a little), so from the front the row is the painting."""
-    P = K.paint
-    edges = np.linspace(x0, x1, n + 1)
-    out = []
-    for a, b in zip(edges, edges[1:]):
-        cx = (a + b) / 2
-        c = K.card_from_painting((a - 1, top_py, b + 1, base_py), P.pt(cx, (top_py + base_py) / 2, y + K.rng.uniform(-0.03, 0.03)),
-                                 yaw=K.rng.uniform(-yaw, yaw), name=name, normal=(0, -0.5, 0.8))
-        out.append(c)
-    return out
-
-
-def plant_rows_cards(K, src_x, width_px, top_py, base_py, rows, x_range, step_px, scale=(0.82, 0.98), yaw=40.0,
-                     cross=True, name="crop"):
-    """Rows of plants behind the front one: along each row (y in `rows`), every step_px across x_range, a card of
-    a plant cut from the painting (width_px wide, from a random spot among src_x), turned up to `yaw` degrees, a
-    little smaller than the painted ones (so the row behind does not rise over the painted outline), and a second
-    card crossed with it, so each plant is a plant from the side too."""
-    P = K.paint
-    for y in rows:
-        x = x_range[0] + K.rng.uniform(0, step_px)
-        while x < x_range[1]:
-            for k in range(2 if cross else 1):
-                sx = float(K.rng.choice(src_x)) + K.rng.uniform(-step_px * 0.2, step_px * 0.2)
-                sx = float(np.clip(sx, x_range[0] + width_px / 2, x_range[1] - width_px / 2))
-                box = (sx - width_px / 2, top_py, sx + width_px / 2, base_py)
-                s = K.rng.uniform(*scale)
-                h = P.m(base_py - top_py) * s
-                a = K.rng.uniform(-yaw, yaw) + (90 if k else 0)
-                cen = (P.x(x) + K.rng.uniform(-0.02, 0.02), y + K.rng.uniform(-0.04, 0.04), P.z(base_py) + h / 2)
-                K.card_from_painting(box, cen, yaw=a, scale=s, name=name, normal=(0, -0.3, 0.9))
-            x += step_px * K.rng.uniform(0.8, 1.2)
+def bed_top(K, box, tol=38.0, extra=None, vary=0.06, soften=0.25, patch=32):
+    """The top of a field's bed: a quilt of the painted soil (or water) inside box (px)."""
+    return quilt_tile(K, colour_ok(K.paint, box, tol=tol, extra=extra), vary=vary, soften=soften, patch=patch)
 
 
 def components(mask, min_area=0):

@@ -128,10 +128,11 @@ def house_pink(K):
     K.front_exclude = [(0, 360, 24, 513)]                       # the neighbour's ladder at the left edge
     # pink plaster: the left strip below the sunshade's cast shadow and right of the neighbour's ladder (either one
     # in the crop repeats down the side walls as a grid of dark triangles and little blocks)
-    wall = K.tile((22, 255, 84, 415), vary=0.05, soften=0.45)
+    wall = K.tile((22, 255, 84, 415), vary=0.05, soften=0.25)
     upper = K.tile((12, 22, 66, 88), vary=0.05, soften=0.4)     # the parapet's plaster, streaked (the left pillar)
-    ledge = strip_tile(K, (20, 95, 240, 106), soften=0.4)        # the cornice's own plaster, stacked square
-    red = K.tile((36, 456, 60, 508), vary=0.06, soften=0.4)     # the red-oxide plinth, below the kolam, clear of moss
+    ledge = strip_tile(K, (20, 95, 240, 106), soften=0.6)        # the cornice's own plaster, stacked square
+    # the red-oxide plinth: the patch below the kolam border between the moss and the bottom step's ink edge
+    red = K.tile((41, 452, 60, 488), size=0.5, vary=0.06, soften=0.5)    # spread wide: a small tile quilts
     teal = K.colour((88, 260, 97, 400), vary=0.05)
     wood = K.tile((110, 300, 140, 400), P.m(30))
     body = flat_roof_house(
@@ -139,9 +140,8 @@ def house_pink(K):
         cornice=(92, 110, 0.07, ledge), coping=(22, 33, upper),
         pillars=[(8, 70, 5, 18, upper, ledge), (248, 312, 5, 18, upper, ledge)], back_door=(85, 178, 207, 415),
         coping_rise=0.01)
-    # a lime-washed roof deck (the parapet's plaster, softened), and a small barred window in each side wall
-    K.box(P.x(70), P.x(250), 0.12, depth - 0.12, P.z(22), P.z(22) + 0.01, K.tile((12, 22, 66, 88), vary=0.06,
-          soften=0.65), name="roof_deck")
+    # a lime-washed roof deck (the clean wall plaster: the parapet's drips repeat in a grid on it), and a small barred window in each side wall
+    K.box(P.x(70), P.x(250), 0.12, depth - 0.12, P.z(22), P.z(22) + 0.01, wall, name="roof_deck")
     iron = K.colour((0.025, 0.02, 0.02), vary=0.05)
     dark = K.colour((0.03, 0.02, 0.025), vary=0.0)
     for side in (-1, 1):
@@ -164,8 +164,10 @@ def house_pink(K):
     K.tube(pts, P.m(10), flowers, segments=8, name="garland")
     for x in (88, 207):
         K.tube([P.pt(x, 185, -0.05), P.pt(x, 245, -0.05)], P.m(8), flowers, segments=8, name="garland_string")
-    # the steps
+    # the steps, and two plain ones up to the back door
     stairs(K, [(80, 212, 413), (73, 222, 433), (63, 232, 460), (53, 247, 490)], red)
+    for k, top in enumerate((416, 465)):
+        K.box(P.x(83), P.x(209), depth, depth + 0.3 * (k + 1), 0.0, P.z(top), red, bevel=0.01, name="back_step")
     # the hibiscus in its pot
     pot = K.projected(axis_x=P.x(275), squeeze=0.94, keep=[(238, 428, 314, 513)])
     prof = [(28, 513), (30, 505), (24, 495), (27, 480), (33, 445), (37, 432), (36, 427)]

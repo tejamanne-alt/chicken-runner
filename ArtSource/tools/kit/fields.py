@@ -6,6 +6,7 @@ real thing is built, textured from its own painting (the front is the painting, 
 stone, brick, thatch and straw cut from it). The people and the animals in the paintings are never modelled.
 """
 import math
+import zlib
 
 import bmesh
 import numpy as np
@@ -199,6 +200,86 @@ def sq_tile(K, box, size=None, soften=0.3, vary=0.0, name=None):
     m.set_colour(_tile_socket(K, m, coord, box, size, soften, vary, square=True))
     K._mats[key] = m
     return m
+
+
+def turned_crop(K, p0, p1, box, centre=None):
+    """The painting turned about centre (default p0) so the line p0 -> p1 (pixels) lies level, cropped to box (pixels,
+    in the turned frame): a clean patch of a surface the painting draws on a slant, to tile."""
+    a = math.degrees(math.atan2(p1[1] - p0[1], p1[0] - p0[0]))
+    return K.paint.img.rotate(a, center=centre or p0, resample=Image.BICUBIC).crop(tuple(int(v) for v in box))
+
+
+def img_median(img):
+    """The median colour (0-255 RGB) of an image's opaque pixels."""
+    a = np.asarray(img.convert("RGBA")).astype(np.float32)
+    px = a[a[..., 3] > 200][:, :3]
+    return np.median(px if len(px) else a.reshape(-1, 4)[:, :3], axis=0)
+
+
+def speckle(crop, sigma=5.0, base=None, seed=0, amount=1.0):
+    """A stone surface to tile, from a clean patch of it: the patch's fine grain (its flecks and pits, the painted
+    light and shade taken out: the patch less its blur, times `amount`) laid over one colour (`base`, 0-255 RGB,
+    default the patch's own median), so a long thin patch can be stacked into a square (each copy rolled sideways a
+    random amount and cross-faded into the one before it, never mirrored) without banding or seams, and tinted for
+    each block of a wall or a pier."""
+    a = np.asarray(crop.convert("RGBA")).astype(np.float32)
+    rgb, ok = a[..., :3], a[..., 3] > 200
+    med = np.median(rgb[ok], axis=0) if ok.any() else np.median(rgb.reshape(-1, 3), axis=0)
+    low = np.stack([ndimage.gaussian_filter(rgb[..., i], sigma) for i in range(3)], -1)
+    det = (rgb - low) * amount
+    det[~ok] = 0.0
+    tr = det.shape[0] < det.shape[1] / 1.4 or det.shape[1] >= det.shape[0] * 1.4
+    if not tr:
+        det = det.transpose(1, 0, 2)
+    h, w = det.shape[:2]
+    rng = np.random.default_rng(seed)
+    n = int(round(w / h))
+    if n > 1:
+        ov = max(2, h // 3)
+        out = np.zeros((n * (h - ov) + ov, w, 3), np.float32)
+        wt = np.zeros((n * (h - ov) + ov, w, 1), np.float32)
+        ramp = np.minimum(1.0, np.minimum(np.arange(h) + 1, h - np.arange(h)) / ov)[:, None, None]
+        for i in range(n):
+            y = i * (h - ov)
+            out[y:y + h] += np.roll(det, int(rng.integers(0, w)), axis=1) * ramp
+            wt[y:y + h] += ramp
+        det = out / np.maximum(wt, 1e-3)
+    if not tr:
+        det = det.transpose(1, 0, 2)
+    out = (np.array(base, np.float32) if base is not None else med) + det
+    return Image.fromarray(out.clip(0, 255).astype(np.uint8))
+
+
+def lit_median(K, box, min_lum=100):
+    """The median colour (0-255 RGB) of the painting's opaque pixels inside box, its ink lines and dark shade left
+    out: the colour of a painted block's stone."""
+    a = np.asarray(K.paint.crop(box)).astype(np.float32)
+    px = a[a[..., 3] > 200][:, :3]
+    lum = px @ np.array([0.3, 0.59, 0.11])
+    px = px[lum > min_lum] if (lum > min_lum).sum() > 10 else px
+    return tuple(float(v) for v in np.median(px, axis=0))
+
+
+def img_tile(K, img, size, soften=0.0, vary=0.0, key=None, name=None):
+    """A material tiling a PIL image (speckle(), turned_crop()), box-projected `size` metres across."""
+    k = ("imgtile", key if key is not None else zlib.crc32(img.tobytes()), round(size, 4), soften, vary)
+    if k in K._mats:
+        return K._mats[k]
+    m = Mat(name or f"{K.name}_img{len(K._mats)}")
+    coord = m.nt.nodes.new("ShaderNodeTexCoord")
+    m.set_colour(_tile_socket(K, m, coord, (0, 0, img.width, img.height), size, soften, vary, image=img))
+    K._mats[k] = m
+    return m
+
+
+def turn(parts, deg, origin):
+    """Turns parts built in a local frame (a thing painted three-quarters on, modelled level and square along its own
+    axes) by deg about the vertical through the local origin, then sets that origin at origin (x, y): the thing turned
+    in plan, still level and square, so the faces the painting shows receding are real faces."""
+    M = Matrix.Translation((origin[0], origin[1], 0.0)) @ Matrix.Rotation(math.radians(deg), 4, "Z")
+    for ob in with_cutters(parts):
+        ob.data.transform(M)
+    return parts
 
 
 def guard(K):
@@ -1135,27 +1216,62 @@ def stack(K, cx, cy, w, d, h, courses, mat, z0=0.0, yaw=0.0, name="stack"):
                     bevel=min(0.05, ch * 0.25), jitter=0.006, name=name)
 
 
+def block_pier(K, u0, u1, v0, v1, z0, z1, courses, mats, name="pier"):
+    """A pier of rough-dressed stones in a local frame (u, v across the plan): `courses` layers, each of two blocks
+    laid along u and across v by turns (so the joints break on both faces), each block a little uneven and its own
+    shade of the painted stone (one of mats)."""
+    parts = []
+    ch = (z1 - z0) / courses
+    for c in range(courses):
+        z = z0 + ch * (c + 0.5)
+        along = c % 2 == 0
+        f = K.rng.uniform(0.42, 0.58)
+        for k in range(2):
+            if along:
+                a0, a1 = (u0, u0 + (u1 - u0) * f) if k == 0 else (u0 + (u1 - u0) * f, u1)
+                b0, b1 = v0, v1
+            else:
+                a0, a1 = u0, u1
+                b0, b1 = (v0, v0 + (v1 - v0) * f) if k == 0 else (v0 + (v1 - v0) * f, v1)
+            parts.append(K.block((a0 + a1) / 2 + K.rng.uniform(-0.01, 0.01), (b0 + b1) / 2 + K.rng.uniform(-0.01, 0.01), z,
+                                 (a1 - a0) - 0.014, (b1 - b0) - 0.014, ch - 0.012, mats[int(K.rng.integers(len(mats)))],
+                                 rot=(0, 0, K.rng.uniform(-2, 2)), bevel=min(0.045, ch * 0.25), jitter=0.006, name=name))
+    return parts
+
+
 @fmodel("canal_piece_2", "fields", kind="prop", atlas=1024)
 def canal_piece_2(K):
-    """A footbridge of two long stone slabs laid side by side across a channel on four piers of rough-dressed stones.
-    True and level: the slabs run across in front of us (the painting looks down on them running away up to the
-    right); the near piers and slab ends take the painting, the rest its own stone."""
+    """A footbridge of two long stone slabs laid side by side on piers of rough-dressed stones, a pier under each end
+    of each slab. The painting looks down on it three-quarters on from the left, the slabs running away up to the
+    right: it is modelled level and square and turned 42 degrees in plan, so the slabs' near ends and their long sides
+    are real faces as painted. Stone on every face of the slabs (a patch of their painted top, its flecks on the
+    slabs' own colour) and on every block of the piers (the same grain on each painted block's shade). The painted
+    tops, drawn from above, cannot show from the front of a level model: nothing is projected from the front."""
     P = K.paint
-    K.front_min = 0.2
-    K.front_exclude = [(322, 0, 661, 329), (0, 0, 322, 150)]   # the slabs' tops and far ends, drawn from above
-    stone = K.tile((36, 212, 118, 272), soften=0.25, vary=0.04)
-    # the slabs' own painted stone, cut along the front slab where it runs away up the painting: its speckled grey
-    # top on their tops, its browner worn side on their sides and ends
-    slab_mat = two_tiles(K, (330, 130, 470, 172), (300, 94, 450, 133), lo=0.55, hi=0.8, soften=0.1, vary=0.04,
-                         side_img=strip(K, (330, 170), (470, 130), 6), top_img=strip(K, (300, 133), (450, 94), 11))
-    H, t, pd = P.z(156), 0.27, 0.6                          # the slabs' top, their thickness, the piers' depth
-    # (x0, x1 of the slab, y0, y1 of its width, its two piers (x0, x1))
-    for (sx0, sx1, y0, y1, piers) in ((140, 640, -0.3, 0.27, ((165, 315), (505, 640))),
-                                      (20, 520, 0.33, 0.88, ((22, 160), (390, 500)))):
-        K.block((P.x(sx0) + P.x(sx1)) / 2, (y0 + y1) / 2, H - t / 2, P.x(sx1) - P.x(sx0), y1 - y0, t, slab_mat,
-                rot=(0, 0, K.rng.uniform(-1.5, 1.5)), bevel=0.06, jitter=0.008, name="slab")
-        for px0, px1 in piers:
-            stack(K, (P.x(px0) + P.x(px1)) / 2, (y0 + y1) / 2, P.m(px1 - px0) * 0.95, pd, H - t, 4, stone)
+    K.front_exclude = [(0, 0, P.w, P.h)]
+    th = 42.0
+    w, g = 0.6, 0.12                                        # each slab's width, the gap between them
+    L, ub, Lb = 2.9, -0.28, 2.95                            # the front slab's length; the back slab's start, length
+    zt, t, zg = P.z(160), 0.29, P.z(318)                    # the slabs' top (the near ends'), their thickness, ground
+    zb = zt - t
+    rot = ((250, 150), (600, 70))                           # the front slab's long side, as painted
+    top = turned_crop(K, *rot, (300, 108, 450, 132), centre=(330, 164))
+    side = turned_crop(K, *rot, (300, 153, 440, 168), centre=(330, 164))
+    top_c, side_c = img_median(top), img_median(side)
+    slab = two_tiles(K, (0, 0, 150, 1), (0, 0, 150, 1), lo=0.5, hi=0.8, side_size=P.m(150), top_size=P.m(150),
+                     soften=0.0, vary=0.12, side_img=speckle(top, base=0.55 * top_c + 0.45 * side_c, amount=1.8),
+                     top_img=speckle(top, amount=1.8, seed=3))
+    shades = [lit_median(K, b) for b in ((60, 225, 130, 245), (175, 245, 225, 262), (250, 280, 300, 300),
+                                         (530, 165, 580, 185), (110, 255, 170, 275))]
+    stones = [img_tile(K, speckle(top, base=sh, seed=i, amount=1.8), P.m(150), vary=0.1, key=("pier", i))
+              for i, sh in enumerate(shades)]
+    parts = []
+    for u0, v0, length in ((0.0, 0.0, L), (ub, w + g, Lb)):
+        parts.append(K.block(u0 + length / 2, v0 + w / 2, zb + t / 2, length, w, t, slab,
+                             rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.06, jitter=0.008, name="slab"))
+        for a0, a1 in ((u0 + 0.03, u0 + 0.52), (u0 + length - 0.56, u0 + length - 0.07)):
+            parts += block_pier(K, a0, a1, v0 + 0.03, v0 + w - 0.03, zg, zb, 4, stones)
+    turn(parts, th, (P.x(240), -1.385))
 
 
 @fmodel("canal_piece_3", "fields", kind="prop", atlas=1024)

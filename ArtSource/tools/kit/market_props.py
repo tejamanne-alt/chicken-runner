@@ -61,6 +61,83 @@ def rake_tile(K, a, b, offset_px, thick_px, vary=0.1, soften=0.1):
     band = rot.crop(tuple(int(v) for v in box))
     return strip_tile(K, box, vary=vary, soften=soften, image=band, key=("rake", tuple(a), tuple(b), offset_px))
 
+def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4, dx=0.0, dz=0.0, front_deg=70.0,
+            zs=1.0, z0=0.0, name=None):
+    """Like K.projected, for a round thing turned about a vertical axis (axis_x, axis_y metres): the painting
+    wrapped round it instead of pushed straight through. Up to front_deg either side of the front it is exactly the
+    straight projection (so it meets the painting's front seamlessly); beyond that the painted half is laid round the
+    sides and the back evenly, so a side shows the painted colours spread round it, not one column of the painting
+    dragged across it in streaks. keep / exclude / inset as K.source. dx, dz shift where it samples (metres); zs
+    scales the heights it samples about z0 (to borrow a taller or shorter painted body)."""
+    key = ("wrap", round(axis_x, 4), round(axis_y, 4), squeeze, round(dx, 4), round(dz, 4), front_deg, zs, round(z0, 4),
+           tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude), inset)
+    if key in K._mats:
+        return K._mats[key]
+    P = K.paint
+    m = Mat(name or f"{K.name}_wrap{len(K._mats)}")
+    nt = m.nt
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Object"], sep.inputs[0])
+
+    def op(kind, a, b=0.0):
+        n = nt.nodes.new("ShaderNodeMath")
+        n.operation = kind
+        for i, v in enumerate((a, b)):
+            if isinstance(v, (int, float)):
+                n.inputs[i].default_value = float(v)
+            else:
+                nt.links.new(v, n.inputs[i])
+        return n.outputs[0]
+    ox = op("SUBTRACT", sep.outputs["X"], axis_x)
+    oy = op("SUBTRACT", axis_y, sep.outputs["Y"])                 # towards the camera is +
+    r = op("SQRT", op("ADD", op("MULTIPLY", ox, ox), op("MULTIPLY", oy, oy)))
+    th = op("ARCTAN2", ox, oy)                                    # 0 at the front, +-pi at the back
+    a = op("ABSOLUTE", th)
+    a0 = math.radians(front_deg)
+    near = op("SINE", op("MINIMUM", a, a0))
+    far = op("MULTIPLY", op("SUBTRACT", math.pi, a), math.sin(a0) / (math.pi - a0))
+    c = op("LESS_THAN", a, a0)
+    fabs = op("ADD", op("MULTIPLY", near, c), op("MULTIPLY", far, op("SUBTRACT", 1.0, c)))
+    f = op("MULTIPLY", fabs, op("SIGN", th))
+    x = op("ADD", op("MULTIPLY", op("MULTIPLY", r, f), squeeze), axis_x + dx)
+    u = op("ADD", op("DIVIDE", x, P.W), 0.5)
+    zz = op("ADD", op("MULTIPLY", op("SUBTRACT", sep.outputs["Z"], z0), zs), z0 + dz)
+    v = op("DIVIDE", zz, P.H)
+    vec = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(u, vec.inputs[0])
+    nt.links.new(v, vec.inputs[1])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_img")
+    tex.extension = "EXTEND"
+    nt.links.new(vec.outputs[0], tex.inputs["Vector"])
+    m.set_colour(tex.outputs["Color"])
+    K._mats[key] = m
+    return m
+
+
+def pale_halo(K, near=3, cell=2, bright=135, sat=40, boxes=None):
+    """The cut-out's pale grey sticker halo (unsaturated light pixels within `near` px of its transparent edge),
+    kept off the front projection in small cells, so the parts' own materials show where the geometry reaches into
+    it (a brass pot's edge otherwise wears grey-white blotches)."""
+    a = (K.paint.rgba * 255).astype(np.int32)
+    op = a[..., 3] > 127
+    mx, mn = a[..., :3].max(axis=2), a[..., :3].min(axis=2)
+    halo = (mn > bright) & (mx - mn < sat) & op & ndimage.binary_dilation(~op, iterations=near)
+    if boxes:
+        m = np.zeros_like(halo)
+        for x0, y0, x1, y1 in boxes:
+            m[int(y0):int(y1), int(x0):int(x1)] = True
+        halo &= m
+    h, w = halo.shape
+    hc, wc = -(-h // cell), -(-w // cell)
+    pad = np.zeros((hc * cell, wc * cell), bool)
+    pad[:h, :w] = halo
+    cells = pad.reshape(hc, cell, wc, cell).any(axis=(1, 3))
+    for cy, cx in zip(*np.nonzero(cells)):
+        K.front_exclude.append((cx * cell, cy * cell, (cx + 1) * cell, (cy + 1) * cell))
+
+
 def prof(P, pts):
     """A lathe profile [(radius px, y px), ...] in metres (z from the ground)."""
     return [(P.m(r), P.z(y)) for r, y in pts]
@@ -88,9 +165,9 @@ def black_tank(K):
     P = K.paint
     cx = 123
     X0 = P.x(cx)
-    tank = K.projected(axis_x=X0, squeeze=0.93, keep=[(40, 5, 207, 184)])
+    tank = wrapped(K, X0, squeeze=0.93, keep=[(40, 5, 207, 184)])
     # the dome wears only the dome's own painted pixels (between the lugs), so its sides do not take a lug's
-    dome_m = K.projected(axis_x=X0, squeeze=0.93, keep=[(86, 33, 114, 58), (148, 33, 164, 58)], inset=1)
+    dome_m = wrapped(K, X0, squeeze=0.93, keep=[(86, 33, 114, 58), (148, 33, 164, 58)], inset=1)
     # the tank: ribbed walls up to the rim, the dome inside it, the collar and the lid
     body = [(80, 184), (82, 181), (82, 156), (84, 154), (84, 148), (82, 146), (82, 126), (84, 124), (84, 116),
             (82, 114), (82, 96), (84, 94), (84, 86), (82, 84), (82, 68), (84, 66), (84, 60), (82, 58), (80, 57)]
@@ -112,7 +189,7 @@ def black_tank(K):
     K.tube([(X0, P.m(78), P.z(172)), (X0, P.m(98), P.z(172))], 0.035, plastic, segments=10, name="outlet")
     # the stone slab and its two piers
     slab_m = strip_tile(K, (125, 190, 220, 206), vary=0.06, soften=0.45)
-    pier_m = K.tile((164, 224, 206, 242), vary=0.06, soften=0.5)
+    pier_m = K.tile((162, 222, 210, 270), vary=0.06, soften=0.55)
     d = P.m(92)
     K.box(P.x(26), P.x(222), -d, d, P.z(210), P.z(184), slab_m, bevel=0.015, name="slab")
     for x0, x1 in ((34, 103), (150, 214)):
@@ -142,45 +219,49 @@ def mouth(K, cx, cy, r_px, top_py, depth_px, mat, segments=32):
 @model("brass_vessels", "market", kind="prop")
 def brass_vessels(K):
     """Four polished brass vessels on a stone ledge: a big kudam behind, a smaller one in front, a little pot and a
-    lidded canister."""
+    lidded canister. Profiles measured off the painting's silhouette, row by row."""
     P = K.paint
+    pale_halo(K)
     inside = K.colour((0.12, 0.05, 0.01), vary=0.1)
     vessels = [
         # centre px, depth y, keep boxes, profile [(r px, y px)] from the foot up, mouth (r px, top py)
         (48.5, -0.06, [(8, 79, 89, 158)],
-         [(20, 157.5), (21, 155), (22, 151), (27, 148), (35, 140), (38.5, 130), (39.5, 118), (38, 108), (35, 100),
-          (28, 94), (21, 91), (20, 87), (22, 85), (27.5, 84), (28, 82), (26.5, 80.5), (23, 80.5)], (22, 81)),
-        (109, 0.12, [(88, 82, 128, 112)],
-         [(12, 157), (13, 153), (15, 140), (17.5, 120), (17.5, 106), (16, 99), (13, 95), (13, 90), (15, 88.5),
-          (17, 87.5), (17, 85), (15.5, 84), (13.5, 84)], (13, 84.5)),
+         [(20, 157.5), (21, 155), (22, 153), (24, 152), (28, 148), (31, 144), (33, 140), (36, 136), (37.5, 132),
+          (39.5, 128), (39.5, 120), (39, 116), (38, 112), (37, 108), (34, 104), (29, 100), (23, 96), (21, 92),
+          (20.5, 89), (22, 86), (27.5, 84), (28, 82), (26.5, 80.5), (23, 80.5)], (22, 81)),
+        (109.5, 0.12, [(88, 82, 128, 112)],
+         [(12, 157), (13, 153), (15, 140), (16.5, 125), (16, 116), (15, 110), (13.5, 104), (12.5, 100), (12.5, 92),
+          (14.5, 88.5), (16.5, 87.5), (16.5, 85), (15.5, 84), (13.5, 84)], (13, 84.5)),
     ]
     for i, (cx, cy, keep, pr, (mr, mtop)) in enumerate(vessels):
-        brass = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=keep, inset=2)
+        brass = wrapped(K, P.x(cx), squeeze=0.9, keep=keep, inset=2)
         K.lathe(prof(P, pr), brass, segments=36, centre=(P.x(cx), cy, 0), wobble=0.004, name=f"vessel{i}", cap=False)
         K.lathe([(0.0, P.z(pr[0][1])), (P.m(pr[0][0]), P.z(pr[0][1]))], brass, segments=36, centre=(P.x(cx), cy, 0),
                 name="foot")
         mouth(K, cx, cy, mr, mtop, 18, inside)
-    # the big kudam behind: its painted top, and its lower body (hidden behind the others in the painting) turned in
-    # the front pot's brass
-    cx, cy = 71.5, 0.28
-    top = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(26, 5, 116, 80)], inset=2)
-    low = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(30, 30, 112, 78)], inset=2, dz=P.m(40))
-    K.lathe(prof(P, [(16, 157), (18, 154), (19, 150), (24, 142), (30, 128), (35, 112), (38.5, 96), (41, 82)]), low,
-            segments=36, centre=(P.x(cx), cy, 0), name="kudam_low")
-    K.lathe(prof(P, [(41, 82), (42.5, 72), (43.5, 58), (43, 48), (40, 38), (34, 30), (26, 25), (21, 22), (20, 17),
-                     (22, 14), (28, 12.5), (28.5, 10), (27, 8.5), (24, 8.5)]), top, segments=36,
-            centre=(P.x(cx), cy, 0), name="kudam", cap=False)
+    # the big kudam behind: its painted top; its lower body (hidden behind the others in the painting) wears the front
+    # kudam's painted body, rows 96..157 stretched over its own 78..157
+    cx, cy = 70.5, 0.28
+    top = wrapped(K, P.x(cx), squeeze=0.9, keep=[(26, 5, 116, 79)], inset=2)
+    low = wrapped(K, P.x(cx), squeeze=0.9 * 39.5 / 44.0, keep=[(8, 92, 89, 158)], inset=2,
+                  dx=P.x(48.5) - P.x(cx), zs=(157 - 96) / (157 - 78), z0=P.z(157))
+    K.lathe(prof(P, [(15, 157), (17, 155), (18, 151), (20, 140), (23, 125), (27, 110), (31, 97), (34, 86),
+                     (35.5, 78)]), low, segments=36, centre=(P.x(cx), cy, 0), name="kudam_low")
+    K.lathe(prof(P, [(35.5, 78), (37.5, 74), (39.5, 68), (42.5, 64), (43, 60), (43.5, 56), (44, 52), (42.5, 48),
+                     (42, 44), (40.5, 40), (36, 36), (32.5, 32), (26, 28), (21, 24), (21, 20), (23, 16), (28, 13),
+                     (28.5, 10), (27, 8.5), (24, 8.5)]), top, segments=36, centre=(P.x(cx), cy, 0), name="kudam",
+            cap=False)
     mouth(K, cx, cy, 23, 9, 18, inside)
     # the lidded canister in front
     cx, cy = 114, -0.1
-    can = K.projected(axis_x=P.x(cx), squeeze=0.94, keep=[(88, 111, 140, 159)], inset=2)
+    can = wrapped(K, P.x(cx), squeeze=0.92, keep=[(88, 111, 140, 159)], inset=2)
     K.lathe(prof(P, [(0, 158), (23, 158), (24.5, 156), (24.5, 150), (24, 149), (24, 123), (25, 122), (25, 116),
                      (24, 114.5), (21, 113), (12, 112.5), (0, 112.5)]),
             can, segments=36, centre=(P.x(cx), cy, 0), name="canister")
     K.lathe(prof(P, [(5, 112.6), (5, 110.5), (3, 109.5), (0, 109.5)]), can, segments=16, centre=(P.x(cx), cy, 0),
             name="knob")
-    # the grey stone ledge they stand on
-    ledge = K.colour((8, 155, 24, 161), vary=0.1, scale=10)
+    # the grey stone ledge they stand on: polished stone, finely mottled
+    ledge = K.colour((8, 155, 24, 161), vary=0.2, scale=26)
     K.box(P.x(6), P.x(146), -0.26, 0.5, P.z(161), P.z(157.2), ledge, bevel=0.006, name="ledge")
 
 

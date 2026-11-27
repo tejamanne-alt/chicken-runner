@@ -981,10 +981,133 @@ class Crown:
     def front_y(self, px, py, k=1.0):
         return self.y0 - self.extent(px, py) * k
 
+    def grad(self, px, py, d=6.0):
+        """How the crown's extent changes across the painting at (px, py): (d ext / dx, d ext / dz), metres per
+        metre."""
+        P = self.P
+        gx = (self.extent(px + d, py) - self.extent(px - d, py)) / P.m(2 * d)
+        gz = (self.extent(px, py - d) - self.extent(px, py + d)) / P.m(2 * d)
+        return gx, gz
+
+    def leaves(self):
+        """The pixels the crown's cards can show (the leaves texture's alpha, as finish() makes it from the leaf rules
+        registered so far), inside the crown's region: a bool mask."""
+        K, P = self.K, self.P
+        key = len(K.leaf_rules)
+        if getattr(self, "_lm_key", None) == key and self._lm is not None:
+            return self._lm
+        a = np.asarray(P.img).copy()
+        inside = np.zeros(a.shape[:2], bool)
+        for (x0, y0, x1, y1), keep in K.leaf_rules:
+            inside[int(max(0, y0)):int(y1), int(max(0, x0)):int(x1)] = True
+        a[~inside, 3] = 0
+        for (x0, y0, x1, y1), keep in K.leaf_rules:
+            x0, y0, x1, y1 = [int(round(v)) for v in (max(0, x0), max(0, y0), min(P.w, x1), min(P.h, y1))]
+            sub = a[y0:y1, x0:x1]
+            sub[..., 3] = np.where(keep(sub[..., :3]), sub[..., 3], 0)
+        lm = (a[..., 3] > 127) & box_mask(a.shape[:2], [self.region])
+        lm = ndimage.binary_opening(lm, iterations=1)
+        self._lm, self._lm_key = lm, key
+        return lm
+
     def cards(self, n, size_px, layer="volume", yaw=40.0, pitch=25.0, region=None, mask=None, name="leaf",
-              squash=1.0):
-        """n cards: layer "volume" (all through the depth), "front" (the shell facing the camera: the painting) or
-        "back" (the shell behind)."""
+              squash=1.0, max_slope=1.6, cover=0.996, rag=0.22):
+        """Cards cut from the painting, every vertex at its painted (x, z) and only its depth varying (sheared_card):
+        however deep or turned, from the front each shows exactly the painting where it is, so the crown is the
+        painting from the front however many layers it has. layer "front": the shell facing the camera, placed until
+        it covers every painted leaf (cover: the share; n is only a guide); "back": the shell behind, the same way;
+        "volume": n through the depth, turned (sheared) up to yaw degrees about the vertical and pitch about the
+        horizontal; "top": n lying nearly flat in the crown's upper part, for the view from above."""
+        K, P = self.K, self.P
+        rng = K.rng
+        x0, y0, x1, y1 = region or self.region
+        lm = self.leaves()
+        cx, cy = self.c
+        H, W = lm.shape
+        shell = layer in ("front", "back")
+        if shell:
+            target = lm & box_mask(lm.shape, [(x0, y0, x1, y1)])
+            total = max(1, int(target.sum()))
+            covered = np.zeros_like(target)
+            free = None
+            n_max = max(n * 4, 60)
+        else:
+            n = int(round(n * 1.3))
+            grow = max(2, int(min(size_px) * 0.2))
+            near = ndimage.binary_dilation(lm, iterations=grow) & box_mask(lm.shape, [(x0, y0, x1, y1)])
+            n_max = n
+        placed = tries = 0
+        while placed < n_max and tries < n_max * 40:
+            tries += 1
+            if shell:
+                if free is None or placed % 6 == 0:
+                    free = np.flatnonzero(target & ~covered)
+                    if free.size <= (1 - cover) * total:
+                        break
+                j = int(free[rng.integers(free.size)])
+                py, px = divmod(j, W)
+                if covered[py, px]:
+                    continue
+                px, py = px + rng.uniform(-0.5, 0.5), py + rng.uniform(-0.5, 0.5)
+            else:
+                px, py = rng.uniform(x0, x1), rng.uniform(y0, y1)
+                if not near[int(np.clip(py, 0, H - 1)), int(np.clip(px, 0, W - 1))]:
+                    continue
+            if mask is not None and not mask(px, py):
+                continue
+            ext = self.extent(px, py)
+            gx, gz = self.grad(px, py)
+            # the slopes: a card sheared a (x) into depth shows its painted patch from the side at a x its painted
+            # width, so a slope near 1 (a 45 degree turn) shows the leaves at their own size from every side; much
+            # less and it is a sliver from the side, much more and its leaves are dragged out into streaks
+            if layer == "front":
+                yy = self.y0 - ext * rng.uniform(0.8, 1.0)
+                a, b = -gx * 0.7 + rng.uniform(-0.5, 0.5), -gz * 0.7 + rng.uniform(-0.4, 0.4)
+            elif layer == "back":
+                yy = self.y0 + ext * rng.uniform(0.8, 1.0)
+                a, b = gx * 0.7 + rng.uniform(-0.5, 0.5), gz * 0.7 + rng.uniform(-0.4, 0.4)
+            elif layer == "top":
+                yy = self.y0 + rng.uniform(-1, 1) * ext * 0.9
+                a = rng.uniform(-0.4, 0.4)
+                b = rng.choice([-1, 1]) * rng.uniform(1.0, 1.8)
+            else:
+                u = rng.uniform(-1, 1)
+                yy = self.y0 + math.copysign(abs(u) ** 0.8, u) * ext * squash     # more of them near its surface
+                a = rng.choice([-1, 1]) * rng.uniform(0.55, 1.5) * min(1.0, yaw / 60)
+                b = rng.uniform(-1, 1) * min(1.0, math.tan(math.radians(min(pitch, 60))))
+            lim = max_slope
+            a, b = float(np.clip(a, -lim, lim)), float(np.clip(b, -lim, lim))
+            if layer == "top":
+                k = 0.7
+            elif shell:
+                k = 1.0
+            else:
+                k = (0.6 + 0.4 * self.reach(px, py)) * (1 - 0.3 * min(1.0, abs(yy - self.y0) / max(1e-6, ext)))
+            w, h = size_px[0] * rng.uniform(0.8, 1.2) * k, size_px[1] * rng.uniform(0.8, 1.2) * k
+            out = Vector((P.x(px) - P.x(cx), (yy - self.y0) * 1.3, P.z(py) - P.z(cy) + P.m(self.rzu) * 0.25))
+            ob, poly = sheared_card(K, (px - w / 2, py - h / 2, px + w / 2, py + h / 2), yy, (a, b),
+                                    normal=tuple(out.normalized()) if out.length > 1e-6 else (0, -0.3, 1), name=name,
+                                    rag=rag)
+            if ob is None:
+                continue
+            if shell:
+                from PIL import ImageDraw
+                bx0, by0 = int(max(0, px - w)), int(max(0, py - h))
+                bx1, by1 = int(min(W, px + w + 1)), int(min(H, py + h + 1))
+                im = Image.new("L", (bx1 - bx0, by1 - by0), 0)
+                # the blob's outline drawn a little inside itself (the leaves near its edge count as covered only
+                # once a neighbour reaches over them)
+                c0 = (px, py)
+                ImageDraw.Draw(im).polygon([(c0[0] + (qx - c0[0]) * 0.92 - bx0, c0[1] + (qy - c0[1]) * 0.92 - by0)
+                                            for qx, qy in poly], fill=255)
+                covered[by0:by1, bx0:bx1] |= np.asarray(im) > 127
+            placed += 1
+        return placed
+
+    def cards_rotated(self, n, size_px, layer="volume", yaw=40.0, pitch=25.0, region=None, mask=None, name="leaf",
+                      squash=1.0):
+        """The earlier cards: n cards turned (rotated) about their centres: layer "volume" (all through the depth),
+        "front" (the shell facing the camera: the painting) or "back" (the shell behind)."""
         K, P = self.K, self.P
         x0, y0, x1, y1 = region or self.region
         alpha = P.rgba[..., 3]
@@ -2278,11 +2401,13 @@ def field_tree_6(K):
 def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spread=0.5, root_z_px=None,
                 card_px=None, n_cards=(220, 90, 50, 25), limb_py_max=None, limb_py_min=None, n_limbs=6, n_roots=4,
                 root_py=None, bark_axis_px=None, depth_ratio=0.36, core=0.18, dome_pow=1.0, fuse_faces=9000,
-                rscale=0.88, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
-                min_r_px=0.0):
+                rscale=0.95, seed_dy=None, crown_mask=None, spur=1.3, root_turn=(100, 160), voxel_div=260,
+                min_r_px=0.0, trunk=None, tile_box=None):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
     on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
-    roots turned round the trunk as well; returns (wood, crown, bark material, thin parts)."""
+    roots turned round the trunk as well; returns (wood, crown, bark material, thin parts). trunk = (py_bot, py_top,
+    px at its foot[, grow, depth]): the trunk between those rows lofted through its painted outline (a traced tube is
+    only as thick as the circle inside its outline: a braided or knobbly trunk came out too thin)."""
     P = K.paint
     rng = K.rng
     wood = Wood(K, mask, root_px, spur=spur, min_len=5)
@@ -2298,10 +2423,20 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
             return root_lim
         return max(floor, crown.extent(px, py) * 0.8)
     wood.grow(spread, root_z_px=root_z_px, root_spread=0.9, ymax=ylim, seed_dy=seed_dy)
-    bark = bark_material(K, mask, axis_x=P.x(bark_axis_px or root_px[0]), squeeze=0.9)
+    bark = bark_mix(K, mask, tile_box=tile_box)
     voxel = P.H / voxel_div
     fuse_r = voxel * 2.5 * P.ppm                     # thinner wood stays clean tubes (a voxel remesh would bloat it)
     thick, thin = wood.tubes(bark, fuse_r_px=fuse_r, rscale=rscale, min_r_px=min_r_px)
+    if trunk is not None:
+        py_bot, py_top, tx = trunk[:3]
+        grow = trunk[3] if len(trunk) > 3 else 1.25
+        depth = trunk[4] if len(trunk) > 4 else 0.85
+        rows = trunk_runs(mask, py_bot, py_top, tx, grow=grow)
+        if rows:
+            hw = float(np.median([(b - a) / 2 for _, a, b in rows]))
+            ob = loft_trunk(K, rows, bark, y=lambda px, py: wood.at(px, py)[0], depth=depth, max_depth_px=hw * 1.1)
+            if ob is not None:
+                thick.append(ob)
     limbs = pick_limbs(wood, py_max=limb_py_max, py_min=limb_py_min, r_min=max(fuse_r * 0.6, min_r_px),
                        min_len=cw * 0.08, n=n_limbs)
     picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 125), 0.0) for k, i in enumerate(limbs)]
@@ -2345,7 +2480,7 @@ def h1_1(K):
     mask, _ = TRACE["h1_1"](K)
     traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_leaves, spread=0.55,
                 root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
-                n_cards=(240, 100, 55, 25))
+                n_cards=(240, 100, 55, 25), trunk=(990, 600, 600), min_r_px=2.5)
 
 
 TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 120, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200)

@@ -4,7 +4,8 @@
  "kind": "volume",
  "width": 1.629,
  "height": 2.0,
- "depth": 1.786,
- "faces": 1650,
+ "depth": 1.765,
+ "lift": 0.043,
+ "faces": 1700,
  "source": "blender"
 }
