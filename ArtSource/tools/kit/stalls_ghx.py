@@ -814,7 +814,12 @@ def stall_g_3(K):
         cx = (box[0] + box[2]) / 2
         m = K.projected(axis_x=P.x(cx), squeeze=0.9, keep=[(box[0], t - 6, box[2], b + 8)], inset=2)
         mats.append(m)
-        banana_bunch(K, box, t - 14, b + 6, y, m, hands=hands, per=per)
+        rings = banana_bunch(K, box, t - 14, b + 6, y, m, core=0.7, hands=hands, per=per)
+        # the painted bunch itself, its open hands and gaps, as a cut-out card on the core's front
+        K.leaves_only(box, lambda rgb: np.ones(rgb.shape[:2], bool))
+        ry = max(r[4] for r in rings)
+        K.card_from_painting(box, (P.x(cx), y - ry - 0.012, P.z((box[1] + box[3]) / 2)), name="bunch_front",
+                             normal=(0, -1, 0.3))
         stalk(K, top, y, 7, stem, name="stalk")
         if bot:
             stalk(K, bot, y, 8, stem, name="stalk")
@@ -1942,7 +1947,7 @@ def stall_sweets(K):
                                    ((348, 615), (308, 568)), ((432, 603), (330, 566))):
         K.tube([P.pt(ax_, ay_, yh - 0.42), P.pt(bx_, by_, yh)], P.m(14), logw, segments=8, name="log")
     ember = K.colour((0.6, 0.15, 0.02), vary=0.2)
-    K.lathe([(0.0, 0.0), (0.22, 0.0), (0.18, 0.04), (0.0, 0.06)], ember, segments=16, centre=(P.x(287), yh, 0.0),
+    K.lathe([(0.0, 0.0), (0.14, 0.0), (0.11, 0.03), (0.0, 0.045)], ember, segments=16, centre=(P.x(287), yh + 0.06, 0.0),
             name="embers")
     K.leaves_only((235, 500, 350, 595), fire_pixels)
     for yaw in (0, 60, -60):
@@ -2031,8 +2036,8 @@ def stall_veg(K):
     bam = K.colour((85, 400, 100, 460), vary=0.08)
     yf, yb = -0.75, 0.85
     # ---------------------------------------------------------------- posts, stubs and the cloth
-    posts = [((78, 130), (120, 700), 12, yf, [(64, 128, 132, 690)]),
-             ((1047, 130), (1002, 700), 12, yf, [(990, 128, 1062, 690)]),
+    posts = [((78, 130), (120, 700), 12, yf, [(64, 128, 100, 178), (70, 235, 128, 555)]),
+             ((1047, 130), (1002, 700), 12, yf, [(1028, 128, 1062, 178), (992, 235, 1050, 600)]),
              ((255, 12), (271, 500), 11, yb, [(243, 10, 268, 50), (252, 300, 290, 480)]),
              ((900, 10), (895, 480), 11, yb, [(888, 8, 914, 50), (882, 300, 912, 460)])]
     for top, bot, rpx, y, keep in posts:
@@ -2058,7 +2063,7 @@ def stall_veg(K):
 
     def board_y(z):
         return bF + (z - zF) * (bB - bF) / (zB - zF)
-    top = K.projected(squeeze=1.0, keep=[(100, 548, 1000, 712)], inset=2)
+    top = ktile(K, (440, 702, 560, 714), vary=0.08)
     slab(K, [(P.x(92), bF, zF), (P.x(1000), bF, zF), (P.x(890), bB, zB), (P.x(222), bB, zB)], 0.04, top, name="board")
     edge = K.colour((480, 700, 560, 712), vary=0.08)
     beam(K, (P.x(90), bF - 0.02, zF - 0.01), (P.x(1002), bF - 0.02, zF - 0.01), 0.05, P.m(14), edge, name="board_edge")
@@ -2588,7 +2593,8 @@ def flower_stall(K):
         y = yf - 0.18 + (yb + 0.12 - yf + 0.18) * v
         z = Z(50) + (Z(22) - Z(50)) * v - 0.01 * math.sin(math.pi * u) - drop
         return (x, y, z)
-    K.sheet(roof, 24, 8, front_th, name="thatch", thickness=0.05)
+    K.sheet(roof, 24, 8, straw, name="thatch", thickness=0.05)
+    _ = front_th
     K.sheet(lambda u, v: roof(u, v, 0.04), 24, 8, straw, name="thatch_under", thickness=0.01)
     T.apply(K.parts[n1:])
     # mango leaves tied at the front corners
@@ -2611,11 +2617,7 @@ def flower_stall(K):
         hw = (x1 - x0) / 2
         K.lathe([(P.m(hw), zc - 0.01), (P.m(hw) * 0.95, zc + (Z(top) - zc) * 0.4), (P.m(hw) * 0.7, zc + (Z(top) - zc) * 0.8),
                  (P.m(hw) * 0.35, Z(top) - 0.01), (0.0, Z(top))], m, segments=24, centre=(p.x, p.y, 0.0),
-                scale_y=0.8, wobble=0.05, name="flower_heap")
-        import market_props as MP
-        for bx, by, L, W, ang in blobs(K, (x0, top, x1, 200), 60, 15):
-            q = T.w(bx, yl - P.m(hw) * 0.55, P.z(by))
-            MP.ellipsoid(K, tuple(q), (P.m(W / 2), P.m(W / 2) * 0.8, P.m(W / 2) * 0.8), m, seg=8, rings=5, name="flower")
+                scale_y=0.8, wobble=0.08, name="flower_heap")
     m = K.projected(squeeze=1.0, keep=[(15, 178, 33, 200)], inset=1)
     p = T.w(24, 0.0, 0.0)
     K.lathe([(P.m(10), zc - 0.01), (P.m(8), Z(186)), (0.0, Z(178))], m, segments=16, centre=(p.x, p.y, 0.0),
