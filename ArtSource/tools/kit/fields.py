@@ -1567,10 +1567,10 @@ def canal_piece_3(K):
     r_c, t_c = img_median(riser), img_median(tread)
     stones = [two_tiles(K, (0, 0, 60, 1), (0, 0, 60, 1), lo=0.55, hi=0.8, side_size=P.m(riser.width),
                         top_size=P.m(tread.width),
-                        soften=0.0, vary=0.05, square=False, mottle=0.22, mottle_size=0.3,
-                        side_img=speckle(riser, sigma=4.0, seed=i, amount=1.3, base=r_c * f),
-                        top_img=speckle(tread, sigma=4.0, seed=i + 7, amount=1.3, base=t_c * f))
-              for i, f in enumerate((1.0, 1.05, 0.94, 1.09, 0.9))]
+                        soften=0.0, vary=0.05, square=False, mottle=0.34, mottle_size=0.25,
+                        side_img=speckle(riser, sigma=4.0, seed=i, amount=1.8, base=r_c * f),
+                        top_img=speckle(tread, sigma=4.0, seed=i + 7, amount=1.8, base=t_c * min(1.1, f * 1.04)))
+              for i, f in enumerate((1.0, 1.12, 0.88, 1.18, 0.82))]
     # the tiers: (their courses' levels, the joints along each course from the bottom up, the right end), all from
     # the ground (the lower courses of the upper tiers show at the left end and the back)
     tiers = [([0.0, h0], [[0.61, 1.25, 1.85]], 2.43),

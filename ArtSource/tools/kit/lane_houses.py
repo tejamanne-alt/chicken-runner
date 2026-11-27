@@ -1608,6 +1608,21 @@ def green_pixels(rgb):
     return leaf | ((mx < 80) & ndimage.binary_dilation(leaf, iterations=3))
 
 
+def crown_pixels(rgb):
+    """A tree crown's leaves by hue: yellow-green through green to the dark teal of its shaded side (foliage_pixels
+    wants green well above blue, so the teal shade drops out and the crown's lower and far side go missing), not the
+    brown bark, the pale sky or the halo; with the dark ink round the leaves."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    span = np.maximum(1, mx - mn)
+    hue = np.where(mx == r, 60.0 * (g - b) / span, np.where(mx == g, 120 + 60.0 * (b - r) / span,
+                                                             240 + 60.0 * (r - g) / span))
+    hue = np.where(hue < 0, hue + 360, hue)
+    leaf = (hue > 52) & (hue < 200) & ((mx - mn) > 22) & (mn < 200)
+    leaf = ndimage.binary_opening(ndimage.binary_closing(leaf, iterations=2), iterations=1)
+    return leaf | ((mx < 70) & ndimage.binary_dilation(leaf, iterations=3))
+
+
 def olive_leaf_pixels(rgb):
     """Leaves painted in olive and khaki greens (a gourd vine, palm fronds), which plant_pixels takes for straw: by
     hue (yellow-green and greener, saturated, not near-white), with the dark ink round them."""
@@ -2486,8 +2501,8 @@ def house_tiled_gate(K):
         wood_parts.append(limb(K, pts, bark, y=ys, segments=10, name="limb"))
     K.fuse(wood_parts, voxel=0.035, faces=4000)
     crown_d = P.m(870) * 0.72
-    K.leaves_only((0, 0, 880, 650), foliage_pixels)
-    crown_cards(K, (5, 15, 870, 645), foliage_pixels, (430, 320), yt, crown_d, n=170, size_px=120, step=55,
+    K.leaves_only((0, 0, 880, 662), crown_pixels)
+    crown_cards(K, (5, 15, 870, 660), crown_pixels, (430, 320), yt, crown_d, n=170, size_px=120, step=50,
                 yaw=80, pitch=35)
     mango = K.projected(squeeze=1.0, keep=[(170, 315, 205, 360), (275, 430, 310, 475), (580, 475, 615, 520),
                                            (683, 390, 718, 435), (165, 590, 200, 640), (630, 585, 665, 630)], inset=2)

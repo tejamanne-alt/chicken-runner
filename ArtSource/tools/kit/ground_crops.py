@@ -388,7 +388,7 @@ def rock(K, poly_px, y_c, depth, mat, lift, top_px=None, jitter=0.05, name="ston
         c = np.array((P.x(top_px[0]), P.z(top_px[1]) - lift))
     else:
         c = pts.mean(0)
-    rings = [(0.97, 0.34), (0.86, 0.64), (0.64, 0.86), (0.32, 1.0)]      # rounded towards its front and back
+    rings = [(0.94, 0.34), (0.77, 0.64), (0.52, 0.86), (0.22, 0.98)]     # rounded like a pebble front to back
     bm = bmesh.new()
 
     def ring(s, f, side):

@@ -1316,11 +1316,12 @@ def lamp_step(K):
     P = K.paint
     stone = K.tile((200, 226, 234, 258), vary=0.06, soften=0.35)
     stone2 = K.tile((108, 150, 150, 178), vary=0.06, soften=0.35)
-    red = K.colour((95, 198, 130, 203), vary=0.08)
+    red = square_tile(K, (96, 200, 230, 216), vary=0.06, soften=0.15)     # the red riser and its white kolam
     X = P.x
     # the steps, back to y = 0.45
     yb = 0.45
-    K.box(X(15), X(237), -0.56, yb, 0.0, P.z(221), stone, bevel=0.012, name="slab")
+    # (the painted slab stands on its foot at py 265, the shadow below it: the game sets it down by its lift)
+    K.box(X(15), X(237), -0.56, yb, P.z(265), P.z(221), stone, bevel=0.012, name="slab")
     K.box(X(61), X(160), -0.32, yb, P.z(221), P.z(180), stone2, bevel=0.01, name="block_a")
     K.box(X(90), X(234), -0.36, yb, P.z(221), P.z(194), red, bevel=0.008, name="red_step")
     K.box(X(90), X(234), -0.365, yb + 0.005, P.z(197), P.z(193), stone, bevel=0.004, name="red_step_lip")

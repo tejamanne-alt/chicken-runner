@@ -1363,6 +1363,12 @@ def rope_cot(K):
     K.front_exclude.append((345, 50, 400, 112))          # the painted sparkle on the rope: light, not a thing
     yF, yB = -0.4, 0.4
     foot = 264
+    # the earth first: the atlas packer squashes every island by the first material's image aspect (the painting's,
+    # 1.9:1, when a projected leg came first), and the earth's tile is square
+    earth(K, 263, foot, 270, 255, 0.62, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
+          dirt_exclude=[(20, 200, 510, 262)],
+          grass=[(8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
+                 (420, 240, 462, 262), (490, 248, 510, 262)])
     # the front legs as painted: (centre px, keep box, lathe profile (r px, py) from the foot up, block (x0, x1, top,
     # bottom), finial profile); the back legs are the same turned legs, straight behind them
     legs = [
@@ -1415,10 +1421,6 @@ def rope_cot(K):
     pil = proj(K, X(150), 1.0, polys=[[(62, 8), (175, 6), (236, 96), (112, 112), (84, 92)]], inset=3)
     cushion(K, [(X(108), yF + 0.16, Z(119)), (X(234), yF + 0.16, Z(112)), (X(170), yB - 0.08, Z(10)),
                 (X(66), yB - 0.08, Z(13))], 0.075, pil, name="cushion")
-    earth(K, 263, foot, 270, 255, 0.62, (0.58, 0.25, 0.12), dirt_box=(0, 236, 516, 277),
-          dirt_exclude=[(20, 200, 510, 262)],
-          grass=[(8, 236, 30, 262), (70, 240, 112, 262), (120, 220, 162, 245), (380, 218, 420, 245),
-                 (420, 240, 462, 262), (490, 248, 510, 262)])
 
 
 def octagon(K, prof_hw, cx_px, cy, mat, name="octagon"):
