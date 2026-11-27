@@ -22,7 +22,7 @@ namespace ChickenRunner
         [Tooltip("Course x the kid tiptoes in from.")]
         [SerializeField] internal float walkFrom = -4.4f;
         [Tooltip("Course x of the rooster under the basket.")]
-        [SerializeField] internal float roosterX = 0.7f;
+        [SerializeField] internal float roosterX = 0.55f;
 
         Vector3 _hingeRest;
         Quaternion _hingeRestRotation;

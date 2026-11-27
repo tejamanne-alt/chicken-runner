@@ -16,14 +16,14 @@
    "items": [
     {
      "kind": "basket",
-     "x": 0.7,
+     "x": 0.55,
      "diameter": 0.9,
-     "hinge": 1.15,
+     "hinge": 1.0,
      "walkFrom": -4.4,
      "visuals": [
       {
        "piece": "chicken_basket",
-       "x": 0.7,
+       "x": 0.55,
        "y": 0.0,
        "z": 0.0,
        "w": 0.9,

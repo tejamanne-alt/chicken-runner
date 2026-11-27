@@ -39,9 +39,10 @@ def design():
 
     # The neighbour's yard. The kid starts at 0 beside the basket; the runway behind her is the yard's back.
     s = p.section("Yard", -10.0, 24.0, "The neighbour naps on his cot; hens peck about; hold to lift the basket.")
-    # the basket the rooster sits under (0.9 m across, so he fits): its near rim 0.25 m in front of her, its far rim,
-    # the hinge it lifts on, 1.15 m (kid_anims.BASKET_*); the kid tiptoes in from -4.4 m toward the sleeping neighbour
-    p.add(s, "basket", 0.7, [visual("chicken_basket", 0.7, z=0.0, w=0.9)], diameter=0.9, hinge=1.15, walkFrom=-4.4)
+    # the basket the rooster sits under (0.9 m across, so he fits): its near rim 0.1 m in front of her (within her reach
+    # through the whole lift), its far rim, the hinge it lifts on, 1.0 m (kid_anims.BASKET_*); the kid tiptoes in from
+    # -4.4 m toward the sleeping neighbour
+    p.add(s, "basket", 0.55, [visual("chicken_basket", 0.55, z=0.0, w=0.9)], diameter=0.9, hinge=1.0, walkFrom=-4.4)
     # The neighbour asleep on his cot just past the basket, in front of his cattle shed (the zone set's, at 5.9): the kid
     # sneaks toward him, and the rooster bursts out right past him. Clear of the set's shop, old man and passing
     # milkman (-4.4 to -0.5), which stand behind the start; the set has its own chicken basket and tulsi planter.
@@ -54,7 +55,7 @@ def design():
     p.decal(s, "hen_prints", -0.8, 0.95, 0.9)
     p.decal(s, "kolam_2", -5.2, -1.2, 1.1)
     p.mango_line(s, 5.0, 6, 1.2, 0.6)
-    p.litter(s, 3, avoid=(0.7,))
+    p.litter(s, 3, avoid=(0.55,))
 
     # ---- teach
     s = p.section("FirstPot", 14.0, 18.0, "One pot stack alone: the rooster hops it, mangoes trace the jump.")

@@ -29,7 +29,7 @@ Test (to 500 m): the rooster's mischief, trios, the last cart, then the lane ope
 
 | From | To | Section | What is there | Why |
 |---:|---:|---|---|---|
-| -10 | 14 | Yard | the basket 0.7; the neighbour 2.6; 6 mangoes | The neighbour naps on his cot; hens peck about; hold to lift the basket. |
+| -10 | 14 | Yard | the basket 0.55; the neighbour 2.6; 6 mangoes | The neighbour naps on his cot; hens peck about; hold to lift the basket. |
 | 14 | 32 | FirstPot | pot stack 23; 8 mangoes | One pot stack alone: the rooster hops it, mangoes trace the jump. |
 | 32 | 50 | TwoPots | pot stack 38; pot stack 45; 10 mangoes | Two pot stacks 7 m apart: jump, land, jump. |
 | 50 | 66 | Dung | cow dung 57; 9 mangoes | Cow dung: low, a tap clears it; miss it and she slips. |
