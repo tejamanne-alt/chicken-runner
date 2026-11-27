@@ -80,6 +80,11 @@ A = [
     ("crop_strip_4", "crop", None, "Groundnut strip", "a long strip of low, bushy green groundnut plants in red earth", ""),
     ("crop_strip_5", "crop", None, "Cotton strip", "a long strip of cotton plants with open white bolls", ""),
     ("crop_strip_6", "crop", None, "Banana strip", "a long row of young banana plants with broad green leaves", ""),
+    ("crop_strip_7", "crop", None, "Banana row", "a long row of banana plants with broad, tattered green leaves on red earth", ""),
+    ("canal_piece_1", "prop", "front", "Water lift (picotah)", "a picotah water lift: a forked wooden post with a long pivoting pole, a stone counterweight tied at one end and a clay pot hanging on a rope at the other", ""),
+    ("canal_piece_2", "prop", "front", "Stone slab benches", "two long stone slab benches on piers of stacked stone blocks", ""),
+    ("canal_piece_3", "prop", "front", "Washing steps", "a short flight of rough stone block steps down to a stone washing tray, with a brass pot beside it", ""),
+    ("canal_piece_4", "prop", "front", "Sluice gate", "a canal sluice gate: a wooden plank gate in a wooden frame with a screw wheel on top, set in a brick wall with a stone coping", ""),
     ("field_bldg_1", "prop", "front", "Well with a bullock water lift", "a stone-lined well with a wooden frame and a leather bucket on a rope pulled by two white bullocks walking down a sloping earth ramp, clay pots beside the well", ""),
     ("field_bldg_2", "building", "front", "Watch hut on stilts", "a thatched field watch hut (machan) on tall bamboo stilts, with a bamboo ladder", ""),
     ("field_bldg_3", "building", "front", "Farm shed with a haystack", "a small open thatched farm shed beside a haystack, with a grinding stone and farm tools", ""),
@@ -265,10 +270,12 @@ A = [
 
 # The characters and pickups (no cut-out of their own in this list).
 CHARACTERS = [
-    ("kid", "The kid", ["A0_kid_pattu_frock_front.png", "A0_kid_pattu_frock_left.png",
-                         "A0_kid_pattu_frock_right.png", "A0_kid_pattu_frock_back.png"],
-     "No new images: her four views exist already. Use them in Meshy as front, left, right and back. (You are "
-     "providing her model yourself.)"),
+    ("kid", "The kid", ["A0_kid_pattu_frock_sheet.png"],
+     "Four new images, one per view, made from her model sheet (A0) and given to Meshy as front, left, right and back. "
+     "They add what the model needs beyond the sheet: gold jhumka earrings, gold and glass bangles, and maruthani "
+     "(henna) on her hands and legs. They are drawn the way Meshy and rigging need them: one square frame and scale for "
+     "all four (head and feet at the same heights), an A-pose with the arms clear of the body and the palms forward, "
+     "orthographic, evenly lit with no shadows, on plain light grey."),
     ("rooster", "The rooster", ["B11_rooster_front.png", "B13_rooster_left.png", "B14_rooster_right.png",
                                  "B12_rooster_back.png"],
      "No new images: his four views exist already (B11 front, B13 left, B14 right, B12 back). Use them in Meshy."),
@@ -278,6 +285,127 @@ PICKUPS = [
     ("chilli", "pickup", None, "Chilli", "a single bright red chilli with a green cap and a gently curled tip", ""),
     ("feather", "pickup", None, "Golden tail feather", "a single long, curved golden rooster tail feather with a glossy sheen", ""),
 ]
+
+# The kid's four views for Meshy: one image per view, the front first, the others matched to it.
+KID_FILES = {v: f"kid_meshy_{v}.png" for v in ("front", "left", "right", "back")}
+KID_SHEET = "A0_kid_pattu_frock_sheet.png"
+KID_STEPS = [
+    "Make the front view first, attaching `A0_kid_pattu_frock_sheet.png`. In the same chat, make the left, right and "
+    "back views, one per message, attaching the sheet and the front view you made (`kid_meshy_front.png`): the front "
+    "fixes her scale, pose, colours, jewellery and henna for the others.",
+    "Check each image: the hem border, hairband, earrings, bangles, anklets and henna are the same in all four; her "
+    "arms are clear of her body; in the left view she faces the left edge, in the right view the right edge; no "
+    "shadow, floor or text. If a side view faces the wrong way, reply: *Flip this image left to right and keep "
+    "everything else the same.* If something is missing, ask for just that: *Add the gold jhumka earrings and keep "
+    "everything else the same.*",
+    "Save them as `kid_meshy_front.png`, `kid_meshy_left.png`, `kid_meshy_right.png` and `kid_meshy_back.png` in "
+    "`ArtSource/references/`.",
+    "In Meshy, **Image to 3D** with several images: upload the four as front, left, right and back. If it offers them, "
+    "choose the newest model, symmetry on, an A-pose (or T-pose) for a character, texture on, and a target of about "
+    "15,000 triangles (the game's budget for the kid).",
+    "Download it as GLB with the texture inside and save it as `ArtSource/models_meshy/characters/kid.glb` (or upload "
+    "it in the chat). It is then fitted to the game: 1.05 m tall, rigged for Unity's Humanoid, with the hand socket "
+    "for the rooster.",
+]
+KID_LOOKS = ("a South Indian girl of about three, with chubby toddler proportions (a big head about a quarter of her "
+             "height, short arms and legs), warm brown skin, a round face with big dark eyes, a small red bindi and a "
+             "gentle closed-mouth smile, and shoulder-length wavy black hair held back by a leopard-print hairband. She "
+             "wears a knee-length peacock-blue silk pattu frock: a fitted bodice with a gold zari neckline with a short "
+             "slit at the front, short puffed sleeves edged in gold, a blue sash at the waist, and a gathered, flared "
+             "skirt with a wide magenta and gold border at the hem woven with small temple towers. Bare feet with "
+             "silver anklets with tiny bells.")
+KID_JEWELS = ("Her jewellery: small gold jhumka earrings, little bell-shaped gold drops hanging from her earlobes, her "
+              "ears showing through her hair; and on each wrist a few thin gold bangles with red and green glass "
+              "bangles between them, sitting loosely at the wrist. Fresh maruthani (henna) in a deep orange-red on her "
+              "hands and legs: on each palm a large round dot ringed with small dots, every fingertip dyed, and a fine "
+              "vine of leaves and dots over the backs of her hands and fingers up to the bangles; on her feet the toes "
+              "and the edges of the soles dyed, and a vine of leaves and dots over the tops of her feet, round her "
+              "ankles under the anklets and a little way up her shins. The same pattern on both hands and both legs.")
+KID_POSE = ("She faces the viewer squarely and stands in a neutral A-pose for rigging: upright and symmetrical, her "
+            "weight on both feet, her feet flat, toes forward and a hand's width apart; her arms straight and held out "
+            "about 45 degrees from her sides, with clear space between her arms, her body and her skirt; her hands "
+            "open and relaxed, fingers together, palms turned forward so the henna on them shows; her head level, "
+            "looking straight ahead; her hair resting on her shoulders, clear of her arms and earrings. A calm, "
+            "pleasant face with the mouth closed.")
+
+
+def kid_side(side):
+    return (f"The same toddler in the same peacock-blue pattu frock, seen exactly from her {side} side: a true "
+            f"90-degree profile, so we see her {side} side and she faces the {side} edge of the image. She stands in "
+            "the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, "
+            "and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the "
+            "small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the "
+            "leopard-print hairband over the top of her head, her wavy hair falling to her shoulder at the back, the "
+            "puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the orange-red henna on her "
+            "hand and fingers, the sash at the waist with the end of the bow at the back, the flared skirt with the "
+            "magenta and gold temple-tower border running round it, and her bare feet with the silver anklets, the "
+            "henna on the tops of her feet, round her ankles and up her shins, and the dyed edges of her soles.")
+
+
+KID_BACK = ("The same toddler in the same peacock-blue pattu frock, seen exactly from behind, so her face is hidden. "
+            "She stands in the same A-pose as in the front view, mirrored as seen from the back: her arms straight and "
+            "held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt, her "
+            "hands open with the palms forward, so we see the backs of her hands, and her feet flat and a hand's width "
+            "apart. Show her back clearly: the back of her head with the shoulder-length wavy black hair, the gold "
+            "jhumka earrings just showing below her hair on each side, the back of the leopard-print hairband, the "
+            "plain back of the bodice with a fine seam down the middle, the puffed sleeves with their gold edges, the "
+            "gold and glass bangles on both wrists, the orange-red henna vines on the backs of her hands and fingers, "
+            "the blue sash tied in a neat bow at the back of the waist, the gathered skirt with the magenta and gold "
+            "temple-tower border continuing all the way round, the backs of her lower legs with the henna round her "
+            "ankles under the silver anklets, and her bare heels with the dyed edges of her soles.")
+KID_FRAME_G = ("Show only her: one full-length figure, centred, from the top of her hair to the soles of her feet, "
+               "filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw "
+               "her orthographic and straight on at her own chest height, with no perspective. Light her evenly and "
+               "softly from the front, so her colours read true, with no cast shadows and no strong highlights. A "
+               "plain, flat light-grey background, with no floor, no shadow on the ground, and no text, labels, "
+               "frames or other objects.")
+KID_SAME_G = ("Keep her the same size and in the same place as in the front view: the top of her head and the soles "
+              "of her feet at the same heights, centred, filling about 85 percent of the image height, with clear "
+              "space all round and nothing cropped. Draw her orthographic and straight on at her own chest height, "
+              "with no perspective. Light her evenly and softly, with no cast shadows and no strong highlights. A "
+              "plain, flat light-grey background, with no floor, no shadow on the ground, and no text, labels, frames "
+              "or other objects.")
+KID_FRAME_C = ("Only her: one full-length figure, centred, from the top of her hair to the soles of her feet, filling "
+               "about 85% of the image height, clear space all round, nothing cropped. Orthographic, no perspective, "
+               "seen straight on at her chest height. Even, soft front lighting so her colours read true: no cast "
+               "shadows, no strong highlights. Plain flat light-grey background: no floor, no shadow on the ground, "
+               "no text, labels, frames or other objects.")
+KID_SAME_C = ("The same size and place in the frame as the attached front view: the top of her head and the soles of "
+              "her feet at the same heights, centred, filling about 85% of the image height, clear space all round, "
+              "nothing cropped. Orthographic, no perspective, seen straight on at her chest height. Even, soft "
+              "lighting: no cast shadows, no strong highlights. Plain flat light-grey background: no floor, no shadow "
+              "on the ground, no text, labels, frames or other objects.")
+
+
+def kid_prompts():
+    """The kid's four view prompts, each for ChatGPT and for Gemini."""
+    out = []
+    for v in ("front", "left", "right", "back"):
+        if v == "front":
+            attach = KID_SHEET
+            c = (f"Square 1:1 image.\n\nFull-length front view, for 3D modelling, of the toddler hero from the attached "
+                 f"model sheet ({KID_SHEET}). Match her face, skin tone, hair, hairband, frock, anklets, proportions "
+                 f"and painted style exactly, and add the earrings, bangles and henna described below. She is "
+                 f"{KID_LOOKS}\n\n{KID_JEWELS}\n\n{KID_POSE}\n\n{KID_FRAME_C}")
+            g = (f"Create a 1:1 square image.\n\nUse the image I've uploaded: the kid's model sheet, for her face, skin "
+                 f"tone, hair, hairband, frock, anklets, proportions and painted style. Match it exactly, and add the "
+                 f"earrings, bangles and henna described below.\n\nA full-length front view of the toddler hero from "
+                 f"the model sheet, for building a 3D model: {KID_LOOKS}\n\n{KID_JEWELS}\n\n{KID_POSE}\n\n{KID_FRAME_G}")
+        else:
+            attach = f"{KID_SHEET}, {KID_FILES['front']}"
+            body = KID_BACK if v == "back" else kid_side(v)
+            title = "Back view" if v == "back" else f"{v.capitalize()} side view"
+            design = "hair" if v == "back" else "face, hair"
+            c = (f"Square 1:1 image.\n\n{title}, for 3D modelling, of the same toddler as in the attached images: the "
+                 f"model sheet ({KID_SHEET}) for her {design}, hairband, frock, anklets and painted style, and the "
+                 f"front view ({KID_FILES['front']}) for her exact size, position in the frame, pose, colours, "
+                 f"earrings, bangles and henna. Match them exactly.\n\n{body}\n\n{KID_SAME_C}")
+            g = (f"Create a 1:1 square image.\n\nUse the images I've uploaded: the kid's model sheet, for her {design}, "
+                 f"hairband, frock, anklets and painted style; and the front view, for her exact size, position in the "
+                 f"frame, pose, colours, earrings, bangles and henna. Match them exactly.\n\n{body}\n\n{KID_SAME_G}")
+        out.append({"view": v, "file": KID_FILES[v], "attach": attach, "chatgpt": c, "gemini": g})
+    return out
+
 
 GUIDE = {
     "building": "Its sides and back are the same building continued: the same walls, plinth, colours and roof all the "
@@ -473,11 +601,15 @@ def records():
                 chosen.append(r)
         out = chosen
     for name, title, files, note in CHARACTERS:
-        out.append({"name": name, "folder": "characters", "group": "characters", "kind": "character", "title": title,
-                    "existing": files, "model": f"{name}.glb", "note": note,
-                    "ref": f"refs/{files[0].replace('.png', '.jpg')}",
-                    "existing_refs": [f"refs/{f.replace('.png', '.jpg')}" for f in files], "priority": 1,
-                    "section": "first"})
+        rec = {"name": name, "folder": "characters", "group": "characters", "kind": "character", "title": title,
+               "existing": files, "model": f"{name}.glb", "note": note,
+               "ref": f"refs/{files[0].replace('.png', '.jpg')}",
+               "existing_refs": [f"refs/{f.replace('.png', '.jpg')}" for f in files], "priority": 1,
+               "section": "first"}
+        if name == "kid":
+            rec["view_prompts"] = kid_prompts()
+            rec["steps"] = KID_STEPS
+        out.append(rec)
     if not ALL:
         position = {n: i for i, n in enumerate(n for _, _, _, names in MODEL_ORDER for n in names)}
         out.sort(key=lambda r: position.get(r["name"], -1))     # the kid (yours) first, then the list's order
@@ -508,14 +640,16 @@ def markdown(recs):
         sheets = sum(1 for r in recs if r.get("chatgpt"))
         lines += ["## Which assets", "",
                   f"Only the {sheets} worth a full model, in the order the levels meet them: the pieces the kid touches "
-                  "on the lane, and the pickups; plus the rooster, from his four existing views, and the kid (yours). "
+                  "on the lane, and the pickups; plus the rooster, from his four existing views, and the kid, from four new "
+                  "views (ChatGPT and Gemini prompts for each). "
                   "The game's camera watches the lane from the side, so everything else (the houses, trees, animals and "
                   "people beside the lane and far off) is seen from the front, where its painting is already exactly "
                   "right: it stays a painted card. Run `view_prompts.py --all` for a prompt for every asset.", ""]
     if ALL:
         order = ["characters"] + [g[0] for g in GROUPS]
-        names = {"characters": ("Characters and pickups", "The kid and the rooster have their four views already; "
-                                                           "the pickups have no painting, so their prompts describe them.")}
+        names = {"characters": ("Characters and pickups", "The kid has a prompt for each of her four views; the "
+                                                           "rooster has his four views already; the pickups have no "
+                                                           "painting, so their prompts describe them.")}
         names.update({g[0]: (g[1], g[2]) for g in GROUPS})
         key = "group"
     else:
@@ -528,6 +662,15 @@ def markdown(recs):
         for r in [r for r in recs if r.get(key) == group]:
             number = f"{r['order']}. " if r.get("order") else ""
             lines += [f"### {number}{r['title']} · `{r['name']}`", ""]
+            if r["kind"] == "character" and r.get("view_prompts"):
+                lines += [r["note"], "", "Model: `ArtSource/models_meshy/characters/" + r["model"] + "`", ""]
+                lines += [f"{i}. {step}" for i, step in enumerate(r["steps"], 1)] + [""]
+                for vp in r["view_prompts"]:
+                    lines += [f"#### {vp['view'].capitalize()} · `{vp['file']}`", "",
+                              f"Square 1:1 · Attach: {', '.join(f'`{a}`' for a in vp['attach'].split(', '))}", "",
+                              "ChatGPT:", "", "```text", vp["chatgpt"], "```", "",
+                              "Gemini:", "", "```text", vp["gemini"], "```", ""]
+                continue
             if r["kind"] == "character":
                 lines += [r["note"], "", "Images: " + ", ".join(f"`{f}`" for f in r["existing"]), ""]
                 continue

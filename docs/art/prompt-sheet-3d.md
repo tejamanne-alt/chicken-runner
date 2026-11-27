@@ -11,7 +11,7 @@ One image per asset: the asset drawn four times in a 2 by 2 grid (front, left si
 
 ## Which assets
 
-Only the 36 worth a full model, in the order the levels meet them: the pieces the kid touches on the lane, and the pickups; plus the rooster, from his four existing views, and the kid (yours). The game's camera watches the lane from the side, so everything else (the houses, trees, animals and people beside the lane and far off) is seen from the front, where its painting is already exactly right: it stays a painted card. Run `view_prompts.py --all` for a prompt for every asset.
+Only the 36 worth a full model, in the order the levels meet them: the pieces the kid touches on the lane, and the pickups; plus the rooster, from his four existing views, and the kid, from four new views (ChatGPT and Gemini prompts for each). The game's camera watches the lane from the side, so everything else (the houses, trees, animals and people beside the lane and far off) is seen from the front, where its painting is already exactly right: it stays a painted card. Run `view_prompts.py --all` for a prompt for every asset.
 
 ## Pickups and the rooster
 
@@ -19,9 +19,133 @@ On screen all the time: the pickups spin as the kid collects them, and the roost
 
 ### The kid · `kid`
 
-Her four views for Meshy (front, left, right, back: the same scale, an A-pose, even light) have their own prompts in [kid-meshy-prompts.md](kid-meshy-prompts.md). The model sheet's views below also work, but their arms rest close to the body, which is harder to rig.
+Four new images, one per view, made from her model sheet (A0) and given to Meshy as front, left, right and back. They add what the model needs beyond the sheet: gold jhumka earrings, gold and glass bangles, and maruthani (henna) on her hands and legs. They are drawn the way Meshy and rigging need them: one square frame and scale for all four (head and feet at the same heights), an A-pose with the arms clear of the body and the palms forward, orthographic, evenly lit with no shadows, on plain light grey.
 
-Images: `A0_kid_pattu_frock_front.png`, `A0_kid_pattu_frock_left.png`, `A0_kid_pattu_frock_right.png`, `A0_kid_pattu_frock_back.png`
+Model: `ArtSource/models_meshy/characters/kid.glb`
+
+1. Make the front view first, attaching `A0_kid_pattu_frock_sheet.png`. In the same chat, make the left, right and back views, one per message, attaching the sheet and the front view you made (`kid_meshy_front.png`): the front fixes her scale, pose, colours, jewellery and henna for the others.
+2. Check each image: the hem border, hairband, earrings, bangles, anklets and henna are the same in all four; her arms are clear of her body; in the left view she faces the left edge, in the right view the right edge; no shadow, floor or text. If a side view faces the wrong way, reply: *Flip this image left to right and keep everything else the same.* If something is missing, ask for just that: *Add the gold jhumka earrings and keep everything else the same.*
+3. Save them as `kid_meshy_front.png`, `kid_meshy_left.png`, `kid_meshy_right.png` and `kid_meshy_back.png` in `ArtSource/references/`.
+4. In Meshy, **Image to 3D** with several images: upload the four as front, left, right and back. If it offers them, choose the newest model, symmetry on, an A-pose (or T-pose) for a character, texture on, and a target of about 15,000 triangles (the game's budget for the kid).
+5. Download it as GLB with the texture inside and save it as `ArtSource/models_meshy/characters/kid.glb` (or upload it in the chat). It is then fitted to the game: 1.05 m tall, rigged for Unity's Humanoid, with the hand socket for the rooster.
+
+#### Front · `kid_meshy_front.png`
+
+Square 1:1 · Attach: `A0_kid_pattu_frock_sheet.png`
+
+ChatGPT:
+
+```text
+Square 1:1 image.
+
+Full-length front view, for 3D modelling, of the toddler hero from the attached model sheet (A0_kid_pattu_frock_sheet.png). Match her face, skin tone, hair, hairband, frock, anklets, proportions and painted style exactly, and add the earrings, bangles and henna described below. She is a South Indian girl of about three, with chubby toddler proportions (a big head about a quarter of her height, short arms and legs), warm brown skin, a round face with big dark eyes, a small red bindi and a gentle closed-mouth smile, and shoulder-length wavy black hair held back by a leopard-print hairband. She wears a knee-length peacock-blue silk pattu frock: a fitted bodice with a gold zari neckline with a short slit at the front, short puffed sleeves edged in gold, a blue sash at the waist, and a gathered, flared skirt with a wide magenta and gold border at the hem woven with small temple towers. Bare feet with silver anklets with tiny bells.
+
+Her jewellery: small gold jhumka earrings, little bell-shaped gold drops hanging from her earlobes, her ears showing through her hair; and on each wrist a few thin gold bangles with red and green glass bangles between them, sitting loosely at the wrist. Fresh maruthani (henna) in a deep orange-red on her hands and legs: on each palm a large round dot ringed with small dots, every fingertip dyed, and a fine vine of leaves and dots over the backs of her hands and fingers up to the bangles; on her feet the toes and the edges of the soles dyed, and a vine of leaves and dots over the tops of her feet, round her ankles under the anklets and a little way up her shins. The same pattern on both hands and both legs.
+
+She faces the viewer squarely and stands in a neutral A-pose for rigging: upright and symmetrical, her weight on both feet, her feet flat, toes forward and a hand's width apart; her arms straight and held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt; her hands open and relaxed, fingers together, palms turned forward so the henna on them shows; her head level, looking straight ahead; her hair resting on her shoulders, clear of her arms and earrings. A calm, pleasant face with the mouth closed.
+
+Only her: one full-length figure, centred, from the top of her hair to the soles of her feet, filling about 85% of the image height, clear space all round, nothing cropped. Orthographic, no perspective, seen straight on at her chest height. Even, soft front lighting so her colours read true: no cast shadows, no strong highlights. Plain flat light-grey background: no floor, no shadow on the ground, no text, labels, frames or other objects.
+```
+
+Gemini:
+
+```text
+Create a 1:1 square image.
+
+Use the image I've uploaded: the kid's model sheet, for her face, skin tone, hair, hairband, frock, anklets, proportions and painted style. Match it exactly, and add the earrings, bangles and henna described below.
+
+A full-length front view of the toddler hero from the model sheet, for building a 3D model: a South Indian girl of about three, with chubby toddler proportions (a big head about a quarter of her height, short arms and legs), warm brown skin, a round face with big dark eyes, a small red bindi and a gentle closed-mouth smile, and shoulder-length wavy black hair held back by a leopard-print hairband. She wears a knee-length peacock-blue silk pattu frock: a fitted bodice with a gold zari neckline with a short slit at the front, short puffed sleeves edged in gold, a blue sash at the waist, and a gathered, flared skirt with a wide magenta and gold border at the hem woven with small temple towers. Bare feet with silver anklets with tiny bells.
+
+Her jewellery: small gold jhumka earrings, little bell-shaped gold drops hanging from her earlobes, her ears showing through her hair; and on each wrist a few thin gold bangles with red and green glass bangles between them, sitting loosely at the wrist. Fresh maruthani (henna) in a deep orange-red on her hands and legs: on each palm a large round dot ringed with small dots, every fingertip dyed, and a fine vine of leaves and dots over the backs of her hands and fingers up to the bangles; on her feet the toes and the edges of the soles dyed, and a vine of leaves and dots over the tops of her feet, round her ankles under the anklets and a little way up her shins. The same pattern on both hands and both legs.
+
+She faces the viewer squarely and stands in a neutral A-pose for rigging: upright and symmetrical, her weight on both feet, her feet flat, toes forward and a hand's width apart; her arms straight and held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt; her hands open and relaxed, fingers together, palms turned forward so the henna on them shows; her head level, looking straight ahead; her hair resting on her shoulders, clear of her arms and earrings. A calm, pleasant face with the mouth closed.
+
+Show only her: one full-length figure, centred, from the top of her hair to the soles of her feet, filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw her orthographic and straight on at her own chest height, with no perspective. Light her evenly and softly from the front, so her colours read true, with no cast shadows and no strong highlights. A plain, flat light-grey background, with no floor, no shadow on the ground, and no text, labels, frames or other objects.
+```
+
+#### Left · `kid_meshy_left.png`
+
+Square 1:1 · Attach: `A0_kid_pattu_frock_sheet.png`, `kid_meshy_front.png`
+
+ChatGPT:
+
+```text
+Square 1:1 image.
+
+Left side view, for 3D modelling, of the same toddler as in the attached images: the model sheet (A0_kid_pattu_frock_sheet.png) for her face, hair, hairband, frock, anklets and painted style, and the front view (kid_meshy_front.png) for her exact size, position in the frame, pose, colours, earrings, bangles and henna. Match them exactly.
+
+The same toddler in the same peacock-blue pattu frock, seen exactly from her left side: a true 90-degree profile, so we see her left side and she faces the left edge of the image. She stands in the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the leopard-print hairband over the top of her head, her wavy hair falling to her shoulder at the back, the puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the orange-red henna on her hand and fingers, the sash at the waist with the end of the bow at the back, the flared skirt with the magenta and gold temple-tower border running round it, and her bare feet with the silver anklets, the henna on the tops of her feet, round her ankles and up her shins, and the dyed edges of her soles.
+
+The same size and place in the frame as the attached front view: the top of her head and the soles of her feet at the same heights, centred, filling about 85% of the image height, clear space all round, nothing cropped. Orthographic, no perspective, seen straight on at her chest height. Even, soft lighting: no cast shadows, no strong highlights. Plain flat light-grey background: no floor, no shadow on the ground, no text, labels, frames or other objects.
+```
+
+Gemini:
+
+```text
+Create a 1:1 square image.
+
+Use the images I've uploaded: the kid's model sheet, for her face, hair, hairband, frock, anklets and painted style; and the front view, for her exact size, position in the frame, pose, colours, earrings, bangles and henna. Match them exactly.
+
+The same toddler in the same peacock-blue pattu frock, seen exactly from her left side: a true 90-degree profile, so we see her left side and she faces the left edge of the image. She stands in the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the leopard-print hairband over the top of her head, her wavy hair falling to her shoulder at the back, the puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the orange-red henna on her hand and fingers, the sash at the waist with the end of the bow at the back, the flared skirt with the magenta and gold temple-tower border running round it, and her bare feet with the silver anklets, the henna on the tops of her feet, round her ankles and up her shins, and the dyed edges of her soles.
+
+Keep her the same size and in the same place as in the front view: the top of her head and the soles of her feet at the same heights, centred, filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw her orthographic and straight on at her own chest height, with no perspective. Light her evenly and softly, with no cast shadows and no strong highlights. A plain, flat light-grey background, with no floor, no shadow on the ground, and no text, labels, frames or other objects.
+```
+
+#### Right · `kid_meshy_right.png`
+
+Square 1:1 · Attach: `A0_kid_pattu_frock_sheet.png`, `kid_meshy_front.png`
+
+ChatGPT:
+
+```text
+Square 1:1 image.
+
+Right side view, for 3D modelling, of the same toddler as in the attached images: the model sheet (A0_kid_pattu_frock_sheet.png) for her face, hair, hairband, frock, anklets and painted style, and the front view (kid_meshy_front.png) for her exact size, position in the frame, pose, colours, earrings, bangles and henna. Match them exactly.
+
+The same toddler in the same peacock-blue pattu frock, seen exactly from her right side: a true 90-degree profile, so we see her right side and she faces the right edge of the image. She stands in the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the leopard-print hairband over the top of her head, her wavy hair falling to her shoulder at the back, the puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the orange-red henna on her hand and fingers, the sash at the waist with the end of the bow at the back, the flared skirt with the magenta and gold temple-tower border running round it, and her bare feet with the silver anklets, the henna on the tops of her feet, round her ankles and up her shins, and the dyed edges of her soles.
+
+The same size and place in the frame as the attached front view: the top of her head and the soles of her feet at the same heights, centred, filling about 85% of the image height, clear space all round, nothing cropped. Orthographic, no perspective, seen straight on at her chest height. Even, soft lighting: no cast shadows, no strong highlights. Plain flat light-grey background: no floor, no shadow on the ground, no text, labels, frames or other objects.
+```
+
+Gemini:
+
+```text
+Create a 1:1 square image.
+
+Use the images I've uploaded: the kid's model sheet, for her face, hair, hairband, frock, anklets and painted style; and the front view, for her exact size, position in the frame, pose, colours, earrings, bangles and henna. Match them exactly.
+
+The same toddler in the same peacock-blue pattu frock, seen exactly from her right side: a true 90-degree profile, so we see her right side and she faces the right edge of the image. She stands in the same A-pose as in the front view, her arms held out from her sides at the same angle, palms forward, and her feet a hand's width apart, seen from the side. Show her profile clearly: the round cheek, the small nose and the closed-mouth smile, her ear with the gold jhumka earring hanging below it, the leopard-print hairband over the top of her head, her wavy hair falling to her shoulder at the back, the puffed sleeve with its gold edge, the gold and glass bangles on her wrist, the orange-red henna on her hand and fingers, the sash at the waist with the end of the bow at the back, the flared skirt with the magenta and gold temple-tower border running round it, and her bare feet with the silver anklets, the henna on the tops of her feet, round her ankles and up her shins, and the dyed edges of her soles.
+
+Keep her the same size and in the same place as in the front view: the top of her head and the soles of her feet at the same heights, centred, filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw her orthographic and straight on at her own chest height, with no perspective. Light her evenly and softly, with no cast shadows and no strong highlights. A plain, flat light-grey background, with no floor, no shadow on the ground, and no text, labels, frames or other objects.
+```
+
+#### Back · `kid_meshy_back.png`
+
+Square 1:1 · Attach: `A0_kid_pattu_frock_sheet.png`, `kid_meshy_front.png`
+
+ChatGPT:
+
+```text
+Square 1:1 image.
+
+Back view, for 3D modelling, of the same toddler as in the attached images: the model sheet (A0_kid_pattu_frock_sheet.png) for her hair, hairband, frock, anklets and painted style, and the front view (kid_meshy_front.png) for her exact size, position in the frame, pose, colours, earrings, bangles and henna. Match them exactly.
+
+The same toddler in the same peacock-blue pattu frock, seen exactly from behind, so her face is hidden. She stands in the same A-pose as in the front view, mirrored as seen from the back: her arms straight and held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt, her hands open with the palms forward, so we see the backs of her hands, and her feet flat and a hand's width apart. Show her back clearly: the back of her head with the shoulder-length wavy black hair, the gold jhumka earrings just showing below her hair on each side, the back of the leopard-print hairband, the plain back of the bodice with a fine seam down the middle, the puffed sleeves with their gold edges, the gold and glass bangles on both wrists, the orange-red henna vines on the backs of her hands and fingers, the blue sash tied in a neat bow at the back of the waist, the gathered skirt with the magenta and gold temple-tower border continuing all the way round, the backs of her lower legs with the henna round her ankles under the silver anklets, and her bare heels with the dyed edges of her soles.
+
+The same size and place in the frame as the attached front view: the top of her head and the soles of her feet at the same heights, centred, filling about 85% of the image height, clear space all round, nothing cropped. Orthographic, no perspective, seen straight on at her chest height. Even, soft lighting: no cast shadows, no strong highlights. Plain flat light-grey background: no floor, no shadow on the ground, no text, labels, frames or other objects.
+```
+
+Gemini:
+
+```text
+Create a 1:1 square image.
+
+Use the images I've uploaded: the kid's model sheet, for her hair, hairband, frock, anklets and painted style; and the front view, for her exact size, position in the frame, pose, colours, earrings, bangles and henna. Match them exactly.
+
+The same toddler in the same peacock-blue pattu frock, seen exactly from behind, so her face is hidden. She stands in the same A-pose as in the front view, mirrored as seen from the back: her arms straight and held out about 45 degrees from her sides, with clear space between her arms, her body and her skirt, her hands open with the palms forward, so we see the backs of her hands, and her feet flat and a hand's width apart. Show her back clearly: the back of her head with the shoulder-length wavy black hair, the gold jhumka earrings just showing below her hair on each side, the back of the leopard-print hairband, the plain back of the bodice with a fine seam down the middle, the puffed sleeves with their gold edges, the gold and glass bangles on both wrists, the orange-red henna vines on the backs of her hands and fingers, the blue sash tied in a neat bow at the back of the waist, the gathered skirt with the magenta and gold temple-tower border continuing all the way round, the backs of her lower legs with the henna round her ankles under the silver anklets, and her bare heels with the dyed edges of her soles.
+
+Keep her the same size and in the same place as in the front view: the top of her head and the soles of her feet at the same heights, centred, filling about 85 percent of the image height, with clear space all round and nothing cropped. Draw her orthographic and straight on at her own chest height, with no perspective. Light her evenly and softly, with no cast shadows and no strong highlights. A plain, flat light-grey background, with no floor, no shadow on the ground, and no text, labels, frames or other objects.
+```
 
 ### 1. Mango · `mango`
 
