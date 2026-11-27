@@ -340,8 +340,9 @@ def audit_one(name, out):
     # (with `converge`, also drawn smaller further back, about its vanishing column and row)
     k = float(rec.get("oblique", 0.0))
     conv = rec.get("converge")
+    kx = float(rec.get("oblique_x", 0.0))
     sheared = []
-    if k or conv:
+    if k or conv or kx:
         Pf = KL.Painting(name, folder)
         for o in scene.objects:
             if o.type == "MESH":
@@ -357,6 +358,7 @@ def audit_one(name, out):
                 wpt = co.reshape(-1, 3) @ R.T + t
                 y = wpt[:, 1]
                 wpt[:, 2] += k * y
+                wpt[:, 0] += kx * y
                 if conv:
                     f = 1 + float(conv[0]) * y
                     xc = Pf.x(float(conv[1]))
@@ -493,6 +495,7 @@ def audit_one(name, out):
              f"size   w {geometry['width_ratio']:.2f}  h {geometry['height_ratio']:.2f}  depth {geometry['depth']:.2f} m",
              f"base   {geometry['base_z']:+.3f} m   parts {geometry['parts']}  loose {geometry['loose_parts']}"
              + (f"   front along the painted slope {rec['oblique']:.2f}" if rec.get("oblique") else "")
+             + (f", sideways {rec['oblique_x']:.2f}" if rec.get("oblique_x") else "")
              + (f", converging {rec['converge'][0]:.2f}/m" if rec.get("converge") else ""),
              f"inside-out {geometry['inside_out']}   faces {geometry['faces']}  cards {geometry['cards']}",
              f"uv     stretch {geometry['uv_stretch']:.2f}  blur {geometry['uv_blur']:.2f}  squash {geometry.get('uv_squash', 1.0):.2f}",

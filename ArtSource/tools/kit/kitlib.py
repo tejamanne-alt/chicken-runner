@@ -249,6 +249,9 @@ class Kit:
         # point. `converge` = (c, xc) or (c, xc, yc): at depth y the painting is scaled 1 / (1 + c * y) about column xc
         # (px), and, with yc, about row yc (px) too. None is a parallel view. Like `oblique`, the model stays true.
         self.converge = None
+        # A painter standing a little to one side draws things further back shifted sideways at the same size (a
+        # cart's far wheel beside its near one): `oblique_x` is how far right, per metre of depth (u = x + oblique_x*y).
+        self.oblique_x = 0.0
         self.ao = 0.45                   # how much baked ambient occlusion darkens the sides and back
         self.front_exclude = []          # boxes (px) of the painting NOT to project from the front (a neighbour's
                                          # ladder at the edge, a person in front of a stall): the parts' own
@@ -1040,7 +1043,7 @@ def threads(scene):
         scene.render.threads = n
 
 
-def _front_material(P, name, channel="color", exclude=(), oblique=0.0, converge=None):
+def _front_material(P, name, channel="color", exclude=(), oblique=0.0, converge=None, oblique_x=0.0):
     """Emission of the painting projected from the front (object x, z + oblique * y -> painting u, v; with
     `converge`, scaled 1 / (1 + c * y) about its vanishing column and row), or of its alpha (zero in the exclude
     boxes)."""
@@ -1070,7 +1073,7 @@ def _front_material(P, name, channel="color", exclude=(), oblique=0.0, converge=
             else:
                 nt.links.new(v, n.inputs[i])
         return n.outputs[0]
-    x = sep.outputs["X"]
+    x = op("ADD", sep.outputs["X"], op("MULTIPLY", sep.outputs["Y"], float(oblique_x))) if oblique_x else sep.outputs["X"]
     z = op("ADD", sep.outputs["Z"], op("MULTIPLY", sep.outputs["Y"], float(oblique))) if oblique else sep.outputs["Z"]
     if converge:
         f = op("ADD", op("MULTIPLY", sep.outputs["Y"], float(converge[0])), 1.0)
@@ -1143,8 +1146,8 @@ def finish(K, spec):
     final = albedo[..., :3].copy()
     if K.front_projection:
         own = [s.material for s in ob.material_slots]
-        col_m = _front_material(P, f"{name}_front_col", "color", K.front_exclude, K.oblique, K.converge)
-        alp_m = _front_material(P, f"{name}_front_alpha", "alpha", K.front_exclude, K.oblique, K.converge)
+        col_m = _front_material(P, f"{name}_front_col", "color", K.front_exclude, K.oblique, K.converge, K.oblique_x)
+        alp_m = _front_material(P, f"{name}_front_alpha", "alpha", K.front_exclude, K.oblique, K.converge, K.oblique_x)
         _with_materials(ob, col_m)
         front = _bake(ob, "EMIT", size)
         _with_materials(ob, alp_m)
@@ -1160,6 +1163,8 @@ def finish(K, spec):
         sun.data.angle = 0.0
         # light travelling +Y from the camera's side, and down along the painting's slope when it is drawn from above
         sun.rotation_euler = (math.radians(90) - math.atan(K.oblique), 0, 0)
+        if K.oblique_x:      # and sideways along the painter's side step: every point of one ray takes one pixel
+            sun.rotation_euler = Vector((-K.oblique_x, 1.0, -K.oblique)).to_track_quat("-Z", "Y").to_euler()
         bpy.context.scene.collection.objects.link(sun)
         world = bpy.context.scene.world or bpy.data.worlds.new("w")
         bpy.context.scene.world = world
@@ -1241,6 +1246,8 @@ def finish(K, spec):
            "source": "blender"}
     if K.oblique:
         rec["oblique"] = round(float(K.oblique), 4)
+    if K.oblique_x:
+        rec["oblique_x"] = round(float(K.oblique_x), 4)
     if K.converge:
         rec["converge"] = [round(float(v), 4) if v is not None else None for v in K.converge]
     RECORDS.mkdir(parents=True, exist_ok=True)

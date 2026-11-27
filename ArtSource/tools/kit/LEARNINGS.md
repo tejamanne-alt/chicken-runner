@@ -72,6 +72,10 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   the vanishing column xc (and row yc), px. A back edge at depth D painted s times the front's length gives
   c = (1 / s - 1) / D; xc is where the front and back edges' middles meet. The kit projects and the audit compares
   with it, like `oblique`.
+- **A painter standing a little to one side draws things further back shifted sideways at the same size** (a cart's
+  far wheel showing beside its near one under a side-on body). Never turn or skew the model to show it; set
+  `K.oblique_x` (metres right per metre of depth: the far wheel painted s m right of the near one over a track of
+  T m gives s / T). It combines with `oblique` and `converge`; the audit compares with all three.
 - **The base sits on the ground** (z = 0): no floating, no tilted ground patch to match a painted foot, no raised mound
   under a prop unless the painting has one. Most paintings stand the foot 2-5 cm above their bottom edge (the shadow is
   painted below it); the record's `lift` (the lowest point, up to 10 cm) sets the model down onto the ground in the
