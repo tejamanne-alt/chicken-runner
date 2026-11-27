@@ -2026,6 +2026,8 @@ def house_hut_porch(K):
         r, g, b_ = [rgb[..., i].astype(np.int32) for i in range(3)]
         return (np.minimum(np.minimum(r, g), b_) > 170) | ((r - b_ > 55) & (r > 130))
     logs = projected_solid(K, [(1065, 945, 1555, 1100)], drop=behind, squeeze=1.0, inset=2)
+    # and the skirting painted between the sticks kept off the sticks themselves (white blotches on their tops)
+    exclude_where(K, (1065, 945, 1555, 1100), lambda rgb: rgb.astype(np.int32).min(axis=2) > 170, grow=1)
     bark = K.colour((1200, 1000, 1300, 1040), vary=0.12)
     for cx, cy, rr in ((1110, 1078, 18), (1150, 1080, 19), (1195, 1078, 18), (1240, 1080, 18), (1290, 1078, 19),
                        (1335, 1080, 18), (1380, 1078, 18), (1425, 1080, 18), (1470, 1078, 19), (1515, 1082, 17),

@@ -110,6 +110,16 @@ def square_tile(K, box, vary=0.06, soften=0.3, size=None, image=None, key=None, 
     return m
 
 
+def stand_on(K, z_foot, start=0):
+    """Sets every part (from K.parts[start:]) that reaches below z_foot onto it: the painted building stands on its
+    foot a few cm above the painting's bottom edge (its shadow painted below); the record's lift sets it down."""
+    for ob in K.parts[start:]:
+        me = ob.data
+        if any(v.co.z < z_foot for v in me.vertices):
+            for v in me.vertices:
+                v.co.z = max(v.co.z, z_foot)
+
+
 def opaque_crop(K, box):
     """The painting inside box (px) as an RGB image with its transparent specks and holes filled from the nearest
     opaque pixel (a tile crop must be fully opaque, or its holes turn pale or white on every face it covers)."""
@@ -1961,7 +1971,8 @@ def roof_house_a_1(K):
     P = K.paint
     X, Z = P.x, P.z
     D = 5.0
-    wall = K.tile((480, 620, 590, 700), vary=0.05, soften=0.5)
+    # the lit lime plaster (the crop used before was in the verandah's painted shade, and flat)
+    wall = ftile(K, (1255, 625, 1335, 685), vary=0.16, soften=0.2)
     upper = strip_tile(K, (780, 228, 1120, 245), vary=0.05, soften=0.5)
     tower = wall                                          # the stair block: the same lime plaster all round
     stone = K.tile((90, 505, 200, 545), vary=0.05, soften=0.2)
@@ -1970,7 +1981,7 @@ def roof_house_a_1(K):
     door = K.tile((880, 515, 1035, 710), P.m(155), vary=0.04)
     dark = K.colour((0.04, 0.03, 0.025), vary=0.05)
     iron = K.colour((0.03, 0.025, 0.02), vary=0.05)
-    deck_m = K.tile((545, 255, 745, 322), vary=0.06, soften=0.55)
+    deck_m = ftile(K, (1255, 625, 1335, 685), vary=0.18, soften=0.35, size=2.2)
     # the house: its front wall up to the parapet, a cornice, sunk panels in the upper wall, door and windows
     body = K.box(X(455), X(1440), 0.0, D, 0.0, Z(212), wall, name="walls")
     K.box(X(450), X(1445), -0.06, D + 0.04, Z(340), Z(328), upper, bevel=0.008, name="band")
@@ -2072,6 +2083,7 @@ def roof_house_a_1(K):
     for x0, x1 in ((605, 708), (1205, 1308)):
         back_window(K, body, x0, x1, 515, 608, D, wood, iron, dark, nbars=4)
     back_window(K, tower_ob, 230, 300, 300, 380, D, wood, iron, dark, nbars=3)
+    stand_on(K, Z(708))
 
 
 def wedge_wall(K, a, b, z0, top_a, top_b, thick, mat, name="wall", z0_b=None):
@@ -2142,8 +2154,9 @@ def roof_house_a_2(K):
     P = K.paint
     X, Z = P.x, P.z
     D = 5.0
-    mud = K.tile((740, 275, 940, 355), vary=0.05, soften=0.45)
-    mud2 = strip_tile(K, (1000, 180, 1250, 240), vary=0.05, soften=0.45)
+    # the mud plaster from clean, lit patches (the old crop's shadow band under the cornice repeated as planks)
+    mud = ftile(K, (325, 420, 425, 490), vary=0.14, soften=0.2)
+    mud2 = ftile(K, (840, 295, 940, 365), vary=0.14, soften=0.25)
     ledge = strip_tile(K, (560, 247, 940, 260), vary=0.05, soften=0.4)
     straw = K.tile((1100, 300, 1250, 380), vary=0.1, soften=0.15)
     wood = K.tile((1066, 485, 1076, 590), P.m(10), vary=0.06)
@@ -2167,10 +2180,13 @@ def roof_house_a_2(K):
            name="wire")
     # the roof: a flat deck, the back parapet and the two side parapets splaying to it
     K.box(X(60), X(1300), 0.28, D, Z(166), Z(165), mud2, name="deck")
-    K.box(X(225), X(1000), D - 0.25, D, Z(165), Z(52), mud2, name="back_parapet")
-    K.box(X(220), X(1005), D - 0.28, D + 0.03, Z(58), Z(46), ledge, bevel=0.008, name="back_coping")
-    wedge_wall(K, (X(70), 0.14), (X(232), D - 0.12), Z(165), Z(162), Z(48), 0.25, mud2, name="side_parapet")
-    wedge_wall(K, (X(1290), 0.14), (X(993), D - 0.12), Z(165), Z(162), Z(48), 0.25, mud2, name="side_parapet")
+    # a high parapet all round the roof terrace, square in plan (the painting draws its sides receding to a
+    # narrower back, in perspective: the side walls stand straight back, and the front differs at the top corners)
+    K.box(X(70), X(1300), D - 0.25, D, Z(165), Z(52), mud2, name="back_parapet")
+    K.box(X(66), X(1304), D - 0.28, D + 0.03, Z(58), Z(46), ledge, bevel=0.008, name="back_coping")
+    for x0, x1 in ((70, 92), (1278, 1300)):
+        K.box(X(x0), X(x1), 0.28, D - 0.25, Z(165), Z(52), mud2, name="side_parapet")
+        K.box(X(x0) - 0.03, X(x1) + 0.03, 0.28, D - 0.25, Z(58), Z(46), ledge, bevel=0.008, name="side_coping")
     # what dries on the roof: grain on two mats propped against the back parapet, palm fronds, greens
     weave = K.colour((0.35, 0.22, 0.1), vary=0.1)
     top = K.projected(squeeze=1.0, inset=0)
@@ -2219,7 +2235,7 @@ def roof_house_a_2(K):
         K.box(X(cx - 6), X(cx + 6), -2.0, -1.88, 0.0, Z(top), wood, bevel=0.005, name="post")
     K.tube([(X(990), -1.94, Z(482)), (X(1460), -1.94, Z(474))], P.m(6), wood, segments=8, name="purlin")
     figures(K, [([(1056, 617), (1058, 575), (1072, 547), (1095, 538), (1120, 546), (1150, 553), (1200, 546),
-                  (1262, 546), (1284, 560), (1284, 617)], -0.9, "calf")])
+                  (1262, 546), (1284, 560), (1284, 617)], -0.9, "calf", 20)], exact=True)
     pot = K.projected(axis_x=X(922), squeeze=0.93, keep=[(895, 582, 950, 617)], inset=2)
     K.lathe(prof(P, [(15, 617), (25, 610), (28, 600), (24, 590), (14, 586), (16, 582), (14, 581)]), pot, segments=20,
             centre=(X(922), -0.45, 0), name="water_pot")
@@ -2230,6 +2246,7 @@ def roof_house_a_2(K):
         back_window(K, body, x0, x1, 408, 535, D, wood, iron, dark, nbars=5)
     for side in (-1, 1):
         side_window(K, body, side, D * 0.55, Z(535), Z(410), 0.8, wood, iron, dark)
+    stand_on(K, Z(610))
 
 
 @model("roof_house_b_2", "market", kind="building", atlas=2048)

@@ -1925,7 +1925,7 @@ def pump_house(K):
     # the plinth: two courses of long dressed stones, each a patch of the painted plinth's own stone (its joints
     # filtered out), laid with dark joints at the painted courses' heights (the grass at its foot left out)
     plinth = pattern_tile(K, brick_bond(K, [], (78, 44, 30), brick=(110, 19), joint=3, nx=3, ny=2, seed=5,
-                                        source=delined(P.crop((262, 321, 412, 337)), 5)),
+                                        source=delined(P.crop((262, 320, 412, 340)), 5)),
                           P.m(3 * 113), z0=P.z(361), vary=0.05, key="plinth")
     coping = K.tile((280, 14, 400, 48), soften=0.15, vary=0.03)
     body = K.box(P.x(152), P.x(410), 0.0, D, P.z(318), P.z(52), brick, name="walls")

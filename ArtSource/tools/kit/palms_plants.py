@@ -2818,7 +2818,7 @@ def pumpkin(K, px, py, rx, ry, y, mat, ribs=10, name="pumpkin"):
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=10, radius=1.0)
     ph = K.rng.uniform(0, 6.28)
-    a_, b_ = P.m(rx), P.m(ry)
+    a_, b_ = P.m(rx) * 1.04, P.m(ry) * 1.03          # (the ribs and the dimple take a little off)
     for v in bm.verts:
         d = v.co.normalized()
         az = math.atan2(d.y, d.x) + ph
@@ -2848,7 +2848,7 @@ def h5_6(K):
     opaque = P.rgba[..., 3] > 0.5
     orange = (r > 170) & (r > g + 40) & (g > b + 20)
     pumps = ellipse_mask(opaque.shape, [(x, y, rx, ry) for x, y, rx, ry, _ in H56_PUMPKINS], -2)
-    bam_ok = bamboo_ok(rgb, opaque) & ~ndimage.binary_dilation(orange, iterations=3) & ~pumps
+    bam_ok = bamboo_ok(rgb, opaque) & ~ndimage.binary_dilation(orange, iterations=3) & ~pumps & (r > g + 10)
     bam = masked_material(K, bam_ok, inset=1)
     rope = K.colour((90, 75, 105, 95), vary=0.08)
     pr = 6.8
