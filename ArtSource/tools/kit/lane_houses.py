@@ -16,9 +16,10 @@ from kitlib import Mat, _image, _vary, model, seamless
 
 
 def strip_tile(K, box, vary=0.05, soften=0.4, size=None):
-    """K.tile for a thin strip of the painting (a cornice, a coping, a ledge, a beam): the strip stacked with its
-    mirror image into about a square first, so on a slab's top or a cap it does not stretch into streaks (the same
-    as market_props.strip_tile; kept here so this module does not depend on another one). size: the strip's width in
+    """K.tile for a thin strip of the painting (a cornice, a coping, a ledge, a beam, a pillar's face): the strip
+    stacked with its mirror image into about a square first (rows for a band, columns for a column), so on a slab's
+    top, a cap or a deep side it does not stretch into streaks or show a seam every strip's width (like
+    market_props.strip_tile; kept here so this module does not depend on another one). size: the square's width in
     metres (default as painted)."""
     from PIL import Image
     P = K.paint
@@ -30,10 +31,14 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None):
         med = np.median(a.reshape(-1, 3), axis=0)
         a = a * (1 - soften) + med * soften
     w, h = a.shape[1], a.shape[0]
-    n = max(1, int(round(w / max(1, h))))
-    sq = Image.fromarray(np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
-                         .clip(0, 255).astype(np.uint8))
-    sw = size or P.m(w)
+    if w >= h:                                   # a band: rows stacked, each the mirror of the one above
+        n = max(1, int(round(w / max(1, h))))
+        sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+    else:                                        # a column (a pillar's face): columns side by side, mirrored
+        n = max(1, int(round(h / max(1, w))))
+        sq = np.concatenate([a if k % 2 == 0 else a[:, ::-1] for k in range(n)], axis=1)
+    sq = Image.fromarray(sq.clip(0, 255).astype(np.uint8))
+    sw = size or P.m(sq.width)
     m = Mat(f"{K.name}_lhstrip{len(K._mats)}")
     img = _image(seamless(sq, 0.2), m.mat.name)
     coord = m.nt.nodes.new("ShaderNodeTexCoord")
@@ -204,9 +209,63 @@ def house_pink(K):
 
 
 # ====================================================================== helpers for the rest of the lane
-def scatter_cards(K, box, n, size, y_range, yaw=60, pitch=20, name="plant", skip=None, x_range=None, z_range=None):
+def blob_card(K, box_px, centre, yaw=0.0, pitch=0.0, normal=None, name="leaf", n=9, rag=0.22):
+    """A card like K.card_from_painting, cut as a ragged rounded blob inscribed in its box instead of a rectangle, so
+    a patch of a climber or a bush has an irregular outline from every side, never a straight cut edge or a square
+    corner (the same as trees.blob_card; kept here so this module does not depend on another one)."""
+    import bmesh
+    from kitlib import _obj
+    P = K.paint
+    x0, y0, x1, y1 = box_px
+    cx0, cy0, cx1, cy1 = max(0, x0), max(0, y0), min(P.w, x1), min(P.h, y1)
+    if cx1 - cx0 < 3 or cy1 - cy0 < 3:
+        return None
+    c = Vector(centre) + Vector((P.m((cx0 + cx1) / 2 - (x0 + x1) / 2), 0, -P.m((cy0 + cy1) / 2 - (y0 + y1) / 2)))
+    x0, y0, x1, y1 = cx0, cy0, cx1, cy1
+    hw, hh = P.m(x1 - x0) / 2, P.m(y1 - y0) / 2
+    R = Matrix.Rotation(math.radians(yaw), 3, "Z") @ Matrix.Rotation(math.radians(pitch), 3, "X")
+    ph = K.rng.uniform(0, 2 * math.pi)
+    bm = bmesh.new()
+    vs, uvs = [], []
+    for k in range(n):
+        a = ph + 2 * math.pi * k / n
+        rr = 1.0 - rag * K.rng.uniform(0, 1)
+        u, v = math.cos(a) * rr, math.sin(a) * rr
+        vs.append(bm.verts.new(c + R @ Vector((u * hw, 0, v * hh))))
+        uvs.append(((x0 + (u + 1) / 2 * (x1 - x0)) / P.w, 1 - (y1 - (v + 1) / 2 * (y1 - y0)) / P.h))
+    f = bm.faces.new(vs)
+    layer = bm.loops.layers.uv.new("UVMap")
+    for lp, uv in zip(f.loops, uvs):
+        lp[layer].uv = uv
+    ob = _obj(name, bm, None)
+    ob["kit_normal"] = list(normal) if normal is not None else [0.0, -0.35, 1.0]
+    K.cards_parts.append(ob)
+    return ob
+
+
+def bloom_pixels(rgb, white=False):
+    """A climber's or a bush's own pixels: leaves (green to olive), bright petals (pink, red, magenta, orange,
+    golden) and the ink round them; white petals only if asked (white=True: jasmine), and then only pure white, never
+    the cream lime wash or pale plaster painted behind (plant_pixels keeps cream as 'white', so a card cut from a
+    climber on a cream wall shows square patches of wall)."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    sat = mx - mn
+    keep = olive_leaf_pixels(rgb)
+    keep |= (sat > 110) & ((r - g > 95) | (b - g > 40))
+    keep |= (r > 200) & (g > 150) & (b < 90)
+    if white:
+        keep |= (mn > 215) & (sat < 28)
+    keep = ndimage.binary_closing(keep, iterations=1)
+    keep |= (mx < 90) & ndimage.binary_dilation(keep, iterations=2)
+    return ndimage.binary_opening(keep, iterations=1)
+
+
+def scatter_cards(K, box, n, size, y_range, yaw=60, pitch=20, name="plant", skip=None, x_range=None, z_range=None,
+                  blob=False):
     """n cards cut from the painting inside box (px), each placed where it is painted, at a depth in y_range (m);
-    `skip(px, py)` leaves a spot out. Masked with leaves_only(box) by the caller."""
+    `skip(px, py)` leaves a spot out; blob=True cuts them as ragged blobs. Masked with leaves_only(box) by the
+    caller."""
     P = K.paint
     x0, y0, x1, y1 = box
     xr = x_range or (x0, x1)
@@ -221,9 +280,9 @@ def scatter_cards(K, box, n, size, y_range, yaw=60, pitch=20, name="plant", skip
         if skip is not None and skip(cx, cy):
             continue
         w, h = size[0] * K.rng.uniform(0.8, 1.2), size[1] * K.rng.uniform(0.8, 1.2)
-        K.card_from_painting((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2),
-                             (P.x(cx), K.rng.uniform(*y_range), P.z(cy)), yaw=K.rng.uniform(-yaw, yaw),
-                             pitch=K.rng.uniform(-pitch, pitch), name=name)
+        make = (lambda *a, **k: blob_card(K, *a, **k)) if blob else K.card_from_painting
+        make((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), (P.x(cx), K.rng.uniform(*y_range), P.z(cy)),
+             yaw=K.rng.uniform(-yaw, yaw), pitch=K.rng.uniform(-pitch, pitch), name=name)
         placed += 1
     return placed
 
@@ -237,6 +296,31 @@ def side_cards(K, box, n, size, x_wall, side, y_range, name="vine_side"):
         K.card_from_painting((cx - size[0] / 2, cy - size[1] / 2, cx + size[0] / 2, cy + size[1] / 2),
                              (x_wall + side * K.rng.uniform(0.02, 0.08), K.rng.uniform(*y_range), P.z(cy)),
                              yaw=90 + K.rng.uniform(-25, 25), pitch=K.rng.uniform(-15, 15), name=name)
+
+
+def corner_climber(K, box, n, size, x_wall, side, top_py, bottom_py, reach, name="vine_side", ledge=None):
+    """A climber come round a front corner onto a side wall (x_wall, facing side -1/+1): n ragged blob cards cut from
+    the painting inside box, hugging the corner, most of them high up and growing furthest back there (reach m at
+    top_py, a little at bottom_py), so from the side it is one mass joined to the front's, never loose patches out on
+    the wall. ledge = (z, x_out, count, y0, y1): more trailing back along a ledge at height z standing x_out m off the
+    wall."""
+    P = K.paint
+    x0, y0, x1, y1 = box
+    for i in range(n):
+        t = K.rng.uniform() ** 1.6                                # 0 at the top
+        cy = top_py + (bottom_py - top_py) * t
+        far = 0.1 + (reach - 0.1) * (1 - t)
+        cx = K.rng.uniform(x0, x1)
+        blob_card(K, (cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2),
+                  (x_wall + side * K.rng.uniform(0.015, 0.05), K.rng.uniform(0.02, far), P.z(cy)),
+                  yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-15, 15), name=name)
+    if ledge:
+        z, out, count, ya, yb = ledge
+        for i in range(count):
+            cx, cy = K.rng.uniform(x0, x1), K.rng.uniform(y0, min(y1, y0 + (y1 - y0) * 0.5))
+            blob_card(K, (cx - size / 2, cy - size * 0.4, cx + size / 2, cy + size * 0.4),
+                      (x_wall + side * (out + K.rng.uniform(0.0, 0.04)), ya + (yb - ya) * (i + K.rng.uniform(0, 1)) / count,
+                       z), yaw=90 + K.rng.uniform(-20, 20), pitch=K.rng.uniform(-20, 10), name=name + "_ledge")
 
 
 def pot(K, cx_px, prof_px, keep, y, exclude=(), name="pot", segments=28, mouth=True, squeeze=0.93, wobble=0.01):
@@ -288,21 +372,23 @@ def house_limewash(K):
     platform, a hibiscus climbing over the left corner and a bush at the right."""
     P = K.paint
     depth = 4.0
-    wall = K.tile((214, 215, 252, 400), size=0.5, vary=0.05, soften=0.6)   # cream plaster, right of the door
+    # cream plaster: left of the door, right of the climber's last leaves, above the pot (right of the door the crop
+    # takes the sunshade's shadow, rust drips and the cut-out's holes, which repeat in a grid down the side walls)
+    wall = strip_tile(K, (62, 262, 92, 372), soften=0.3)          # (a column, stacked square with its mirror)
     upper = K.tile((132, 84, 198, 106), vary=0.05, soften=0.35)      # the parapet's plaster with its rust streaks
-    ledge = K.colour((130, 112, 200, 122), vary=0.06)
-    red = K.tile((30, 472, 90, 510), vary=0.06, soften=0.3)          # red-oxide platform, below its kolam border
+    ledge = strip_tile(K, (150, 112, 240, 124), soften=0.45)         # the cornice, its rust and all, stacked square
+    red = K.tile((32, 474, 63, 510), size=0.5, vary=0.06, soften=0.45)   # red-oxide platform, clear of its steps
     teal = K.colour((95, 250, 105, 400), vary=0.05)
     wood = K.tile((110, 300, 140, 400), P.m(30))
     X0, X1 = P.x(27), P.x(254)
     body = flat_roof_house(K, 27, 254, 41, depth, wall, plinth=red, plinth_top_py=440,
-                           cornice=(108, 126, 0.08, ledge), coping=(41, 52, upper), back_door=(92, 181, 212, 425))
+                           cornice=(108, 126, 0.08, ledge), coping=(41, 52, upper), back_door=(92, 181, 212, 425),
+                           coping_rise=0.01)
     # the raised right corner of the parapet, front and back
     for y in (0.0, depth - 0.45):
         K.box(P.x(200), X1 + 0.03, y - 0.03 * (y == 0), y + 0.45 + 0.03 * (y > 0), P.z(52), P.z(26), upper, bevel=0.02,
               name="corner_block")
-    K.box(X0 + 0.12, X1 - 0.12, 0.12, depth - 0.12, P.z(41), P.z(41) + 0.01,
-          K.colour((140, 60, 196, 76), vary=0.08, pct=70), name="roof_deck")
+    K.box(X0 + 0.12, X1 - 0.12, 0.12, depth - 0.12, P.z(41), P.z(41) + 0.01, wall, name="roof_deck")
     iron = K.colour((0.025, 0.02, 0.02), vary=0.05)
     dark = K.colour((0.03, 0.02, 0.025), vary=0.0)
     for side in (-1, 1):
@@ -326,23 +412,30 @@ def house_limewash(K):
     K.tube(pts, P.m(10), flowers, segments=8, name="garland")
     for x in (98, 208):
         K.tube([P.pt(x, 190, -0.05), P.pt(x, 248, -0.05)], P.m(7), strings, segments=8, name="garland_string")
-    # the steps, and the red platforms either side of them
+    # the steps, and the red platforms either side of them; two plain steps up to the back door
     stairs(K, [(93, 215, 425), (83, 220, 445), (75, 229, 467), (65, 237, 490)], red)
+    for k, top in enumerate((428, 470)):
+        K.box(P.x(90), P.x(214), depth, depth + 0.3 * (k + 1), 0.0, P.z(top), red, bevel=0.01, name="back_step")
     K.box(X0 - 0.03, P.x(93), -0.45, 0.0, 0.0, P.z(440), red, bevel=0.012, name="platform_l")
     K.box(P.x(215), X1 + 0.03, -0.45, 0.0, 0.0, P.z(446), red, bevel=0.012, name="platform_r")
     # the pot on the left platform
     pot(K, 64, [(13, 440), (20, 436), (27, 426), (31, 410), (30, 400), (26, 390), (17, 384), (14, 382), (15, 379),
                 (18, 376), (16, 374)], keep=[(30, 372, 98, 441)], y=-0.22)
     # the hibiscus climbing over the left corner: cards where it is painted, standing a little off the wall, round
-    # the corner onto the left side and over the parapet onto the roof
-    K.leaves_only((0, 0, 150, 335))
-    scatter_cards(K, (0, 0, 150, 335), 30, (60, 60), (-0.2, -0.02), yaw=45, pitch=25, name="vine")
-    K.card_from_painting((0, 0, 150, 335), (P.x(75), -0.21, P.z(167.5)), name="vine_front")
-    side_cards(K, (0, 40, 60, 320), 12, (55, 55), X0, -1, (0.05, 1.3))
-    scatter_cards(K, (20, 0, 120, 60), 6, (50, 45), (0.1, 0.9), yaw=30, pitch=70, name="vine_roof")
+    # the corner onto the left side and over the parapet onto the roof. Its leaves and flowers only (not the cream
+    # wall), and in two boxes that keep clear of the sunshade, garland and jamb below its top (a card carrying them
+    # stands in front of the door and shows them again, displaced, from the side)
+    vine = [(0, 0, 150, 165), (0, 165, 92, 335)]
+    for box in vine:
+        K.leaves_only(box, bloom_pixels)
+        K.card_from_painting(box, (P.x((box[0] + box[2]) / 2), -0.21, P.z((box[1] + box[3]) / 2)), name="vine_front")
+    scatter_cards(K, vine[0], 20, (60, 60), (-0.2, -0.02), yaw=45, pitch=25, name="vine", blob=True)
+    scatter_cards(K, vine[1], 10, (50, 50), (-0.2, -0.02), yaw=45, pitch=25, name="vine", blob=True)
+    corner_climber(K, (5, 20, 75, 300), 16, 58, X0, -1, 25, 300, 0.9, ledge=(P.z(117), 0.1, 6, 0.4, 1.6))
+    scatter_cards(K, (20, 0, 120, 60), 6, (50, 45), (0.1, 0.9), yaw=30, pitch=70, name="vine_roof", blob=True)
     # the bush at the bottom right
-    K.leaves_only((216, 395, 254, 512))
-    scatter_cards(K, (216, 395, 254, 512), 10, (40, 45), (-0.45, -0.1), yaw=70, name="bush")
+    K.leaves_only((216, 395, 254, 512), bloom_pixels)
+    scatter_cards(K, (216, 395, 254, 512), 10, (40, 45), (-0.45, -0.1), yaw=70, name="bush", blob=True)
     K.card_from_painting((216, 395, 254, 512), (P.x(235), -0.47, P.z(453.5)), name="bush_front")
 
 
@@ -398,20 +491,23 @@ def house_turmeric_ladder(K):
     P = K.paint
     depth = 4.5
     K.front_exclude = [(0, 96, 25, 152), (384, 0, 422, 477), (0, 0, 3, 400)]   # the neighbours' bits at the edges
-    wall = K.tile((135, 280, 172, 355), size=0.6, vary=0.05, soften=0.7)    # turmeric plaster between window and door
+    # turmeric plaster: left of the pot, below the window (between window and door the crop takes the shutter's and
+    # pot's shadows, which repeat in a grid of crescents down the side walls)
+    wall = K.tile((18, 280, 78, 358), size=0.6, vary=0.05, soften=0.3)
     upper = K.tile((190, 18, 300, 74), vary=0.05, soften=0.3)                # the parapet's cream with orange streaks
-    ledge = K.colour((100, 82, 280, 92), vary=0.06)
-    red = K.tile((35, 405, 120, 470), vary=0.06, soften=0.35)               # the thinnai's red oxide, below its kolam
+    ledge = strip_tile(K, (40, 80, 280, 92), soften=0.5)                     # the cornice, stacked square
+    red = strip_tile(K, (84, 414, 148, 432), soften=0.4)    # the thinnai's red oxide, between its kolam and the steps
+    deck = strip_tile(K, (215, 18, 300, 30), soften=0.5)    # the parapet's cream top, for the roof deck
     teal = K.colour((178, 250, 186, 380), vary=0.05)
     wood = K.tile((190, 300, 230, 380), P.m(30))
     frame = K.colour((56, 185, 68, 268), vary=0.08)
     X0, X1 = P.x(3), P.x(383)
     body = flat_roof_house(K, 3, 383, 25, depth, wall, plinth=red, plinth_top_py=455,
-                           cornice=(78, 97, 0.09, ledge), coping=(25, 34, upper), back_door=(175, 162, 293, 390))
+                           cornice=(78, 97, 0.09, ledge), coping=(25, 34, upper), back_door=(175, 162, 293, 390),
+                           coping_rise=0.01)
     raised_parapet(K, 3, 70, 5, 34, depth, upper, rim=0.32, left=True)
     raised_parapet(K, 180, 383, 4, 34, depth, upper, rim=0.32, right=True)
-    K.box(X0 + 0.12, X1 - 0.12, 0.12, depth - 0.12, P.z(25), P.z(25) + 0.01,
-          K.colour((120, 30, 175, 40), vary=0.08, pct=70), name="roof_deck")
+    K.box(X0 + 0.12, X1 - 0.12, 0.12, depth - 0.12, P.z(25), P.z(25) + 0.01, deck, name="roof_deck")
     iron = K.colour((0.05, 0.04, 0.035), vary=0.05)
     bars = K.colour((96, 199, 120, 204), vary=0.05)
     dark = K.colour((0.03, 0.02, 0.015), vary=0.0)
@@ -441,17 +537,20 @@ def house_turmeric_ladder(K):
     for x in (178, 290):
         K.tube([P.pt(x, 166, -0.05), P.pt(x, 228, -0.05)], P.m(6), strings, segments=8, name="garland_string")
     stairs(K, [(171, 294, 390), (154, 308, 410), (143, 320, 431), (135, 332, 456)], red)
+    for k, top in enumerate((392, 425)):                     # two plain steps up to the back door
+        K.box(P.x(173), P.x(295), depth, depth + 0.3 * (k + 1), 0.0, P.z(top), red, bevel=0.01, name="back_step")
     # the thinnai on the left with its pot, a low platform on the right behind the bush
     K.box(P.x(26), P.x(174), -0.55, 0.0, 0.0, P.z(362), red, bevel=0.012, name="thinnai")
     K.box(P.x(294), X1 + 0.03, -0.4, 0.0, 0.0, P.z(440), red, bevel=0.012, name="platform_r")
     pot(K, 110.3, [(16.8, 364), (20, 357), (26, 348.5), (29.6, 336), (25.7, 321), (20.5, 315), (14, 311),
                    (16.5, 305.5), (14.5, 303.5)], keep=[(78, 302, 143, 366)], y=-0.3)
     # bushes at both feet of the wall
-    K.leaves_only((0, 398, 72, 477))
-    scatter_cards(K, (0, 398, 72, 477), 10, (40, 40), (-0.5, -0.05), yaw=70, name="bush_l")
+    # (leaves only: plant_pixels takes the turmeric wall behind them for golden petals)
+    K.leaves_only((0, 398, 72, 477), green_pixels)
+    scatter_cards(K, (0, 398, 72, 477), 10, (40, 40), (-0.5, -0.05), yaw=70, name="bush_l", blob=True)
     K.card_from_painting((0, 398, 72, 477), (P.x(36), -0.57, P.z(437.5)), name="bush_l_front")
-    K.leaves_only((298, 355, 384, 477))
-    scatter_cards(K, (298, 355, 384, 477), 14, (45, 45), (-0.42, -0.05), yaw=70, name="bush_r")
+    K.leaves_only((298, 355, 384, 477), green_pixels)
+    scatter_cards(K, (298, 355, 384, 477), 14, (45, 45), (-0.42, -0.05), yaw=70, name="bush_r", blob=True)
     K.card_from_painting((298, 355, 384, 477), (P.x(341), -0.44, P.z(416)), name="bush_r_front")
 
 
@@ -505,11 +604,14 @@ def house_indigo_veranda(K):
     py_ = -1.3                                  # the pillars' line
     K.front_min = 0.0                           # the lean-to faces the camera only at a slant: let it take the painting
     K.front_exclude = [(0, 0, 10, 100), (532, 0, 546, 100)]
-    wall = K.tile((427, 275, 490, 400), size=0.6, vary=0.05, soften=0.6)      # indigo plaster right of the door
+    # indigo plaster: below the window, above the cot (right of the door the wall is painted with vertical drips,
+    # which repeat as stripes down the side walls)
+    wall = K.tile((152, 322, 238, 352), size=0.9, vary=0.05, soften=0.35)
     upper = K.tile((120, 66, 230, 86), vary=0.05, soften=0.3)                 # the parapet's indigo, streaked
-    ledge = K.colour((120, 90, 400, 98), vary=0.06)
-    red = K.tile((300, 470, 420, 500), vary=0.06, soften=0.35)                # red-oxide plinth below the kolam
-    floor = K.colour((60, 434, 230, 440), vary=0.08)
+    ledge = strip_tile(K, (120, 88, 400, 101), soften=0.4)                    # the cornice, stacked square
+    # red-oxide plinth: the left stretch below its kolam border (the old crop was the steps, kolam and all)
+    red = strip_tile(K, (60, 470, 230, 503), soften=0.45)
+    floor = strip_tile(K, (60, 430, 230, 440), soften=0.35)                   # the veranda floor's edge, squared
     teal = K.colour((295, 260, 303, 400), vary=0.05)
     wood = K.tile((320, 300, 360, 400), P.m(30))
     timber = K.tile((5, 162, 200, 178), vary=0.05)                            # the veranda beam
@@ -524,11 +626,10 @@ def house_indigo_veranda(K):
     top = K.box(P.x(22), P.x(520), 0.0, depth, P.z(100), P.z(20), upper, name="parapet_walls")
     K.box(P.x(18), P.x(527), -0.08, depth + 0.08, P.z(102), P.z(88), ledge, bevel=0.015, name="cornice")
     for y0, y1, xa, xb in ((-0.03, 0.12, 22, 520), (depth - 0.12, depth + 0.03, 22, 520)):
-        K.box(P.x(xa) - 0.03, P.x(xb) + 0.03, y0, y1, P.z(28), P.z(20) + 0.05, upper, bevel=0.01, name="coping")
+        K.box(P.x(xa) - 0.03, P.x(xb) + 0.03, y0, y1, P.z(28), P.z(20) + 0.01, upper, bevel=0.01, name="coping")
     raised_parapet(K, 22, 112, 5, 28, depth, upper, rim=0.32, left=True)
     raised_parapet(K, 436, 520, 5, 28, depth, upper, rim=0.32, right=True)
-    K.box(P.x(30), P.x(512), 0.12, depth - 0.12, P.z(20), P.z(20) + 0.01, K.colour((120, 40, 180, 50), vary=0.08,
-          pct=70), name="roof_deck")
+    K.box(P.x(30), P.x(512), 0.12, depth - 0.12, P.z(20), P.z(20) + 0.01, wall, name="roof_deck")
     for x0, x1 in ((188, 202), (222, 236), (258, 272), (300, 314), (336, 350), (372, 386)):
         K.cut(top, P.x(x0), P.x(x1), -0.05, 0.14, P.z(63), P.z(38))
         K.box(P.x(x0), P.x(x1), 0.1, 0.12, P.z(63), P.z(38), dark, name="vent_back")
@@ -584,8 +685,9 @@ def house_indigo_veranda(K):
     for dx, dy in ((-11, 0.0), (11, 0.0), (0, -0.07), (0, 0.07)):
         K.tube([P.pt(104, 196, -1.0), P.pt(104 + dx, 233, -1.0 + dy)], 0.005, rope, segments=5, name="rope")
     K.tube([P.pt(104, 170, -1.0), P.pt(104, 196, -1.0)], 0.006, rope, segments=5, name="rope")
-    K.leaves_only((62, 205, 142, 312))
-    scatter_cards(K, (62, 205, 142, 312), 14, (35, 35), (-1.15, -0.85), yaw=80, pitch=30, name="fern")
+    # (leaves only: plant_pixels keeps the indigo wall behind them as 'vivid' blue petals)
+    K.leaves_only((62, 205, 142, 312), green_pixels)
+    scatter_cards(K, (62, 205, 142, 312), 14, (35, 35), (-1.15, -0.85), yaw=80, pitch=30, name="fern", blob=True)
     K.card_from_painting((62, 205, 142, 312), (P.x(102), -1.17, P.z(258.5)), name="fern_front")
     # the cot by the wall with its striped bolster
     cotw = K.tile((160, 385, 235, 397), vary=0.05)
@@ -610,11 +712,14 @@ def house_indigo_veranda(K):
         side_window(K, body, side, depth * 0.5, P.z(322), P.z(232), 0.7, frame, iron, dark)
     back_decal(K, (293, 196, 423, 428), depth)
     back_decal(K, (130, 232, 238, 322), depth, x_shift=P.m(-40), name="back_window")
+    for k, top in enumerate((460, 482)):                     # two plain steps down from the back door's sill
+        K.box(P.x(290), P.x(426), depth + 0.04, depth + 0.04 + 0.3 * (k + 1), 0.0, P.z(top), red, bevel=0.01,
+              name="back_step")
     # bushes at the plinth's ends
-    K.leaves_only((0, 395, 20, 506))
-    scatter_cards(K, (0, 395, 20, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_l")
-    K.leaves_only((526, 410, 546, 506))
-    scatter_cards(K, (526, 410, 546, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_r")
+    K.leaves_only((0, 395, 20, 506), green_pixels)
+    scatter_cards(K, (0, 395, 20, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_l", blob=True)
+    K.leaves_only((526, 410, 546, 506), green_pixels)
+    scatter_cards(K, (526, 410, 546, 506), 6, (25, 35), (-1.6, -0.2), yaw=70, name="bush_r", blob=True)
 
 
 def leaf_pixels(rgb):
@@ -632,13 +737,15 @@ def doorway_garland(K):
     with a kolam, grass at its feet."""
     P = K.paint
     d = 0.9                                                       # the doorway's depth through the wall
-    lat = K.tile((50, 140, 80, 260), size=0.3, vary=0.06, soften=0.25)   # laterite with its pits and lime splashes
-    lat2 = K.tile((285, 120, 310, 280), size=0.3, vary=0.06, soften=0.25)
-    slab = K.tile((90, 14, 150, 42), size=0.5, vary=0.05, soften=0.2)
+    # laterite with its pits and lime splashes: each pillar's face stacked side by side with its mirror into a square
+    # (a 30 px column box-projected round a 0.9 m deep side shows a seam every 30 cm)
+    lat = strip_tile(K, (50, 100, 80, 345), soften=0.25)
+    lat2 = strip_tile(K, (284, 100, 310, 345), soften=0.25)
+    slab = strip_tile(K, (100, 12, 300, 40), soften=0.3)            # the lintel's face, stacked square for its top
     wood = K.tile((120, 120, 170, 190), vary=0.05)
-    frame_w = K.colour((86, 120, 100, 300), vary=0.08)
-    ochre = K.colour((50, 45, 70, 72), vary=0.08)
-    step = K.tile((40, 372, 80, 395), vary=0.05, soften=0.2)
+    frame_w = wood                                                  # the frame's inner faces: the door's planks
+    ochre = K.tile((48, 40, 72, 72), size=0.25, vary=0.05, soften=0.3)   # the painted corner blocks
+    step = K.tile((38, 370, 80, 398), size=0.6, vary=0.05, soften=0.45)  # the platform's stone, spread wide
     # the pillars and the lintel
     K.box(P.x(47), P.x(82), 0.0, d, P.z(366), P.z(40), lat, bevel=0.01, name="pillar_l")
     K.box(P.x(280), P.x(311), 0.0, d, P.z(366), P.z(40), lat2, bevel=0.01, name="pillar_r")
@@ -658,7 +765,10 @@ def doorway_garland(K):
     for py in (110, 215, 320):
         K.box(P.x(110), P.x(247), 0.26, 0.3, P.z(py + 12), P.z(py), bat, bevel=0.005, name="batten")
     iron = K.colour((0.06, 0.035, 0.02), vary=0.05)
-    K.tube([P.pt(158, 207, 0.32), P.pt(205, 207, 0.32)], 0.012, iron, segments=6, name="back_bar")
+    # the back bar lies on the middle batten in two staples (it hung in the air a little off the planks)
+    K.tube([P.pt(150, 221, 0.312), P.pt(212, 221, 0.312)], 0.012, iron, segments=6, name="back_bar")
+    for px in (160, 202):
+        K.box(P.x(px) - 0.012, P.x(px) + 0.012, 0.3, 0.33, P.z(221) - 0.02, P.z(221) + 0.02, iron, name="staple")
     K.tube([P.pt(160, 207, 0.195), P.pt(205, 207, 0.195)], 0.009, iron, segments=6, name="bar")
     # threshold platform and the step before it
     K.box(P.x(35), P.x(322), -0.35, d + 0.1, 0.0, P.z(366), step, bevel=0.012, name="platform")
@@ -751,7 +861,7 @@ def house_mud_tin(K):
     P = K.paint
     depth = 4.0
     K.front_min = 0.1                                    # the front slope of the roof faces the camera at a slant
-    mud = K.tile((180, 520, 520, 960), size=1.2, vary=0.05, soften=0.5)
+    mud = K.tile((180, 520, 520, 960), size=1.2, vary=0.07, soften=0.2)     # (softer than this it reads as flat paint)
     tin = K.tile((380, 110, 560, 240), size=0.6, vary=0.05, soften=0.25)
     lime = K.tile((200, 1012, 520, 1085), size=0.8, vary=0.04, soften=0.4)
     earth = K.tile((200, 1100, 520, 1140), size=0.8, vary=0.06)
@@ -1034,12 +1144,15 @@ def straw_clean(rgb):
     return straw_pixels(rgb) & ~ndimage.binary_dilation(pale, iterations=4)
 
 
-def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch"):
+def hip_thatch(K, eave, ridge, ze, zr, mat, thickness=0.22, shag=0.05, fringe=0.1, ends=True, name="thatch",
+               pull=0.0):
     """A hipped thatch: eave = (x0, x1, y0, y1) m at height ze, ridge (x0, x1) m at height zr over the middle; front
     and back slopes and (ends=True) the two hip ends, each a thick lumpy straw mat whose lowest edge hangs as a
-    ragged fringe `fringe` m deep."""
+    ragged fringe `fringe` m deep. The mat's thickness stands half outside the surface, so seen from the front the
+    hip ends reach about half the thickness past the painted hip lines: pull (m) moves both hip ends in by that much."""
     ex0, ex1, ey0, ey1 = eave
     rx0, rx1 = ridge
+    ex0, ex1, rx0, rx1 = ex0 + pull, ex1 - pull, rx0 + pull, rx1 - pull
     ym = (ey0 + ey1) / 2
     rng = K.rng
     nu, nv = 48, 14
@@ -1317,6 +1430,18 @@ def cover_cards(K, box, keep, step, size, place, thresh=0.2, jitter=0.25, name="
     return n
 
 
+def green_pixels(rgb):
+    """Leaves in front of a yellow or orange wall: olive_leaf_pixels from yellow-green on (hue over 50), so the
+    turmeric or ochre plaster (hue about 40) painted between them is not taken for leaves."""
+    r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    span = np.maximum(1, mx - mn)
+    hue = np.where(mx == r, 60.0 * (g - b) / span, np.where(mx == g, 120 + 60.0 * (b - r) / span, 240.0))
+    leaf = (hue > 50) & (hue < 160) & ((mx - mn) > 35) & (mx < 245)
+    leaf = ndimage.binary_opening(ndimage.binary_closing(leaf, iterations=2), iterations=1)
+    return leaf | ((mx < 80) & ndimage.binary_dilation(leaf, iterations=3))
+
+
 def olive_leaf_pixels(rgb):
     """Leaves painted in olive and khaki greens (a gourd vine, palm fronds), which plant_pixels takes for straw: by
     hue (yellow-green and greener, saturated, not near-white), with the dark ink round them."""
@@ -1576,7 +1701,8 @@ def house_hut_porch(K):
     K.front_min = 0.15
     halo_exclude(K, [(0, 0, 1659, 1139)])
     mud = K.tile((532, 690, 600, 830), size=0.7, vary=0.05, soften=0.45)    # clean mud between window and post
-    lime = K.tile((1000, 990, 1060, 1060), size=0.6, vary=0.04, soften=0.4)
+    # the lime skirting between the door frame and the post (the old crop took the post: a seam every 60 cm)
+    lime = K.tile((982, 992, 1036, 1078), size=0.6, vary=0.04, soften=0.4)
     thatch_m = K.tile((500, 100, 800, 400), size=0.8, vary=0.06, soften=0.25)
     mat_m = K.tile((280, 462, 560, 532), size=0.7, vary=0.05)
     earth = K.tile((300, 1100, 1300, 1130), size=1.0, vary=0.08)
@@ -1587,23 +1713,28 @@ def house_hut_porch(K):
     K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(985), lime, name="skirting")
     K.box(P.x(78), P.x(1580), -1.85, D + 0.25, 0.0, P.z(1100), earth, bevel=0.04, name="ground")
     hip_thatch(K, (P.x(100), P.x(1545), -0.5, D + 0.5), (P.x(370), P.x(1290)), P.z(468), P.z(30), thatch_m,
-               thickness=0.26, shag=0.05, fringe=0.09)
+               thickness=0.26, shag=0.05, fringe=0.09, pull=0.12)
     K.tube([P.pt(370, 27, D / 2), P.pt(1290, 27, D / 2)], P.m(16), K.colour((600, 12, 1000, 40), vary=0.06),
            segments=10, name="ridge_pole")
-    # the porch: a woven mat on bamboo rafters, a beam along its front on four posts
+    # the porch: a woven mat on bamboo rafters, a beam along its front on four posts. The mat flares out as
+    # painted: its back edge on the wall's width, its front edge wider (a trapezoid in plan, level)
     yb, yfp = -0.42, -1.62
     bamboo = K.projected(axis_x=P.x(615), squeeze=0.9, keep=[(606, 560, 625, 1095)], inset=2)
     def mat_surf(u, v):
-        x = P.x(48) + (P.x(1585) - P.x(48)) * u
+        x = P.x(120 + (65 - 120) * v) + (P.x(1525 + (1580 - 1525) * v) - P.x(120 + (65 - 120) * v)) * u
         y = yb + (yfp - 0.06 - yb) * v
         z = P.z(452) + (P.z(540) - P.z(452)) * v - 0.025 * math.sin(math.pi * u * 3) ** 2 * math.sin(math.pi * v)
         return (x, y, z)
     K.sheet(mat_surf, 30, 6, mat_m, name="porch_mat", thickness=0.02)
-    K.tube([P.pt(50, 547, yfp), P.pt(1650, 547, yfp)], P.m(10), bamboo, segments=10, name="front_beam")
-    K.tube([P.pt(60, 458, yb + 0.05), P.pt(1580, 458, yb + 0.05)], P.m(8), bamboo, segments=8, name="back_beam")
+    K.tube([P.pt(8, 547, yfp), P.pt(1650, 547, yfp)], P.m(10), bamboo, segments=10, name="front_beam")
+    K.tube([P.pt(118, 458, yb + 0.05), P.pt(1535, 458, yb + 0.05)], P.m(8), bamboo, segments=8, name="back_beam")
     for x in (95, 615, 1053, 1560):
         K.tube([P.pt(x, 1100, yfp), P.pt(x, 552, yfp)], P.m(10), bamboo, segments=10, name="post")
-        K.tube([P.pt(x, 458, yb + 0.1), P.pt(x, 549, yfp - 0.15)], P.m(9), bamboo, segments=8, name="rafter")
+    for x in (615, 1053):
+        K.tube([P.pt(x + 35, 450, yb + 0.1), P.pt(x - 10, 545, yfp - 0.08)], P.m(9), bamboo, segments=8, name="rafter")
+    # the end rafters lie across the mat's ends as painted, from the back beam out to the front corners
+    K.tube([P.pt(195, 447, yb + 0.06), P.pt(58, 543, yfp + 0.02)], P.m(9), bamboo, segments=8, name="rafter")
+    K.tube([P.pt(1465, 443, yb + 0.06), P.pt(1588, 546, yfp + 0.02)], P.m(9), bamboo, segments=8, name="rafter")
     # dung cakes drying on the front wall where they are painted, and round the sides and back
     dung = K.tile((300, 850, 360, 905), size=P.m(84), vary=0.08)          # one painted cake, its rim and its straw
     r = P.m(42)
@@ -1622,6 +1753,9 @@ def house_hut_porch(K):
                 y = 0.45 + k * 0.62 + (0.3 if row % 2 else 0) + K.rng.uniform(-0.05, 0.05)
                 if y > D - 0.3:
                     continue
+                # not over the side window (its decal is D / 2 along, P.m(132) wide, P.z(802)..P.z(652) high)
+                if abs(y - D * 0.5) < P.m(66) + r + 0.03 and P.z(802) - r - 0.03 < z < P.z(652) + r + 0.03:
+                    continue
                 wall_disc(K, xw, y, z + K.rng.uniform(-0.04, 0.04), r * K.rng.uniform(0.9, 1.05), 0.035, dung,
                           facing="+x" if side > 0 else "-x", name="dung_cake")
     for row, z in enumerate((P.z(650), P.z(760), P.z(870))):
@@ -1629,7 +1763,7 @@ def house_hut_porch(K):
             if K.rng.uniform() < 0.3:
                 continue
             x = X0 + 0.4 + k * 0.62 + (0.3 if row % 2 else 0)
-            if x > X1 - 0.3 or abs(x - P.x(830)) < 0.7:
+            if x > X1 - 0.3 or abs(x - P.x(829)) < P.m(146) + r + 0.03:
                 continue
             wall_disc(K, x, D, z, r * K.rng.uniform(0.9, 1.05), 0.035, dung, facing="+y", name="dung_cake")
     # the door, the window
@@ -1922,17 +2056,19 @@ def house_being_built(K):
     K.front_min = 0.05
     halo_exclude(K, [(0, 0, 2539, 1096)])
     brick = K.tile((500, 560, 950, 690), vary=0.04, soften=0.15)
-    inner = K.tile((560, 300, 700, 420), size=0.8, vary=0.05, soften=0.4)
-    earth = K.tile((300, 1045, 1100, 1085), size=1.0, vary=0.08)
-    floor = K.colour((1200, 850, 1300, 880), vary=0.08)
+    # the inside faces are the same mud brick, lit (the painting's dark interior is shadow, not a material)
+    inner = brick
+    earth = strip_tile(K, (300, 1045, 1100, 1085), soften=0.3)      # the earth, its strip stacked square
+    floor = earth
     bamboo = K.colour((1262, 150, 1276, 240), vary=0.1, scale=20)
     rope = K.colour((0.32, 0.14, 0.05), vary=0.12)
     wood = K.colour((1105, 500, 1135, 800), vary=0.08)
     dark = K.colour((0.06, 0.035, 0.02), vary=0.05)
     zg = P.z(1000)
-    # the raised earth apron the site stands on, falling gently towards the lane
-    prism_yz(K, [(-2.15, 0.0), (-2.15, P.z(1092)), (-1.9, P.z(1062)), (0.0, zg), (D + 0.5, zg), (D + 0.5, 0.0)],
-             P.x(30), P.x(2490), earth, name="apron")
+    # the raised earth apron the site stands on: level (the painting's ground falling to the lane is perspective, and
+    # a sloping ground looks wrong from the side), its painted strip on its front face, its ends tapering as painted
+    K.prism([(P.x(30), 0.0), (P.x(30), P.z(1048)), (P.x(210), zg), (P.x(2395), zg), (P.x(2510), P.z(1062)),
+             (P.x(2510), 0.0)], -2.15, D + 0.5, earth, name="apron")
     # the walls
     X0, X1 = P.x(379), P.x(2153)
     t = P.m(50)
@@ -1992,8 +2128,8 @@ def house_being_built(K):
         K.tube([P.pt(ax, ay, ay_), P.pt(bx, by, by_)], r * 0.9, bamboo, segments=8, name="frame_pole")
     # the heap of mud and straw
     mudm = K.tile((430, 800, 620, 930), size=0.6, vary=0.05)                # the heap's own mud and straw
-    for cx, rad, peak, foot, y in ((480, 270, 715, 1000, -0.95), (300, 150, 830, 1005, -0.75),
-                                   (680, 150, 880, 1000, -0.7)):
+    for cx, rad, peak, foot, y in ((715, 330, 700, 1000, -0.95), (520, 150, 840, 1000, -0.75),
+                                   (930, 150, 860, 1000, -0.7)):
         h = P.z(peak) - P.z(foot)
         K.lathe([(P.m(rad) * a, P.z(foot) + h * b) for a, b in ((1.0, 0.0), (0.92, 0.18), (0.75, 0.45), (0.5, 0.75),
                                                                 (0.22, 0.95), (0.0, 1.0))], mudm, segments=24,
@@ -2006,34 +2142,37 @@ def house_being_built(K):
     for i in range(22):
         cx, cy = K.rng.uniform(180, 1520), K.rng.uniform(950, 1035)
         y = K.rng.uniform(-1.9, -0.2)
-        zz = zg - (P.z(1000) - P.z(1062)) * min(1.0, -y / 1.9) + 0.01
+        zz = zg + 0.01
         K.card_from_painting((cx - 70, cy - 30, cx + 70, cy + 30), (P.x(cx), y, zz), yaw=K.rng.uniform(-60, 60),
                              pitch=-80 + K.rng.uniform(-6, 6), name="straw_ground")
     # stacks of new roof tiles on a pallet
     tilem = K.projected(squeeze=1.0, keep=[(1470, 780, 1960, 1000)], inset=2)
     pal = K.colour((1600, 1000, 1900, 1020), vary=0.08)
     yt = -1.2
+    zp = zg + 0.12                                           # the pallets stand on the apron, the stacks on them
     for sy in (-0.45, 0.0, 0.45):
-        K.box(P.x(1560), P.x(1950), yt + sy - 0.05, yt + sy + 0.05, P.z(1040), P.z(1012), pal, name="pallet_block")
+        K.box(P.x(1560), P.x(1950), yt + sy - 0.05, yt + sy + 0.05, zg, zp - 0.03, pal, name="pallet_block")
     for i in range(7):
-        K.box(P.x(1550), P.x(1960), yt - 0.5 + i * 0.165, yt - 0.42 + i * 0.165, P.z(1012), P.z(1000), pal,
+        K.box(P.x(1550), P.x(1960), yt - 0.5 + i * 0.165, yt - 0.42 + i * 0.165, zp - 0.03, zp, pal,
               name="pallet_slat")
     for x0, x1, top, dy in ((1560, 1700, 800, 0.0), (1700, 1855, 780, 0.15), (1770, 1960, 880, -0.25),
                             (1640, 1770, 860, -0.3)):
-        K.box(P.x(x0), P.x(x1), yt + dy - 0.22, yt + dy + 0.22, P.z(1000), P.z(top), tilem, bevel=0.01,
+        K.box(P.x(x0), P.x(x1), yt + dy - 0.22, yt + dy + 0.22, zp, P.z(top), tilem, bevel=0.01,
               name="tile_stack")
     for i, (x, top) in enumerate(((1495, 850), (1525, 845), (1555, 840))):
         K.block(P.x(x), yt - 0.35, (P.z(top) + P.z(1000)) / 2, P.m(40), 0.25, P.z(top) - P.z(1000), tilem,
                 rot=(0, -12, 0), bevel=0.01, name="tile_leaning")
     # the pile of bamboo on its pallet, long poles leaning on it
     yb = -1.0
-    K.box(P.x(1950), P.x(2390), yb - 0.4, yb + 0.4, P.z(1002), P.z(975), pal, name="pallet2")
-    for i in range(14):
-        row, col = divmod(i, 5)
-        y = yb - 0.3 + col * 0.15
-        z = P.z(975) + r * (1 + 2 * row)
-        K.tube([(P.x(1950), y, z), (P.x(2380), y + K.rng.uniform(-0.05, 0.05), z)], r, bamboo, segments=8,
-               name="pile")
+    K.box(P.x(1930), P.x(2390), yb - 0.4, yb + 0.4, zg, zg + 0.08, pal, name="pallet2")
+    rp = P.m(10)                                             # eight rows of poles, stacked as high as painted
+    for row in range(8):
+        for col in range(5 - row // 3):
+            y = yb - 0.28 + col * 2.05 * rp + (rp if row % 2 else 0.0)
+            z = zg + 0.08 + rp * (1 + 1.9 * row)
+            x0 = P.x(1905 + K.rng.uniform(-15, 15))
+            K.tube([(x0, y, z), (P.x(2360 + K.rng.uniform(-20, 10)), y + K.rng.uniform(-0.03, 0.03), z)], rp, bamboo,
+                   segments=8, name="pile")
     for (ax, ay), (bx, by), y in (((1790, 690), (2390, 995), -1.4), ((1840, 720), (2350, 990), -1.25),
                                   ((1900, 760), (2300, 995), -1.15), ((1780, 680), (2200, 1000), -0.7)):
         K.tube([P.pt(ax, ay, y + 0.3), P.pt(bx, by, y)], r, bamboo, segments=8, name="pole_leaning")
@@ -2279,9 +2418,13 @@ def cattle_shed(K):
     K.front_min = 0.1
     halo_exclude(K, [(0, 0, 1657, 894)])
     K.figure(CALF_SHED, y=1.15, name="calf")
-    thatch_m = K.tile((300, 115, 700, 190), size=0.8, vary=0.06, soften=0.2)
-    wall = K.tile((300, 330, 420, 460), size=0.8, vary=0.04, soften=0.45)
-    earth = K.colour((0.32, 0.2, 0.1), vary=0.12, scale=8)
+    # the thatch between its two battens, stacked square (the bare strip box-projected round the hip ends wove into
+    # a basket-like diamond pattern)
+    thatch_m = strip_tile(K, (300, 113, 700, 196), soften=0.2, size=1.2)
+    # the mud wall where it is evenly lit (the crop in the sunbeam's edge and the eave's shadow repeated as blocks)
+    wall = K.tile((700, 625, 820, 715), size=1.0, vary=0.04, soften=0.35)
+    haym = K.tile((1250, 490, 1420, 565), size=0.7, vary=0.05, soften=0.2)       # the hay, from the big heap's top
+    earth = K.tile((1250, 490, 1420, 565), size=0.9, vary=0.1, soften=0.55)       # a floor of trodden straw
     bamboo = K.colour((600, 200, 900, 208), vary=0.08)
     zf = P.z(872)
     K.box(P.x(110), P.x(1570), -0.25, D + 0.1, 0.0, zf, earth, bevel=0.02, name="floor")
@@ -2289,7 +2432,7 @@ def cattle_shed(K):
     ze, zr = P.z(285), P.z(16)
     eave = (P.x(12), P.x(1648), -0.55, D + 0.55)
     ridge = (P.x(175), P.x(1510))
-    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.22, shag=0.04, fringe=0.12)
+    hip_thatch(K, eave, ridge, ze, zr, thatch_m, thickness=0.22, shag=0.04, fringe=0.12, pull=0.12)
     K.tube([P.pt(175, 16, D / 2), P.pt(1510, 16, D / 2)], P.m(10), bamboo, segments=8, name="ridge_pole")
     fy = lambda px, py: hip_front_y(eave, ridge, ze, zr, P.x(px), P.z(py))
     for py, x0, x1 in ((103, 118, 1557), (205, 60, 1607)):
@@ -2329,9 +2472,11 @@ def cattle_shed(K):
         for y in (my0 + 0.06, my1 - 0.06):
             K.block(P.x(x), y, (zf + P.z(800)) / 2, 0.1, 0.1, P.z(800) - zf, mw, bevel=0.01, name="manger_leg")
     # hay: the big heaps behind the calf and the one by the post, straw in the manger and on the floor
-    hay = K.projected(squeeze=1.0, keep=[(880, 445, 1480, 880)], exclude=[(940, 615, 1380, 880)], inset=3)
-    for px, py, w, h, y in ((1320, 600, 320, 300, D - 0.75), (1120, 640, 260, 150, 1.85), (990, 800, 210, 170, 1.45)):
-        K.boulder(P.x(px), y, P.z(py) - P.m(h) * 0.05, P.m(w), P.m(w) * 0.8, P.m(h), hay, lumps=0.12, name="hay")
+    # (heaps on the floor up to their painted tops, in their own hay: a projection smears round a heap's sides, and
+    # the old heaps hung half a metre above the floor)
+    for px, w, top, y in ((1315, 290, 455, D - 0.8), (1120, 250, 555, 1.85), (975, 180, 700, 1.45)):
+        sz = P.z(top) - zf
+        K.boulder(P.x(px), y, zf + sz / 2, P.m(w), min(P.m(w) * 0.8, 1.1), sz, haym, lumps=0.12, name="hay")
     K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), hay_pixels, CALF_SHED))
     K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)

@@ -61,15 +61,55 @@ def rake_tile(K, a, b, offset_px, thick_px, vary=0.1, soften=0.1):
     band = rot.crop(tuple(int(v) for v in box))
     return strip_tile(K, box, vary=vary, soften=soften, image=band, key=("rake", tuple(a), tuple(b), offset_px))
 
-def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4, dx=0.0, dz=0.0, front_deg=70.0,
-            zs=1.0, z0=0.0, name=None):
+def clean_source(K, keep=None, exclude=(), inset=4, halo=3, soften=0.0):
+    """Like K.source (the painting inside the keep boxes, outside the exclude boxes, pulled in `inset` px from its
+    outline, every other pixel filled from the nearest kept one), but also without the cut-out's pale grey halo
+    (unsaturated light pixels within `halo` px of the transparent edge), and with its strong highlights and
+    reflections pulled `soften` towards their blurred surroundings (for a body that borrows another's paint)."""
+    from PIL import Image
+    key = ("csrc", tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude), inset, halo,
+           soften)
+    if key in K._mats:
+        return K._mats[key]
+    a = np.asarray(K.paint.img).astype(np.float32)
+    op = a[..., 3] > 127
+    ok = op.copy()
+    if halo:
+        mx, mn = a[..., :3].max(axis=2), a[..., :3].min(axis=2)
+        pale = (mn > 135) & (mx - mn < 40) & ndimage.binary_dilation(~op, iterations=halo + 2)
+        ok &= ~pale
+    if keep:
+        k = np.zeros_like(ok)
+        for x0, y0, x1, y1 in keep:
+            k[int(y0):int(y1), int(x0):int(x1)] = True
+        ok &= k
+    for x0, y0, x1, y1 in exclude:
+        ok[int(y0):int(y1), int(x0):int(x1)] = False
+    if inset:
+        ok = ndimage.binary_erosion(ok, iterations=inset)
+    if ok.any():
+        _, (iy, ix) = ndimage.distance_transform_edt(~ok, return_indices=True)
+        a = a[iy, ix]
+    if soften:
+        blur = np.stack([ndimage.gaussian_filter(a[..., i], 5) for i in range(3)], axis=-1)
+        a[..., :3] = a[..., :3] * (1 - soften) + blur * soften
+    a[..., 3] = 255
+    pil = Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
+    K._mats[key] = pil
+    return pil
+
+
+def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4, dx=0.0, dz=0.0, front_deg=64.0,
+            zs=1.0, z0=0.0, halo=3, soften=0.0, name=None):
     """Like K.projected, for a round thing turned about a vertical axis (axis_x, axis_y metres): the painting
     wrapped round it instead of pushed straight through. Up to front_deg either side of the front it is exactly the
-    straight projection (so it meets the painting's front seamlessly); beyond that the painted half is laid round the
-    sides and the back evenly, so a side shows the painted colours spread round it, not one column of the painting
+    straight projection (so it meets the painting's front seamlessly; the bake's front projection covers that much);
+    beyond that the painted half, short of its outer edge (rim lights, the ink), is laid round the sides and the back
+    evenly, so a side shows the painted colours spread round it, not one column of the painting
     dragged across it in streaks. keep / exclude / inset as K.source. dx, dz shift where it samples (metres); zs
     scales the heights it samples about z0 (to borrow a taller or shorter painted body)."""
     key = ("wrap", round(axis_x, 4), round(axis_y, 4), squeeze, round(dx, 4), round(dz, 4), front_deg, zs, round(z0, 4),
+           halo, soften,
            tuple(tuple(b) for b in keep) if keep else None, tuple(tuple(b) for b in exclude), inset)
     if key in K._mats:
         return K._mats[key]
@@ -108,7 +148,7 @@ def wrapped(K, axis_x, squeeze=0.93, axis_y=0.0, keep=None, exclude=(), inset=4,
     nt.links.new(u, vec.inputs[0])
     nt.links.new(v, vec.inputs[1])
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = _image(K.source(keep, exclude, inset), f"{m.mat.name}_img")
+    tex.image = _image(clean_source(K, keep, exclude, inset, halo, soften), f"{m.mat.name}_img")
     tex.extension = "EXTEND"
     nt.links.new(vec.outputs[0], tex.inputs["Vector"])
     m.set_colour(tex.outputs["Color"])
@@ -222,6 +262,9 @@ def brass_vessels(K):
     lidded canister. Profiles measured off the painting's silhouette, row by row."""
     P = K.paint
     pale_halo(K)
+    # the painted outline and its halo must not be projected onto the turned sides: only faces within about 65
+    # degrees of the camera take the painting (the wrapped brass carries on round from there)
+    K.front_min = 0.42
     inside = K.colour((0.12, 0.05, 0.01), vary=0.1)
     vessels = [
         # centre px, depth y, keep boxes, profile [(r px, y px)] from the foot up, mouth (r px, top py)
@@ -242,9 +285,9 @@ def brass_vessels(K):
     # the big kudam behind: its painted top; its lower body (hidden behind the others in the painting) wears the front
     # kudam's painted body, rows 96..157 stretched over its own 78..157
     cx, cy = 70.5, 0.28
-    top = wrapped(K, P.x(cx), squeeze=0.9, keep=[(26, 5, 116, 79)], inset=2)
+    top = wrapped(K, P.x(cx), squeeze=0.9, keep=[(26, 5, 116, 79)], inset=2, soften=0.2)
     low = wrapped(K, P.x(cx), squeeze=0.9 * 39.5 / 44.0, keep=[(8, 92, 89, 158)], inset=2,
-                  dx=P.x(48.5) - P.x(cx), zs=(157 - 96) / (157 - 78), z0=P.z(157))
+                  dx=P.x(48.5) - P.x(cx), zs=(157 - 96) / (157 - 78), z0=P.z(157), soften=0.55)
     K.lathe(prof(P, [(15, 157), (17, 155), (18, 151), (20, 140), (23, 125), (27, 110), (31, 97), (34, 86),
                      (35.5, 78)]), low, segments=36, centre=(P.x(cx), cy, 0), name="kudam_low")
     K.lathe(prof(P, [(35.5, 78), (37.5, 74), (39.5, 68), (42.5, 64), (43, 60), (43.5, 56), (44, 52), (42.5, 48),
@@ -418,14 +461,48 @@ def basket(K, cx, cy, outer, rim, inner_drop, mat, rim_mat=None, segments=40, na
                    wobble=0.01)
 
 
-def figures(K, figs):
+def _clip_poly(poly, x0, y0, x1, y1):
+    """The part of polygon poly [(x, y), ...] inside the rectangle x0..x1, y0..y1 (Sutherland-Hodgman)."""
+    def clip(pts, inside, cut):
+        out = []
+        for i, b in enumerate(pts):
+            a = pts[i - 1]
+            ia, ib = inside(a), inside(b)
+            if ib:
+                if not ia:
+                    out.append(cut(a, b))
+                out.append(b)
+            elif ia:
+                out.append(cut(a, b))
+        return out
+
+    def at_x(xc):
+        return lambda a, b: (xc, a[1] + (b[1] - a[1]) * (xc - a[0]) / ((b[0] - a[0]) or 1e-9))
+
+    def at_y(yc):
+        return lambda a, b: (a[0] + (b[0] - a[0]) * (yc - a[1]) / ((b[1] - a[1]) or 1e-9), yc)
+    pts = list(poly)
+    for inside, cut in ((lambda p: p[0] >= x0, at_x(x0)), (lambda p: p[0] <= x1, at_x(x1)),
+                        (lambda p: p[1] >= y0, at_y(y0)), (lambda p: p[1] <= y1, at_y(y1))):
+        if not pts:
+            break
+        pts = clip(pts, inside, cut)
+    return pts
+
+
+def figures(K, figs, exact=False):
     """People or animals painted in the piece, kept as painted cut-outs: figs [(polygon px, y metres, name), ...].
     Like K.figure, but each card is cut to its own traced outline (a polygon, not a rectangle), and all of them share
     one mask (the union of their outlines), so figures that overlap on the painting (a pair of bullocks, two hens)
-    each keep all of their own pixels and show none of the other's."""
+    each keep all of their own pixels and show none of the other's.
+    exact: the card's edge cells are clipped to the figure's own polygon (otherwise a whole cell is kept wherever the
+    outline touches it, and along an outline shared with another figure the card shows a strip of the other's
+    pixels, a stair of white blocks seen from the side). A figure may carry a fourth item, yaw (degrees): its card
+    is turned in plan by that much, its right end towards the camera, keeping its painted x and z (so the front is
+    unchanged and from the side it is not seen edge-on as a sliver)."""
     from PIL import Image, ImageDraw
     P = K.paint
-    polys = [[(float(x), float(y)) for x, y in poly] for poly, _, _ in figs]
+    polys = [[(float(x), float(y)) for x, y in f[0]] for f in figs]
     xs = [x for poly in polys for x, _ in poly]
     ys = [y for poly in polys for _, y in poly]
     box = (max(0, min(xs)), max(0, min(ys)), min(P.w, max(xs)), min(P.h, max(ys)))
@@ -439,7 +516,9 @@ def figures(K, figs):
         return np.asarray(im) > 127
     K.leaf_rules.append((box, keep))
     out = []
-    for poly, (_, y, name) in zip(polys, figs):
+    for poly, f in zip(polys, figs):
+        y, name = f[1], f[2]
+        yaw = f[3] if len(f) > 3 else 0.0
         cell = max(4, int((max(v for _, v in poly) - min(v for _, v in poly)) / 18))
         K.front_exclude.append(("poly", poly))
         # the card: a grid of small quads over the figure's own outline (no long sliver triangles), its edge cells
@@ -453,25 +532,49 @@ def figures(K, figs):
         bm = bmesh.new()
         layer = bm.loops.layers.uv.new("UVMap")
         verts = {}
+        xc = P.x((min(x for x, _ in poly) + max(x for x, _ in poly)) / 2)
+        tn = math.tan(math.radians(yaw))
+
+        def at(px, py):
+            px, py = min(P.w, max(0.0, px)), min(P.h, max(0.0, py))
+            return Vector((P.x(px), y - (P.x(px) - xc) * tn, P.z(py))), (px / P.w, 1 - py / P.h)
 
         def vert(i, j):
             if (i, j) not in verts:
-                px = min(P.w, max(0.0, x0 + i * cell))
-                py = min(P.h, max(0.0, y0 + j * cell))
-                verts[(i, j)] = (bm.verts.new((P.x(px), y, P.z(py))), (px / P.w, 1 - py / P.h))
+                co, uv = at(x0 + i * cell, y0 + j * cell)
+                verts[(i, j)] = (bm.verts.new(co), uv)
             return verts[(i, j)]
         for j in range(ny - 1):
             for i in range(nx - 1):
-                if not m[j * cell:(j + 1) * cell, i * cell:(i + 1) * cell].any():
+                sub = m[j * cell:(j + 1) * cell, i * cell:(i + 1) * cell]
+                if not sub.any():
+                    continue
+                if exact and not sub.all():
+                    piece = _clip_poly(poly, x0 + i * cell, y0 + j * cell, x0 + (i + 1) * cell, y0 + (j + 1) * cell)
+                    clean = []
+                    for q in piece:
+                        if not clean or abs(q[0] - clean[-1][0]) + abs(q[1] - clean[-1][1]) > 1e-3:
+                            clean.append(q)
+                    if len(clean) > 1 and abs(clean[0][0] - clean[-1][0]) + abs(clean[0][1] - clean[-1][1]) < 1e-3:
+                        clean.pop()
+                    if len(clean) < 3:
+                        continue
+                    pts = [at(px, py) for px, py in reversed(clean)]
+                    try:
+                        fc = bm.faces.new([bm.verts.new(co) for co, _ in pts])
+                    except ValueError:
+                        continue
+                    for lp, (_, uv) in zip(fc.loops, pts):
+                        lp[layer].uv = uv
                     continue
                 corners = [vert(i, j + 1), vert(i + 1, j + 1), vert(i + 1, j), vert(i, j)]
-                f = bm.faces.new([c[0] for c in corners])
-                for lp, c in zip(f.loops, corners):
+                fc = bm.faces.new([c[0] for c in corners])
+                for lp, c in zip(fc.loops, corners):
                     lp[layer].uv = c[1]
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        for f in bm.faces:
-            if f.normal.y > 0:
-                f.normal_flip()
+        for fc in bm.faces:
+            if fc.normal.y > 0:
+                fc.normal_flip()
         ob = _obj(name, bm, None)
         ob["kit_normal"] = [0.0, -1.0, 0.25]
         K.cards_parts.append(ob)
@@ -649,33 +752,37 @@ def hens_basket(K):
     (animals: painted cut-outs, not modelled)."""
     P = K.paint
     cx = 86
-    wicker = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(20, 80, 152, 124)], inset=2)
+    wicker = wrapped(K, P.x(cx), squeeze=0.93, keep=[(20, 86, 152, 124)], inset=2)
     basket(K, cx, 0.0, [(48, 123.5), (50, 122), (52.5, 118), (56.5, 110), (61.5, 100), (64, 90), (66, 81)],
            (67, 76, 84), 14, wicker)
     ground_disc(K, cx, 124, 75, 0.2, (12, 119, 30, 123), h=0.004)
     # the nest: a lumpy ring of straw heaped over the rim and drooping over it, its hollow bedded with straw
     straw = K.tile((92, 66, 122, 86), vary=0.1, soften=0.1)
-    sec = [(0, 72), (20, 72.5), (36, 71), (48, 67), (58, 63), (66, 63), (71, 67), (72, 73), (71, 80), (69, 86), (66, 87.5)]
-    ring_sheet(K, P.x(cx), 0.0, [(P.m(r), P.z(y)) for r, y in sec], straw, nu=56, lumps=P.m(2.2), name="nest",
+    sec = [(0, 72), (20, 72.5), (36, 71), (48, 67), (58, 63), (66, 64), (70.5, 68), (72, 73), (71, 80), (69, 86),
+           (66, 87.5)]
+    ring_sheet(K, P.x(cx), 0.0, [(P.m(r), P.z(y)) for r, y in sec], straw, nu=56, lumps=P.m(3.2), name="nest",
                thickness=0.01)
-    # loose straws all round the rim, and the ragged fringe at the two ends as painted, carried round the nest
-    gold = K.colour((60, 70, 70, 74), vary=0.15, scale=40, pct=85)
-    straws(K, 90, P.x(cx), 0.0, P.m(56), P.m(70), P.z(80), P.z(62), gold, length=(P.m(10), P.m(22)), radius=P.m(0.45))
-    # the two hens, sitting in the hollow of the nest: the brown one a little in front of the white one
-    figures(K, [([(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37), (60, 37),
-              (63, 33), (64, 27), (66, 21), (70, 13), (73, 8), (79, 4), (86, 6), (90, 11), (92, 16), (96, 20),
-              (97, 25), (93, 29), (95, 38), (97, 50), (97, 67)], -0.03, "hen_brown"),
-                ([(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7), (123, 11),
-              (126, 17), (127, 21), (129, 25), (126, 30), (125, 36), (126, 39), (131, 38), (134, 33), (137, 27),
-              (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)], 0.03, "hen_white")])
+    # the two hens, sitting in the hollow of the nest: the brown one a little in front of the white one, each card
+    # turned a little in plan, its head towards the camera, so from the side it is not a sliver
+    hens = figures(K, [([(30, 67), (29, 52), (30, 40), (32, 30), (35, 23), (41, 22), (46, 28), (50, 35), (54, 37),
+                         (60, 37), (63, 33), (64, 27), (66, 21), (70, 13), (73, 8), (79, 4), (86, 6), (90, 11), (92, 16),
+                         (96, 20), (97, 25), (93, 29), (95, 38), (97, 50), (97, 67)], -0.03, "hen_brown", 28),
+                       ([(95, 67), (96, 50), (95, 38), (98, 30), (99, 23), (102, 17), (106, 11), (112, 7), (118, 7),
+                         (123, 11), (126, 17), (127, 21), (129, 25), (126, 30), (125, 36), (126, 39), (131, 38),
+                         (134, 33), (137, 27), (141, 26), (146, 31), (148, 40), (148, 56), (147, 67)], 0.04,
+                        "hen_white", -28)], exact=True)
+    # the straw painted over the hens' bottoms belongs to the nest: keep it in the front projection
+    K.front_exclude = [e if not (isinstance(e, tuple) and e[0] == "poly")
+                       else ("poly", [(x, min(y, 59.0)) for x, y in e[1]]) for e in K.front_exclude]
     K.leaves_only((0, 45, 30, 95), straw_pixels)
     K.leaves_only((148, 45, 171, 95), straw_pixels)
+    K.leaves_only((30, 60, 148, 95), straw_pixels)
     fringe = [(4, 50, 30, 90), (148, 50, 168, 90)]
     for box in fringe:
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, (P.x(bx), -0.02, P.z(by)), name="fringe")
-    for i in range(26):
-        a = 2 * math.pi * i / 26 + K.rng.uniform(-0.1, 0.1)
+    for i in range(30):
+        a = 2 * math.pi * i / 30 + K.rng.uniform(-0.1, 0.1)
         box = fringe[i % 2]
         bx, by = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         r = P.m(abs(bx - cx))
@@ -683,6 +790,16 @@ def hens_basket(K):
         yaw = math.degrees(a) + (180 if box[0] < cx else 0)
         K.card_from_painting(box, (P.x(cx) + r * math.cos(a), r * math.sin(a), P.z(by)),
                              yaw=yaw + K.rng.uniform(-15, 15), name="fringe_round")
+    # the wisps hanging over the nest's front, cut from the painting where they are, just in front of the straw
+    yf = -P.m(72) - 0.012
+    for x in range(30, 146, 13):
+        for y0, y1 in ((60, 78), (72, 92)):
+            xx = x + (6 if y0 > 60 else 0)
+            rr = abs(xx + 11 - cx) / 72.0
+            yy = yf * math.sqrt(max(0.0, 1 - min(1.0, rr) ** 2)) - 0.012
+            K.card_from_painting((xx, y0, xx + 22, y1), (P.x(xx + 11), yy, P.z((y0 + y1) / 2)),
+                                 yaw=math.degrees(math.asin(max(-1.0, min(1.0, (xx + 11 - cx) / 72.0)))) * 0.8,
+                                 name="wisp")
 
 
 def strokes(mask, min_px=18, ratio=2.0, grow=1.0, erode=1):

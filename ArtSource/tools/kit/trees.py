@@ -840,13 +840,16 @@ def earth_patch(K, cx_px, rx_px, ry, box, y=0.0, z=0.0, h=0.04, segments=36, nam
                    segments=segments, centre=(P.x(cx_px), y, z), scale_y=ry / rx, wobble=0.1, name=name)
 
 
-def trunk_runs(mask, py_bot, py_top, x_start, step=3, grow=1.25, max_w=None):
-    """The painted trunk's width up its height: at each row from py_bot up to py_top, the run of wood pixels that
-    continues the trunk (nearest the centre of the row below), as [(py, x_left, x_right)]. A row where limbs or roots
-    leave the trunk is held to `grow` x the trunk's width below it, round its centre."""
-    rows = []
-    cx, wprev = float(x_start), None
-    for py in range(int(py_bot), int(py_top) - 1, -step):
+def trunk_runs(mask, py_bot, py_top, x_start, step=3, grow=1.2, flare_py=None, flare=0.6):
+    """The painted trunk's width down its height: at each row from py_top (where it forks) down to py_bot (the
+    ground), the run of wood pixels that continues the trunk (nearest the centre of the row above), as
+    [(py, x_left, x_right)], bottom row first. A row where limbs or roots leave the trunk is held round its centre to
+    `grow` x the trunk's own width (the median over its rows above flare_py), and below flare_py to up to
+    (1 + flare) x that, flaring towards the ground."""
+    raw = []
+    cx = float(x_start)
+    for py in range(int(py_top), int(py_bot) + 1, step):
+        py = min(py, mask.shape[0] - 1)
         r = mask[py]
         idx = np.nonzero(np.diff(np.concatenate([[0], r.astype(np.int8), [0]])))[0]
         runs = [(a, b) for a, b in zip(idx[::2], idx[1::2]) if b - a >= 3]
@@ -855,21 +858,30 @@ def trunk_runs(mask, py_bot, py_top, x_start, step=3, grow=1.25, max_w=None):
         a, b = min(runs, key=lambda ab: 0 if ab[0] <= cx <= ab[1] else min(abs(ab[0] - cx), abs(ab[1] - cx)))
         if not (a - 15 <= cx <= b + 15):
             continue
-        w = b - a
-        if wprev is not None and w > wprev * grow + 4:
-            c = (a + b) / 2 if abs((a + b) / 2 - cx) < wprev * 0.3 else cx
-            a, b, w = c - wprev * grow / 2, c + wprev * grow / 2, wprev * grow
-        if max_w is not None and w > max_w:
-            c = (a + b) / 2
-            a, b, w = c - max_w / 2, c + max_w / 2, max_w
-        rows.append((py, float(a), float(b)))
-        cx, wprev = (a + b) / 2, w
-    return rows
+        raw.append((py, float(a), float(b)))
+        cx = (a + b) / 2
+    if not raw:
+        return []
+    upper = [b - a for py, a, b in raw if flare_py is None or py <= flare_py] or [b - a for _, a, b in raw]
+    ref = float(np.median(upper))
+    rows = []
+    cx = (raw[0][1] + raw[0][2]) / 2
+    for py, a, b in raw:
+        k = grow
+        if flare_py is not None and py > flare_py:
+            k *= 1 + flare * min(1.0, (py - flare_py) / max(1.0, py_bot - flare_py))
+        if b - a > ref * k:
+            c = (a + b) / 2 if abs((a + b) / 2 - cx) < ref * 0.3 else cx
+            a, b = c - ref * k / 2, c + ref * k / 2
+        rows.append((py, a, b))
+        cx = (a + b) / 2
+    return rows[::-1]
 
 
 def loft_trunk(K, rows, mat, y=0.0, depth=0.85, max_depth_px=None, segments=20, name="trunk_loft", smooth_rows=3):
     """A trunk lofted through the painted rows [(py, x_left, x_right)]: each row a ring as wide as the trunk is
-    painted there and `depth` x as deep (at most max_depth_px), centred at depth y (a number or fn(px, py)): from
+    painted there and `depth` x as deep (at most max_depth_px, a number or fn(py)), centred at depth y (a number or
+    fn(px, py)): from
     the front its outline is exactly the painted trunk's, from the side a round trunk."""
     P = K.paint
     if len(rows) < 2:
@@ -882,7 +894,8 @@ def loft_trunk(K, rows, mat, y=0.0, depth=0.85, max_depth_px=None, segments=20, 
     rings = []
     for py, a, b in arr:
         cx, hw = (a + b) / 2, max(1.0, (b - a) / 2)
-        hd = hw * depth if max_depth_px is None else min(hw * depth, max_depth_px)
+        cap = max_depth_px(py) if callable(max_depth_px) else max_depth_px
+        hd = hw * depth if cap is None else min(hw * depth, cap)
         yc = y(cx, py) if callable(y) else y
         ring = [bm.verts.new((P.x(cx) + P.m(hw) * math.cos(2 * math.pi * k / segments),
                               yc + P.m(hd) * math.sin(2 * math.pi * k / segments), P.z(py))) for k in range(segments)]
@@ -2405,9 +2418,10 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
                 min_r_px=0.0, trunk=None, tile_box=None):
     """A tree whose wood is traced off its painting (mask: its bark pixels) and whose crown is the painting's leaves
     on cards: the trunk, limbs, twigs and roots as fused tubes, leaning into the crown's depth, the big limbs and
-    roots turned round the trunk as well; returns (wood, crown, bark material, thin parts). trunk = (py_bot, py_top,
-    px at its foot[, grow, depth]): the trunk between those rows lofted through its painted outline (a traced tube is
-    only as thick as the circle inside its outline: a braided or knobbly trunk came out too thin)."""
+    roots turned round the trunk as well; returns (wood, crown, bark material, thin parts). trunk = (py at the ground,
+    py where it forks, px of its foot[, py where its foot flares, flare, depth]): the trunk lofted through its painted
+    outline (a traced tube is only as thick as the circle inside its outline: a braided or knobbly trunk came out too
+    thin)."""
     P = K.paint
     rng = K.rng
     wood = Wood(K, mask, root_px, spur=spur, min_len=5)
@@ -2422,19 +2436,32 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
         if root_z_px is not None and py > root_z_px:
             return root_lim
         return max(floor, crown.extent(px, py) * 0.8)
-    wood.grow(spread, root_z_px=root_z_px, root_spread=0.9, ymax=ylim, seed_dy=seed_dy)
+    def seed(p, dy):
+        # a root leans into depth in proportion to how far it runs across the painting, one this way and the next
+        # the other, so seen from above the roots fan out round the foot (and seen from the side they slope down
+        # to the ground like a flare, not crossing sticks)
+        if root_z_px is not None and p["pts"][-1][1] > root_z_px:
+            dx = P.m(float(p["pts"][-1][0] - p["pts"][0][0]))
+            s = rng.uniform(0.35, 1.0) * (1 if len(root_sign) % 2 else -1)
+            root_sign.append(s)
+            return dx * s + rng.uniform(-0.15, 0.15) * P.m(float(np.hypot(*(p["pts"][-1] - p["pts"][0]))))
+        return seed_dy(p, dy) if seed_dy is not None else dy
+    root_sign = []
+    wood.grow(spread, root_z_px=root_z_px, root_spread=0.9, ymax=ylim, seed_dy=seed)
     bark = bark_mix(K, mask, tile_box=tile_box)
     voxel = P.H / voxel_div
     fuse_r = voxel * 2.5 * P.ppm                     # thinner wood stays clean tubes (a voxel remesh would bloat it)
     thick, thin = wood.tubes(bark, fuse_r_px=fuse_r, rscale=rscale, min_r_px=min_r_px)
     if trunk is not None:
         py_bot, py_top, tx = trunk[:3]
-        grow = trunk[3] if len(trunk) > 3 else 1.25
-        depth = trunk[4] if len(trunk) > 4 else 0.85
-        rows = trunk_runs(mask, py_bot, py_top, tx, grow=grow)
+        flare_py = trunk[3] if len(trunk) > 3 else None
+        flare = trunk[4] if len(trunk) > 4 else 0.6
+        depth = trunk[5] if len(trunk) > 5 else 0.85
+        rows = trunk_runs(mask, py_bot, py_top, tx, flare_py=flare_py, flare=flare)
         if rows:
-            hw = float(np.median([(b - a) / 2 for _, a, b in rows]))
-            ob = loft_trunk(K, rows, bark, y=lambda px, py: wood.at(px, py)[0], depth=depth, max_depth_px=hw * 1.1)
+            hw = float(np.median([(b - a) / 2 for py, a, b in rows if flare_py is None or py <= flare_py]))
+            ob = loft_trunk(K, rows, bark, y=0.0, depth=depth,
+                            max_depth_px=lambda py: None if flare_py is not None and py > flare_py else hw * 1.1)
             if ob is not None:
                 thick.append(ob)
     limbs = pick_limbs(wood, py_max=limb_py_max, py_min=limb_py_min, r_min=max(fuse_r * 0.6, min_r_px),
@@ -2442,13 +2469,27 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     picks = [(i, (1 if k % 2 else -1) * rng.uniform(60, 125), 0.0) for k, i in enumerate(limbs)]
     wood.turned_copies(bark, picks, thick=thick, thin=thin, ymax=crown.hd * 0.8, fuse_r_px=fuse_r,
                        min_r_px=min_r_px, ylim=lambda px, py: max(floor, crown.extent(px, py) * 0.85))
-    if n_roots:
+    if n_roots and root_z_px is not None:
+        # every painted root again, mirrored through the trunk's plane: the roots behind the foot, each exactly
+        # behind (so hidden by) the painted one in front
+        for i, p in enumerate(wood.paths):
+            if p["pts"][-1][1] > root_z_px and float(np.max(p["r"])) >= max(min_r_px, 1.5):
+                pts, rs = wood.polyline(p, ys=-p["y"])
+                if pts is not None and len(pts) > 1:
+                    big = float(np.max(p["r"])) * rscale >= fuse_r
+                    (thick if big else thin).append(K.tube(pts, [r * rscale for r in rs], bark,
+                                                           segments=10 if big else 6, name="root_back"))
+    elif n_roots:
         roots = pick_limbs(wood, r_min=fuse_r, min_len=cw * 0.05, n=n_roots, roots=True, root_py=root_py)
         wood.turned_copies(bark, [(i, rng.choice([-1, 1]) * rng.uniform(*root_turn), 0.0) for i in roots],
                            thick=thick, thin=thin, whole=False, rscale=0.85, fuse_r_px=fuse_r, min_r_px=min_r_px)
     if thick:
         K.fuse(thick, voxel=voxel, faces=fuse_faces)
-    K.leaves_only(tuple(int(v) for v in crown_box), leaf_rule)
+    # the leaves only: never the painted wood (some of it is as green-grey as the leaves), which a card would carry
+    # out of its place into the crown's sides as a pale streak
+    box = tuple(int(v) for v in crown_box)
+    leafpix = leaf_mask_of(K, box, leaf_rule) & ~ndimage.binary_dilation(mask, iterations=2)
+    K.leaves_only(box, mask_rule(leafpix, box))
     cp = card_px or (cw * 0.14, cw * 0.12)
     nv, nf, nb, nt = n_cards
     crown.cards(nv, cp, "volume", yaw=85, pitch=45)
@@ -2480,7 +2521,7 @@ def h1_1(K):
     mask, _ = TRACE["h1_1"](K)
     traced_tree(K, mask, (600, 1150), (0, 0, 1239, 730), (620, 380), (380, 10, 740), sage_leaves, spread=0.55,
                 root_z_px=1000, limb_py_max=650, limb_py_min=380, n_limbs=7, n_roots=6, root_py=1080,
-                n_cards=(240, 100, 55, 25), trunk=(990, 600, 600), min_r_px=2.5)
+                n_cards=(240, 100, 55, 25), trunk=(1150, 700, 600, 960, 0.7), min_r_px=2.5)
 
 
 TRACE["h1_2"] = lambda K: _trace_grey(K, [(0, 120, 528, 972)], (272, 955), sat=45, lo=35, hi=222, close=1, hole=200)

@@ -51,19 +51,33 @@ def ktile(K, box, size=None, vary=0.0, soften=0.0):
         P.img = img
 
 
-def pole_tile(K, box, soften=0.3, vary=0.05):
+def pole_tile(K, box=None, soften=0.3, vary=0.05, line=None, half=4):
     """A material for bamboo poles, stubs, rails and frames, from a narrow strip of a painted pole (box px: down the
-    lit middle of a post, or along a bar, inside its ink edges): the strip mirrored side by side into a square, made
-    seamless and box-projected at its painted size. So every pole wears the painting's bamboo (its mottling and node
-    marks) from every side, not a flat colour, and no pole's shading or ink edge repeats as stripes."""
+    lit middle of a post, or along a bar, inside its ink edges; or line = ((x, y), (x, y)) px down a leaning pole's
+    middle, half px either side): the strip mirrored side by side into a square, made seamless and box-projected at
+    its painted size. So every pole wears the painting's bamboo (its mottling and node marks) from every side, not a
+    flat colour, and no pole's shading or ink edge repeats as stripes."""
     from PIL import Image
     from kitlib import Mat, _image, _vary, seamless
     P = K.paint
-    key = ("pole", tuple(int(v) for v in box), soften)
+    key = ("pole", tuple(int(v) for v in box) if box else tuple(int(v) for pt in line for v in pt) + (half,), soften)
     if key in K._mats:
         return K._mats[key]
-    x0, y0, x1, y1 = [int(round(v)) for v in box]
-    a = np.asarray(_filled(K).crop((x0, y0, x1, y1)).convert("RGB")).astype(np.float32)
+    if box:
+        x0, y0, x1, y1 = [int(round(v)) for v in box]
+        a = np.asarray(_filled(K).crop((x0, y0, x1, y1)).convert("RGB")).astype(np.float32)
+    else:
+        (ax, ay), (bx, by) = line
+        f = np.asarray(_filled(K).convert("RGB")).astype(np.float32)
+        n = int(math.hypot(bx - ax, by - ay))
+        d = np.array([bx - ax, by - ay]) / max(n, 1)
+        nrm = np.array([-d[1], d[0]])
+        rows = []
+        for i in range(n):
+            c = np.array([ax, ay]) + d * i
+            pts = [c + nrm * k for k in range(-half, half + 1)]
+            rows.append([f[int(min(P.h - 1, max(0, q[1]))), int(min(P.w - 1, max(0, q[0])))] for q in pts])
+        a = np.array(rows, dtype=np.float32)
     if soften:
         a = a * (1 - soften) + np.median(a.reshape(-1, 3), axis=0) * soften
     h, w = a.shape[:2]
@@ -321,12 +335,13 @@ def stall_c_1(K):
         ((822, 8), -0.022, 10, yb, [(805, 0, 842, 62), (798, 225, 830, 480)]),
     ]
     rope = K.colour((80, 176, 92, 190), vary=0.1)
+    # every pole wears the painted bamboo of the left post (the front projection paints the posts' fronts): projected
+    # through, the back posts carried the red chillies and the ink painted over them round to their backs
+    bam = pole_tile(K, (97, 300, 106, 360))
     for top, k, rpx, y, keep in posts:
-        mat = K.projected(axis_x=P.x(top[0]), squeeze=0.9, keep=keep, inset=2)
         bot = (P.x(post_x(top, k, 793)), y, 0.0)
         a = (P.x(top[0]), y, P.z(top[1]))
-        bamboo(K, bot, a, P.m(rpx), mat, nodes=0.42, bend=0.008, taper=0.95, name="post")
-    bam = K.colour((60, 180, 76, 196), vary=0.08)
+        bamboo(K, bot, a, P.m(rpx), bam, nodes=0.42, bend=0.008, taper=0.95, name="post")
     # the lashed cross-stubs at the tops, the cloth's corners tied to them
     stubs = [((47, 185), (125, 185), yf, (85, 185)), ((900, 182), (972, 182), yf, (938, 182)),
              ((182, 52), (250, 52), yb, (222, 50)), ((795, 48), (857, 48), yb, (822, 48))]
@@ -354,7 +369,10 @@ def stall_c_1(K):
     grain9 = ktile(K, (255, 655, 330, 685), vary=0.04)
     roots = ktile(K, (500, 595, 620, 645), vary=0.04)
     orange = ktile(K, (320, 560, 420, 600), vary=0.05)
-    earth = ktile(K, (1010, 712, 1110, 785), vary=0.08, soften=0.3)
+    # the earth: a strip of the painted ground left of its scuff mark, mirrored square (a thin crop repeated as a grid
+    # of dark marks); the white cut-out line along the ground's far edge is kept off the bed's bank
+    earth = pole_tile(K, (1100, 706, 1120, 752), soften=0.45, vary=0.08)
+    K.front_exclude.append((998, 694, 1124, 708))
     earth_patch(K, P.x(560), -0.15, 1.85, 1.3, earth, h=0.02)
     plat = P.z(700)
     # the back half stands on a raised bed of packed earth (its bank shows at the right, past the last sack)
@@ -623,35 +641,33 @@ def stall_c_2(K):
     P = K.paint
     Z = P.z
     K.front_min = 0.1
-    # ---------------------------------------------------------------- the ground: a gentle rise of red earth
+    # ---------------------------------------------------------------- the ground: a level patch of red earth
+    # (the painting's red band is the ground seen from above; a mound rising to the back looked wrong from the sides)
     earth = ktile(K, (770, 770, 870, 830), vary=0.08, soften=0.3)
-    hb = Z(745)
 
     def ground(x, y):
-        back = math.sqrt((x / (P.W / 2)) ** 2 * _smooth(0.0, 1.0, y) + max(0.0, (y - 0.2) / 1.15) ** 2)
-        return hb * _smooth(-0.72, 0.35, y) * _smooth(1.0, 0.9, back) * _smooth(-P.W / 2, -P.W / 2 + 0.05, x) \
-            * _smooth(P.W / 2, P.W / 2 - 0.05, x)
-    K.grid_plane(-P.W / 2, P.W / 2, -0.8, 1.45, 0.0, 36, 26, earth, height=lambda x, y: ground(x, y), name="ground")
-    # ---------------------------------------------------------------- the bench: a tapering top, tilted on the rise
-    wood = ktile(K, (60, 700, 220, 716), vary=0.08)
+        return 0.0
+    earth_patch(K, 0.0, 0.25, P.W / 2 + 0.05, 1.25, earth, h=0.02)
+    # ---------------------------------------------------------------- the bench: level and square, at the height of its
+    # painted front edge (its top, painted from above, is a wood tile; the front projection paints its front edge)
+    wood = ktile(K, (430, 702, 545, 716), vary=0.08)
     wood_dark = K.colour((300, 720, 400, 728), vary=0.1)
+    legw = pole_tile(K, (741, 735, 755, 800), soften=0.2)
     yF, yB = -0.4, 0.58
-    zF, zB = Z(698), Z(620)
+    zF = Z(698)
 
     def top_z(y):
-        return zF + (zB - zF) * (y - yF) / (yB - yF)
-    top = K.projected(squeeze=1.0, keep=[(35, 612, 805, 722)],
-                      exclude=[(60, 590, 282, 700), (275, 560, 560, 700), (580, 560, 705, 668), (215, 645, 305, 705),
-                               (515, 635, 615, 705), (605, 665, 665, 700), (640, 650, 760, 722)], inset=2)
-    slab(K, [(P.x(35), yF, zF), (P.x(800), yF, zF), (P.x(692), yB, zB), (P.x(140), yB, zB)], P.m(20), top,
+        return zF
+    slab(K, [(P.x(35), yF, zF), (P.x(800), yF, zF), (P.x(800), yB, zF), (P.x(35), yB, zF)], P.m(20), wood,
          name="bench_top")
     # its apron under the front and back edges, and the legs (front ones as painted, more behind the baskets)
-    K.box(P.x(60), P.x(775), yF + 0.03, yF + 0.06, Z(730), zF - P.m(20), wood_dark, name="apron")
-    K.box(P.x(160), P.x(670), yB - 0.06, yB - 0.03, zB - 0.12, zB - P.m(20), wood_dark, name="apron_b")
+    for y0, y1 in ((yF + 0.03, yF + 0.06), (yB - 0.06, yB - 0.03)):
+        K.box(P.x(60), P.x(775), y0, y1, Z(730), zF - P.m(20), wood_dark, name="apron")
     for x0, x1 in ((263, 290), (735, 760), (55, 80)):
         for y in (yF + 0.07, yB - 0.08):
-            K.box(P.x(x0), P.x(x1), y - 0.035, y + 0.035, ground(P.x(x0), y) - 0.03, top_z(y) - P.m(18), wood,
-                  name="leg")
+            K.box(P.x(x0), P.x(x1), y - 0.035, y + 0.035, 0.0, zF - P.m(18), legw, name="leg")
+    for x_px in (67, 748):
+        K.box(P.x(x_px) - 0.02, P.x(x_px) + 0.02, yF + 0.07, yB - 0.08, 0.1, 0.15, legw, name="stretcher")
     # the palm mat she sits on
     mat_w = ktile(K, (150, 205, 280, 240), vary=0.06)
     K.grid_plane(P.x(285), P.x(560), yF + 0.08, yB - 0.12, 0.0, 10, 8, mat_w,
@@ -659,7 +675,7 @@ def stall_c_2(K):
     # ---------------------------------------------------------------- the umbrella
     weave = ktile(K, (290, 105, 420, 170), vary=0.06)
     under = ktile(K, (150, 200, 280, 240), vary=0.05)
-    pole_mat = K.projected(axis_x=P.x(300), squeeze=0.9, keep=[(270, 270, 330, 620)], inset=2)
+    pole_mat = pole_tile(K, line=((325, 262), (296, 560)), half=4)
     yc = 0.92
     umbrella(K, P.x(340), yc, Z(206), P.m(314), P.m(156), 5.9, weave, under, pole_mat, teeth=46, tooth=0.055)
     # the pole: leaning, lashed to the bench's back-left leg, up to the collar under the canopy
@@ -679,25 +695,27 @@ def stall_c_2(K):
                                     (P.m(98), Z(640) - zb1), (P.m(106), Z(603) - zb1)], bask, inside=inside, sy=0.85)
     leafm = ktile(K, (180, 560, 260, 600), vary=0.05)
     heap(K, P.x(172), yb1, P.m(100), P.m(100) * 0.85, Z(625), Z(606) - Z(625), leafm, name="leaves")
-    # the brass areca-nut cutter on its base plate
+    # the brass areca-nut cutter, traced off the painting: its base plate on a thick wooden board (painted higher than
+    # the bench's front edge, further back), the box body, the tray at its left, the bell hood and lid on top, the
+    # side column, and the lever with its wooden grip
     brass = K.colour((672, 560, 684, 640), vary=0.08)
     brass_d = K.colour((605, 625, 640, 655), vary=0.08)
     yt = 0.24
-    zt = top_z(yt)
-    K.box(P.x(585), P.x(700), yt - 0.08, yt + 0.1, zt, zt + 0.02, brass, bevel=0.004, name="cutter_base")
-    K.box(P.x(600), P.x(650), yt - 0.05, yt + 0.06, zt + 0.02, Z(622), brass_d, bevel=0.004, name="cutter_body")
-    K.box(P.x(598), P.x(645), yt - 0.06, yt + 0.06, Z(622), Z(598), brass, bevel=0.004, name="cutter_block")
-    K.box(P.x(588), P.x(615), yt - 0.06, yt + 0.06, Z(605), Z(598), brass, bevel=0.003, name="cutter_lip")
-    K.lathe([(P.m(3), Z(598)), (P.m(5), Z(585)), (P.m(16), Z(578)), (P.m(21), Z(568)), (P.m(21), Z(556)),
-             (P.m(15), Z(548)), (P.m(5), Z(544))], brass,
-            segments=14, centre=(P.x(617), yt, 0.0), name="cutter_head")
-    K.box(P.x(668), P.x(688), yt - 0.02, yt + 0.02, zt + 0.02, Z(540), brass, bevel=0.003, name="cutter_column")
-    K.tube([P.pt(678, 545, yt), P.pt(650, 530, yt)], P.m(7), brass, segments=6, name="cutter_arm")
-    K.box(P.x(632), P.x(668), yt - 0.03, yt + 0.03, Z(542), Z(522), brass, bevel=0.004, name="cutter_head2")
-    K.tube([P.pt(652, 530, yt), P.pt(667, 495, yt)], P.m(6), brass, segments=8, name="lever")
+    zt = Z(668)
+    K.box(P.x(578), P.x(705), yt - 0.13, yt + 0.12, zF, zt - 0.025, wood, bevel=0.006, name="cutter_board")
+    K.box(P.x(585), P.x(700), yt - 0.09, yt + 0.1, zt - 0.025, zt, brass, bevel=0.004, name="cutter_base")
+    K.box(P.x(613), P.x(662), yt - 0.06, yt + 0.06, zt, Z(578), brass_d, bevel=0.004, name="cutter_body")
+    K.block(P.x(608), yt - 0.02, (Z(612) + Z(594)) / 2, P.m(60), 0.11, Z(594) - Z(612), brass, rot=(0, -8, 0),
+            bevel=0.004, name="cutter_tray")
+    K.lathe([(P.m(26), Z(587)), (P.m(26), Z(570)), (P.m(22), Z(556)), (P.m(15), Z(545)), (P.m(12), Z(540)),
+             (P.m(17), Z(538)), (P.m(17), Z(530)), (P.m(8), Z(526)), (0.0, Z(525))], brass, segments=16,
+            centre=(P.x(638), yt, 0.0), scale_y=0.8, name="cutter_hood")
+    K.box(P.x(662), P.x(690), yt - 0.025, yt + 0.025, zt, Z(562), brass, bevel=0.003, name="cutter_column")
+    K.tube([P.pt(676, 565, yt), P.pt(660, 535, yt)], P.m(7), brass, segments=8, name="cutter_arm")
+    K.tube([P.pt(650, 530, yt), P.pt(660, 495, yt)], P.m(6), brass, segments=8, name="lever")
     lever = K.colour((670, 455, 685, 490), vary=0.08)
-    K.tube([P.pt(667, 495, yt), P.pt(672, 470, yt), P.pt(680, 448, yt)], [P.m(7), P.m(9), P.m(8)], lever, segments=10,
-           name="lever_grip")
+    K.tube([P.pt(660, 497, yt), P.pt(664, 470, yt), P.pt(667, 448, yt)], [P.m(9), P.m(11), P.m(10)], lever,
+           segments=10, name="lever_grip")
     # loose betel leaves on the bench (one hanging over its front edge), a folded paan on a leaf, the lime tin
     leaf2 = ktile(K, (240, 660, 290, 690), vary=0.06)
 
@@ -796,13 +814,15 @@ def hip_thatch(K, x0, x1, y0, y1, z_eave, rx0, rx1, yr, z_ridge, mat, thick=0.12
 
 
 def fold_stack(K, x0, x1, y, depth, z0, z1, mat, fold=0.045, name="stack"):
-    """A stack of folded cloths (sarees, towels, mats) on z0 up to z1: one soft slab per fold, each a little askew."""
+    """A stack of folded cloths (sarees, towels, mats) on z0 up to z1: one soft slab per fold, each a little askew.
+    mat: a material, or mat(i, n, z_bottom, z_top) -> the material of fold i (each its own painted cloth)."""
     n = max(1, int(round((z1 - z0) / fold)))
     h = (z1 - z0) / n
     for i in range(n):
         dx = K.rng.uniform(-0.012, 0.012)
         dy = K.rng.uniform(-0.012, 0.012)
-        K.block((x0 + x1) / 2 + dx, y + dy, z0 + h * (i + 0.5), (x1 - x0) - abs(dx), depth, h * 0.98, mat,
+        m = mat(i, n, z0 + h * i, z0 + h * (i + 1)) if callable(mat) else mat
+        K.block((x0 + x1) / 2 + dx, y + dy, z0 + h * (i + 0.5), (x1 - x0) - abs(dx), depth, h * 0.98, m,
                 rot=(0, 0, K.rng.uniform(-1.5, 1.5)), bevel=min(0.014, h * 0.4), name=name)
 
 
@@ -852,14 +872,13 @@ def stall_c_3(K):
     P = K.paint
     Z = P.z
     K.front_min = 0.1
-    # ---------------------------------------------------------------- the ground
+    # ---------------------------------------------------------------- the ground: a level patch of red earth (the
+    # painting's red band is the ground seen from above; a mound rising to the back looked wrong from the sides)
     earth = ktile(K, (300, 570, 480, 630), vary=0.08, soften=0.3)
-    hb = Z(555)
 
     def ground(x, y):
-        return hb * _smooth(-0.55, 0.5, y) * _smooth(1.9, 1.6, y) * _smooth(P.x(5), P.x(40), x) \
-            * _smooth(P.x(915), P.x(860), x)
-    K.grid_plane(P.x(5), P.x(915), -0.62, 1.9, 0.0, 36, 26, earth, height=ground, name="ground")
+        return 0.0
+    earth_patch(K, 0.0, 0.55, P.W / 2 + 0.05, 1.45, earth, h=0.02)
     # ---------------------------------------------------------------- the roof
     straw = ktile(K, (250, 30, 450, 100), vary=0.06)
     y_e0, y_e1, yr = -0.66, 1.46, 0.4
@@ -968,11 +987,20 @@ def stall_c_3(K):
     zt = zc + rr * 0.4
     front = [(105, 268, 392), (232, 380, 422), (360, 492, 440), (490, 612, 435), (602, 735, 440), (710, 890, 415)]
     back = [(180, 312, 342), (290, 400, 350), (392, 492, 342), (495, 595, 350), (590, 700, 355), (683, 830, 332)]
+    # every fold wears its own painted cloth (a strip of the painting at its height, all round it), so from the sides
+    # and back a stack is the same folded sarees; projected through, its sides were dragged into streaks and ink
     for row, y, d in ((back, 0.2, 0.36), (front, -0.2, 0.38)):
         for x0, x1, top in row:
             bot = 500 if row is front else 440
-            mat = K.projected(squeeze=1.0, keep=[(x0 + 4, top, x1 - 4, bot)], inset=2)
-            fold_stack(K, P.x(x0 + 3), P.x(x1 - 3), y, d, zt, Z(top + 4), mat, fold=P.m(13))
+
+            def fold_mat(i, n, za, zb, x0=x0, x1=x1, top=top, bot=bot):
+                seen = [k for k in range(n) if P.py(zt + (Z(top + 4) - zt) * k / n) <= bot + 2]
+                k = i if i in seen else (seen[i % len(seen)] if seen else n - 1)
+                h = (Z(top + 4) - zt) / n
+                pb, pt = P.py(zt + h * k), P.py(zt + h * (k + 1))
+                pt = max(pt, top + 1)
+                return pole_tile(K, (x0 + 8, pt + 2, x1 - 8, max(pt + 6, pb - 2)), soften=0.12, vary=0.04)
+            fold_stack(K, P.x(x0 + 3), P.x(x1 - 3), y, d, zt, Z(top + 4), fold_mat, fold=P.m(13))
 
 
 def ball(K, c, r, mat, squash=1.0, segs=8, rings=5, name="ball"):
@@ -1108,17 +1136,33 @@ def stall_d_1(K):
     zc = Z(600) + 0.03
     table = [  # (cx px, rim half-width px, rim py, heap profile [(hw, py)], fruit, y)
         (390, 60, 562, [(56, 562), (50, 540), (38, 525), (20, 512), (0, 508)], nungu, 0.12),
-        (505, 55, 565, [(52, 565), (48, 535), (38, 505), (20, 484), (0, 478)], dark, 0.2),
+        (505, 55, 565, [(52, 565), (50, 530), (42, 500), (26, 474), (0, 462)], dark, 0.2),
         (630, 70, 560, [(66, 560), (60, 530), (45, 510), (22, 500), (0, 497)], nungu, 0.15),
         (768, 68, 568, [(64, 568), (58, 545), (45, 528), (24, 520), (0, 518)], nungu, 0.12),
     ]
+    # the heaps: fruit pieces where each is painted on the front, and more all over them (from the sides, the back and
+    # above they were smooth plain domes)
+    flesh = ktile(K, (596, 512, 660, 560), vary=0.06, soften=0.3)
+    darkm = K.colour((470, 470, 540, 540), vary=0.15, scale=20)
+
+    def all_round(h, cx, y, hw, fruit, r_px):
+        n = int(26 * (hw / 70) ** 2) + 6
+        pile(K, h, P.x(cx), y, P.m(hw) * 0.78, P.m(hw) * 0.78 * 0.85, n, P.m(r_px),
+             darkm if fruit is dark else fruit, over=P.m(3))
     for cx, hw, rim, prof, fruit, y in table:
         basket(K, P.x(cx), y, zc, [(P.m(hw * 0.7), 0.0), (P.m(hw * 0.95), (Z(rim) - zc) * 0.6), (P.m(hw), Z(rim) - zc)],
                weave, sy=0.85)
-        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.85) for r, py in prof[1:]], fruit,
-                    sy=0.85, name="heap")
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.85) for r, py in prof[1:]],
+                    dark if fruit is dark else flesh, sy=0.85, name="heap")
         on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 12, cx + hw, rim - 4), fruit,
                 dark=60 if fruit is dark else 130, min_area=120, max_area=3000, rmax=22, flat=0.95)
+        all_round(h, cx, y, hw, fruit, 17)
+    # the dark fruit heaped over behind the first basket (painted spilling between the two)
+    h = heap_px(K, 418, 0.33, [(50, 566), (47, 525), (38, 490), (22, 466), (0, 456)], dark, sy=0.85, name="heap",
+                z0=zc)
+    on_heap(K, h, P.x(418), 0.33, P.m(50) * 0.85, (372, 452, 462, 530), dark, dark=60, min_area=120, max_area=3000,
+            rmax=22, flat=0.95)
+    all_round(h, 418, 0.33, 50, dark, 17)
     # ---------------------------------------------------------------- on the ground in front
     front = [  # (cx, rim half-width, rim py, heap profile, y)
         (120, 80, 662, [(78, 662), (72, 630), (55, 605), (30, 590), (0, 585)], -0.85),
@@ -1128,10 +1172,11 @@ def stall_d_1(K):
     ]
     for cx, hw, rim, prof, y in front:
         basket(K, P.x(cx), y, 0.0, [(P.m(hw * 0.85), 0.0), (P.m(hw), Z(rim))], weave, sy=0.85)
-        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.85) for r, py in prof[1:]], nungu,
+        h = heap_px(K, cx, y, [(hw * 0.92, rim)] + [(r * 0.85, rim - (rim - py) * 0.85) for r, py in prof[1:]], flesh,
                     sy=0.85, name="heap")
         on_heap(K, h, P.x(cx), y, P.m(hw) * 0.85, (cx - hw, prof[-1][1] - 15, cx + hw, rim - 4), nungu, dark=130,
                 min_area=150, max_area=4000, rmax=26, flat=0.95)
+        all_round(h, cx, y, hw, nungu, 20)
     # a cut bunch lying on the ground at the front left
     bunch = K.projected(squeeze=1.0, keep=[(160, 545, 320, 700)], inset=2)
     fruit_bunch(K, (165, 548, 318, 700), -0.6, 0.45, bunch)
@@ -1185,7 +1230,8 @@ def stall_d_2(K):
     K.front_min = 0.1
     yf, yb = -0.62, 0.62
     rope = K.colour((0.1, 0.06, 0.03), vary=0.1)
-    bam = K.colour((60, 300, 75, 400), vary=0.08)
+    # every pole wears the painted bamboo of the left post; the front projection paints the posts' fronts
+    bam = pole_tile(K, (60, 340, 70, 420))
     # ---------------------------------------------------------------- posts and stubs
     posts = [  # (top px, bottom px, radius px, y, keep)
         ((57, 172), (80, 705), 12, yf, [(40, 165, 92, 705)]),
@@ -1194,8 +1240,7 @@ def stall_d_2(K):
         ((785, 10), (768, 705), 10, yb, [(772, 0, 798, 68), (752, 275, 790, 610)]),
     ]
     for top, bot, rpx, y, keep in posts:
-        mat = K.projected(axis_x=P.x((top[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
-        bamboo(K, P.pt(bot[0], 713, y), P.pt(top[0], top[1], y), P.m(rpx), mat, nodes=0.45, bend=0.006, taper=0.95,
+        bamboo(K, P.pt(bot[0], 713, y), P.pt(top[0], top[1], y), P.m(rpx), bam, nodes=0.45, bend=0.006, taper=0.95,
                name="post")
     stubs = [((8, 222), (75, 220), yf, (57, 225)), ((868, 215), (932, 213), yf, (885, 218)),
              ((106, 68), (175, 68), yb, (158, 66)), ((768, 66), (832, 66), yb, (785, 64))]
@@ -1212,9 +1257,9 @@ def stall_d_2(K):
     under = ktile(K, (300, 100, 600, 200), vary=0.05, soften=0.3)
     awning(K, P.pt(66, 232, yf + 0.03), P.pt(876, 230, yf + 0.03), P.pt(160, 66, yb - 0.02), P.pt(782, 64, yb - 0.02),
            cloth, sag_front=P.m(50), sag_back=P.m(12), belly=0.05, sag_side=0.02, under=under, nu=40, nv=18)
-    # ---------------------------------------------------------------- the string cot, propped up at its back
+    # ---------------------------------------------------------------- the string cot, level on its four legs
     cyf, cyb = -0.42, 0.36
-    zf, zb = Z(658), Z(607)
+    zf = zb = Z(658)
     rr = P.m(12)
     rail = K.projected(squeeze=1.0, keep=[(150, 645, 800, 672)], inset=2)
     cotw = K.colour((440, 648, 560, 665), vary=0.08)
@@ -1224,12 +1269,15 @@ def stall_d_2(K):
     for x_px in (130, 812):
         K.tube([(P.x(x_px), cyf, zf), (P.x(x_px), cyb, zb)], rr * 0.85, cotw, segments=10, name="rail_side")
     for x_px, (x0, x1) in ((130, (110, 150)), (408, (390, 426)), (812, (795, 830))):
-        for y, ztop in ((cyf, Z(624)), (cyb, zb + 0.06)):
+        for y, ztop in ((cyf, Z(624)), (cyb, Z(624))):
             K.box(P.x(x0), P.x(x1), y - 0.05, y + 0.05, ztop - P.m(40), ztop, block, bevel=0.008, name="leg_block")
             K.box(P.x(x0) + 0.008, P.x(x1) - 0.008, y - 0.042, y + 0.042, 0.0, ztop - P.m(40), block, bevel=0.006,
                   name="leg")
-    rope_bed(K, P.x(135), P.x(808), cyf + 0.02, cyb - 0.02, zf - 0.005, zb - 0.005,
-             K.colour((440, 612, 560, 640), vary=0.1, pct=80), pitch=0.075)
+    # the woven rope bed: a sagging sheet wearing the painted weave (thin cords were all ink outline: a dark mesh)
+    bedw = ktile(K, (425, 616, 600, 640), vary=0.06, soften=0.15)
+    K.sheet(lambda u, v: (P.x(135) + (P.x(808) - P.x(135)) * u, cyf + 0.02 + (cyb - cyf - 0.04) * v,
+                          zf - 0.004 - 0.025 * math.sin(math.pi * u) * math.sin(math.pi * v)), 16, 8, bedw,
+            name="rope_bed", thickness=0.01)
     wrap(K, (P.x(152), cyf, zf), (P.x(388), cyf, zf), rr, K.colour((250, 650, 262, 668), vary=0.1), pitch=P.m(17))
 
     def bed(y):
@@ -1242,11 +1290,22 @@ def stall_d_2(K):
         (338, [(25, 647), (42, 635), (47, 612), (42, 592), (27, 580), (22, 574), (26, 570), (24, 566)], -0.3),
     ]
     inside = K.colour((0.06, 0.025, 0.012), vary=0.05)
+    railw = pole_tile(K, (440, 650, 560, 660), soften=0.2)
     for cx, prof, y in pots:
         x0, x1 = cx - max(r for r, _ in prof), cx + max(r for r, _ in prof)
         mat = K.projected(axis_x=P.x(cx), squeeze=0.93, keep=[(x0, prof[-1][1] - 4, x1, prof[0][1])], inset=3)
         prof_m = [(P.m(r), P.z(py)) for r, py in prof]
-        prof_m[0] = (prof_m[0][0], min(prof_m[0][1], bed(y) - 0.005))
+        foot = P.z(prof[0][1])
+        if foot - bed(y) > 0.03:
+            # painted higher than the bed (it stands further back): it stands on a crate (or a block), hidden behind
+            # the pots in front of it, not stretched down to the bed
+            hw = P.m(prof[0][0]) + 0.03
+            if foot - bed(y) > 0.12:
+                crate(K, P.x(cx) - hw, P.x(cx) + hw, y - hw, y + hw, bed(y), foot - 0.018, railw, slats=3)
+                foot -= 0.0
+            else:
+                K.box(P.x(cx) - hw, P.x(cx) + hw, y - hw, y + hw, bed(y), foot, railw, bevel=0.01, name="pot_block")
+        prof_m[0] = (prof_m[0][0], min(prof_m[0][1], foot - 0.005))
         K.lathe(prof_m, mat, segments=32, centre=(P.x(cx), y, 0.0), wobble=0.01, name="pot", cap=True)
         rim_r, rim_z = prof_m[-1]
         K.lathe([(rim_r * 0.92, rim_z + 0.002), (rim_r * 0.8, rim_z - 0.05), (0.0, rim_z - 0.07)], inside, segments=24,
@@ -1327,23 +1386,35 @@ def stall_d_3(K):
     hip_thatch(K, P.x(150), P.x(950), -0.5, 1.0, Z(196), P.x(222), P.x(875), 0.25, Z(28), straw, thick=0.1,
                shag=0.03, fringe=P.m(16))
     roof_z = Z(205)
-    K.box(P.x(215), P.x(880), 0.55, 0.62, 0.0, roof_z + 0.15, dark, name="back_wall")
-    # its boards: battens down the back and sides, and baskets hung on pegs on the back for sale
-    batten = K.colour((214, 300, 238, 400), vary=0.08)
-    for x in np.linspace(P.x(225), P.x(870), 9):
-        K.box(x - 0.025, x + 0.025, 0.62, 0.645, 0.0, roof_z + 0.12, batten, bevel=0.004, name="batten")
-    K.box(P.x(215), P.x(880), 0.62, 0.65, roof_z - 0.12, roof_z - 0.06, batten, bevel=0.004, name="rail_back")
-    for k, (x_px, box) in enumerate(((330, (130, 258, 288, 362)), (560, (243, 372, 382, 552)), (780, (712, 392, 858, 557)))):
-        bmat = K.projected(axis_x=P.x((box[0] + box[2]) / 2), squeeze=0.94, keep=[box], dx=P.m((box[0] + box[2]) / 2 - x_px),
-                           inset=2)
-        bowl(K, (P.x(x_px), 0.66 + P.m(55) * 0.95, Z(330) + k * 0.05), P.m(62), P.m(48), P.m(55), bmat,
-             axis=(0.0, -0.95, 0.3), name="back_basket")
-        K.tube([(P.x(x_px), 0.65, Z(330) + k * 0.05 + 0.08), (P.x(x_px), 0.7, Z(330) + k * 0.05 + 0.1)], 0.01, batten,
-               segments=5, name="peg")
+    # the booth's walls: dark inside (in shadow), clad outside in vertical boards of the painted brown wood (a plain
+    # dark slab from the sides and back before), battens and a rail across the back
+    boards = pole_tile(K, (222, 400, 234, 540), soften=0.2)
+    K.box(P.x(215), P.x(880), 0.55, 0.6, 0.0, roof_z + 0.15, dark, name="back_wall")
+    xs = np.linspace(P.x(215), P.x(880), 11)
+    for xa, xb in zip(xs, xs[1:]):
+        K.box(xa + 0.004, xb - 0.004, 0.6, 0.625, 0.0, roof_z + 0.15, boards, bevel=0.004, name="board")
+    batten = boards
+    for x in np.linspace(P.x(225), P.x(870), 5):
+        K.box(x - 0.03, x + 0.03, 0.625, 0.65, 0.0, roof_z + 0.12, batten, bevel=0.005, name="batten")
+    for z in (0.25, roof_z - 0.1):
+        K.box(P.x(215), P.x(880), 0.625, 0.655, z - 0.03, z + 0.03, batten, bevel=0.005, name="rail_back")
+    # baskets hung on pegs on the back for sale, their mouths outwards
+    bw = ktile(K, (275, 400, 370, 440), vary=0.06)
+    for k, x_px in enumerate((330, 560, 780)):
+        zb_ = Z(330) + k * 0.05
+        bowl(K, (P.x(x_px), 0.66, zb_), P.m(62), P.m(48), P.m(55), bw, axis=(0.0, 0.95, 0.3), name="back_basket")
+        K.tube([(P.x(x_px), 0.65, zb_ + 0.1), (P.x(x_px), 0.72, zb_ + 0.12)], 0.012, batten, segments=6, name="peg")
     plank = K.projected(squeeze=1.0, keep=[(214, 230, 238, 545), (856, 230, 880, 680)], inset=1)
-    for x0, x1 in ((215, 237), (857, 879)):
-        K.box(P.x(x0), P.x(x1), -0.18, 0.62, 0.0, roof_z + 0.1, dark, name="side_wall")
+    for x0, x1, sgn in ((215, 237, -1), (857, 879, 1)):
+        K.box(P.x(x0), P.x(x1), -0.18, 0.6, 0.0, roof_z + 0.1, dark, name="side_wall")
+        xo = P.x(x0) if sgn < 0 else P.x(x1)
+        ys_ = np.linspace(-0.14, 0.625, 7)
+        for ya, yb_ in zip(ys_, ys_[1:]):
+            K.box(min(xo, xo + sgn * 0.022), max(xo, xo + sgn * 0.022), ya + 0.004, yb_ - 0.004, 0.0, roof_z + 0.1,
+                  boards, bevel=0.004, name="board")
         K.box(P.x(x0) - 0.005, P.x(x1) + 0.005, -0.22, -0.14, 0.0, roof_z + 0.08, plank, bevel=0.006, name="post")
+        K.box(P.x(x0) - 0.005 + sgn * 0.02, P.x(x1) + 0.005 + sgn * 0.02, 0.6, 0.66, 0.0, roof_z + 0.08, boards,
+              bevel=0.006, name="post_back")
     # ---------------------------------------------------------------- the counter inside, under a cloth
     cloth = K.projected(squeeze=1.0, keep=[(420, 548, 880, 650)], inset=2)
     K.box(P.x(240), P.x(855), -0.12, 0.5, 0.0, Z(550), ktile(K, (560, 590, 640, 640), vary=0.05, soften=0.3),
@@ -1476,7 +1547,8 @@ def stall_e_1(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.12, 0.06, 0.03), vary=0.1)
-    bam = K.colour((70, 300, 90, 400), vary=0.08)
+    # every pole wears the painted bamboo of the left post; the front projection paints the posts' fronts
+    bam = pole_tile(K, line=((78, 315), (87, 480)), half=4)
     yf, yb = -0.62, 0.72
     # ---------------------------------------------------------------- posts, stubs and the cloth
     posts = [((60, 75), (104, 733), 12, yf, [(45, 70, 115, 650)]),
@@ -1484,8 +1556,7 @@ def stall_e_1(K):
              ((240, 12), (258, 733), 10, yb, [(225, 0, 258, 60), (232, 270, 262, 445)]),
              ((1310, 10), (1296, 733), 10, yb, [(1296, 0, 1326, 55), (1288, 270, 1318, 445)])]
     for top, bot, rpx, y, keep in posts:
-        mat = K.projected(axis_x=P.x((top[0] + bot[0]) / 2), squeeze=0.9, keep=keep, inset=2)
-        bamboo(K, P.pt(bot[0], 733, y), P.pt(top[0], top[1], y), P.m(rpx), mat, nodes=0.5, bend=0.006, taper=0.95,
+        bamboo(K, P.pt(bot[0], 733, y), P.pt(top[0], top[1], y), P.m(rpx), bam, nodes=0.5, bend=0.006, taper=0.95,
                name="post")
     stubs = [((15, 152), (95, 152), yf, (60, 150)), ((1420, 162), (1495, 162), yf, (1445, 162)),
              ((195, 52), (260, 52), yb, (240, 52)), ((1295, 47), (1352, 47), yb, (1310, 45))]
@@ -1511,14 +1582,18 @@ def stall_e_1(K):
     standing = [(210, 425, 352, 512), (612, 425, 762, 512), (770, 398, 1050, 578), (1060, 398, 1205, 572),
                 (1192, 405, 1342, 530)]
     top = K.projected(squeeze=1.0, keep=[(100, 440, 1430, 668)], exclude=standing, inset=2)
-    slab(K, [(P.x(100), bF, zF), (P.x(1400), bF, zF), (P.x(1335), bB, zB), (P.x(212), bB, zB)], 0.04, top,
-         name="board")
+    wood = ktile(K, (840, 515, 960, 570), vary=0.08)
+    # the board itself is planks (its underside and edges seen from behind); the produce spread on it is a thin layer
+    # on top wearing the painting
+    slab(K, [(P.x(100), bF, zF - 0.012), (P.x(1400), bF, zF - 0.012), (P.x(1335), bB, zB - 0.012),
+             (P.x(212), bB, zB - 0.012)], 0.035, wood, name="board")
+    slab(K, [(P.x(104), bF + 0.005, zF), (P.x(1396), bF + 0.005, zF), (P.x(1332), bB - 0.005, zB),
+             (P.x(215), bB - 0.005, zB)], 0.012, top, name="board_goods")
     edge = K.colour((600, 652, 700, 664), vary=0.08)
     bamboo(K, (P.x(100), bF - 0.02, zF + 0.005), (P.x(1402), bF - 0.02, zF + 0.005), P.m(8), edge,
            node_at=[0.25, 0.5, 0.75], taper=1.0, name="edge_front")
     for xa, xb in ((100, 212), (1400, 1335)):
         K.tube([(P.x(xa), bF, zF + 0.01), (P.x(xb), bB, zB + 0.01)], P.m(7), edge, segments=8, name="edge_side")
-    wood = ktile(K, (840, 515, 960, 570), vary=0.08)
     for x_px in (130, 500, 900, 1300):
         x = P.x(x_px)
         for y in (bF + 0.08, bB - 0.08):
@@ -1708,14 +1783,13 @@ def stall_e_2(K):
     P = K.paint
     Z = P.z
     K.front_min = 0.12
-    bam = K.colour((300, 32, 400, 42), vary=0.08)
+    bam = pole_tile(K, (87, 300, 95, 420))
     rope = K.colour((0.14, 0.1, 0.04), vary=0.1)
     yf, yb = -0.55, 0.55
     # ---------------------------------------------------------------- the frame and the mat
     for x_px, rpx, y, ztop, keep in ((90, 10, yf, Z(150), [(78, 165, 104, 645)]), (659, 9, yf, Z(150), [(648, 165, 672, 615)]),
                                      (169, 9, yb, Z(28), [(158, 172, 182, 435)]), (597, 8, yb, Z(28), [(587, 172, 608, 470)])):
-        mat = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=keep, inset=2)
-        bamboo(K, (P.x(x_px + 3), y, 0.0), (P.x(x_px), y, ztop), P.m(rpx), mat, nodes=0.55, bend=0.005, name="post")
+        bamboo(K, (P.x(x_px + 3), y, 0.0), (P.x(x_px), y, ztop), P.m(rpx), bam, nodes=0.55, bend=0.005, name="post")
     bamboo(K, P.pt(10, 152, yf - 0.03), P.pt(745, 152, yf - 0.03), P.m(9), bam, node_at=[0.3, 0.55, 0.8], taper=1.0,
            name="bar_front")
     bamboo(K, P.pt(65, 28, yb + 0.02), P.pt(682, 28, yb + 0.02), P.m(9), bam, node_at=[0.25, 0.6], taper=1.0,
@@ -1798,7 +1872,8 @@ def stall_e_2(K):
     hp = heap_px(K, 555, py_, [(64, 518), (55, 498), (35, 478), (12, 465), (0, 462)], nuts2, sy=0.8, name="plate_nuts")
     on_heap(K, hp, P.x(555), py_, P.m(60) * 0.8, (490, 455, 625, 515), nuts2, dark=95, min_area=20, max_area=400,
             rmax=9, kind="pod")
-    paper = K.projected(squeeze=1.0, keep=[(598, 390, 690, 526)], inset=1)
+    # the paper cones: their own pale paper all round (projected through, the ink between them made dark fins)
+    paper = K.colour((600, 395, 690, 525), pct=78, vary=0.05)
     cone_stack(K, (P.x(640), -0.42, Z(505)), P.m(26), P.m(58), 5, paper, axis=(-0.4, 0.0, 1.0))
     cone_stack(K, (P.x(662), -0.47, Z(522)), P.m(27), P.m(58), 4, paper, axis=(-0.15, 0.0, 1.0))
     cone_stack(K, (P.x(680), -0.52, Z(527)), P.m(26), P.m(55), 4, paper, axis=(0.1, 0.0, 1.0))
@@ -1893,66 +1968,17 @@ def stall_e_3(K):
     P = K.paint
     Z = P.z
     K.front_min = 0.12
-    # ---------------------------------------------------------------- the bank of earth and the mat over it
-    y0, y_lip, y_back, y_end = -0.84, -0.7, 0.72, 1.2
-    z_lip, z_back = Z(632), Z(546)
+    # ---------------------------------------------------------------- a low dais of folded straw mats
+    # (level and square: a bank of earth rising to the back, to lay the mat painted from above, was a wedge from the
+    # sides; the mat's painted top is the dais's front edge now, and the astrologer sits on a folded mat on it)
+    straw = ktile(K, (560, 560, 660, 600), vary=0.06)
+    zp = Z(668)
+    y0 = -0.84
+    K.box(P.x(15), P.x(700), y0, 0.7, 0.0, zp, straw, bevel=0.02, name="dais")
+    K.box(P.x(280), P.x(520), y0 + 0.03, -0.15, zp, Z(650), straw, bevel=0.025, name="folded_mat")
 
     def bank(x, y):
-        """The mat's height: a steep lip at the front, then a long gentle rise; lower where the cage stands."""
-        px_ = P.px(x)
-        cage = _smooth(66, 84, px_) * _smooth(232, 214, px_)
-        lip = z_lip + (Z(668) - z_lip) * cage
-        if y < y_lip:
-            return Z(698) + (lip - Z(698)) * _smooth(y0, y_lip, y)
-        rise = (y - y_lip) / (y_back - y_lip)
-        z = lip + (z_back - lip) * min(1.0, rise)
-        if cage > 0:
-            zc = lip + (z_back - lip) * min(1.0, rise) * _smooth(-0.1, 0.3, y)
-            z = z * (1 - cage) + zc * cage
-        return z
-
-    def edges(y):
-        """The mat's left and right edges at depth y: its painted outline, narrower towards the back."""
-        py_ = P.py(max(Z(698), z_lip + (z_back - z_lip) * max(0.0, min(1.0, (y - y_lip) / (y_back - y_lip)))
-                       if y > y_lip else Z(698) + (z_lip - Z(698)) * _smooth(y0, y_lip, y)))
-        xl = P.x(15 + max(0.0, min(1.0, (690 - py_) / 142)) * 205)
-        xr = P.x(700 - max(0.0, min(1.0, (680 - py_) / 135)) * 135)
-        return xl, xr
-
-    def top(u, v):
-        y = y0 + (y_back - y0) * v
-        xl, xr = edges(y)
-        x = xl + (xr - xl) * u
-        return (x, y, bank(x, y) + 0.004)
-    mat = K.projected(squeeze=1.0, keep=[(15, 545, 705, 700)], exclude=[(66, 450, 232, 672), (228, 300, 540, 645)],
-                      inset=2)
-    K.sheet(top, 40, 30, mat, name="mat", thickness=0.006)
-    straw = ktile(K, (560, 560, 660, 600), vary=0.06)
-    earth = K.colour((0.32, 0.2, 0.1), vary=0.15, scale=6)
-
-    def back(u, v):          # the mat's far end turns down over the back of the bank
-        xl, xr = edges(y_back)
-        x = xl + (xr - xl) * u
-        y = y_back + (y_end - y_back) * v
-        return (x, y, bank(x, y_back) * (1 - _smooth(0.0, 1.0, v)) + 0.004)
-    K.sheet(back, 20, 6, straw, name="mat_back", thickness=0.006)
-
-    def side(sgn):
-        def f(u, v):
-            if u < 0.85:
-                y = y0 + (y_back - y0) * u / 0.85
-                xl, xr = edges(y)
-                x = xl if sgn < 0 else xr
-                zt = bank(x, y)
-            else:
-                xl, xr = edges(y_back)
-                x = xl if sgn < 0 else xr
-                y = y_back + (y_end - y_back) * (u - 0.85) / 0.15
-                zt = bank(x, y_back) * (1 - _smooth(0.0, 1.0, (u - 0.85) / 0.15))
-            return (x, y, zt * (1 - v))
-        return f
-    for sgn in (-1, 1):
-        K.sheet(side(sgn), 40, 2, earth, name="bank_side", thickness=0.004)
+        return zp
     # ---------------------------------------------------------------- the umbrella on its shaft
     top_cloth = ktile(K, (300, 70, 420, 110), vary=0.06)
     under = ktile(K, (390, 200, 470, 260), vary=0.05)
@@ -1961,7 +1987,7 @@ def stall_e_3(K):
     tip, axis = rib_umbrella(K, P.x(378), yc, Z(205), P.m(368), P.m(196), 14.5, top_cloth, under, wood, ribs=10,
                              phase=0.0)
     ax = Vector(axis)
-    t = (tip[2] - bank(tip[0], tip[1] - 0.6)) / ax.z
+    t = tip[2] / ax.z
     base = Vector(tip) - ax * t
     K.tube([tuple(base - ax * 0.15), tuple(Vector(tip))], P.m(7), wood, segments=8, name="shaft")
     # ---------------------------------------------------------------- the birdcage, its cup and the parrot
@@ -1973,21 +1999,13 @@ def stall_e_3(K):
     K.figure([(99, 626), (112, 600), (128, 575), (148, 555), (163, 530), (178, 521), (191, 529), (193, 545),
               (185, 560), (171, 580), (166, 600), (153, 615), (131, 621), (112, 631)], y=ccy, name="parrot")
     # ---------------------------------------------------------------- the fortune cards fanned out in front
-    card = K.projected(squeeze=1.0, keep=[(172, 625, 645, 700)], inset=1)
-    fan = [(212, 671, 64, 44, -20), (255, 678, 52, 38, -14), (292, 684, 46, 30, -8), (328, 686, 44, 26, -4),
-           (366, 688, 40, 22, 0), (403, 688, 40, 22, 0), (440, 688, 40, 22, 3), (478, 685, 44, 26, 8),
-           (515, 680, 48, 32, 13), (552, 670, 52, 40, 18)]
-    for px_, py_, w, h, rot in fan:
-        z = Z(py_)
-        yy = y0
-        for k in range(40):
-            yy = y0 + 0.5 * k / 39
-            if bank(P.x(px_), yy) >= z:
-                break
-        dz = bank(P.x(px_), yy + 0.02) - bank(P.x(px_), yy - 0.02)
-        ang = math.degrees(math.atan2(dz, 0.04))
-        d = min(0.24, P.m(h) / max(0.3, math.sin(math.radians(ang))))
-        K.block(P.x(px_), yy + 0.004, z + 0.004, P.m(w), d, 0.004, card, rot=(ang, 0, -rot * 0.5), name="fortune_card")
+    # the fortune cards fanned out flat along the dais's front edge (the front projection paints them on its edge)
+    card = K.colour((300, 676, 330, 690), pct=70, vary=0.1, scale=20)
+    fan = [(212, 64, -20), (255, 52, -14), (292, 46, -8), (328, 44, -4), (366, 40, 0), (403, 40, 0), (440, 40, 3),
+           (478, 44, 8), (515, 48, 13), (552, 52, 18)]
+    for k, (px_, w, rot) in enumerate(fan):
+        K.block(P.x(px_), y0 + 0.08 + 0.01 * (k % 2), zp + 0.003 + 0.002 * (k % 3), P.m(w), 0.14, 0.004, card,
+                rot=(0, 0, -rot * 0.8), name="fortune_card")
     # ---------------------------------------------------------------- the astrologer
     K.figure([(358, 318), (398, 305), (425, 320), (432, 360), (428, 400), (455, 405), (478, 430), (488, 480),
               (490, 540), (520, 555), (535, 580), (530, 610), (512, 630), (480, 640), (430, 640), (380, 648),
@@ -2117,12 +2135,11 @@ def stall_f_1(K):
     Z = P.z
     K.front_min = 0.12
     rope = K.colour((0.12, 0.08, 0.04), vary=0.1)
-    bam = K.colour((60, 300, 76, 400), vary=0.08)
+    bam = pole_tile(K, (62, 300, 71, 420))
     yp, yfr = 0.3, -0.78
     # ---------------------------------------------------------------- posts, the front bar and the awning
     for x_px, keep in ((66, [(52, 5, 80, 785)]), (706, [(692, 5, 720, 785)])):
-        mat = K.projected(axis_x=P.x(x_px), squeeze=0.9, keep=keep, inset=2)
-        bamboo(K, (P.x(x_px), yp, 0.0), (P.x(x_px), yp, Z(10)), P.m(11), mat, nodes=0.5, bend=0.005, taper=0.97,
+        bamboo(K, (P.x(x_px), yp, 0.0), (P.x(x_px), yp, Z(10)), P.m(11), bam, nodes=0.5, bend=0.005, taper=0.97,
                name="post")
         lashing(K, P.pt(x_px, 48, yp), (0, 0, 1), P.m(11), rope, turns=3)
         K.tube([(P.x(x_px), yp, Z(205)), (P.x(x_px) + (-0.1 if x_px < 300 else 0.1), yfr, Z(205))], P.m(7), bam,
@@ -2134,7 +2151,7 @@ def stall_f_1(K):
            cloth, sag_front=P.m(40), sag_back=P.m(8), belly=0.03, sag_side=0.02, under=under, nu=36, nv=16)
     # ---------------------------------------------------------------- the booth
     dark = ktile(K, (240, 440, 420, 500), vary=0.05)
-    planks = ktile(K, (140, 620, 260, 740), vary=0.06)
+    planks = pole_tile(K, (150, 612, 236, 750), soften=0.25, vary=0.06)
     batten = K.colour((150, 640, 200, 700), vary=0.08)
     zt = Z(232)
     back = wall_behind(K, (225, 245, 650, 598), VENDOR_F1, others=[(165, 240, 605, 385), (128, 465, 450, 598)])

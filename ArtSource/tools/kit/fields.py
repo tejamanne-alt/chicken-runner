@@ -1274,42 +1274,64 @@ def canal_piece_2(K):
     turn(parts, th, (P.x(240), -1.385))
 
 
+def retint(crop, base):
+    """A clean patch of a surface moved to another painted shade (its median colour made `base`, 0-255 RGB)."""
+    a = np.asarray(crop.convert("RGB")).astype(np.float32)
+    return Image.fromarray((a - np.median(a.reshape(-1, 3), axis=0) + np.array(base)).clip(0, 255).astype(np.uint8))
+
+
 @fmodel("canal_piece_3", "fields", kind="prop", atlas=1024)
 def canal_piece_3(K):
     """Ghat steps down to the canal: three tiers of big dressed stone blocks, each tier set back and up from the one
-    below, a shallow stone washing tray on the ground before the lowest step and a brass pot standing on it. True and
-    level: the risers take the painting; the treads, the tray and the steps' left end the painting draws from above
-    or in perspective are their own stone."""
+    below, a shallow stone washing tray on the ground before the lowest step and a brass pot standing on the lowest
+    step's right end. The painting looks down on it three-quarters on from the left (the steps' left end and their
+    risers both show, the risers running away up to the right): it is modelled level and square and turned 25
+    degrees in plan, so the left end and the risers are real faces. Stone on every face, block by block, each block
+    one of the painted blocks' shades; the treads and the tray drawn from above cannot show from the front of a level
+    model, so nothing is projected from the front but the pot."""
     P = K.paint
-    K.front_min = 0.2
-    K.front_exclude = [(0, 0, 118, 351), (100, 318, 430, 340), ("poly", [(228, 238), (470, 182), (534, 236),
-                                                                         (534, 336), (350, 336), (228, 304)])]
-    stone = K.tile((252, 172, 312, 196), soften=0.12, vary=0.05)      # a riser's pitted face, not the smooth end
-    top = K.tile((230, 110, 330, 140), soften=0.3, vary=0.05)
-    T = 0.55                                                # each tread's depth
+    K.front_exclude = [(0, 0, P.w, P.h)]
+    th, T = 25.0, 0.5                                       # the turn; each tread's depth
+    c, s = math.cos(math.radians(th)), math.sin(math.radians(th))
     h0 = P.z(263)                                           # the lowest step: the pot stands on it as painted
-    tiers = [((60, 250, 400, 560), (0.0, h0 * 0.5, h0)),
-             ((60, 230, 440), (0.0, h0, h0 + 0.21, h0 + 0.42)),
-             ((60, 200, 350), (0.0, h0, h0 + 0.42, h0 + 0.63, h0 + 0.84))]
-    for i, (cuts, levels) in enumerate(tiers):
-        y0, y1 = i * T, (i + 1) * T
-        for c, (z0, z1) in enumerate(zip(levels, levels[1:])):          # its courses, from the ground up
-            off = 30 * (c % 2)
-            xs = [cuts[0]] + [min(cuts[-1] - 40, k + off) for k in cuts[1:-1]] + [cuts[-1]]
+    grain = P.crop((140, 145, 200, 180))                    # a clean patch of a block's face
+    # the blocks' own stone, lit (their shaded left ends and undersides are light, not paint): the risers' shade,
+    # a little lighter or darker block by block, and their tops as the lit treads
+    base = np.array(lit_median(K, (60, 55, 190, 100), 120))
+    tread = np.array(lit_median(K, (230, 100, 340, 130), 120))
+    stones = [two_tiles(K, (0, 0, 60, 1), (0, 0, 60, 1), lo=0.55, hi=0.8, side_size=P.m(60), top_size=P.m(60),
+                        soften=0.0, vary=0.1, side_img=speckle(grain, base=base * f, amount=0.9, seed=i),
+                        top_img=speckle(grain, base=(0.5 * base + 0.5 * tread) * f, amount=0.9, seed=i + 7))
+              for i, f in enumerate((1.0, 1.05, 0.95, 1.09, 0.92))]
+    # the tiers: (their courses' levels, the joints along each course from the bottom up, the right end), all from
+    # the ground (the lower courses of the upper tiers show at the left end and the back)
+    tiers = [([0.0, h0], [[0.61, 1.25, 1.85]], 2.43),
+             ([0.0, h0, h0 + 0.42], [[0.45, 1.15], [0.75, 1.48]], 1.83),
+             ([0.0, h0, h0 + 0.42, h0 + 0.84], [[0.5, 1.2], [0.2, 0.95], [0.84, 1.35]], 1.71)]
+    parts = []
+    for i, (levels, joints, u_r) in enumerate(tiers):
+        v0, v1 = i * T, (i + 1) * T
+        for (z0, z1), js in zip(zip(levels, levels[1:]), joints):
+            xs = [0.0] + [j for j in js if j < u_r - 0.2] + [u_r]
             for a0, a1 in zip(xs, xs[1:]):
-                K.block((P.x(a0) + P.x(a1)) / 2, (y0 + y1) / 2, (z0 + z1) / 2, P.x(a1) - P.x(a0) - 0.016,
-                        y1 - y0 - 0.02, z1 - z0 - 0.012, top if c == len(levels) - 2 else stone, bevel=0.045,
-                        jitter=0.01, name="step")
+                parts.append(K.block((a0 + a1) / 2, (v0 + v1) / 2, (z0 + z1) / 2, a1 - a0 - 0.016, v1 - v0 - 0.02,
+                                     z1 - z0 - 0.012, stones[int(K.rng.integers(len(stones)))],
+                                     rot=(0, 0, K.rng.uniform(-0.8, 0.8)), bevel=0.045, jitter=0.01, name="step"))
     # the washing tray on the ground before the lowest step: a rim round a sunk floor
-    tray = K.tile((300, 262, 440, 296), soften=0.35, vary=0.04)
-    ta0, ta1, tp0, tp1, th, rim = P.x(232), P.x(530), -0.8, -0.06, 0.13, 0.09
-    K.box(ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor")
+    tray_px = P.crop((330, 255, 420, 285))
+    tray = img_tile(K, speckle(tray_px, base=img_median(tray_px) * 0.9, amount=0.9), P.m(90), vary=0.08, key="tray")
+    ta0, ta1, tp0, tp1, tht, rim = 0.7, 1.8, -1.06, -0.06, 0.13, 0.09
+    parts.append(K.box(ta0, ta1, tp0, tp1, 0.0, 0.05, tray, bevel=0.015, name="tray_floor"))
     for a0, a1, p0, p1 in ((ta0, ta1, tp0, tp0 + rim), (ta0, ta1, tp1 - rim, tp1), (ta0, ta0 + rim, tp0, tp1),
                            (ta1 - rim, ta1, tp0, tp1)):
-        K.box(a0, a1, p0, p1, 0.0, th, tray, bevel=0.02, name="tray_rim")
-    # the brass pot standing on the lowest step at its right end
-    pot_m = K.projected(axis_x=P.x(497), squeeze=0.9, keep=[(440, 146, 558, 266)], inset=3)
-    yp = T * 0.5
+        parts.append(K.box(a0, a1, p0, p1, 0.0, tht, tray, bevel=0.02, name="tray_rim"))
+    ox, oy = P.x(130), -0.75                                # the lowest step's front left corner
+    turn(parts, th, (ox, oy))
+    # the brass pot standing on the lowest step at its right end, where it is painted
+    under = [(x, 215 + (x - 446) * 0.476, x + 10, 280) for x in range(436, 546, 10)]    # the tray's rim, painted
+    pot_m = K.projected(axis_x=P.x(497), squeeze=0.9, keep=[(440, 146, 558, 266)], exclude=under, inset=3)  # over it
+    up = (P.x(497) - ox + 0.5 * T * s) / c
+    yp = oy + up * s + 0.5 * T * c
     prof = [(32, 262), (44, 255), (53, 238), (56, 215), (52, 198), (40, 186), (27, 178), (25, 170), (33, 163),
             (37, 156), (35, 151)]
     K.lathe([(P.m(r), P.z(y)) for r, y in prof], pot_m, segments=32, centre=(P.x(497), yp, 0), name="pot", cap=False)
