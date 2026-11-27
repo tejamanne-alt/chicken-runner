@@ -847,9 +847,11 @@ def bund_block(K):
                       side_img=P.crop((300, 104, 520, 190)), top_img=speckle(P.crop((250, 66, 560, 88)), amount=1.3))
     bank(K, outline, 200, 95, 57, hb, hs, earth, nx=56, rough=0.022)
     # stones on the top and at the foot: the painted ones take the painting, those round the back their grain
-    stone = K.projected(squeeze=1.0, keep=[(68, 48, 138, 80), (22, 178, 72, 202), (272, 168, 332, 202),
-                                           (596, 162, 684, 202)], inset=2)
-    grey = img_tile(K, speckle(P.crop((612, 172, 662, 194)), amount=1.2), P.m(50), vary=0.1, key="stone")
+    grain = speckle(P.crop((612, 172, 662, 194)), amount=1.2)
+    grey = img_tile(K, grain, P.m(50), vary=0.1, key="stone")
+    stone = proj_tiles(K, [(68, 48, 138, 80), (22, 178, 72, 202), (272, 168, 332, 202), (596, 162, 684, 202)], [],
+                       grain, grain, side_size=P.m(50), top_size=P.m(50), y_from=0.6, y_to=0.85, inset=3, soften=0.0,
+                       vary=0.1, blur=3.0)
     K.boulder(P.x(103), -0.22, P.z(66), P.m(66), P.m(50), P.m(30), stone, name="stone")
     for px, w, h, y in ((47, 48, 22, -hb - 0.08), (302, 58, 30, -hb - 0.1), (640, 86, 38, -hb - 0.12),
                         (180, 40, 18, hb + 0.08), (520, 56, 26, hb + 0.1)):

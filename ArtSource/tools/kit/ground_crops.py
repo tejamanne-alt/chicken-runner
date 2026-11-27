@@ -1590,7 +1590,7 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
     def lay(x, y, ang, length, rad):
         d = Vector((math.cos(ang), math.sin(ang), 0.0)) * max(length / 2 - rad * 0.4, rad)
         c = Vector((x, y, z0 + rad * 0.85))
-        capsule(K, tuple(c - d), tuple(c + d), rad, shell, segments=7)
+        capsule(K, tuple(c - d), tuple(c + d), rad, shell, segments=6)
     for px, py, (e0, e1, hw, area) in pods:
         length = P.m(float(np.hypot(e1[0] - e0[0], e1[1] - e0[1])))
         bottom = max(e0[1], e1[1]) + hw
@@ -1599,7 +1599,7 @@ def groundnut(K, top_py, bed_py, base_py, rows, bush_w, step, slices, pod_band, 
     for fx, fy, fz, yaw, s, sx in feet:
         if fy <= rows[0] + 0.05:
             continue
-        for _ in range(int(K.rng.integers(1, 4))):
+        for _ in range(int(K.rng.integers(0, 3))):
             px, py, (e0, e1, hw, area) = pods[int(K.rng.integers(len(pods)))]
             length = P.m(float(np.hypot(e1[0] - e0[0], e1[1] - e0[1]))) * s
             lay(fx + K.rng.uniform(-0.12, 0.12), fy + K.rng.uniform(-0.1, 0.1), K.rng.uniform(0, math.pi), length,

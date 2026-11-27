@@ -202,17 +202,19 @@ def joint(K, c, axis1, axis2, r, mat, rope=0.006):
 
 
 def awning(K, FL, FR, BL, BR, mat, sag_front=0.2, sag_back=0.03, belly=0.05, sag_side=0.04, under=None, nu=36,
-           nv=16, thick=0.01, name="awning", hem=None):
+           nv=16, thick=0.01, name="awning", hem=None, front_pow=1.0):
     """A cloth tied at four corners (front-left, front-right, back-left, back-right, metres), sagging between them:
     its front edge by sag_front, its back edge by sag_back, its middle by belly, its sides by sag_side. under: a
     second material for its underside (a sheet just below it). hem(u) -> extra drop of the front edge (a torn or
-    gathered hem)."""
+    gathered hem). front_pow < 1 makes the front edge's sag fuller (flatter-bottomed, steeper at its tied corners), as
+    a heavy cloth hangs and as the painting draws it."""
     def f(u, v):
         front = _lerp(FL, FR, u)
         back = _lerp(BL, BR, u)
         p = list(_lerp(front, back, v))
         s = math.sin(math.pi * u)
-        p[2] -= sag_front * s * (1 - v) ** 1.7 + sag_back * s * v ** 1.7 + belly * s * math.sin(math.pi * v)
+        sf = s ** front_pow
+        p[2] -= sag_front * sf * (1 - v) ** 1.7 + sag_back * s * v ** 1.7 + belly * s * math.sin(math.pi * v)
         p[2] -= sag_side * math.sin(math.pi * v) * (1 - s) ** 2
         if hem is not None and v < 1e-6:
             p[2] -= hem(u)
@@ -354,8 +356,8 @@ def stall_c_1(K):
                         inset=3)
     under = ktile(K, (560, 95, 700, 170), vary=0.05, soften=0.35)
     awning(K, P.pt(100, 180, yf + 0.02), P.pt(925, 176, yf + 0.02), P.pt(214, 50, yb - 0.02), P.pt(828, 50, yb - 0.02),
-           cloth, sag_front=P.m(84), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=40, nv=18,
-           hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2))
+           cloth, sag_front=P.m(94), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=40, nv=18,
+           hem=lambda u: 0.02 * math.exp(-((u - 0.69) / 0.012) ** 2), front_pow=0.63)
     # ---------------------------------------------------------------- the ground, the platform for the back row
     burlap = ktile(K, (50, 670, 200, 770), vary=0.06, soften=0.3)
     burlap2 = ktile(K, (830, 680, 990, 770), vary=0.06, soften=0.3)
@@ -1563,12 +1565,13 @@ def stall_e_1(K):
     for a, b, y, j in stubs:
         bamboo(K, P.pt(a[0], a[1], y), P.pt(b[0], b[1], y), P.m(11), bam, node_at=[], taper=1.0, name="stub")
         joint(K, P.pt(j[0], j[1], y), (0, 0, 1), (1, 0, 0), P.m(12), rope)
-    cloth = K.projected(squeeze=1.0, keep=[(80, 62, 1440, 278)],
+    cloth = K.projected(squeeze=1.0, keep=[(80, 85, 1440, 278)],
                         exclude=[(30, 120, 95, 185), (1420, 130, 1480, 195), (220, 25, 262, 75), (1290, 25, 1330, 70)],
                         inset=3)
     under = ktile(K, (500, 100, 900, 200), vary=0.05, soften=0.3)
     awning(K, P.pt(82, 152, yf + 0.03), P.pt(1430, 162, yf + 0.03), P.pt(248, 52, yb - 0.02), P.pt(1302, 48, yb - 0.02),
-           cloth, sag_front=P.m(100), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=48, nv=18,
+           cloth, sag_front=P.m(116), sag_back=P.m(8), belly=0.06, sag_side=0.03, under=under, nu=48, nv=18,
+           front_pow=0.3,
            hem=lambda u: 0.02 * (math.exp(-((u - 0.64) / 0.01) ** 2) + math.exp(-((u - 0.88) / 0.01) ** 2)))
     # ---------------------------------------------------------------- the sloping display board on its trestles
     bF, bB = -0.5, 0.5

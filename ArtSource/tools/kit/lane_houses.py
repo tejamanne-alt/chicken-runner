@@ -952,7 +952,7 @@ def house_mud_tin(K):
     mud = K.tile((180, 520, 520, 960), size=1.2, vary=0.07, soften=0.2)     # (softer than this it reads as flat paint)
     tin = K.tile((380, 110, 560, 240), size=0.6, vary=0.05, soften=0.25)
     lime = K.tile((200, 1012, 520, 1085), size=0.8, vary=0.04, soften=0.4)
-    earth = strip_tile(K, (200, 1100, 520, 1140), soften=0.2)          # the earth plinth's strip, stacked square
+    earth = clean_tile(K, (200, 1100, 520, 1140), soften=0.2, thresh=20, strip=True)          # the earth plinth's strip, stacked square
     blue = K.tile((600, 520, 820, 980), size=0.7, vary=0.04)
     frame = K.colour((560, 600, 585, 900), vary=0.06)
     plank = K.tile((1040, 560, 1150, 640), vary=0.05)
@@ -1114,7 +1114,7 @@ def house_plank_sheet(K):
     post = K.colour((84, 300, 100, 600), vary=0.08)
     frame = K.colour((380, 500, 405, 900), vary=0.08)
     dark = K.colour((0.035, 0.025, 0.03), vary=0.0)
-    earth = strip_tile(K, (300, 1004, 800, 1022), soften=0.2)          # the earth floor's strip, stacked square
+    earth = clean_tile(K, (300, 1004, 800, 1022), soften=0.2, thresh=20, strip=True)          # the earth floor's strip, stacked square
     roof_mats = [K.tile((470, 60, 640, 150), size=0.7, vary=0.04), K.tile((110, 60, 300, 140), size=0.7, vary=0.04),
                  K.tile((900, 175, 1080, 250), size=0.7, vary=0.04), K.tile((1150, 60, 1380, 130), size=0.7, vary=0.04),
                  K.tile((60, 165, 280, 250), size=0.7, vary=0.04)]
@@ -1342,7 +1342,7 @@ def house_potter(K):
     lime = K.tile((500, 930, 970, 980), size=1.0, vary=0.04, soften=0.4)
     thatch_m = K.tile((420, 250, 500, 440), size=0.6, vary=0.06, soften=0.3)   # clean golden straw, left of the fronds
     # the earth: its painted strip stacked square (box-projected as it is, an 18 px strip streaks across the top)
-    earth = strip_tile(K, (300, 1110, 1300, 1128), soften=0.2)
+    earth = clean_tile(K, (300, 1110, 1300, 1128), soften=0.2, thresh=20, strip=True)
     wood = K.tile((1010, 660, 1220, 900), size=0.6, vary=0.04)
     frame = K.colour((985, 700, 1000, 1000), vary=0.06)
     dark = K.colour((0.05, 0.03, 0.025), vary=0.0)
@@ -1564,7 +1564,7 @@ def house_thatched_hut(K):
     mud = K.tile((200, 880, 560, 1020), size=1.2, vary=0.06, soften=0.25)
     lime = K.tile((180, 1040, 590, 1120), size=1.0, vary=0.04, soften=0.4)
     thatch_m = K.tile((180, 280, 420, 520), size=0.7, vary=0.06, soften=0.25)
-    earth = strip_tile(K, (200, 1140, 1000, 1175), soften=0.2)          # the earth strip, stacked square
+    earth = clean_tile(K, (200, 1140, 1000, 1175), soften=0.2, thresh=20, strip=True)          # the earth strip, stacked square
     wood = K.tile((660, 720, 860, 1060), size=0.6, vary=0.04)
     frame = K.colour((622, 700, 645, 1100), vary=0.06)
     X0, X1 = P.x(165), P.x(1353)
@@ -1663,7 +1663,7 @@ def house_weaver(K):
     white = K.tile((200, 560, 440, 900), size=1.0, vary=0.05, soften=0.2)
     indigo = K.tile((200, 950, 450, 1070), size=1.0, vary=0.05, soften=0.35)
     thatch_m = K.tile((500, 120, 800, 380), size=0.8, vary=0.06, soften=0.25)
-    earth = strip_tile(K, (200, 1092, 1300, 1130), soften=0.2)          # the earth strip, stacked square
+    earth = clean_tile(K, (200, 1092, 1300, 1130), soften=0.2, thresh=20, strip=True)          # the earth strip, stacked square
     brown = K.colour((495, 560, 520, 700), vary=0.06)
     timber = K.colour((560, 600, 568, 750), vary=0.08)
     X0, X1 = P.x(152), P.x(1345)
@@ -1809,7 +1809,7 @@ def house_hut_porch(K):
     lime = K.tile((982, 992, 1036, 1078), size=0.6, vary=0.04, soften=0.4)
     thatch_m = K.tile((500, 100, 800, 400), size=0.8, vary=0.06, soften=0.25)
     mat_m = K.tile((280, 462, 560, 532), size=0.7, vary=0.05)
-    earth = strip_tile(K, (300, 1100, 1300, 1130), soften=0.2)          # the earth strip, stacked square
+    earth = clean_tile(K, (300, 1100, 1300, 1124), soften=0.2, thresh=20, strip=True)          # the earth strip, stacked square
     wood = K.tile((720, 660, 940, 1040), size=0.6, vary=0.04)
     frame = K.colour((688, 700, 700, 1000), vary=0.06)
     X0, X1 = P.x(130), P.x(1525)
@@ -2165,7 +2165,9 @@ def house_being_built(K):
     brick = K.tile((500, 560, 950, 690), vary=0.04, soften=0.15)
     # the inside faces are the same mud brick, lit (the painting's dark interior is shadow, not a material)
     inner = brick
-    earth = strip_tile(K, (300, 1045, 1100, 1085), soften=0.3)      # the earth, its strip stacked square
+    # the earth: a clean patch between the straw by the pallets, its stray stalks taken out, stacked square (the long
+    # ground strip took the heaps' shadows and straw, which repeated in rows of chevrons over the apron's top)
+    earth = clean_tile(K, (1490, 1058, 1640, 1084), size=1.0, soften=0.25, thresh=24, strip=True)
     floor = earth
     bamboo = K.colour((1262, 150, 1276, 240), vary=0.1, scale=20)
     rope = K.colour((0.32, 0.14, 0.05), vary=0.12)
@@ -2216,6 +2218,11 @@ def house_being_built(K):
         lean = 0.6 if top[1] < 30 else 0.0
         a = pole_pt(top, bot, top[1], lean)
         b = pole_pt(top, bot, 1000, lean)
+        if not (X0 + t < b[0] < X1 - t):
+            # a brace whose line runs out through a wall before the floor: it ends where it is painted, on the
+            # ledger there (carried on down it stuck out past the side wall)
+            b = (P.x(bot[0]), ys - r * 1.8 + r, P.z(bot[1]))
+            a = (a[0], ys + 0.3, a[2])
         K.tube([a, b], r, bamboo, segments=8, name="pole")
         for py, hx0, hx1 in horiz:
             if top[1] < py < bot[1]:
@@ -2273,13 +2280,13 @@ def house_being_built(K):
     yb = -1.0
     K.box(P.x(1930), P.x(2390), yb - 0.4, yb + 0.4, zg, zg + 0.08, pal, name="pallet2")
     rp = P.m(10)                                             # eight rows of poles, stacked as high as painted
-    for row in range(8):
+    for row in range(7):
         for col in range(5 - row // 3):
             y = yb - 0.28 + col * 2.05 * rp + (rp if row % 2 else 0.0)
             z = zg + 0.08 + rp * (1 + 1.9 * row)
             x0 = P.x(1905 + K.rng.uniform(-15, 15))
-            K.tube([(x0, y, z), (P.x(2360 + K.rng.uniform(-20, 10)), y + K.rng.uniform(-0.03, 0.03), z)], rp, bamboo,
-                   segments=8, name="pile")
+            x1 = (2360 if row < 5 else 2190 - 60 * (row - 5)) + K.rng.uniform(-20, 10)   # shorter poles on top
+            K.tube([(x0, y, z), (P.x(x1), y + K.rng.uniform(-0.03, 0.03), z)], rp, bamboo, segments=8, name="pile")
     for (ax, ay), (bx, by), y in (((1790, 690), (2390, 995), -1.4), ((1840, 720), (2350, 990), -1.25),
                                   ((1900, 760), (2300, 995), -1.15), ((1780, 680), (2200, 1000), -0.7)):
         K.tube([P.pt(ax, ay, y + 0.3), P.pt(bx, by, y)], r, bamboo, segments=8, name="pole_leaning")
@@ -2315,7 +2322,7 @@ def house_tiled_gate(K):
     pillar = K.tile((520, 700, 580, 900), size=0.5, vary=0.05, soften=0.3)
     roof_m = K.tile((1250, 280, 1650, 480), vary=0.04, soften=0.1)
     roof_b = K.tile((880, 440, 1030, 590), size=P.m(280), vary=0.04, soften=0.1)   # clear of the mango's leaves
-    earth = strip_tile(K, (1200, 1062, 1700, 1095), soften=0.2)       # the ground strip, stacked square
+    earth = clean_tile(K, (1200, 1062, 1700, 1095), soften=0.2, thresh=20, strip=True)       # the ground strip, stacked square
     ledge = K.colour((1300, 1045, 1700, 1055), vary=0.06)
     wood = K.tile((650, 700, 860, 980), vary=0.04)
     post = K.colour((600, 700, 615, 1000), vary=0.06)
@@ -2668,8 +2675,8 @@ def shop_provisions(K):
     zt, zg = P.z(45), P.z(1088)
     body = K.box(X0, X1, 0.0, D, 0.0, zt, mud, name="walls")
     K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(990), lime, name="skirting")
-    K.box(P.x(95), P.x(1415), -1.55, D + 0.1, 0.0, P.z(1100) - 0.02, strip_tile(K, (300, 1092, 1200, 1110),
-          soften=0.2), name="ground")
+    K.box(P.x(95), P.x(1415), -1.55, D + 0.1, 0.0, P.z(1100) - 0.02, clean_tile(K, (300, 1092, 1200, 1110),
+          soften=0.2, thresh=20, strip=True), name="ground")
     # the roof: a coping round a real deck
     cop = K.colour((400, 18, 1000, 40), vary=0.05)
     lip = 0.15
@@ -2809,7 +2816,7 @@ def shop_tailor_cycle(K):
     zg = P.z(1090)
     body = K.box(X0, X1, 0.0, D, 0.0, ze + 0.1, mud, name="walls")
     K.box(X0 - 0.015, X1 + 0.015, -0.015, D + 0.015, 0.0, P.z(995), lime, name="skirting")
-    K.box(P.x(60), P.x(1385), -1.0, D + 0.15, 0.0, zg, strip_tile(K, (300, 1093, 1200, 1115), soften=0.2), bevel=0.01,
+    K.box(P.x(60), P.x(1385), -1.0, D + 0.15, 0.0, zg, clean_tile(K, (300, 1093, 1200, 1115), soften=0.2, thresh=20, strip=True), bevel=0.01,
           name="floor_slab")
     # (corrugations as deep as real tin's 18 mm: twice that, half of every slope's facets go dark from the side)
     hip_tin_roof(K, (P.x(5), P.x(1442), -0.55, D + 0.55), (P.x(118), P.x(1322)), ze, zr, tin,

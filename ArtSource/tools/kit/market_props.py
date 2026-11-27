@@ -1350,7 +1350,11 @@ def coconut_cart(K):
               (880, 270), (895, 262), (902, 240), (905, 225), (915, 240), (925, 262), (940, 270), (955, 262),
               (962, 240), (964, 225), (975, 250), (980, 270), (1000, 290), (1012, 330), (1030, 352), (1036, 375),
               (1028, 394), (1000, 397), (985, 410), (975, 440), (962, 455), (952, 500), (962, 574)],
- 0.36, "bullock_far")])
+ 0.36, "bullock_far")], exact=True)
+    # the cart is painted turned a little (its far wheel shows to the right of the near one): it is built square in
+    # its own frame and turned in plan by TURN degrees about the near wheel's hub, so the far wheel and the far rails
+    # are real; every part keeps its painted x at its own depth (or, for the frame, at the near rails' depth)
+    n0 = len(K.parts)
     wood = K.tile((85, 238, 140, 296), vary=0.08, soften=0.2)
     beam_m = K.tile((60, 302, 125, 326), vary=0.08, soften=0.2)
     dark = K.colour((0.07, 0.04, 0.03), vary=0.08)
@@ -1430,6 +1434,10 @@ def coconut_cart(K):
         c = p + nrm * r * 0.55
         if any((c - q).length < r * 1.75 for q in placed):
             continue
+        # not poking out above the heap's painted outline
+        tx, tz = int(min(P.w - 1, max(0, P.px(c.x)))), int(min(P.h - 1, max(0, P.py(c.z + r * 0.95))))
+        if P.rgba[tz, tx, 3] < 0.5:
+            continue
         placed.append(c)
         ellipsoid(K, tuple(c), (r * 1.02, r * 0.98, r * 0.95), skin, rot=(0, 0, K.rng.uniform(0, 90)), seg=8, rings=6,
                   lumps=0.05, name="coconut")
@@ -1451,6 +1459,23 @@ def coconut_cart(K):
     for a, b in (((207, 42), (200, 10)), ((398, 75), (394, 40)), ((505, 110), (530, 68)), ((515, 118), (540, 92)),
                  ((105, 125), (75, 110)), ((110, 112), (80, 95))):
         K.tube([P.pt(*a, -0.3), P.pt(*b, -0.32)], P.m(2.2), stalk, segments=5, name="stalk", taper=0.5)
+    TURN = -9.9
+    t = math.radians(TURN)
+    c_, s_ = math.cos(t), math.sin(t)
+    xc, yp, y_ref = X(285), -0.74, -0.74
+
+    def turn(ob, yr):
+        """to the cart's frame (its painted x at depth yr kept), then turned about the hub (xc, yp)"""
+        L = Matrix(((1 / c_, 0, 0, -xc / c_ + xc + (yr - yp) * s_ / c_), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
+        R = (Matrix.Translation((xc, yp, 0)) @ Matrix.Rotation(t, 4, "Z") @ Matrix.Translation((-xc, -yp, 0)))
+        ob.data.transform(R @ L)
+    for ob in K.parts[n0:]:
+        loose = ob.name.startswith(("coconut", "cut_coconut", "flesh", "stalk"))
+        if loose:
+            ys_ = [v.co.y for v in ob.data.vertices]
+            turn(ob, (min(ys_) + max(ys_)) / 2)
+        else:
+            turn(ob, y_ref)
 
 
 @model("parapet_gap", "market", kind="building", atlas=2048)

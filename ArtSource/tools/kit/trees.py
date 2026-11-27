@@ -1049,6 +1049,8 @@ class Crown:
         lm = self.leaves()
         cx, cy = self.c
         H, W = lm.shape
+        if layer == "top":
+            return self.top_cards(int(round(n * 3.0)), size_px, region=(x0, y0, x1, y1), name=name)
         shell = layer in ("front", "back")
         if shell:
             target = lm & box_mask(lm.shape, [(x0, y0, x1, y1)])
@@ -1127,6 +1129,43 @@ class Crown:
                                             for qx, qy in poly], fill=255)
                 covered[by0:by1, bx0:bx1] |= np.asarray(im) > 127
             placed += 1
+        return placed
+
+    def top_cards(self, n, size_px, region=None, name="leaf"):
+        """n cards lying (nearly) flat over the crown's top, each showing the painted leaves near the top of the crown
+        at its x: from the front they are edge-on, so they do not change the painting, and from above they show the
+        leaves at their own size (a card sheared up into a flat one would drag them out into streaks). Each lies on
+        the crown's dome: at the painted top at its x where the crown is deepest, lower towards its front and back."""
+        K, P = self.K, self.P
+        rng = K.rng
+        lm = self.leaves()
+        H, W = lm.shape
+        x0, y0, x1, y1 = region or self.region
+        cols = lm.any(0)
+        top_row = np.where(cols, lm.argmax(0), H)
+        placed = tries = 0
+        while placed < n and tries < n * 40:
+            tries += 1
+            px = rng.uniform(x0, x1)
+            c = int(np.clip(px, 0, W - 1))
+            if not cols[c]:
+                continue
+            pt = float(top_row[c])
+            # the leaves it shows: a patch just under the painted top there
+            sy = pt + rng.uniform(0.2, 1.2) * size_px[1]
+            w, h = size_px[0] * rng.uniform(0.8, 1.2), size_px[1] * rng.uniform(0.8, 1.2)
+            if not lm[int(np.clip(sy, 0, H - 1)), c]:
+                continue
+            ext = self.extent(px, pt + size_px[1] * 1.5)
+            u = rng.uniform(-0.92, 0.92)
+            yy = self.y0 + u * ext
+            # its height: on a dome over the crown, the painted top where it is deepest, falling to front and back
+            z = P.z(pt) - P.m(h) * 0.25 - (1 - math.sqrt(max(0.0, 1 - u * u))) * ext * 0.8
+            ob = K.card_from_painting((px - w / 2, sy - h / 2, px + w / 2, sy + h / 2), (P.x(px), yy, z),
+                                      yaw=rng.uniform(-90, 90), pitch=90 + rng.uniform(-4, 4), name=name,
+                                      normal=(P.x(px) - P.x(self.c[0]), (yy - self.y0) * 1.3, ext * 2.0))
+            if ob is not None:
+                placed += 1
         return placed
 
     def cards_rotated(self, n, size_px, layer="volume", yaw=40.0, pitch=25.0, region=None, mask=None, name="leaf",
@@ -1445,7 +1484,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     for k, pts in enumerate(limbs):
         n = len(pts)
         reach = rng.uniform(0.08, 0.25) if rng.uniform() < 0.75 else -rng.uniform(0.0, 0.08)
-        ys = [y0] + [y0 + reach * crown.hd * i / (n - 1) for i in range(1, n)]
+        # in the painting's plane where it leaves the trunk (threads tied round it stay on it), then into the crown
+        ys = [y0, y0] + [y0 + reach * crown.hd * (i - 1) / max(1, n - 2) for i in range(2, n)]
         wood.append(limb(K, pts, bark, y=ys, segments=14, name="limb"))
     # the limbs again, leading off round the trunk (to the sides and back, never across its painted front), holding
     # up the crown all round
@@ -2939,8 +2979,8 @@ def h3_1(K):
     P = K.paint
     rng = K.rng
     katte = DiamondKatte(K, 208, 800, 1582, 1150, 1290)
-    side = K.tile((1000, 1345, 1280, 1400), vary=0.06, soften=0.3)
-    top = K.tile((1290, 1185, 1500, 1225), vary=0.08, soften=0.35)
+    side = K.tile((1050, 1310, 1190, 1385), vary=0.06, soften=0.35)      # inside the wall: no edge lines
+    top = K.tile((420, 1200, 640, 1260), vary=0.08, soften=0.4)
     coping = K.tile((560, 1262, 760, 1300), vary=0.06, soften=0.3)
     katte.build(side, top, coping, coping=P.m(45), lip=P.m(8))
     # ---- the tree
@@ -2965,7 +3005,7 @@ def h3_1(K):
                   tilt=(rng.uniform(-0.01, 0.01), P.m(rng.uniform(5, 25))), wobble=0.02, name="thread")
     a, b = H31_LIMBS[4][0], H31_LIMBS[4][2]
     for mat, n in ((red, 6), (yellow, 5)):
-        wrap_limb(K, (P.x(1060), 0.0, P.z(752)), (P.x(1170), 0.0, P.z(733)), P.m(52), mat, n, P.m(3))
+        wrap_limb(K, (P.x(1060), 0.0, P.z(780)), (P.x(1170), 0.0, P.z(752)), P.m(40), mat, n, P.m(3))
     for px in (1105, 1120, 1135, 1150, 1165):
         strand(K, (P.x(px), -P.m(30), P.z(800)), P.m(rng.uniform(40, 110)), rng.choice([red, yellow]), P.m(3))
     # the knot and tassels at the front of the trunk band

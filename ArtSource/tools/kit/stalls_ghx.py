@@ -1984,7 +1984,8 @@ def stall_sweets(K):
                         inset=3)
     under = ktile(K, (420, 90, 640, 170), vary=0.05, soften=0.3)
     awning(K, P.pt(40, 168, yf - 0.02), P.pt(1032, 168, yf - 0.02), P.pt(140, 36, yb - 0.02), P.pt(912, 34, yb - 0.02),
-           cloth, sag_front=P.m(52), sag_back=P.m(10), belly=0.06, sag_side=0.03, under=under, nu=44, nv=18,
+           cloth, sag_front=P.m(69), sag_back=P.m(10), belly=0.06, sag_side=0.03, under=under, nu=44, nv=18,
+           front_pow=0.5,
            hem=lambda u: 0.035 * math.exp(-((u - 0.45) / 0.012) ** 2) + 0.03 * math.exp(-((u - 0.79) / 0.012) ** 2))
     # ---------------------------------------------------------------- the hearth: three boulders, logs, the fire
     stone = ktile(K, (350, 520, 420, 570), vary=0.08, soften=0.2)
@@ -2114,7 +2115,8 @@ def stall_veg(K):
                         inset=3)
     under = ktile(K, (420, 120, 700, 220), vary=0.05, soften=0.3)
     awning(K, P.pt(98, 196, yf - 0.02), P.pt(1035, 198, yf - 0.02), P.pt(238, 48, yb - 0.02), P.pt(902, 46, yb - 0.02),
-           cloth, sag_front=P.m(118), sag_back=P.m(14), belly=0.06, sag_side=0.03, under=under, nu=44, nv=18,
+           cloth, sag_front=P.m(127), sag_back=P.m(14), belly=0.06, sag_side=0.03, under=under, nu=44, nv=18,
+           front_pow=0.37,
            hem=lambda u: 0.03 * math.exp(-((u - 0.13) / 0.012) ** 2) + 0.03 * math.exp(-((u - 0.8) / 0.012) ** 2))
     # ---------------------------------------------------------------- the sloping display board on its trestles
     bF, bB = -0.45, 0.45
