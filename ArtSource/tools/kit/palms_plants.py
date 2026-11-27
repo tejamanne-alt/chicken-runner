@@ -1605,8 +1605,11 @@ def bunch(K, rachis_px, hands, finger_px, mat, y=0.0, per_hand=11, name="banana"
     P = K.paint
     rng = K.rng
     L, rad = finger_px
+    # the hanging part of the stalk, from the top of its hook down (np.interp needs its py increasing)
+    top = int(np.argmin([p[1] for p in rachis_px]))
+    hang = rachis_px[top:]
     for k, (py, reach) in enumerate(hands):
-        rx = float(np.interp(py, [p[1] for p in rachis_px], [p[0] for p in rachis_px]))
+        rx = float(np.interp(py, [p[1] for p in hang], [p[0] for p in hang]))
         ph = rng.uniform(0, 6.28)
         for i in range(per_hand):
             a = ph + 2 * math.pi * (i + rng.uniform(-0.2, 0.2)) / per_hand
