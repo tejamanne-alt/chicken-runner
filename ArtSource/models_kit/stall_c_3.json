@@ -4,9 +4,13 @@
  "kind": "volume",
  "width": 3.541,
  "height": 2.329,
- "depth": 1.519,
+ "depth": 1.264,
  "lift": 0.0,
- "faces": 13039,
+ "faces": 13594,
  "source": "blender",
- "oblique": 0.3
+ "oblique": 0.3,
+ "converge": [
+  0.3,
+  469.0
+ ]
 }

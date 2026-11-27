@@ -1780,9 +1780,9 @@ def stall_low(K):
     coconuts.
 
     The painting looks down on it a little: its feet are painted higher the further back they stand (front-left
-    py 184, front-right 182, back-left 180, back-right 178), a slope of 0.043 (K.oblique) for the posts' depths; its
-    shadow band on the ground (py 178-187) is the ground under it along that slope, laid as a cut-out on the ground
-    (a card: no solid, no thickness). Every part is level at its real depth (y = 0 at the front-left foot)."""
+    py 184, front-right 182, back-left 180, back-right 178), a slope of 0.043 (K.oblique) for the posts' depths.
+    Every part is level at its real depth (y = 0 at the front-left foot). The grey band under it (py 178-187) is its
+    cast shadow, painted light, not a part."""
     P = K.paint
     Z = P.z
     K.oblique = 0.043
@@ -1890,22 +1890,6 @@ def stall_low(K):
         ys_ = [v.co.y for v in ob.data.vertices]
         yc_ = (min(ys_) + max(ys_)) / 2 + dy
         ob.data.transform(Matrix.Translation((0.0, dy, -k * yc_)))
-    # ---------------------------------------------------------------- its shadow on the ground, a cut-out card lying
-    # on it: the painted band (py 178-187) spread along the slope to its depth, the legs' feet left out of it
-    legs = [(24, 45, 180), (52, 73, 184), (171, 193, 178), (202, 224, 182)]     # columns and the foot's bottom row
-
-    def band(rgb, x0=0, y0=176):
-        keep_ = np.ones(rgb.shape[:2], bool)
-        for a, b, foot in legs:
-            keep_[:max(0, foot + 1 - y0), max(0, a - x0):max(0, b - x0)] = False
-        return keep_
-    K.leaves_only((0, 176, 247, 194), band)
-    y0_, y1_ = (Z(188) - z0) / k, (Z(177) - z0) / k
-    zg = z0 + 0.002
-    uv = lambda x_, y_: (P.px(x_) / P.w, (zg + k * y_) / P.H)   # noqa: E731
-    xa, xb = P.x(4), P.x(242)
-    corners = [(xa, y0_, zg), (xb, y0_, zg), (xb, y1_, zg), (xa, y1_, zg)]
-    K.card(corners, [uv(c[0], c[1]) for c in corners], name="shadow", normal=(0.0, 0.0, 1.0))
     unify_cards(K)
 
 

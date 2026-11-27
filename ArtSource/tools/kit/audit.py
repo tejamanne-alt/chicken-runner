@@ -348,8 +348,21 @@ def audit_one(name, out):
             if o.type == "MESH":
                 # an object's matrix cannot hold a shear (Blender keeps only its location, rotation and scale and
                 # drops the rest), so the mesh itself is mapped, vertex by vertex in world space, and put back after
-                if o.data.users > 1:
-                    o.data = o.data.copy()
+                orig = o.data
+                o.data = o.data.copy()
+                if conv:
+                    # converging is not linear: a big face drawn straight between its mapped corners would warp its
+                    # texture, so long edges are split first (on the copy; the original mesh comes back after)
+                    bm = bmesh.new()
+                    bm.from_mesh(o.data)
+                    sc = float(np.abs(np.linalg.det(np.array(o.matrix_world)[:3, :3]))) ** (1 / 3)
+                    for _ in range(4):
+                        long = [e for e in bm.edges if e.calc_length() * sc > 0.15]
+                        if not long:
+                            break
+                        bmesh.ops.subdivide_edges(bm, edges=long, cuts=1, use_grid_fill=True)
+                    bm.to_mesh(o.data)
+                    bm.free()
                 n = len(o.data.vertices)
                 co = np.empty(n * 3)
                 o.data.vertices.foreach_get("co", co)
@@ -368,12 +381,13 @@ def audit_one(name, out):
                         wpt[:, 2] = zc + (wpt[:, 2] - zc) / f
                 o.data.vertices.foreach_set("co", ((wpt - t) @ np.linalg.inv(R).T).ravel())
                 o.data.update()
-                sheared.append((o, co))
+                sheared.append((o, orig))
         bpy.context.view_layer.update()
     front = render(tmpdir / f"{name}_front.png", rx, ry)
-    for o, co in sheared:
-        o.data.vertices.foreach_set("co", co)
-        o.data.update()
+    for o, orig in sheared:
+        mapped = o.data
+        o.data = orig
+        bpy.data.meshes.remove(mapped)
     if sheared:
         bpy.context.view_layer.update()
     paint = KL.Painting(name, folder).img.convert("RGBA").resize((rx, ry), Image.LANCZOS)
