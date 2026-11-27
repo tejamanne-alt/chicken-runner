@@ -862,7 +862,7 @@ def earth_patch(K, cx_px, rx_px, ry, box, y=0.0, z=0.0, h=0.04, segments=36, nam
 
 
 def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rings=8, name="earth", wobble=0.08,
-          rise=0.6):
+          rise=0.6, keep_boxes=()):
     """The patch of earth a tree stands on, as painted: a low mound textured all over with a tile of the painted
     earth (tile_box, px), its rim on the ground at the painted band's front edge (py_rim: the model's foot) and its
     middle `rise` x as high as the band's top (py_top), so from the front it fills the painted band and from the side
@@ -872,9 +872,11 @@ def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rin
     soil = strip_tile(K, tile_box, soften=0.45, blur=1.0, quilt=True)
     # the white cut-out halo along the painted ground's edge (and its pale pink blend into the earth) is not
     # projected onto the mound's rim (a white streak)
-    clear_sky(K, (0, py_top - 25, P.w, P.h))
+    clear_sky(K, (0, py_top - 25, P.w, P.h), exclude=keep_boxes)
     a = np.asarray(P.img).copy()
     pale = (a[..., :3].min(2) > 150) & (a[..., 0] >= a[..., 2]) & box_mask(a.shape[:2], [(0, py_top - 10, P.w, P.h)])
+    if keep_boxes:                                   # (a white wall standing on the earth keeps its painting)
+        pale &= ~box_mask(a.shape[:2], keep_boxes)
     a[pale, 3] = 0
     P.img = Image.fromarray(a, "RGBA")
     rx, z0 = P.m(rx_px), P.z(py_rim)
@@ -973,7 +975,7 @@ def loft_trunk(K, rows, mat, y=0.0, depth=0.85, max_depth_px=None, segments=20, 
     return _add(K, bm, mat, name)
 
 
-def sheared_card(K, box_px, yc, slope=(0.0, 0.0), normal=None, name="leaf", n=9, rag=0.22):
+def sheared_card(K, box_px, yc, slope=(0.0, 0.0), normal=None, name="leaf", n=9, rag=0.22, uv_shift=(0, 0)):
     """A leaf card cut from the painting as a ragged blob inscribed in box_px, every vertex at its painted (x, z)
     and only its depth varying: y = yc + slope[0] (x - x_c) + slope[1] (z - z_c) (a turn about the vertical, or a
     tilt, sheared into depth instead of rotated). Whatever its depth and slope it shows exactly the painting there
@@ -994,7 +996,7 @@ def sheared_card(K, box_px, yc, slope=(0.0, 0.0), normal=None, name="leaf", n=9,
         px, py = cx + math.cos(a) * rr * hw, cy - math.sin(a) * rr * hh
         yy = yc + slope[0] * (P.x(px) - P.x(cx)) + slope[1] * (P.z(py) - P.z(cy))
         vs.append(bm.verts.new((P.x(px), yy, P.z(py))))
-        uvs.append((px / P.w, 1 - py / P.h))
+        uvs.append(((px + uv_shift[0]) / P.w, 1 - (py + uv_shift[1]) / P.h))
         poly.append((px, py))
     f = bm.faces.new(vs)
     layer = bm.loops.layers.uv.new("UVMap")
@@ -1017,7 +1019,8 @@ def leaf_mask_of(K, box, rule):
     return m
 
 
-def cover_cards(K, target, size_px, depth, slope=(0.6, 0.3), cover=0.995, n_max=400, name="card", normal=None):
+def cover_cards(K, target, size_px, depth, slope=(0.6, 0.3), cover=0.995, n_max=400, name="card", normal=None,
+                uv_shift=(0, 0)):
     """Sheared cards (sheared_card) placed until they cover the painted pixels in target (bool HxW): each centred on a
     pixel not yet covered, at depth(px, py) (metres), sheared by up to +-slope (x, z) into depth: from the front
     exactly the painting, from the side a spread of it in depth. The cards show what the leaf rules let them."""
@@ -1036,7 +1039,7 @@ def cover_cards(K, target, size_px, depth, slope=(0.6, 0.3), cover=0.995, n_max=
         a = rng.choice([-1, 1]) * rng.uniform(0.3, 1.0) * slope[0]
         b = rng.uniform(-1, 1) * slope[1]
         ob, poly = sheared_card(K, (px - w / 2, py - h / 2, px + w / 2, py + h / 2), depth(px, py), (a, b),
-                                normal=normal, name=name)
+                                normal=normal, name=name, uv_shift=uv_shift)
         if ob is None:
             covered[py, px] = True
             continue
@@ -1166,7 +1169,8 @@ class Crown:
             lab, ng = ndimage.label(gaps)
             if ng:                                    # only gaps big enough for a card's leaves to show in
                 sizes = ndimage.sum(gaps, lab, range(1, ng + 1))
-                gaps = np.isin(lab, 1 + np.nonzero(sizes >= (0.6 * max(size_px)) ** 2)[0])
+                gmin = getattr(self, "gap_min", None) or (0.6 * max(size_px)) ** 2
+                gaps = np.isin(lab, 1 + np.nonzero(sizes >= gmin)[0])
             dgap = ndimage.distance_transform_edt(~gaps) if gaps.any() else np.full(gaps.shape, 1e9)
             keep_off = 0.75 * max(size_px)
 
@@ -1505,6 +1509,81 @@ def raster(shape, strokes, grow=0.0):
     return np.asarray(im) > 127
 
 
+def raster_tubes(shape, strokes, grow=0.0):
+    """A bool mask of what K.tube draws from the front along each stroke [(px, py, r), ...]: between two rings the
+    quad across the tube (each ring as wide as its radius, square to the stroke there), flat at its ends. (raster's
+    chains of discs reach a fat disc's radius back along a stroke whose radius grows quickly: wider than the tube.)"""
+    from PIL import ImageDraw
+    im = Image.new("L", (shape[1], shape[0]), 0)
+    d = ImageDraw.Draw(im)
+    for pts in strokes:
+        if len(pts) < 2:
+            continue
+        xy = np.array([(p[0], p[1]) for p in pts], np.float64)
+        rr = np.array([p[2] for p in pts], np.float64) + grow
+        nrm = []
+        for i in range(len(xy)):
+            t = xy[min(i + 1, len(xy) - 1)] - xy[max(i - 1, 0)]
+            t /= max(1e-9, np.hypot(*t))
+            nrm.append(np.array([-t[1], t[0]]))
+        for i in range(len(xy) - 1):
+            a, b = xy[i], xy[i + 1]
+            quad = [tuple(a + nrm[i] * rr[i]), tuple(b + nrm[i + 1] * rr[i + 1]), tuple(b - nrm[i + 1] * rr[i + 1]),
+                    tuple(a - nrm[i] * rr[i])]
+            d.polygon(quad, fill=255)
+    return np.asarray(im) > 127
+
+
+def fit_limb(pts, solid, every=8.0, ink=3.0, lo=3.0, smooth=3):
+    """A hand-traced limb [(px, py, r), ...] fitted to the painting: resampled every `every` px, each sample's centre
+    moved to the middle of the painted limb across it (the run of solid pixels along its normal, reaching no further
+    than the traced radius on either side) and its radius half that run, less the game's ink line (drawn outside the
+    solid). Where the limb borders sky painted between limbs, it ends exactly at the painted edge on that side
+    (hand-traced strokes, or ones only shrunk round a fixed centre, left wood in the gap or sky along the limb)."""
+    dense = [pts[0]]
+    for (x0, y0, r0), (x1, y1, r1) in zip(pts, pts[1:]):
+        n = max(1, int(math.hypot(x1 - x0, y1 - y0) / every))
+        dense += [(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, r0 + (r1 - r0) * k / n) for k in range(1, n + 1)]
+    H, W = solid.shape
+    xy = np.array([(p[0], p[1]) for p in dense], np.float64)
+    rr = np.array([p[2] for p in dense], np.float64)
+
+    def at(q):
+        return solid[int(np.clip(round(q[1]), 0, H - 1)), int(np.clip(round(q[0]), 0, W - 1))]
+    cs, rs, caps = [], [], []
+    for i in range(len(xy)):
+        t = xy[min(i + 1, len(xy) - 1)] - xy[max(i - 1, 0)]
+        t /= max(1e-9, np.hypot(*t))
+        nv = np.array([-t[1], t[0]])
+        c, R = xy[i].copy(), rr[i]
+        if not at(c):                                    # the traced centre in a gap: the nearest painted wood
+            for k in range(1, int(R) + 1):
+                if at(c + nv * k):
+                    c = c + nv * k
+                    break
+                if at(c - nv * k):
+                    c = c - nv * k
+                    break
+        d = []
+        for s in (1, -1):
+            k = 0
+            while k < R and at(c + nv * s * (k + 1)):
+                k += 1
+            d.append(k)
+        cs.append(c + nv * (d[0] - d[1]) / 2)
+        half = (d[0] + d[1]) / 2
+        rs.append(max(lo, half - ink))
+        caps.append(half)
+    cs, rs, caps = np.array(cs), np.array(rs), np.array(caps)
+    if smooth and len(cs) > smooth * 2:
+        sc = ndimage.uniform_filter1d(cs, smooth, axis=0, mode="nearest")
+        sr = ndimage.uniform_filter1d(rs, smooth, mode="nearest")
+        shift = np.hypot(*(sc - cs).T)
+        rs = np.minimum(sr, np.maximum(lo, rs - shift + 0.5))      # (smoothed, never further over the edge)
+        cs = sc
+    return [(float(c[0]), float(c[1]), float(r)) for c, r in zip(cs, rs)]
+
+
 def mask_rule(mask, box):
     """A leaves_only keep-rule that is a precomputed mask (HxW) seen through box (integer px inside the painting)."""
     x0, y0, x1, y1 = [int(v) for v in box]
@@ -1595,12 +1674,21 @@ class Katte:
 def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_depth, dome, exclude_wood,
                  crown_extra_exclude=None, n_cards=(300, 120, 70), card_px=(190, 160), y0=0.0, ground_roots=0,
                  crown_extra_keep=None, bark_mat=None, root_dirs=(0, 360), sky_exclude=(), bark_tile=None,
-                 bark_exclude=(), fuse_faces=8500):
+                 bark_exclude=(), fuse_faces=8500, trunk_rows=None, trunk_depth=0.85, wood_extra=None, prefit=False,
+                 seg_hide=False, gap_min=None, ground_z=None):
     """The peepal over its platform: trunk, limbs and roots fused, roots lying on the platform's top, a domed crown of
-    the painting's heart-shaped leaves."""
+    the painting's heart-shaped leaves. (Options for a tree with sky painted between its limbs, the shrine's:
+    trunk_rows lofts the trunk through its painted rows [(py, x_left, x_right)] instead of a tube; prefit: the limbs
+    come already fitted to the painting (fit_limb), and the crown's cards leave out exactly their tubes' outline
+    (raster_tubes); seg_hide: a turned limb copy also ends where the stretch between two of its points would show;
+    gap_min: the smallest painted gap (px) the crown's turned cards keep away from; wood_extra(K, bark) -> more wood
+    to fuse; ground_z(x, y): the ground's height under the spreading roots.)"""
     P = K.paint
     rng = K.rng
-    mask = raster((P.h, P.w), [trunk] + limbs + roots)
+    if prefit:
+        mask = raster((P.h, P.w), [trunk] + roots) | raster_tubes((P.h, P.w), limbs)
+    else:
+        mask = raster((P.h, P.w), [trunk] + limbs + roots)
     rgb = (P.rgba[..., :3] * 255).astype(np.int32)
     r, g, b, mx, mn = chan(rgb)
     barkish = (r - b > 35) & (mx < 215) & (mx > 60) & (r >= g)
@@ -1620,6 +1708,8 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
                   dome_pow=0.9, y0=y0)
     crown.avoid_gaps = True          # (sky painted between the limbs under the crown: no turned card shows in it)
+    if gap_min is not None:
+        crown.gap_min = gap_min
     clear_sky(K, crown_box, sky_exclude)
     # the hand-traced strokes made no thicker than the painting is solid round them: a limb's tube may not reach
     # over the sky painted between the limbs (from the front, bark where the painting shows sky)
@@ -1634,14 +1724,19 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         return [(px, py, float(min(r, max(lo, dsolid[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))]
                                            + 1))))
                 for px, py, r in dense]
-    limbs = [fit(pts) for pts in limbs]              # (not the trunk: behind the shrine it is hidden, not thin)
-    wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
+    if not prefit:
+        limbs = [fit(pts) for pts in limbs]          # (not the trunk: behind the shrine it is hidden, not thin)
+    if trunk_rows is not None:
+        wood = [loft_trunk(K, trunk_rows, bark, y=y0, depth=trunk_depth, segments=28, name="trunk", smooth_rows=0)]
+    else:
+        wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
         n = len(pts)
         reach = rng.uniform(0.08, 0.25) if rng.uniform() < 0.75 else -rng.uniform(0.0, 0.08)
         # in the painting's plane where it leaves the trunk (threads tied round it stay on it), then into the crown
         ys = [y0, y0] + [y0 + reach * crown.hd * (i - 1) / max(1, n - 2) for i in range(2, n)]
         wood.append(limb(K, pts, bark, y=ys, segments=14, name="limb"))
+        crown.limb_ys = getattr(crown, "limb_ys", []) + [ys]
     # the limbs again, leading off round the trunk (to the sides and back, never across its painted front), holding
     # up the crown all round
     for k, pts in enumerate(limbs):
@@ -1652,6 +1747,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         for phi in dirs:
             a = math.radians(phi + rng.uniform(-12, 12))
             q, rq = [], []
+            prev = None
             for i, (px, py, r) in enumerate(pts):
                 dist = abs(P.x(px) - x0)
                 ok = False
@@ -1661,8 +1757,16 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                         ok = True
                         break
                     dist *= 0.85
+                if ok and seg_hide and prev is not None:
+                    # and so does the stretch from its last point (two hidden points either side of a painted gap
+                    # joined straight across it: a band of wood in the sky)
+                    (xa, pya, ra) = prev
+                    steps = max(1, int(math.hypot(P.px(x) - P.px(xa), py - pya) / 4))
+                    ok = all(hidden(xa + (x - xa) * k / steps, pya + (py - pya) * k / steps, ra + (r - ra) * k / steps)
+                             for k in range(1, steps))
                 if not ok and i:
                     break                                 # (where it cannot hide, behind a painted gap: it ends)
+                prev = (x, py, r)
                 y = dist * math.sin(a)
                 lim = crown.extent(P.px(x), py) * (0.55 if y < 0 else 0.8)
                 y = y0 + float(np.clip(y, -lim, lim))
@@ -1715,12 +1819,19 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
         L = r0 * rng.uniform(1.4, 2.2)
         q = [(P.x(trunk[0][0]) + math.cos(a) * r0 * f, y0 + math.sin(a) * r0 * f, z)
              for f, z in ((0.3, r0 * 0.9), (0.8, r0 * 0.35), (1.0 + L / r0 * 0.5, 0.06), (1.0 + L / r0, 0.02))]
+        if ground_z is not None:                          # (lying on the ground there, not sunk into a mound)
+            q = [(x, y, z + ground_z(x, y)) for x, y, z in q]
         wood.append(K.tube(q, [r0 * 0.4, r0 * 0.3, r0 * 0.15, r0 * 0.05], bark, segments=10, name="root"))
+    if wood_extra is not None:
+        wood += list(wood_extra(K, bark))
     trunk_ob = K.fuse(wood, voxel=P.H / 180, faces=fuse_faces)
     # the crown: everything painted in its box but the wood modelled there
     # (grown by a pixel only: a wider ring round the modelled wood showed as a see-through slit along every limb
     # once the cards show exactly their painted place)
-    excl = raster((P.h, P.w), [fit(st) for st in exclude_wood], grow=1)
+    if prefit:
+        excl = raster_tubes((P.h, P.w), exclude_wood, grow=1)
+    else:
+        excl = raster((P.h, P.w), [fit(st) for st in exclude_wood], grow=1)
     if crown_extra_exclude is not None:
         excl |= crown_extra_exclude
     rgb = (P.rgba[..., :3] * 255).astype(np.int32)
