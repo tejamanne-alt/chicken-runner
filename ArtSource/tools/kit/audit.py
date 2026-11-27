@@ -67,6 +67,7 @@ FLAG_TEXT = {
     "inside_out": "parts are turned inside out",
     "uv_stretch": "texture stretched over part of the surface",
     "uv_blur": "texture too coarse over part of the surface",
+    "uv_squash": "the whole texture squashed one way (half its resolution in one direction)",
     "size": "size differs from the painting's frame",
     "faces": "over the face budget",
 }
@@ -103,6 +104,8 @@ def flags_of(r):
         f.append("uv_stretch")
     if g["uv_blur"] > 0.15:
         f.append("uv_blur")
+    if g.get("uv_squash", 1.0) > 1.3:
+        f.append("uv_squash")
     if abs(g["width_ratio"] - 1) > 0.25 or abs(g["height_ratio"] - 1) > 0.25:
         f.append("size")
     if g["faces"] > BUDGET.get(r["kind"], 25000) * 1.15:
@@ -224,7 +227,7 @@ def audit_one(name, out):
     # texture stretch and density over the atlas
     uv = bm.loops.layers.uv.active
     stretch_area = blur_area = total = 0.0
-    dens = []
+    dens, aniso = [], []
     tris = bm.calc_loop_triangles()
     for t in tris:
         a, b, c = (l.vert.co for l in t)
@@ -246,6 +249,7 @@ def audit_one(name, out):
         except np.linalg.LinAlgError:
             st = 99.0
         dens.append((Au / A, A))
+        aniso.append((st, A))
         total += A
         if st > 3:
             stretch_area += A
@@ -255,13 +259,19 @@ def audit_one(name, out):
         cum = np.cumsum(d[order, 1]) / d[:, 1].sum()
         med = d[order, 0][np.searchsorted(cum, 0.5)]
         blur_area = d[d[:, 0] < 0.25 * med, 1].sum()
+    squash = 1.0
+    if aniso:    # the area-weighted median stretch: above 1 when the whole atlas is squashed one way
+        q = np.array(aniso)
+        order = np.argsort(q[:, 0])
+        cum = np.cumsum(q[order, 1]) / q[:, 1].sum()
+        squash = float(q[order, 0][np.searchsorted(cum, 0.5)])
     bm.free()
     nfaces = sum(len(o.data.polygons) for o in meshes)
     geometry = {
         "width_ratio": float((bmax[0] - bmin[0]) / rec["width"]), "height_ratio": float(bmax[2] / rec["height"]),
         "depth": float(bmax[1] - bmin[1]), "base_z": float(bmin[2]), "parts": len(parts), "loose_parts": loose,
         "inside_out": inside_out, "uv_stretch": float(stretch_area / max(total, 1e-9)),
-        "uv_blur": float(blur_area / max(total, 1e-9)), "faces": nfaces,
+        "uv_blur": float(blur_area / max(total, 1e-9)), "uv_squash": squash, "faces": nfaces,
         "cards": len(leaves.data.polygons) if leaves else 0,
     }
 
@@ -440,7 +450,7 @@ def audit_one(name, out):
              f"size   w {geometry['width_ratio']:.2f}  h {geometry['height_ratio']:.2f}  depth {geometry['depth']:.2f} m",
              f"base   {geometry['base_z']:+.3f} m   parts {geometry['parts']}  loose {geometry['loose_parts']}",
              f"inside-out {geometry['inside_out']}   faces {geometry['faces']}  cards {geometry['cards']}",
-             f"uv     stretch {geometry['uv_stretch']:.2f}  blur {geometry['uv_blur']:.2f}",
+             f"uv     stretch {geometry['uv_stretch']:.2f}  blur {geometry['uv_blur']:.2f}  squash {geometry.get('uv_squash', 1.0):.2f}",
              f"paint  streaks {base['streaks']:.2f}  flat {base['flat']:.2f}  dark {base['dark']:.2f}", "",
              f"paint  repeat {base['repeat']:.2f}", "views  streaks  flat  dark  repeat"]
     for label, _ in views:

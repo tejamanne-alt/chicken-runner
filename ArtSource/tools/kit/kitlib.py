@@ -913,14 +913,27 @@ def _smart_uv(ob, margin=0.004):
         o.select_set(False)
     ob.select_set(True)
     bpy.context.view_layer.objects.active = ob
+    # The packer stretches each island by the aspect of its faces' material image (it packs for per-material textures;
+    # correct_aspect=False only stops the unwrap doing it). The atlas is one square image, so every face is pointed at an
+    # image-less material while unwrapping and packing, then given its own back: a wide painting as a part's material
+    # squashed whole models 1.9:1 (the rope cot) or 4:1 (a test cube with a 2:1 image).
+    plain = bpy.data.materials.new("_uv_plain")
+    me.materials.append(plain)
+    keep_active = ob.active_material_index
+    ob.active_material_index = len(me.materials) - 1
+    face_mats = np.zeros(len(me.polygons), dtype=np.int32)
+    me.polygons.foreach_get("material_index", face_mats)
+    me.polygons.foreach_set("material_index", np.full(len(me.polygons), len(me.materials) - 1, dtype=np.int32))
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    # correct_aspect off: otherwise Blender squashes every island by the aspect of the first material's image (a wide
-    # painting's projection collapsed the whole atlas into a thin sliver)
     bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, correct_aspect=False,
                              scale_to_bounds=False)
     bpy.ops.uv.pack_islands(margin=margin, rotate=True)
     bpy.ops.object.mode_set(mode="OBJECT")
+    me.polygons.foreach_set("material_index", face_mats)
+    me.materials.pop(index=len(me.materials) - 1)
+    bpy.data.materials.remove(plain)
+    ob.active_material_index = min(keep_active, max(0, len(me.materials) - 1))
     return uv
 
 

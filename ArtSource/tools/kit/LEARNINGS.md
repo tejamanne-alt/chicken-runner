@@ -112,6 +112,10 @@ every model against the audit checklist at the end.** Add to it whenever somethi
 
 - `_smart_uv` ran with aspect correction, squashing the atlas into a sliver for wide paintings: `correct_aspect=False`.
 - `Kit.rng` was seeded from the salted `hash()`, so builds differed every run: `zlib.crc32(name)`.
+- The UV packer (`pack_islands`) stretched each island by the aspect of its faces' material image, whatever
+  `correct_aspect` says, so a wide painting as a part's material squashed whole atlases one way (h7_5 3.3:1, stall_d_1,
+  field_tree_6, hens_basket 1.7:1): `_smart_uv` now points every face at an image-less material while it unwraps and
+  packs. The audit's `uv_squash` (the area-weighted median stretch, above 1.3) catches it.
 - `K.decal(image=...)` cached by `id(image)`, which Python reuses: keyed by content now.
 - Review renders ran out of transparent bounces (black shards in crowns): 128 bounces.
 - The review's ink outline scaled with model size: it now matches the game's (3-12 mm).
