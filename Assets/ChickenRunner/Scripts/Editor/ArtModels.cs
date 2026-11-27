@@ -25,6 +25,9 @@ namespace ChickenRunner.EditorTools
         {
             public string name, folder, kind, source;
             public float width, height, depth;
+            // How far the model's lowest point stands above its painting's bottom edge (the painted foot stands a
+            // little above it, over its shadow): the model is set down by this much so it rests on the ground.
+            public float lift;
         }
 
         [Serializable]
@@ -177,7 +180,7 @@ namespace ChickenRunner.EditorTools
             // The model stands on its own origin: drop it from the pivot to the card's bottom edge (or, lying flat, back
             // to the near edge, so it is centred where the card would be).
             var up = facing * Vector3.up;
-            holder.localPosition = -up * size.y * 0.5f;
+            holder.localPosition = -up * (size.y * 0.5f + (flat ? 0f : Mathf.Clamp(entry.lift, 0f, 0.1f) * sy));
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, holder);
 
             // In 2 mm steps, so pieces of a size share their materials.

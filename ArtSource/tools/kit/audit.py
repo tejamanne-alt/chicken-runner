@@ -91,7 +91,7 @@ def flags_of(r):
     if max(v.get("repeat", 0) - max(0.45, v.get("repeat_base", 0) + 0.15) for v in r["views"].values()) > 0:
         f.append("repeat")
     g = r["geometry"]
-    if g["base_z"] > 0.04:
+    if g["base_z"] > 0.1:                      # the game sets a model down by up to 10 cm (its record's "lift")
         f.append("floating")
     if g["base_z"] < -0.25:
         f.append("sunk")

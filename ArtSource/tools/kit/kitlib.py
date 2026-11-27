@@ -1144,8 +1144,13 @@ def finish(K, spec):
         co = np.vstack([co, np.array([v.co for v in leaves.data.vertices])])
     depth = float(co[:, 1].max() - co[:, 1].min())
     faces = len(me.polygons) + (len(leaves.data.polygons) if leaves is not None else 0)
+    # The painted foot usually stands a few centimetres above the painting's bottom edge (its shadow is painted below
+    # it). The model keeps the painting's frame, so its front lines up; "lift" tells the game how far to set it down.
+    base = float(co[:, 2].min())
+    lift = round(base, 3) if K.kind != "flat" and 0.0 < base <= 0.1 else 0.0
     rec = {"name": name, "folder": folder, "kind": {"building": "building", "flat": "slab"}.get(K.kind, "volume"),
-           "width": round(P.W, 3), "height": round(P.H, 3), "depth": round(depth, 3), "faces": faces, "source": "blender"}
+           "width": round(P.W, 3), "height": round(P.H, 3), "depth": round(depth, 3), "lift": lift, "faces": faces,
+           "source": "blender"}
     RECORDS.mkdir(parents=True, exist_ok=True)
     (RECORDS / f"{name}.json").write_text(json.dumps(rec, indent=1))
     return rec, ob, leaves

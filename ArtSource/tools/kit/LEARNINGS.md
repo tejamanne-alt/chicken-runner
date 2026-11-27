@@ -60,7 +60,9 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   model on flat ground, and a parallelogram plan or a ground rising towards the back looks wrong from the side. Where
   the painting draws a side face or a top in perspective, exclude those pixels and accept that the front differs there.
 - **The base sits on the ground** (z = 0): no floating, no tilted ground patch to match a painted foot, no raised mound
-  under a prop unless the painting has one.
+  under a prop unless the painting has one. Most paintings stand the foot 2-5 cm above their bottom edge (the shadow is
+  painted below it); the record's `lift` (the lowest point, up to 10 cm) sets the model down onto the ground in the
+  game, so keep the painting's frame and do not shift the model. More than 10 cm off the ground is floating.
 - **Recesses** (doors, windows, vents, niches) are cut deeper than the panel inside them, or the faces fight.
 - **`K.cut` cutters are not parts**: if parts are turned or moved after cutting, move the cutters with them
   (`fields.with_cutters`), or the holes land in the wrong place.
@@ -123,6 +125,10 @@ every model against the audit checklist at the end.** Add to it whenever somethi
   and above, and compares the front with the painting.
 - Look at every view of every sheet, at full size. The six-view review missed things the eight-view audit shows
   (repeating wall stains, stray blocks on a side wall, floating vine patches).
+- The audit's flags are hints, not the verdict. A piece painted three-quarters on or in perspective (the canal
+  benches) cannot match its painted top when built true and level: model it turned in plan (level and square, rotated
+  about the vertical, like `stalls_ghx.Turned`) so the side faces the painting shows are real side faces, and accept
+  what is left.
 - Fix the cause, rebuild, re-audit. Expect three to six rounds; stop at eight and write down what is left.
 - Builds run several at once on a 4-core machine: `KIT_THREADS=1`, one Blender process per builder.
 - Edit only your own module; shared fixes go to the kit through the lead.
