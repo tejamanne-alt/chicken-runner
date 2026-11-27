@@ -7,10 +7,10 @@ with two faint cart ruts and pebbles (as C1 paints it); the fields' bund road is
 a grassy hump between them and grass at its edges; the market and the temple street are a panchayat cement road, slabs
 2 m long with their joints and hairline cracks, stains and sandy dust blown onto its edges.
 
-Each tile is 4 m along the lane (u, seamless) by the road's 3.4 m width (v, from its front edge toward the camera at
+Each tile is 4 m along the lane (u, seamless) by the road's 3.3 m width (v, from its front edge toward the camera at
 v = 0 to its back edge by the houses at v = 1; the image's bottom row is v = 0); the kid's running line, z = 0, is at
-v = 0.71. The PaintedGround shader
-lays it as a band from z -2.4 to z 1.0 with soft, slightly wavy edges into the zone's earth (GameBuilder.ZoneGround).
+v = 0.61. The PaintedGround shader lays it as a band from z -2.0 to z 1.3 with soft, slightly wavy edges into the zone's
+earth (GameBuilder.ZoneGround).
 Writes ArtSource/cutouts/textures/road_mud_lane.png, road_cart_track.png and road_cement.png, the side lanes that run
 back between the houses (ArtSource/cutouts/ground/side_lane_mud.png, with alpha), the hand pump's puddle
 (ground/puddle_water.png) and the canals' water (textures/canal_water_light.png).
@@ -25,15 +25,16 @@ from scipy import ndimage
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 TEX = ROOT / "ArtSource" / "cutouts" / "textures"
 GROUND = ROOT / "ArtSource" / "cutouts" / "ground"
-LENGTH, WIDTH = 4.0, 3.4          # metres along and across the road (GameBuilder.RoadFront/RoadBack, RoadTile)
+FRONT, BACK = -2.0, 1.3           # GameBuilder.RoadFront / RoadBack (depth)
+LENGTH, WIDTH = 4.0, BACK - FRONT  # metres along and across the road (RoadTile along)
 W = 1024
 H = int(round(W * WIDTH / LENGTH))
 PX = W / LENGTH                    # pixels per metre
-LINE = (0.0 - -2.4) / WIDTH        # v of the kid's running line (z = 0)
+LINE = (0.0 - FRONT) / WIDTH       # v of the kid's running line (z = 0)
 
 
 def v_of(z):
-    return (z + 2.4) / WIDTH
+    return (z - FRONT) / WIDTH
 
 
 def noise(rng, cells_u, cells_v, h=H, w=W, order=3):

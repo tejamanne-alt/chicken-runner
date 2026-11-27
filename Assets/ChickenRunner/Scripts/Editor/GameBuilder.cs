@@ -200,10 +200,11 @@ namespace ChickenRunner.EditorTools
         }
 
         // The village road along the lane, as a band of the ground (PaintedGround's _RoadTex): from its front edge toward
-        // the camera to its back edge by the houses, so the running line (z = 0) is on it and the house fronts (z 0.4) stand
-        // at its back edge. ArtSource/tools/models/road_textures.py paints the tiles to these sizes.
-        internal const float RoadFront = -2.4f;
-        internal const float RoadBack = 1.0f;
+        // the camera to its back edge by the houses, so the running line (z = 0) is well on it (1.3 m in from its back edge,
+        // which from the camera's low angle is a thin band of the screen) and the roadside things (hens, the hand pump, the
+        // neighbour's cot, z 1.1 to 1.4) stand at its edge. ArtSource/tools/models/road_textures.py paints the tiles to these.
+        internal const float RoadFront = -2.0f;
+        internal const float RoadBack = 1.3f;
         const float RoadTile = 4f;
         static readonly string[] s_roads = { "road_mud_lane", "road_cart_track", "road_cement" };
 

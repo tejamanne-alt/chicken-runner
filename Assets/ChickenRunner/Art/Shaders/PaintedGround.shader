@@ -21,8 +21,8 @@ Shader "ChickenRunner/PaintedGround"
         [Toggle] _UseRoad ("Road along the lane", Float) = 0
         _RoadTex ("Road tile (u along the lane, v across it, front to back)", 2D) = "white" {}
         _RoadTile ("Metres per road tile along the lane", Float) = 4
-        _RoadFront ("Road front edge (depth)", Float) = -2.4
-        _RoadBack ("Road back edge (depth)", Float) = 1.0
+        _RoadFront ("Road front edge (depth)", Float) = -2.0
+        _RoadBack ("Road back edge (depth)", Float) = 1.3
         _RoadSoft ("Road edge softness (m)", Float) = 0.22
         _RoadWave ("Road edge waviness (m)", Float) = 0.12
         _HazeColor ("Haze colour", Color) = (0.98, 0.765, 0.545, 1)
