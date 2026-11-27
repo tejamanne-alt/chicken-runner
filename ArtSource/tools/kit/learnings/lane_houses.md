@@ -78,3 +78,49 @@
 - **Cut-outs with erased neighbours keep ghosts.** Where a neighbouring prop (a ladder) was erased from a cut-out,
   a faint ghost of it can stay in the painting; the front projection reproduces it. That needs a cleaner cut-out,
   not a model change: report it.
+
+## Round 2 (house_potter, house_weaver, cattle_shed)
+
+- **A straw strip stacked into a square shows rows; box-projected it lays the straws across hip ends.** Build thatch
+  from the painted straw where it runs straight down: vertical strips (a bundle each, random widths), each a run of
+  segments cut from random places and cross-faded at random heights, so no seam lines up (`lane_houses.strand_image`).
+  Map it by UVs in metres down every slope, hip end and fringe (`hip_thatch(strands=True)`, `strand_mat`), not a box
+  projection: across a 45-degree slope the box projection's two samplings blend into a basket weave.
+- **A solidified sheet's rim copies the shell's UVs**, so a strand texture's single row is stretched across the mat's
+  cut edge: a pale streak along every hip line. Give the rim faces their own UVs (`lane_houses.strand_rims`).
+- **Round lumps on a thick mat shade into a blotchy, diamond pattern from behind** (low sun on the back slope). Lumps
+  long down the slope and low (`hip_thatch(lump=(3, 1.2, 0.15))`) read as bundles of straw.
+- **Painted eave corners sweep up.** A full fringe at the overhang corners hangs below them as a blue lump; and the
+  mat's lower face alone is half its thickness below the eave. Lift the eave's edge over the overhangs
+  (`hip_thatch(fringe_at=eaves_over(X0, X1, lift=-0.3))`), keep the full fringe over the walls.
+- **`straw_clean` takes the painted straw tips off** (it keeps 4 px clear of anything pale, and every tip ends in the
+  halo). Ragged tips along a hip or a lean-to's edge: cards in the slope's (or the cut end's) plane, each corner at its
+  painted place, with `straw_pixels & min < 185` (no dilation).
+- **Fronds overlapped by painted straw**: close the leaflets hard and fill the holes (`lane_houses.frond_whole`), so a
+  frond card is the whole frond. Lay back-slope fronds as a grid card draped on the mat's own top face (each corner's
+  height sampled from the mat's vertices), not a flat card held clear of the lumps.
+- **Loose hay heaps**: rings from foot to top on a dome profile pushed in and out by a few broad lumps
+  (`lane_houses.hay_heap`); the painting on faces that look at the camera and a quilted tile of the painted hay where
+  they turn away (`lane_houses.facing_mat`, lo 0.3 / hi 0.55); the heap kept off the front bake by its own outline as
+  built (by the dome it was built on, the lumps let the wall's own colour show between heaps as grey triangles).
+  Straw tufts stand out of the surface in planes through the front line of sight (edge-on from the front, so the
+  painting is untouched; loose straw at the outline from the sides and above). Tufts laid flat on the surface read as
+  spots; tufts facing the front put random hay over the painting.
+- **Quilting a material from patches** (`lane_houses.quilt_image`): pull each patch towards the mean (`even`) and the
+  mean towards the lit share (`lit`), or a crop in a sunbeam's edge or painted shade repeats as light and dark blocks;
+  `gain` restores the fine contrast the feathering loses. Wood and straw unturned (`turn=False`).
+- **Leaf rules run at finish**, long after the builder's loops: a closure that reads a variable a later loop reuses
+  (`bot` in the pots' loop) sees the wrong value and the build fails at the leaf mask. Give rule data its own names.
+- **A torn foot is the cut-out's.** Where the cut-out's bottom is torn off above the ground (the cattle shed's wall and
+  heaps), the wall and the heaps still stand on the ground: the blue band under the torn edge cannot be modelled away.
+- **A thin pole traced by eye goes missing**: the potter's knee brace was 50 px from the painted one, a red diagonal
+  on the difference map. Trace each painted pole's edge row by row.
+- **A ghost on a wall behind a modelled prop is the baked occlusion, not the tile.** Texels the prop hides from the
+  front (the bake's visibility pass) take the part's own material darkened by the AO bake; the painted texels round
+  them are not darkened. So even an exact fill shows the prop's silhouette about 9 % darker from an angle (the weaver's
+  wheel). Give the wall behind it a skin of the painted wall with the prop's pixels filled, brightened by 1/(AO
+  darkening) (`lane_houses.brighten(..., 1.1)`), and exclude the prop's pixels of every colour it has (blue yarn over
+  an indigo skirting needs the skirting's measured indigo, not "any blue").
+- **Straw-tip cards past a hip in the slope's plane stand out below the eave.** The slope's plane carried on below
+  the eave puts the lowest cards 0.2-0.3 m in front of the mat: from the side, a dotted line at the eave corner. Clamp
+  their depth to the mat's eave line.

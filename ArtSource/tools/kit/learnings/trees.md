@@ -67,3 +67,52 @@
   thirds of it.
 - **Touching pods (or fruit) painted in a bunch skeletonise as one fat pod.** Trace those bunches by hand off the
   grid and build them as drawn (no polyline smoothing, which squared their rounded ends).
+
+## Round 2 (shrine_tree)
+
+- **Find which part shows where with a part-ID pass, not by guessing.** Build the parts (with `K.fuse` patched to a
+  no-op, so every tube stays its own object), give each a flat emission colour that encodes its index, render the
+  front orthographic in the painting's frame (Cycles, 1 sample, denoising off, box filter 0.01, view transform Raw),
+  and count the IDs over the painting's sky pixels. The shrine's "band of wood in the sky" was found in one render.
+- **A turned limb copy checked only at its points jumps across a painted gap.** Two points either side of the sky
+  can both hide behind painted wood while the straight tube between them crosses the sky (a 40 x 80 px band of bark
+  left of the tower). Check every few px along each stretch and end the copy where the stretch would show; taper a
+  copy cut short into a tip (`_peepal_tree(seg_hide=True)`), or it ends in a sawn-off disc under the crown.
+- **A chain of discs is wider than the tube it stands for.** `raster` draws each stroke point as a disc; where a
+  fitted radius grows fast, the discs reach back along the stroke past the tube, so the crown's cards left out
+  crescents of painted wood the tube did not cover (red). Leave out exactly the tube's outline (`raster_tubes`).
+- **Fit a limb that borders painted sky by moving its centre, not only its radius.** Clipping a traced radius to the
+  distance to the nearest sky kept the traced centre, so a limb with sky on one side came out as thin as that side
+  allows on both (sky along it). `fit_limb` measures the painted run across the limb at every 8 px (each side no
+  further than the traced radius), centres the tube in it and takes half of it less the game's ink line. Limbs with
+  skeins of thread hanging under them are fitted against the painting with the gaps between strands closed
+  horizontally, or the halo between strands thins the limb.
+- **A trunk hidden behind something is still seen from the back: give it relief that the toon look shows.** Lofted
+  through its painted rows where sky bounds it (`trunk_rows`) and free below the shrine's roof, the trunk read as a
+  plain column until its ribs stood out by their whole radius: ribs (stems grown together, winding a little, their
+  feet flaring into buttresses) with their axes on the trunk's surface fold away at their flanks and get contour ink
+  lines from the sides and back; ribs sunk halfway in read as a smooth cylinder. Keep every rib inside the painted
+  width where the trunk shows from the front.
+- **Things hung on a crown's wood (skeins of thread) do not belong on the crown's cards.** Any front-shell card whose
+  box reached them carried strands out to the crown's front, 2 m before the trunk. Copy their pixels into an empty
+  corner of the painting, cut their own cards from the copy (`sheared_card(uv_shift=)`), and keep them out of the
+  crown's leaf mask; place each at the depth of the trunk or limb it hangs from.
+- **Keep turned volume cards off painted gaps by their footprint, not by a margin.** A margin of a card's size round
+  every gap (`avoid_gaps`) left the shrine's crown hollow in the middle (seen from the side) once its smaller gaps
+  counted; checking each card's turned box against the painting's sky and halo (`gap_exact`) keeps cards right up
+  to the gaps and none in them.
+- **Flat top cards are horizontal streaks from the side where the crown is sparse.** Tip them 25-30 degrees (each
+  its own way: `top_tilt`) and keep them near the top surface (`top_u`); once tipped they show from the front, so
+  keep each below the painted top along its whole turned width.
+- **Closed tube loops waste the atlas.** Threads round a trunk unwrapped into ring-shaped islands whose empty middles
+  took about a fifth of a 2048 atlas, and short tube arcs with their island margins took more; three-sided closed
+  loops (no face lying flat) unwrap into a few thin arcs. Drop faces nothing sees (bottom caps on the ground, the
+  trunk inside the shrine, the earth under it, tier bottoms on the roof: 150 to 115 m2 here): the painting on what
+  is seen gets sharper.
+- **Small turned things painted in front are traced, not generic.** A generic finial lathe drew a zigzag ink outline
+  over five pot-and-bud finials, the bell was a cone, and a tube through a few points made the marigold swag a stiff
+  W: trace each profile off the painting (radii less the ink line) and string a garland as balls along its traced
+  swag.
+- **The painted foot is the earth's front edge, for every part.** The shrine body, threshold and trunk start there;
+  the voxel remesh pushed the fused trunk's roots 7 cm below it (lift 0), so clamp fused wood to the foot. A
+  mound's halo cleaning also clears a white wall standing on it from the projection (`mound(keep_boxes=)`).

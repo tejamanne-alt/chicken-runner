@@ -76,3 +76,58 @@
   fronds overlap or a torn banana leaf's strips slant: give every painted leaf pixel to its nearest painted spine
   first, then take each side's width at a station as the farthest of that spine's own pixels lying across from it
   (`palms_plants.fit_widths_owned`; banana front holes 0.16 -> 0.08, bottle palm 0.02 -> 0.004 in the coverage test).
+
+## Round 2 (h5_2, the torn banana)
+- **Most of a cut-out's "front holes" round leaves can be its pale fringe, not the geometry.** The cut-outs keep a
+  1-2 px opaque pale-grey rim outside the painted ink line (and grey between ink and rim); leaf masks drop it as halo,
+  so every leaf edge reads red: h5_2's crown lost 7 % of its painted pixels that way, the ribbons only 0.5 %. Take the
+  opaque pixels within 2 px of the card mask that it leaves out, paint them over in the painting (`P.img`) with the
+  ink beside them, and add them to the mask (`palms_plants.fringe`, with an `allow` mask so the stem, fruit and stone
+  beside the leaves are not inked). Measure this first: split the holes into "not in the mask" and "in the mask but
+  no card there". Rasterising the built parts, and the cards through their UVs against the leaves texture, onto the
+  painting's frame (the game's ink grown round the solids) predicts the audit's holes and spill in seconds, no bake.
+- **A torn leaf is one card cut by its own pixels, not a ribbon.** A ribbon's straight edges cut across slanting
+  strips and their tips; widening it shows other leaves through its gaps at its depth. Give every painted pixel to
+  one leaf (regions cut apart by the ink outlines, each to the spine running through it: `leaf_owners`; nearest-spine
+  alone hands a strip hanging below one midrib to the leaf below and splits it in depth), then cover exactly those
+  pixels with a grid of small cells whose vertices sit at their painted (x, z) and at the depth of the leaf's shape
+  there (station along the midrib, distance across it: `StripCard`, `leaf_depth`). Cells that would also show a
+  neighbour's pixels split into 2-3 px sub-cells (no confetti from the side); the coarse cell beside takes the split
+  edge's vertices (no T-junction cracks). h5_2: front holes 0.08 -> 0.012, IoU 0.89 -> 0.97.
+- **Trace midribs where they are painted**: a banana leaf spreading sideways has its midrib along its upper edge, the
+  strips hanging below it; spines drawn through the middle of the strips fold the leaf in the wrong place.
+- **A piece of a leaf cut off from its midrib in the painting (the join hidden behind another leaf) floats from the
+  side** at its own leaf's depth: give it to the leaf it touches most (it then lies on that leaf).
+- **Ink, do not open, the haze in a torn leaf's narrow slits.** Left out of the mask, each slit reads as a row of red
+  specks along every tear (holes 0.012 -> 0.023); inked with the rim it reads as the painted line between two strips.
+- **Copies round the back of a gappy crown: trim them cell by cell** to where the painting hides them (each shown
+  texel lands on painted alpha and behind the front card there), keep the cells joined to the base. Aim each copy at
+  its own bearing round the back: left to choose freely, the best-hidden copies all point straight back (edge-on from
+  the front) and the crown is a Y from above.
+- **Card faces must face the camera they are painted for.** A card whose winding faces away from the front gets its
+  shading normal flipped by Cycles, and the audit's toon shades it as if lit from behind: the whole crown came out a
+  shade darker (colour median 2 -> 9). Wind cell quads counter-clockwise as seen from the front.
+- **A tube along a slanting centre line tips its rings**, and a tipped ring reaches past the painted outline above and
+  below it (blue under the bunch). Stack level rings from the painted rows instead (`row_solid`): the stem's sheath
+  tips and the bunch's outline then match row by row.
+- **Grass masks: greener than red.** `leafy`-style tests pass the beige stone tops and the olive stem inside a tuft's
+  box, and the tuft card carries them off into the air beside the solid; and blades end in long inked tips (keep the
+  dark pixels within ~12 px of a blade, above the stones, off the stem's outline).
+- **A banana bunch = its painted body (flattened, from the painted rows) + the painted bananas traced one by one as
+  tubes lying on its front + more fingers round its back kept inside the outline** (the narrowest row a finger rises
+  through holds it). Generic rings of fingers round the stalk never match the painted outline.
+- **A stem's sides wrapped by angle, not squeezed through.** `axis_material` (the painting pushed through along y,
+  squeezed to the axis) drags the painted sheath edges near the outline round the sides as a pale U-shaped arch
+  and bands; wrapping by angle (`wrap_material`: straight on to 64 degrees, then the painted half laid evenly round)
+  shows the sheaths' own diagonal lines going round the stem.
+- **What is not leaf but lies beside a leaf rides on that leaf's card** (the inside of a stalk's hook, fruit tips
+  above a bunch, the stalk between them): it is given to the nearest leaf and stands at that leaf's depth, a dark
+  dash floating beside the bunch from the side (h5_1). Keep it off the card mask (`banana_torn(cut_polys=...)`,
+  the bunch's own outline rather than an ellipse round it) and model it, or leave it as haze.
+- **A trimmed copy keeps one piece**: the cells left between the hidden ones fall into scraps near the base, and
+  each scrap floats on its own from the side. Keep only the largest piece joined to the base.
+- **Strip cards scale with the leaf**: broad, little-torn leaves (h5_1) take 8 px cells (4 px where leaves meet),
+  narrow torn strips (h5_2) 6 px (3 px); h5_1's front holes 0.06 -> 0.008, IoU 0.93 -> 0.985, at 12.8k faces.
+- **A tube traced on a painted stalk is as wide as the painted run including its pale rim**: the audit counts the
+  rim as painting, so a tube of the inked width alone leaves red on both sides; add 1-2 px to painted radii of
+  stalks and fruit, and run traced fruit 2-3 px past their measured tips to the ink.
