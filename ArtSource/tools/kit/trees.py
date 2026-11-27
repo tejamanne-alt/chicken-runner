@@ -1150,12 +1150,32 @@ class Crown:
         H, W = lm.shape
         if layer == "top":
             return self.top_cards(int(round(n * 3.0)), size_px, region=(x0, y0, x1, y1), name=name)
+        if layer == "volume" and not getattr(self, "shear_volume", False) and not getattr(self, "avoid_gaps", False):
+            return self.cards_rotated(int(round(n * 1.6 / 1.3)), size_px, "volume", yaw=yaw, pitch=pitch,
+                                      region=region, mask=mask, name=name, squash=squash)
         if layer == "volume" and not getattr(self, "shear_volume", False):
             # the cards inside the crown, hidden from the front by the shell: turned truly (rotated about their
             # centres), so from every side their leaves are at their own size (sheared ones dragged them out into
-            # horizontal streaks from the side and above)
+            # horizontal streaks from the side and above). Not next to a gap painted inside the crown (sky between
+            # the limbs): nothing hides a turned card there, and its leaves showed in the gap
+            a = np.asarray(P.img)
+            mx_, mn_ = a[..., :3].max(2).astype(np.int32), a[..., :3].min(2).astype(np.int32)
+            solid = (a[..., 3] > 127) & ~((mn_ > 175) & (mx_ - mn_ < 45))
+            gaps = self.mask & ~ndimage.binary_opening(solid, iterations=1)
+            gaps = ndimage.binary_opening(gaps, iterations=3)
+            lab, ng = ndimage.label(gaps)
+            if ng:                                    # only gaps big enough for a card's leaves to show in
+                sizes = ndimage.sum(gaps, lab, range(1, ng + 1))
+                gaps = np.isin(lab, 1 + np.nonzero(sizes >= (0.6 * max(size_px)) ** 2)[0])
+            dgap = ndimage.distance_transform_edt(~gaps) if gaps.any() else np.full(gaps.shape, 1e9)
+            keep_off = 0.75 * max(size_px)
+
+            def away(px, py, m=mask):
+                if dgap[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))] < keep_off:
+                    return False
+                return m(px, py) if m is not None else True
             return self.cards_rotated(int(round(n * 1.6 / 1.3)), size_px, "volume", yaw=yaw, pitch=pitch,
-                                      region=region, mask=mask, name=name, squash=squash)
+                                      region=region, mask=away, name=name, squash=squash)
         shell = layer in ("front", "back")
         if shell:
             # every painted leaf pixel, the thin wisps too (an opened mask left the fine needles at the crown's edge
@@ -1599,6 +1619,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
                    for dx, dy in ((0, 0), (-r_px * 0.8, 0), (r_px * 0.8, 0), (0, -r_px * 0.8), (0, r_px * 0.8)))
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
                   dome_pow=0.9, y0=y0)
+    crown.avoid_gaps = True          # (sky painted between the limbs under the crown: no turned card shows in it)
     clear_sky(K, crown_box, sky_exclude)
     # the hand-traced strokes made no thicker than the painting is solid round them: a limb's tube may not reach
     # over the sky painted between the limbs (from the front, bark where the painting shows sky)
