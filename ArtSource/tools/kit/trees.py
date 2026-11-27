@@ -7,6 +7,7 @@ as real fruit, and the rocks and undergrowth at its foot.
 """
 import collections
 import math
+import zlib
 
 import bmesh
 import numpy as np
@@ -564,8 +565,10 @@ def earth(K, cx_px, rx_px, ry, colour_box, y=0.0, z=0.0, segments=36, h=0.04, na
     """The patch of earth a tree stands on: a low uneven disc of the painting's own dirt."""
     P = K.paint
     # a box of the painting: a tile of its earth (a plain colour reads as untextured from the side and above)
-    soil = strip_tile(K, colour_box, soften=0.5, blur=1.5) if len(colour_box) == 4 and max(colour_box) > 2 else \
-        K.colour(colour_box, vary=0.2, scale=6)
+    if len(colour_box) == 4 and max(colour_box) > 2:
+        soil = strip_tile(K, colour_box, soften=0.45, blur=1.0, quilt=True)
+    else:
+        soil = K.colour(colour_box, vary=0.2, scale=6)
     rx = P.m(rx_px)
     return K.lathe([(0.0, 0.0), (rx, 0.0), (rx * 0.95, h * 0.6), (rx * 0.6, h), (0.0, h * 1.05)], soil,
                    segments=segments, centre=(P.x(cx_px), y, z), scale_y=ry / rx, wobble=0.1, name=name)
@@ -693,11 +696,11 @@ def _softened(pil, soften):
     return Image.fromarray(a.clip(0, 255).astype(np.uint8))
 
 
-def strip_tile(K, box, soften=0.35, vary=0.08, name=None, blur=0.0):
+def strip_tile(K, box, soften=0.35, vary=0.08, name=None, blur=0.0, quilt=False):
     """A tile of a strip of the painting (the red earth under a tree, painted as a thin band): the strip mirrored and
     stacked into a square first, so on a wide patch of ground it does not stretch into streaks."""
     P = K.paint
-    key = ("trees_strip", tuple(int(v) for v in box), soften, vary, blur)
+    key = ("trees_strip", tuple(int(v) for v in box), soften, vary, blur, quilt)
     if key in K._mats:
         return K._mats[key]
     crop = P.crop(box).convert("RGBA")
@@ -708,8 +711,40 @@ def strip_tile(K, box, soften=0.35, vary=0.08, name=None, blur=0.0):
         a = a[iy, ix]
     a = a[..., :3]
     w, h = a.shape[1], a.shape[0]
-    n = max(1, int(round(w / max(1, h))))
-    sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+    if quilt:
+        # patches of the strip scattered at random over a square with soft edges (mirror-stacking a strip with
+        # pebbles in it made rows of the same marks: a herringbone on the ground)
+        rng = np.random.default_rng(zlib.crc32(repr(box).encode()))
+        side = w
+        acc = np.zeros((side, side, 3), np.float64)
+        wsum = np.zeros((side, side, 1), np.float64)
+        ps = max(4, h)
+        yy, xx = np.mgrid[0:ps, 0:ps]
+        feather = (np.minimum(np.minimum(yy, ps - 1 - yy), np.minimum(xx, ps - 1 - xx)) + 1.0)[..., None] / (ps / 2)
+        for _ in range(int(6 * (side / ps) ** 2)):
+            sx, sy = int(rng.integers(0, max(1, w - ps + 1))), int(rng.integers(0, max(1, h - ps + 1)))
+            patch = a[sy:sy + ps, sx:sx + ps]
+            if patch.shape[:2] != (ps, ps):
+                continue
+            if rng.uniform() < 0.5:
+                patch = patch[:, ::-1]
+            if rng.uniform() < 0.5:
+                patch = patch[::-1]
+            dx, dy = int(rng.integers(-ps // 2, side)), int(rng.integers(-ps // 2, side))
+            for oy in (0, -side, side):                    # wrapped round, so the square tiles seamlessly
+                for ox in (0, -side, side):
+                    x0, y0 = dx + ox, dy + oy
+                    X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(side, x0 + ps), min(side, y0 + ps)
+                    if X1 <= X0 or Y1 <= Y0:
+                        continue
+                    sl = (slice(Y0 - y0, Y1 - y0), slice(X0 - x0, X1 - x0))
+                    acc[Y0:Y1, X0:X1] += patch[sl] * feather[sl]
+                    wsum[Y0:Y1, X0:X1] += feather[sl]
+        med = np.median(a.reshape(-1, 3), axis=0)
+        sq = np.where(wsum > 1e-6, acc / np.maximum(wsum, 1e-6), med)
+    else:
+        n = max(1, int(round(w / max(1, h))))
+        sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
     if blur:
         sq = ndimage.gaussian_filter(sq, (blur, blur, 0))
     pil = _softened(Image.fromarray(sq.clip(0, 255).astype(np.uint8)), soften)
@@ -826,7 +861,7 @@ def mound(K, cx_px, rx_px, ry, py_rim, py_top, tile_box, y=0.0, segments=44, rin
     and above it is a gentle rise of red earth, not a flat plain disc. Returns height(x, y) (metres) of its surface,
     for setting stones and roots on it."""
     P = K.paint
-    soil = strip_tile(K, tile_box, soften=0.5, blur=1.5)
+    soil = strip_tile(K, tile_box, soften=0.45, blur=1.0, quilt=True)
     rx, z0 = P.m(rx_px), P.z(py_rim)
     h = max(0.005, (P.z(py_top) - z0) * rise)
     prof = [(rx, 0.0)]
@@ -963,6 +998,40 @@ def leaf_mask_of(K, box, rule):
     sub = a[y0:y1, x0:x1]
     m[y0:y1, x0:x1] = rule(sub[..., :3]) & (sub[..., 3] > 127)
     return m
+
+
+def cover_cards(K, target, size_px, depth, slope=(0.6, 0.3), cover=0.995, n_max=400, name="card", normal=None):
+    """Sheared cards (sheared_card) placed until they cover the painted pixels in target (bool HxW): each centred on a
+    pixel not yet covered, at depth(px, py) (metres), sheared by up to +-slope (x, z) into depth: from the front
+    exactly the painting, from the side a spread of it in depth. The cards show what the leaf rules let them."""
+    rng = K.rng
+    H, W = target.shape
+    covered = np.zeros_like(target)
+    total = max(1, int(target.sum()))
+    placed = 0
+    from PIL import ImageDraw
+    while placed < n_max:
+        free = np.flatnonzero(target & ~covered)
+        if free.size <= (1 - cover) * total:
+            break
+        py, px = divmod(int(free[rng.integers(free.size)]), W)
+        w, h = size_px[0] * rng.uniform(0.8, 1.2), size_px[1] * rng.uniform(0.8, 1.2)
+        a = rng.choice([-1, 1]) * rng.uniform(0.3, 1.0) * slope[0]
+        b = rng.uniform(-1, 1) * slope[1]
+        ob, poly = sheared_card(K, (px - w / 2, py - h / 2, px + w / 2, py + h / 2), depth(px, py), (a, b),
+                                normal=normal, name=name)
+        if ob is None:
+            covered[py, px] = True
+            continue
+        bx0, by0 = int(max(0, px - w)), int(max(0, py - h))
+        bx1, by1 = int(min(W, px + w + 1)), int(min(H, py + h + 1))
+        im = Image.new("L", (bx1 - bx0, by1 - by0), 0)
+        ImageDraw.Draw(im).polygon([(px + (qx - px) * 0.92 - bx0, py + (qy - py) * 0.92 - by0) for qx, qy in poly],
+                                   fill=255)
+        covered[by0:by1, bx0:bx1] |= np.asarray(im) > 127
+        covered[py, px] = True
+        placed += 1
+    return placed
 
 
 class Crown:
@@ -1480,6 +1549,16 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     crown = Crown(K, crown_box, crown_half_depth, ((crown_box[0] + crown_box[2]) / 2, dome[0]), core=0.12, dome=dome,
                   dome_pow=0.9, y0=y0)
     clear_sky(K, crown_box, sky_exclude)
+    # the hand-traced strokes made no thicker than the painting is solid round them: a limb's tube may not reach
+    # over the sky painted between the limbs (from the front, bark where the painting shows sky)
+    dsolid = ndimage.distance_transform_edt((P.rgba[..., 3] > 0.5) & ~((mn > 175) & (mx - mn < 45)))
+
+    def fit(pts, lo=4.0):
+        return [(px, py, float(min(r, max(lo, dsolid[int(np.clip(py, 0, P.h - 1)), int(np.clip(px, 0, P.w - 1))]
+                                           + 1))))
+                for px, py, r in pts]
+    trunk = fit(trunk, lo=20.0)
+    limbs = [fit(pts) for pts in limbs]
     wood = [limb(K, trunk, bark, y=y0, segments=24, name="trunk")]
     for k, pts in enumerate(limbs):
         n = len(pts)
@@ -1553,7 +1632,7 @@ def _peepal_tree(K, crown_box, trunk, limbs, roots, katte, bark_box, crown_half_
     # the crown: everything painted in its box but the wood modelled there
     # (grown by a pixel only: a wider ring round the modelled wood showed as a see-through slit along every limb
     # once the cards show exactly their painted place)
-    excl = raster((P.h, P.w), exclude_wood, grow=1)
+    excl = raster((P.h, P.w), [fit(st) for st in exclude_wood], grow=1)
     if crown_extra_exclude is not None:
         excl |= crown_extra_exclude
     rgb = (P.rgba[..., :3] * 255).astype(np.int32)
@@ -1847,11 +1926,13 @@ def shrine_tree(K):
     for py in range(600, 770, 18):
         ring_tube(K, P.x(905), yt, P.z(py), P.m(212), P.m(212), rng.choice([red, orange]), P.m(2.5),
                   tilt=(rng.uniform(-0.05, 0.05), rng.uniform(0.0, 0.08)), wobble=0.03, name="thread")
-    for box in ((370, 470, 800, 800), (1020, 490, 1350, 790)):
-        for k in range(16):
-            cx, cy = rng.uniform(box[0] + 40, box[2] - 40), rng.uniform(box[1] + 40, box[3] - 40)
-            K.card_from_painting((cx - 70, cy - 70, cx + 70, cy + 70), (P.x(cx), yt - rng.uniform(0.2, 0.9), P.z(cy)),
-                                 yaw=rng.uniform(-40, 40), name="skein")
+    # the painted skeins in front of the trunk: cards covering every painted skein pixel, sheared into depth
+    def skein_y(px, py):
+        # hanging just in front of the trunk where it is behind them, else in front of the limb they are tied to
+        R, dx = P.m(212), P.m(px - 905)
+        front = math.sqrt(R * R - dx * dx) if abs(dx) < R * 0.97 else P.m(45)
+        return yt - max(front, P.m(45)) - 0.05 - rng.uniform(0, 0.05)
+    cover_cards(K, skein, (80, 110), skein_y, slope=(0.5, 0.15), name="skein", normal=(0.0, -0.6, 0.8))
     # ---- the kalash by the door: a painted pot of water, mango leaves and a coconut in its mouth
     pot = K.projected(axis_x=P.x(1253), squeeze=0.93, keep=[(1214, 1300, 1296, 1392)])
     prof = [(28, 1393), (36, 1385), (42, 1360), (40, 1330), (30, 1310), (18, 1302), (20, 1296), (16, 1292)]
@@ -1897,7 +1978,7 @@ def field_tree_1(K):
         K, mask, (470, 930), (0, 0, 938, 510), (470, 300), (300, 0, 510), foliage_pixels, spread=0.55,
         root_z_px=860, card_px=(110, 95), n_cards=(230, 90, 50, 30), limb_py_max=560, limb_py_min=300, n_limbs=7,
         n_roots=6, root_py=880, depth_ratio=0.365, core=0.18, dome_pow=0.9, seed_dy=seed, min_r_px=1.5,
-        trunk=(940, 560, 465, 860, 0.7))
+        trunk=(940, 560, 465, 860, 0.7), leaf_all=True)          # its dark shaded leaves are not "foliage" green
     # the aerial roots again, hanging in curtains through the crown's depth behind and before the painted ones
     for i, p in enumerate(wood.paths):
         if hanging(p):
@@ -1964,7 +2045,7 @@ def field_tree_2(K):
     wood, crown, bark, thin = traced_tree(
         K, mask, (255, 525), (0, 0, 525, 410), (262, 220), (220, 0, 410), sage_leaves, spread=0.6, root_z_px=505,
         card_px=(70, 60), n_cards=(220, 100, 50, 20), limb_py_max=330, n_limbs=7, n_roots=0, depth_ratio=0.343,
-        core=0.2, dome_pow=0.9, min_r_px=1.2, trunk=(536, 380, 300, 490, 0.5), foot=foot)
+        core=0.2, dome_pow=0.9, min_r_px=2.2, trunk=(536, 380, 300, 500, 0.25), foot=foot)
     # grass tufts and stones on the earth
     K.leaves_only((150, 470, 360, 530), plant_pixels)
     for box, cx in (((160, 470, 210, 528), 185), ((312, 485, 352, 528), 332)):
@@ -2473,6 +2554,10 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
     crown = Crown(K, crown_box, P.m(cw) * depth_ratio, crown_centre, core=core, dome=dome, dome_pow=dome_pow,
                   mask=crown_mask)
     clear_sky(K, crown_box)
+    if root_z_px is not None:
+        # and the white cut-out halo round the roots: a root's tip reaching past its painted tip took it as a white
+        # shard from the front
+        clear_sky(K, (0, root_z_px - 60, P.w, P.h))
     floor = P.m(cw) * 0.06
     root_lim = crown.hd * 0.6                          # the roots spread round the foot, whatever the crown does
 
@@ -2548,7 +2633,9 @@ def traced_tree(K, mask, root_px, crown_box, crown_centre, dome, leaf_rule, spre
         def leaf_rule(rgb):
             r, g, b, mx, mn = chan(rgb)
             return ~((mn > 175) & (mx - mn < 45))
-    leafpix = leaf_mask_of(K, box, leaf_rule) & ~ndimage.binary_dilation(mask, iterations=2)
+    # (only the wood thicker than an ink line: the leaves' own outlines, traced as wood too, stay on the cards)
+    leafpix = leaf_mask_of(K, box, leaf_rule) & ~ndimage.binary_dilation(ndimage.binary_opening(mask, iterations=2),
+                                                                         iterations=2)
     K.leaves_only(box, mask_rule(leafpix, box))
     cp = card_px or (cw * 0.14, cw * 0.12)
     nv, nf, nb, nt = n_cards

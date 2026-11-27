@@ -580,15 +580,16 @@ def ribbon(K, spine_px, hw, y_of=0.0, rows=5, roll=0.0, fold=0.0, xform=None, no
     return ob
 
 
-def blob_card(K, box_px, centre, yaw=0.0, pitch=0.0, n=14, rough=0.3, name="card", normal=None, roll=0.0):
+def blob_card(K, box_px, centre, yaw=0.0, pitch=0.0, n=14, rough=0.3, name="card", normal=None, roll=0.0, bank=0.0):
     """A cut-out card of the painting inside box_px, a ragged round polygon (not a rectangle, so a card cut from the
-    middle of a bush has a leafy edge, not a straight one), its middle at `centre`, turned yaw, tilted pitch."""
+    middle of a bush has a leafy edge, not a straight one), its middle at `centre`, turned yaw, tilted pitch; bank
+    then turns it about the line of sight from the front (a card edge-on from the front stays edge-on)."""
     P = K.paint
     x0, y0, x1, y1 = box_px
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     rx, ry = (x1 - x0) / 2, (y1 - y0) / 2
-    R = (Matrix.Rotation(math.radians(yaw), 3, "Z") @ Matrix.Rotation(math.radians(pitch), 3, "X")
-         @ Matrix.Rotation(math.radians(roll), 3, "Y"))
+    R = (Matrix.Rotation(math.radians(bank), 3, "Y") @ Matrix.Rotation(math.radians(yaw), 3, "Z")
+         @ Matrix.Rotation(math.radians(pitch), 3, "X") @ Matrix.Rotation(math.radians(roll), 3, "Y"))
     ph = K.rng.uniform(0, 6.28)
     bm = bmesh.new()
     vs, uvs = [], []
@@ -1760,7 +1761,7 @@ def bush_cards(K, crown, n, size_px, layer="volume", yaw=40.0, pitch=25.0, regio
     return placed
 
 
-def side_cards(K, crown, n, size_px, inside, yaw_jit=7.0, rough=0.35, name="leaf_side"):
+def side_cards(K, crown, n, size_px, inside, yaw_jit=0.0, rough=0.35, name="leaf_side"):
     """n cards turned side-on (edge-on from the front, where they hide inside the crown), each showing a patch cut
     from anywhere inside the painted crown (inside: bool HxW, where a whole card's patch may come from), spread
     through the crown's volume: so from the side the crown is its leaves and flowers mixed as the painting mixes
@@ -1790,14 +1791,15 @@ def side_cards(K, crown, n, size_px, inside, yaw_jit=7.0, rough=0.35, name="leaf
         sgn = 1.0 if px >= cx else -1.0
         out = Vector((sgn * 1.0, (yy - crown.y0) * 1.3 / max(1e-6, crown.hd), (cy - py) / max(1.0, crown.R) * 0.5 + 0.3))
         blob_card(K, (qx - w / 2, qy - h / 2, qx + w / 2, qy + h / 2), (P.x(px), yy, P.z(py)),
-                  yaw=rng.choice([-1, 1]) * 90 + rng.uniform(-yaw_jit, yaw_jit), pitch=rng.uniform(-4, 4),
-                  roll=rng.uniform(-45, 45), n=12, rough=rough, name=name, normal=tuple(out.normalized()))
+                  yaw=rng.choice([-1, 1]) * 90 + rng.uniform(-yaw_jit, yaw_jit), pitch=0.0,
+                  roll=rng.uniform(-45, 45), bank=rng.uniform(-65, 65), n=12, rough=rough, name=name,
+                  normal=tuple(out.normalized()))
         placed += 1
     return placed
 
 
 def bush(K, region, centre, half_depth, cards, card_px, keep, dome=None, core=0.2, dome_pow=0.7, y0=0.0,
-         crown_mask=None, rough=0.35, side=None, vol_turn=(55, 40), side_jit=7.0):
+         crown_mask=None, rough=0.35, side=None, vol_turn=(55, 40), side_jit=0.0):
     """A bush or flower bed of the painting's own leaves and flowers: cards (n volume, front, back, top) through a
     cushion shaped like the painted outline blown up in depth (half_depth metres at its heart); keep: which pixels the
     cards show (a full-painting bool mask)."""
@@ -2242,7 +2244,7 @@ def h6_6(K):
                [(283, 588, 6), (300, 480, 5), (330, 350, 4), (350, 200, 3), (360, 120, 2)]]
     stem_ribbons(K, strokes, ys=[-0.03, 0.02, -0.06, 0.0, 0.04], back=1)
     crown = bush(K, (0, 0, P.w, 560), (280, 300), P.m(500) * 0.34, (420, 140, 110, 30), (80, 74), keep,
-                 dome=(300, 0, 580), core=0.25, vol_turn=(30, 20), side_jit=3.0)
+                 dome=(300, 0, 580), core=0.25, vol_turn=(30, 20))
     stone = masked_material(K, opaque & box_mask(opaque.shape, [(192, 555, 248, 592)]) & not_ink(rgb), inset=1)
     rock(K, 220, 592, 55, 34, -0.06, stone)
     K.leaves_only((150, 500, 380, 596), mask_rule(keep, (150, 500, 380, 596)))
@@ -2742,18 +2744,19 @@ def h5_4(K):
     bark = axis_material(K, wood_ok, lambda py: 252.0, squeeze=0.88, inset=1)
     # the short trunk, forking at its middle into the painted left stem and main stem, a limb to the right, two
     # snapped-off stubs, and limbs going back into the crown
-    parts = [limb(K, [(250, 640, 34), (250, 600, 30), (251, 560, 28), (252, 525, 25)], bark, segments=16,
+    # (traced off the painting row by row; radii less the outline the game draws round them)
+    parts = [limb(K, [(255, 640, 33), (253, 600, 26), (252, 560, 26), (252, 530, 26)], bark, segments=16,
                   name="trunk")]
-    for pts, ys in (([(240, 535, 16), (228, 500, 15), (218, 462, 14), (211, 425, 12), (206, 395, 10), (203, 368, 8)],
-                     [0, -0.01, -0.02, -0.03, -0.045, -0.06]),
-                    ([(256, 530, 20), (259, 490, 19), (260, 455, 17), (262, 420, 13), (262, 385, 10), (262, 360, 8)],
-                     [0, 0.005, 0.01, 0.02, 0.03, 0.04]),
-                    ([(262, 495, 12), (276, 470, 11), (288, 440, 9), (298, 410, 7), (304, 378, 5)],
-                     [0, 0.0, 0.01, 0.02, 0.03]),
-                    ([(222, 500, 7), (208, 495, 5.5), (200, 492, 4.5)], [0, -0.005, -0.005]),
-                    ([(272, 505, 7), (292, 503, 5.5), (306, 502, 4.5)], [0, -0.005, -0.005]),
-                    ([(258, 500, 11), (245, 450, 8), (235, 410, 5)], [0, 0.05, 0.1]),
-                    ([(260, 500, 11), (282, 455, 8), (296, 420, 5)], [0, 0.06, 0.11])):
+    for pts, ys in (([(232, 530, 10), (222, 512, 9), (215, 495, 8), (209, 475, 6), (206, 455, 4), (204, 438, 3)],
+                     [0, -0.005, -0.01, -0.02, -0.03, -0.04]),
+                    ([(262, 532, 20), (268, 505, 18), (266, 485, 17), (261, 465, 13), (261, 445, 9), (264, 425, 6),
+                      (267, 405, 4)], [0, 0.0, 0.005, 0.01, 0.02, 0.03, 0.04]),
+                    ([(272, 518, 9), (287, 490, 8), (295, 470, 7), (303, 450, 6), (306, 430, 4), (305, 410, 3)],
+                     [0, 0.0, 0.0, 0.01, 0.02, 0.03]),
+                    ([(250, 485, 6), (241, 462, 5), (235, 440, 3)], [0, -0.01, -0.02]),
+                    ([(283, 506, 5), (299, 503, 4), (307, 501, 3.5)], [0, -0.005, -0.005]),
+                    ([(258, 500, 10), (245, 450, 7), (235, 410, 4)], [0, 0.05, 0.1]),
+                    ([(260, 500, 10), (282, 455, 7), (296, 420, 4)], [0, 0.06, 0.11])):
         parts.append(limb(K, pts, bark, y=ys, segments=12))
     for k in range(5):                                   # roots flaring at the foot
         a = 2 * math.pi * (k + K.rng.uniform(-0.25, 0.25)) / 5
@@ -2767,7 +2770,7 @@ def h5_4(K):
     keep = opaque & ~halo(rgb) & box_mask(opaque.shape, [(0, 0, P.w, 520)]) & ~(barkish(rgb) & (mx < 200))
     keep = ndimage.binary_opening(keep, iterations=1)
     bush(K, (0, 0, P.w, 500), (255, 260), P.m(480) * 0.38, (480, 150, 130, 50), (100, 88), keep,
-         dome=(260, 0, 500), core=0.2)
+         dome=(260, 0, 500), core=0.2, vol_turn=(32, 22))
     gb = (150, 540, 370, 640)
     K.leaves_only(gb, mask_rule(leafy(rgb) & ~halo(rgb) & ~wood_ok, gb))
     grass = [(158, 548, 240, 638), (278, 546, 364, 636)]

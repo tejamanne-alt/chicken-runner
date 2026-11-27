@@ -15,15 +15,19 @@ from mathutils import Matrix, Vector
 from kitlib import Mat, _image, _vary, model, seamless
 
 
-def strip_tile(K, box, vary=0.05, soften=0.4, size=None):
-    """K.tile for a thin strip of the painting (a cornice, a coping, a ledge, a beam, a pillar's face): the strip
-    stacked with its mirror image into about a square first (rows for a band, columns for a column), so on a slab's
-    top, a cap or a deep side it does not stretch into streaks or show a seam every strip's width (like
-    market_props.strip_tile; kept here so this module does not depend on another one). size: the square's width in
-    metres (default as painted)."""
+def strip_tile(K, box, vary=0.05, soften=0.4, size=None, mirror=True):
+    """K.tile for a thin strip of the painting (a cornice, a coping, a ledge, a beam, a pillar's face, a band of
+    thatch): the strip stacked into about a square first (rows for a band, columns for a column), so on a slab's top,
+    a cap or a deep side it does not stretch into streaks or show a seam every strip's width (like
+    market_props.strip_tile; kept here so this module does not depend on another one). Bands stack each row as the
+    mirror of the one above (mirror=False: the same way up, each shifted along and cross-faded: thatch, whose
+    mirrored strands zigzag into chevrons); columns always side by side, each rolled a different way up (mirrored
+    copies make a symmetric print, like a Rorschach blot). Sampled twice at different scales and offsets blended by a
+    large soft noise, as K.tile is, so a long face never shows the square's grid. size: the square's width in metres
+    (default as painted)."""
     from PIL import Image
     P = K.paint
-    key = ("lh_strip", tuple(int(v) for v in box), soften, size)
+    key = ("lh_strip", tuple(int(v) for v in box), soften, size, mirror)
     if key in K._mats:
         return K._mats[key]
     a = np.asarray(P.crop(box).convert("RGB")).astype(np.float32)
@@ -31,32 +35,62 @@ def strip_tile(K, box, vary=0.05, soften=0.4, size=None):
         med = np.median(a.reshape(-1, 3), axis=0)
         a = a * (1 - soften) + med * soften
     w, h = a.shape[1], a.shape[0]
-    if w >= h:                                   # a band: rows stacked, each the mirror of the one above
-        n = max(1, int(round(w / max(1, h))))
-        sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
-    else:                                        # a column (a pillar's face): copies side by side, each rolled
-        n = max(1, int(round(h / max(1, w))))    # a different way up and cross-faded into the last (mirrored copies
-        bw = max(2, w // 5)                      # make a symmetric print, like a Rorschach blot)
+
+    def join(a, n, axis, roll_axis):
+        L = a.shape[1 - axis] if axis == 1 else a.shape[0]
+        bw = max(2, (a.shape[axis]) // 5)
         sq = a.copy()
         for k in range(1, n):
-            nxt = np.roll(a, int(h * (0.37 * k % 1.0)), axis=0)
-            ramp = np.linspace(0, 1, bw)[None, :, None]
-            sq[:, -bw:] = sq[:, -bw:] * (1 - ramp) + nxt[:, :bw] * ramp
-            sq = np.concatenate([sq, nxt[:, bw:]], axis=1)
+            nxt = np.roll(a, int(a.shape[roll_axis] * (0.37 * k % 1.0)), axis=roll_axis)
+            ramp = np.linspace(0, 1, bw)
+            ramp = ramp[None, :, None] if axis == 1 else ramp[:, None, None]
+            if axis == 1:
+                sq[:, -bw:] = sq[:, -bw:] * (1 - ramp) + nxt[:, :bw] * ramp
+                sq = np.concatenate([sq, nxt[:, bw:]], axis=1)
+            else:
+                sq[-bw:] = sq[-bw:] * (1 - ramp) + nxt[:bw] * ramp
+                sq = np.concatenate([sq, nxt[bw:]], axis=0)
+        return sq
+    if w >= h:
+        n = max(1, int(round(w / max(1, h))))
+        if mirror:
+            sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+        else:
+            sq = join(a, n, 0, 1)
+    else:
+        sq = join(a, max(1, int(round(h / max(1, w)))), 1, 0)
     sq = Image.fromarray(sq.clip(0, 255).astype(np.uint8))
     sw = size or P.m(sq.width)
+    sh = sw * sq.height / sq.width
     m = Mat(f"{K.name}_lhstrip{len(K._mats)}")
     img = _image(seamless(sq, 0.2), m.mat.name)
     coord = m.nt.nodes.new("ShaderNodeTexCoord")
-    tex = m.nt.nodes.new("ShaderNodeTexImage")
-    tex.image = img
-    tex.projection = "BOX"
-    tex.projection_blend = 0.25
-    mapping = m.nt.nodes.new("ShaderNodeMapping")
-    mapping.inputs["Scale"].default_value = (1 / sw, 1 / sw, 1 / (sw * sq.height / sq.width))
-    m.nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
-    m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
-    col = tex.outputs["Color"]
+    samples = []
+    for scale, offset in ((1.0, 0.0), (0.77, 0.381)):
+        tex = m.nt.nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        tex.projection = "BOX"
+        tex.projection_blend = 0.25
+        mapping = m.nt.nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = (scale / sw, scale / sw, scale / sh)
+        mapping.inputs["Location"].default_value = (offset, offset * 0.7, offset * 1.3)
+        m.nt.links.new(coord.outputs["Object"], mapping.inputs["Vector"])
+        m.nt.links.new(mapping.outputs[0], tex.inputs["Vector"])
+        samples.append(tex.outputs["Color"])
+    noise = m.nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 0.9 / max(sw, sh)
+    noise.inputs["Detail"].default_value = 2.0
+    m.nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = m.nt.nodes.new("ShaderNodeMapRange")
+    ramp.inputs["From Min"].default_value = 0.4
+    ramp.inputs["From Max"].default_value = 0.6
+    m.nt.links.new(noise.outputs["Fac"], ramp.inputs["Value"])
+    mix = m.nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    m.nt.links.new(ramp.outputs["Result"], mix.inputs["Factor"])
+    m.nt.links.new(samples[0], mix.inputs["A"])
+    m.nt.links.new(samples[1], mix.inputs["B"])
+    col = mix.outputs["Result"]
     if vary:
         col = _vary(m, col, vary, 3.0 / sw)
     m.set_colour(col)
@@ -668,7 +702,8 @@ def turned_post(K, cx_px, prof_px, y, keep, name="post", segments=20, squeeze=0.
     """A turned wooden pillar from its painted outline [(radius px, y px), ...] bottom up, at depth y, its own
     painted bands all round."""
     P = K.paint
-    mat = K.projected(axis_x=P.x(cx_px), squeeze=squeeze, keep=keep)
+    # (the cut-out's white halo beside a pillar is left out of its paint: it showed as a white stripe down its side)
+    mat = projected_solid(K, keep, axis_x=P.x(cx_px), squeeze=squeeze)
     return K.lathe([(P.m(r), P.z(py)) for r, py in prof_px], mat, segments=segments, centre=(P.x(cx_px), y, 0.0),
                    name=name)
 
@@ -2025,9 +2060,9 @@ def house_village_head(K):
     for cx in (563, 922, 1423, 1782):
         turned_post(K, cx, PILLAR_VH, yp, keep=[(cx - 34, 860, cx + 34, 1175)], name="pillar")
     short = [(r, 1027 - (1172 - y) * (1027 - 870) / (1172 - 862)) for r, y in PILLAR_VH]
-    for cx in (184, 2158):
+    for cx in (175, 2152):                             # (measured: they stood 6-9 px right of the painted ones)
         turned_post(K, cx, short, yp, keep=[(cx - 34, 860, cx + 34, 1030)], name="pillar_end")
-    for cx in (184, 563, 922, 1423, 1782, 2158):
+    for cx in (175, 563, 922, 1423, 1782, 2152):
         K.prism([(P.x(cx + dx), P.z(py)) for dx, py in BRACKET_VH], yp - 0.08, yp + 0.08, bracket_m, name="bracket")
     K.box(P.x(45), P.x(2280), yp - 0.12, yp + 0.12, P.z(806), P.z(790), fascia, bevel=0.01, name="veranda_beam")
     # the veranda roof: a lean-to from the band, hipped at its ends, a gable over the door
@@ -2038,6 +2073,13 @@ def house_village_head(K):
     for xe, xt in ((13, 257), (2312, 2068)):
         tiled_quad(K, [(P.x(xe), 0.0, ze), (P.x(xe), eY, ze), (P.x(xt), 0.0, zt), (P.x(xt), 0.0, zt)], tiles_low,
                    courses=5, nu=8, name="veranda_hip")
+        # the rolled ridge tiles along the hip line, as painted (a row of round caps)
+        K.tube([(P.x(xe), eY, ze + 0.05), (P.x(xt), 0.0, zt + 0.05)], P.m(11), clay, segments=8, name="hip_cap")
+        for k in range(1, 6):
+            f = k / 6
+            K.lathe([(P.m(12), -0.03), (P.m(14), 0.0), (P.m(12), 0.03)], clay, segments=10,
+                    centre=(P.x(xe) + (P.x(xt) - P.x(xe)) * f, eY * (1 - f), ze + 0.05 + (zt - ze) * f),
+                    name="hip_roll")
     zg = P.z(603)
     gY = eY - 0.12
     K.prism([(P.x(895), P.z(806)), (P.x(1431), P.z(806)), (P.x(1163), P.z(590))], gY, gY + 0.16,

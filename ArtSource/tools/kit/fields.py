@@ -1284,8 +1284,9 @@ def canal_piece_1(K):
     post = proj_tiles(K, [(160, 150, 350, 954)], [(0, 0, 160, 954), (262, 185, 345, 292)], grain, grain,
                       side_size=P.m(40), top_size=P.m(40), y_from=0.45, y_to=0.75, inset=3, soften=0.2, vary=0.05)
     # the post: a trunk widening into its fork and two thick prongs, as one piece of timber
-    parts = [K.tube([P.pt(266, 950), P.pt(266, 800), P.pt(266, 600), P.pt(265, 450), P.pt(264, 380)],
-                    [P.m(32), P.m(31), P.m(30), P.m(34), P.m(37)], post, segments=14, name="trunk"),
+    parts = [K.tube([P.pt(266, 952), P.pt(265, 900), P.pt(263, 800), P.pt(262, 700), P.pt(262, 600), P.pt(261, 460),
+                     P.pt(259, 400)], [P.m(37), P.m(35), P.m(31), P.m(30), P.m(28.5), P.m(29.5), P.m(35)], post,
+                    segments=14, name="trunk"),
              K.tube([P.pt(260, 400), P.pt(222, 300), P.pt(203, 245), P.pt(194, 180)],
                     [P.m(30), P.m(28), P.m(23), P.m(19)], post, segments=12, name="prong"),
              K.tube([P.pt(270, 400), P.pt(295, 300), P.pt(306, 245), P.pt(320, 168)],
@@ -1297,7 +1298,8 @@ def canal_piece_1(K):
                           grain.transpose(Image.ROTATE_90), side_size=P.m(380), top_size=P.m(380), y_from=0.45,
                           y_to=0.75, inset=2, soften=0.2, vary=0.05)
     yb = 0.12
-    K.tube([P.pt(40, 459, yb), P.pt(324, 237, yb), P.pt(608, 15, yb)], P.m(15.5), beam_mat, segments=12, name="beam")
+    K.tube([P.pt(40, 458, yb), P.pt(324, 232, yb), P.pt(608, 7, yb)], [P.m(19), P.m(16), P.m(12.5)], beam_mat,
+           segments=12, name="beam")                         # tapering from its butt to its tip, as painted
     K.tube([P.pt(256, 286, -0.1), P.pt(256, 286, yb + 0.12)], P.m(6), wood, segments=8, name="pin")
     # the counterweight: a rough block of stone, painted turned so its front and right faces both show (turned the
     # same in plan here), hung by a loop of rope from the beam's short end; the painted grain on its unpainted faces
@@ -1320,8 +1322,8 @@ def canal_piece_1(K):
         K.tube([P.pt(577, 446, yb), (P.x(577) + P.m(30) * math.cos(t), yb - P.m(30) * math.sin(t), P.z(478))],
                P.m(2.5), rope, segments=5, name="sling")
     pot = K.projected(axis_x=P.x(577), squeeze=0.9, keep=[(508, 468, 645, 606)], inset=3)
-    prof = [(30, 604), (46, 597), (58, 582), (63, 560), (62, 540), (55, 520), (45, 507), (30, 498), (28, 492),
-            (34, 488), (35, 478), (31, 472)]
+    prof = [(20, 603), (30, 598), (40, 590), (48, 582), (55, 570), (60, 558), (62, 546), (61, 534), (56, 520),
+            (46, 508), (36, 500), (28, 494), (31, 488), (33, 484), (33, 478), (30, 472)]
     K.lathe([(P.m(r), P.z(y)) for r, y in prof], pot, segments=32, centre=(P.x(577), yb, 0), wobble=0.01, name="pot",
             cap=False)
     inside = K.colour((0.09, 0.035, 0.015), vary=0.1)

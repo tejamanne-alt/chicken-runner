@@ -196,6 +196,17 @@ def img_tile(K, pil, size, vary=0.0, name="tile"):
     return m
 
 
+def fibre_tile(K, ok, streak=17, vary=0.05):
+    """A tile of a fibrous material (coconut husk): a quilt of its painted surface drawn out into fibres along x (a
+    box blur along the rows, wrapping round), keeping the painted colours and their light and dark strands."""
+    pil, size = quilt(K, ok, out=256, patch=20, overlap=6, soften=0.0, turn=False)
+    a = np.asarray(pil).astype(np.float32)
+    k = np.ones(streak) / streak
+    a = ndimage.convolve1d(a, k, axis=1, mode="wrap")
+    a = ndimage.convolve1d(a, np.ones(2) / 2, axis=0, mode="wrap")
+    return img_tile(K, Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGB"), size, vary=vary)
+
+
 def quilt_tile(K, ok, vary=0.06, soften=0.25, patch=32, out=256, turn=True):
     pil, size = quilt(K, ok, out=out, patch=patch, soften=soften, turn=turn)
     return img_tile(K, pil, size, vary=vary)
@@ -771,7 +782,9 @@ def coconut(K):
     c = np.array((xs.mean() + 0.5, ys.mean() + 0.5))
     inner = ndimage.binary_erosion(body, iterations=6) & halo_free(P)
     rgb, okr = unrolled(P, inner, c, d, 110, 100)
-    pil, size = quilt(K, okr, out=192, patch=22, overlap=6, soften=0.15, turn=False, rgb=rgb)
+    pil, size = quilt(K, okr, out=192, patch=22, overlap=6, soften=0.1, turn=False, rgb=rgb)
+    a = ndimage.convolve1d(np.asarray(pil).astype(np.float32), np.ones(13) / 13, axis=1, mode="wrap")
+    pil = Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGB")        # drawn out into fibres along the nut
     ob, _ = lying_body(K, inset_px(body, 3), None, lobes=0.035, name="nut")
     rho = float(max(v.co.y for v in ob.data.vertices))
     husk = axis_quilt(K, c, d, pil, size, max(1, round(2 * math.pi * rho / size)))
@@ -811,8 +824,15 @@ def husk(K):
     cols = np.nonzero(body.any(0))[0]
     x0, x1 = cols.min(), cols.max()
     xs = np.linspace(x0 + 1, x1 - 1, 44)
-    top = np.array([np.nonzero(body[:, int(x)])[0].min() for x in xs], float)
-    bot = np.array([np.nonzero(body[:, int(x)])[0].max() for x in xs], float)
+    def run(col):
+        """The longest run of the body down a column (a strand lying apart under it is not the hull)."""
+        r = np.nonzero(col)[0]
+        cuts = np.nonzero(np.diff(r) > 1)[0]
+        segs = np.split(r, cuts + 1)
+        seg = max(segs, key=len)
+        return seg[0], seg[-1]
+    ext = np.array([run(body[:, int(x)]) for x in xs], float)
+    top, bot = ext[:, 0], ext[:, 1]
     bot = ndimage.uniform_filter1d(bot, 3)                  # the far rim keeps its torn teeth
     t = (xs - xs[0]) / (xs[-1] - xs[0])
     # the near rim: where the painted hull's band meets the lining above it (lower on the right, where the far rim
@@ -846,10 +866,8 @@ def husk(K):
         if f.normal.y * c.y + f.normal.z * (c.z - z_axis) < 0:
             f.normal_flip()
     # its outside and its lining: quilts of the painted hull and lining, their fibres running along it as painted
-    outside = quilt_tile(K, colour_ok(P, (40, 135, 235, 190), tol=75, erode=1, extra=lum(P) > 60), patch=24,
-                         soften=0.0, turn=False)
-    inside = quilt_tile(K, colour_ok(P, (90, 55, 225, 125), tol=75, erode=1, extra=lum(P) > 45), patch=24,
-                        soften=0.0, turn=False)
+    outside = fibre_tile(K, colour_ok(P, (40, 135, 235, 190), tol=75, erode=1, extra=lum(P) > 60))
+    inside = fibre_tile(K, colour_ok(P, (90, 55, 225, 125), tol=75, erode=1, extra=lum(P) > 45))
     ob = _obj("shell", bm, outside, smooth=True)
     mod = ob.modifiers.new("solid", "SOLIDIFY")
     mod.thickness = 0.014
@@ -1239,7 +1257,7 @@ def field_bed(K, x0, x1, top_py, depth, top=None, base_py=None, ridges=0.0, rows
     top_py down to its foot."""
     P = K.paint
     base_py = base_py if base_py is not None else lowest_row(P, x0 + 20, x1 - 20)
-    band = front or (x0 + 4, top_py, x1 - 4, base_py)
+    band = front or (x0 + 4, top_py, x1 - 4, base_py - 2)     # not the pale fringe under the painted band's foot
     back_m = K.projected(squeeze=1.0, keep=[band], inset=2)
     top_z, zb = P.z(top_py), P.z(base_py)
     X0, X1 = P.x(x0), P.x(x1)
@@ -1526,8 +1544,8 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
             sx = float(np.clip(cx, x0 + width_px / 2, x1 - width_px / 2))
             w = P.m(width_px) * cross_scale
             plant_card(K, (sx - width_px / 2, top_py, sx + width_px / 2, base_py),
-                       (P.x(cx), fy + w * 0.5 + 0.01, P.z(base_py)), 90 + K.rng.uniform(-6, 6), cross_scale,
-                       name=name)
+                       (P.x(cx), fy + w * 0.5 + 0.01, min(P.z(base_py), z_foot)), 90 + K.rng.uniform(-6, 6),
+                       cross_scale, name=name)
     for y in rows[1:]:
         # planted on a grid (each plant behind a painted one: `at`), or every ~step_px along the row
         spots = ([a + K.rng.uniform(-0.06, 0.06) * step_px for a in at] if at is not None else None)
@@ -1542,7 +1560,9 @@ def crop_rows(K, x0, x1, top_py, base_py, rows, z_foot, slices, width_px, step_p
             for k in range(2 if cross else 1):
                 sx = own if K.rng.uniform() < same else float(K.rng.choice(src))
                 box = (sx - width_px / 2, top_py, sx + width_px / 2, base_py)
-                plant_card(K, box, (fx, fy, z_foot), base_yaw + (90 + K.rng.uniform(-20, 20) if k else 0),
+                # the crossed card square to the painting (give or take a little): turned further, its plant would
+                # show mirrored beside the painted ones from the front
+                plant_card(K, box, (fx, fy, z_foot), (90 + K.rng.uniform(-12, 12)) if k else base_yaw,
                            s * (0.92 if k else 1.0), () if k else features, make, name=name)
                 if not k:
                     feet.append((fx, fy, z_foot, base_yaw, s, sx))
@@ -1740,7 +1760,8 @@ def crop_strip_7(K):
                            s * (0.9 if j else 1), name="banana")
 
 
-def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None, at=None):
+def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, x0=None, x1=None, at=None,
+          tol=30):
     """A strip of paddy: clumps of long blades (and their panicles) in rows on a low bed of field mud (its top a quilt
     of the painted mud, bed_box)."""
     P = K.paint
@@ -1751,17 +1772,18 @@ def paddy(K, top_py, base_py, bed_py, rows, slices, width_px, step_px, bed_box, 
     allc = np.nonzero(a[:bed_py].any(0))[0]
     bx0, bx1 = (x0, x1) if x0 is not None else (int(allc.min()) + 20, int(allc.max()) - 20)
     depth = rows[-1] - rows[0] + 0.4
-    field_bed(K, bx0, bx1, bed_py, depth, top=bed_top(K, bed_box, tol=30, erode=1, patch=16), ridges=0.03,
-              rows=rows)
-    crop_rows(K, int(allc.min()) - 1, int(allc.max()) + 2, top_py, base_py, rows, P.z(bed_py), slices, width_px,
-              step_px, scale=(0.8, 0.96), yaw=40, src=at, at=at)
+    field_bed(K, bx0, bx1, bed_py, depth, top=bed_top(K, bed_box, tol=tol, erode=1 if tol <= 30 else 0, patch=16),
+              ridges=0.03, rows=rows)
+    # the plants behind stand with the painted strip of mud at their feet under the bed's top
+    crop_rows(K, int(allc.min()) - 1, int(allc.max()) + 2, top_py, base_py, rows, P.z(bed_py + 10), slices, width_px,
+              step_px, scale=(0.8, 0.96), yaw=30, src=at, at=at)
 
 
 @model("paddy_ripe", "fields", kind="prop")
 def paddy_ripe(K):
     """A row of ripe paddy, 1.2 m deep: golden clumps of blades, the heavy grain heads drooping over them."""
     rows = [-0.6 + 0.15 + k * 0.22 for k in range(5)]
-    paddy(K, 0, 284, 284, rows, 9, 110, 85, (20, 282, 760, 292), at=[117, 211, 303, 400, 479, 574, 661])
+    paddy(K, 0, 284, 284, rows, 9, 110, 85, (20, 279, 760, 288), at=[117, 211, 303, 400, 479, 574, 661], tol=48)
 
 
 @model("paddy_tall", "fields", kind="prop")

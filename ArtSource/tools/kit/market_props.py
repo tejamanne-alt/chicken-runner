@@ -64,10 +64,14 @@ def square_tile(K, box, vary=0.06, soften=0.3, size=None, image=None, key=None, 
         med = np.median(a.reshape(-1, 3), axis=0)
         a = a * (1 - soften) + med * soften
     w, h = a.shape[1], a.shape[0]
-    n = max(1, int(round(w / max(1, h))))
-    sq = Image.fromarray(np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
-                         .clip(0, 255).astype(np.uint8))
-    sw = size or P.m(w)
+    if w >= h:
+        n = max(1, int(round(w / max(1, h))))
+        sq = np.concatenate([a if k % 2 == 0 else a[::-1] for k in range(n)], axis=0)
+    else:
+        n = max(1, int(round(h / max(1, w))))
+        sq = np.concatenate([a if k % 2 == 0 else a[:, ::-1] for k in range(n)], axis=1)
+    sq = Image.fromarray(sq.clip(0, 255).astype(np.uint8))
+    sw = size or P.m(max(w, sq.width))
     sh = sw * sq.height / sq.width
     m = Mat(name or f"{K.name}_sqt{len(K._mats)}")
     img = _image(seamless(sq, 0.25), m.mat.name)
@@ -895,7 +899,7 @@ class Tray:
     so that from the front it is the painting: a point (px, py) of the painted tray lies on the tilted plane at depth
     y = -Dy/2 at the front pole (py_f) .. +Dy/2 at the back pole (py_b); h lifts it off the mat along its normal."""
 
-    def __init__(self, K, py_f, py_b, Dy, y_front=None):
+    def __init__(self, K, py_f, py_b, Dy, y_front=None):  # noqa: D107
         P = K.paint
         self.K, self.P, self.py_f, self.py_b, self.Dy = K, P, py_f, py_b, Dy
         self.y_front = -Dy / 2 if y_front is None else y_front
@@ -921,9 +925,10 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
     """The tray T: four bamboo poles along poles = (front-left, front-right, back-right, back-left) corner centres
     in px (crossing a little at the corners, lashed with cord at lashings [(pole 0 front, 1 back, 2 left, 3 right,
     t along it)]), the woven mat stretched between them (its top wears
-    the painting, as it lies; height(px, py) -> metres raises it into a heap of goods), its plain woven underside,
-    and two stacks of bricks propping the back up and flat stones under the front."""
+    the painting, as it lies; height(px, py) -> metres raises it into a heap of goods), its woven underside, two
+    bamboo legs lashed under the back pole propping it up, and flat stones under the front one."""
     P = K.paint
+    pale_halo(K)
     fl, fr, br, bl = poles
     pr = P.m(pole_r_px)
     bamboo = K.tile((60, 117, 120, 131), vary=0.08)
@@ -941,8 +946,8 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
         c = A.lerp(B, t)
         ob = ring(K, 0, 0, 0, pr * 1.06, pr * 0.2, cord, axis="x", n=12, name="lashing")
         ob.data.transform(Matrix.Translation(c) @ d.to_track_quat("X", "Z").to_matrix().to_4x4())
-    # the mat, its top the painting as it lies
-    top = K.projected(squeeze=1.0, inset=0)
+    # the mat, its top the painting as it lies (straight through, without the cut-out's pale halo)
+    top = wrapped(K, 0.0, squeeze=1.0, front_deg=179.9, inset=0, halo=3)
     drop = P.m(mat_drop_px)
     nu, nv = 44, 26
 
@@ -958,19 +963,19 @@ def drying_tray(K, T, poles, weave_box, lashings=(), pole_r_px=8.0, mat_drop_px=
             h += height(px, py)
         return tuple(T.over(px, py, h))
     K.sheet(surf, nu, nv, top, name="mat", smooth=True)
-    weave = K.colour(weave_box, vary=0.12, scale=30)
+    # its woven underside: a tile of the painted weave (from a clean strip between the poles and the goods)
+    weave = K.tile(weave_box, vary=0.1, soften=0.2)
     K.sheet(lambda u, v: tuple(T.at(*corner_lerp(1 - u, v), -drop - 0.006)), 8, 6, weave, name="mat_under",
             smooth=False)
-    # propped up: two stacks of bricks under the back pole, flat stones under the front one
-    brick = K.colour((0.32, 0.09, 0.04), vary=0.12)
-    stone = K.colour((0.25, 0.22, 0.19), vary=0.12)
-    for t in (0.15, 0.85):
+    # propped up: two bamboo legs under the back pole, lashed to it, flat stones under the front one
+    stone = K.colour((0.25, 0.22, 0.19), vary=0.2, scale=45.0)
+    for t in (0.12, 0.88):
         c = T.at(bl[0] + (br[0] - bl[0]) * t, bl[1])
-        ztop = c.z - pr
-        n = max(1, int(round(ztop / 0.055)))
-        for k in range(n):
-            K.block(c.x + K.rng.uniform(-0.005, 0.005), c.y, ztop * (k + 0.5) / n, 0.1, 0.05, ztop / n * 0.96, brick,
-                    rot=(0, 0, K.rng.uniform(-6, 6)), bevel=0.004, name="brick")
+        top_z = c.z - pr * 0.2
+        K.tube([(c.x, c.y + pr * 0.9, 0.0), (c.x, c.y + pr * 0.9, top_z)], pr * 0.85, bamboo, segments=10,
+               name="leg")
+        K.lathe([(0.0, top_z), (pr * 0.85, top_z)], bamboo, segments=10, centre=(c.x, c.y + pr * 0.9, 0), name="leg_top")
+        ob = ring(K, c.x, c.y + pr * 0.45, c.z - pr * 0.5, pr * 1.25, pr * 0.22, cord, axis="z", n=12, name="lashing")
         c = T.at(fl[0] + (fr[0] - fl[0]) * t, fl[1])
         zs = c.z - pr
         if zs > 0.003:
@@ -984,7 +989,8 @@ def chilli_mat(K):
     on bricks at the back (so it faces the sun, and the camera)."""
     P = K.paint
     T = Tray(K, 124, 15, 0.26)
-    poles = ((16, 124), (233, 124), (205, 15), (38, 15))
+    # a true rectangle (the painting draws the back pole shorter, in perspective: the front pole's length is kept)
+    poles = ((20, 124), (229, 124), (229, 15), (20, 15))
     # where the chillies are: their heap rises off the mat
     a = P.rgba[..., :3] * 255
     red = (a[..., 0] > 130) & (a[..., 0] > 1.5 * a[..., 1]) & (a[..., 0] > 1.5 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
@@ -995,7 +1001,7 @@ def chilli_mat(K):
         return P.m(9) * float(pile[int(min(P.h - 1, max(0, py))), int(min(P.w - 1, max(0, px)))])
     lash = [(0, 0.03), (0, 0.97), (0, 0.27), (0, 0.5), (0, 0.73), (1, 0.03), (1, 0.97), (1, 0.33), (1, 0.66),
             (2, 0.06), (2, 0.94), (2, 0.5), (3, 0.06), (3, 0.94), (3, 0.5)]
-    drying_tray(K, T, poles, (24, 40, 36, 100), lashings=lash, height=height)
+    drying_tray(K, T, poles, (29, 42, 40, 102), lashings=lash, height=height)
     # the chillies on top of the heap: one along each painted chilli that stands out (its bright core), wearing its
     # painted colours
     core = (a[..., 0] > 175) & (a[..., 0] > 2.2 * a[..., 1]) & (a[..., 0] > 2.2 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
@@ -1057,10 +1063,11 @@ def papad_mat(K):
     bamboo poles, the tray propped on bricks at the back."""
     P = K.paint
     T = Tray(K, 122.5, 13, 0.26)
-    poles = ((15, 122.5), (233, 122.5), (205, 13), (38, 13))
+    # a true rectangle (the painting draws the back pole shorter, in perspective: the front pole's length is kept)
+    poles = ((19, 122.5), (229, 122.5), (229, 13), (19, 13))
     lash = [(0, 0.03), (0, 0.97), (0, 0.27), (0, 0.5), (0, 0.73), (1, 0.03), (1, 0.97), (1, 0.33), (1, 0.66),
             (2, 0.06), (2, 0.94), (2, 0.5), (3, 0.06), (3, 0.94), (3, 0.5)]
-    drying_tray(K, T, poles, (40, 22, 60, 36), lashings=lash)
+    drying_tray(K, T, poles, (30, 42, 40, 102), lashings=lash)
     top = K.projected(squeeze=1.0, inset=0)
     # (centre px, radius px, layer): the ones painted on top rest on the ones under them
     for (px, py), r, layer, tilt in (((91.5, 31), 26, 0, (3, -2)), ((140.5, 33.5), 35.5, 1, (-4, 3)),
