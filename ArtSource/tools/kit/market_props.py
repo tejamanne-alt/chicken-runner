@@ -1434,7 +1434,8 @@ def bamboo(K, axis, hc, zc, r, a0, box=(30, 114, 214, 127), vary=0.06):
     return m
 
 
-def level_tray(K, T, weave_box, goods, height=None, hmax=0.0):
+def level_tray(K, T, weave_box, goods, nodes_front, nodes_back=(94.5, 141.0), node_rows=(34.0, 66.0, 98.0), height=None,
+               hmax=0.0):
     """The tray T built level on the ground: four bamboo poles crossing at the corners (lashed with cane wraps where
     the painting shows them), the woven mat on the ground between them, its top wearing the painting (projected along
     the slope by the bake; mat_mirrored where the projection does not reach), its underside the painted weave;
@@ -1458,6 +1459,18 @@ def level_tray(K, T, weave_box, goods, height=None, hmax=0.0):
     for xs in (T.xl, T.xr):
         K.tube([(xs, -T.rf - T.r * 0.15, T.zs), (xs, T.yb + T.r * 0.7, T.zs)], T.r,
                bamboo(K, "y", xs, T.zs, T.r, -T.rf), segments=12, name="pole_side")
+    # the bamboo's nodes, low ridges round the poles where the painting draws them (on the front and back poles at
+    # their painted places, on the side poles at the depths their painted bands land)
+    for px in nodes_front:
+        ring(K, P.x(px), 0.0, zf, T.rf * 1.0, T.rf * 0.11, bamboo(K, "x", 0.0, zf, T.rf, P.x(30)), axis="x", n=14,
+             name="node")
+    for px in nodes_back:
+        ring(K, P.x(px), T.yb, zb, T.r, T.r * 0.13, bamboo(K, "x", T.yb, zb, T.r, P.x(30)), axis="x", n=12,
+             name="node")
+    for xs in (T.xl, T.xr):
+        for row in node_rows:
+            ring(K, xs, (P.z(row) - T.zs) / k, T.zs, T.r, T.r * 0.13, bamboo(K, "y", xs, T.zs, T.r, -T.rf), axis="y",
+                 n=12, name="node")
     # cane wraps where the poles cross: round the front pole at the painted bands (21-28 px, 215-222 px), round the
     # back pole as far in from the side poles, round the side poles in front of the back pole and behind the front one
     cane = K.colour((22, 114, 27, 126), vary=0.12, pct=55)
@@ -1603,7 +1616,8 @@ def chilli_mat(K):
     chillies = (a[..., 0] > 110) & (a[..., 1] < 0.5 * a[..., 0]) & (a[..., 2] < 0.45 * a[..., 0])
     stems = (a[..., 1] > 60) & (a[..., 1] >= 0.85 * a[..., 0]) & (a[..., 2] < 0.6 * a[..., 1])
     goods = ndimage.binary_closing((chillies | stems) & (P.rgba[..., 3] > 0.5), iterations=1) & inside
-    surf_z = level_tray(K, T, (24, 94, 39, 108), goods, height=height, hmax=hmax)
+    surf_z = level_tray(K, T, (24, 94, 39, 108), goods, (37, 64.5, 101.5, 137.5, 161.5, 198), height=height,
+                        hmax=hmax)
     # the chillies on top of the heap: one along each painted chilli that stands out (its bright core), lying on the
     # heap where its painted place lands along the slope, wearing its painted colours
     core = (a[..., 0] > 175) & (a[..., 0] > 2.2 * a[..., 1]) & (a[..., 0] > 2.2 * a[..., 2]) & (P.rgba[..., 3] > 0.5)
@@ -1658,7 +1672,7 @@ def papad_mat(K):
     goods = np.zeros((P.h, P.w), bool)
     for cx, my, r, ratio, roll, layer in papads:
         goods |= ((xx - cx) / (r + 2)) ** 2 + ((yy - my) / (r * ratio + 2)) ** 2 < 1
-    level_tray(K, T, (179, 20, 198, 40), goods)
+    level_tray(K, T, (179, 20, 198, 40), goods, (37, 66.5, 101.5, 138, 169.5, 198))
     top = slope_projected(K, keep=[(24, 6, 224, 116)], inset=1)
     for i, (cx, my, r, ratio, roll, layer) in enumerate(papads):
         lying_papad(K, T, cx, my, r, ratio, roll, T.zm + 0.0018 + 0.0028 * layer, top, name=f"papad{i}")
