@@ -59,8 +59,8 @@ namespace ChickenRunner
         [SerializeField] internal float liftSeconds = 1.6f;
         [Tooltip("How fast the basket drops back when the hold is let go, per second.")]
         [SerializeField] internal float dropRate = 2.5f;
-        [Tooltip("From the rooster bursting out to the chase starting, seconds.")]
-        [SerializeField] internal float burstDuration = 1.1f;
+        [Tooltip("The rooster's average speed as he bursts out to his head start, m/s (he peaks at about 1.4 times this).")]
+        [SerializeField] internal float burstSpeed = 8f;
 
         enum IntroPhase { Walk, Hold, Burst }
 
@@ -70,6 +70,7 @@ namespace ChickenRunner
         bool _neighbourWoke;
         float _introGap;
         float _introTimer;
+        float _burstLength;
         float _accumulator;
         bool _ready;
         bool _started;
@@ -326,7 +327,7 @@ namespace ChickenRunner
                         intro.Wake(true);
                         WorldBarks.Show("OI! MY ROOSTER!", intro.NeighbourPosition + Vector3.up * 1.5f, new Color(0.25f, 0.3f, 0.55f), 1.6f);
                     }
-                    if (_introTimer >= burstDuration) FinishIntro(_introGap);
+                    if (_introTimer >= _burstLength) FinishIntro(_introGap);
                     break;
                 }
             }
@@ -336,8 +337,12 @@ namespace ChickenRunner
         {
             _introPhase = IntroPhase.Burst;
             _introTimer = 0f;
-            _introGap = _lift.Gap(level.Tuning.Values);
-            rooster.BeginBurst(_introGap, burstDuration * 0.9f);
+            var t = level.Tuning.Values;
+            _introGap = _lift.Gap(t);
+            // Out from under the basket to his head start (9 to 13 m) at a startled sprint, arriving at his running
+            // speed just as the kid sets off.
+            _burstLength = RoosterBrain.BurstBeat + Mathf.Abs(_introGap - rooster.X) / Mathf.Max(1f, burstSpeed);
+            rooster.BeginBurst(_introGap, _burstLength, t.roosterRunSpeed);
         }
 
         void FinishIntro(float gap)

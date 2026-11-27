@@ -83,19 +83,23 @@ namespace ChickenRunner
         float _burstTo;
         float _burstTime;
         float _burstDuration;
+        float _burstEndSpeed;
 
         /// <summary>Seconds since the burst began (his visual shows the startled leap first).</summary>
         public float BurstTime => _burstTime;
+        /// <summary>The startled beat on the spot before the burst's sprint, seconds.</summary>
+        public const float BurstBeat = 0.25f;
 
         /// <summary>He bursts out from under the basket and sprints to <paramref name="toX"/> over <paramref name="duration"/> s.</summary>
-        public void BeginBurst(float toX, float duration)
+        public void BeginBurst(float toX, float duration, float endSpeed)
         {
             Act = RoosterAct.Burst;
             _hop = null;
             _burstFrom = _position.x;
             _burstTo = toX;
             _burstTime = 0f;
-            _burstDuration = Mathf.Max(0.1f, duration);
+            _burstDuration = Mathf.Max(BurstBeat + 0.1f, duration);
+            _burstEndSpeed = Mathf.Max(0f, endSpeed);
             WorldBarks.Show("BAWK!", _position + Vector2.up * 1f, new Color(0.85f, 0.2f, 0.1f));
             Debris.Feathers(new Vector3(_position.x, _position.y + 0.4f, 0f), new Color(0.9f, 0.45f, 0.15f), 10);
         }
@@ -103,10 +107,16 @@ namespace ChickenRunner
         void TickBurst(float dt)
         {
             _burstTime += dt;
-            // A beat on the spot (the startled leap), then a sprint that eases into his run at the end.
-            float k = Mathf.Clamp01((_burstTime - 0.25f) / Mathf.Max(0.05f, _burstDuration - 0.25f));
-            float eased = k * (2f - k);
-            float x = Mathf.Lerp(_burstFrom, _burstTo, eased);
+            // A beat on the spot (the startled leap), then a sprint from a standing start that eases down into his
+            // running speed as it arrives, so the chase picks up without a jolt: a cubic with no speed at the start and
+            // endSpeed at the end (its end slope s1, in units of the distance over the sprint's time, is kept under 3
+            // so he never runs back).
+            float sprint = _burstDuration - BurstBeat;
+            float k = Mathf.Clamp01((_burstTime - BurstBeat) / sprint);
+            float distance = _burstTo - _burstFrom;
+            float s1 = Mathf.Abs(distance) > 1e-3f ? Mathf.Clamp(_burstEndSpeed * sprint / Mathf.Abs(distance), 0f, 2.9f) : 0f;
+            float eased = (s1 - 2f) * k * k * k + (3f - s1) * k * k;
+            float x = _burstFrom + distance * eased;
             Speed = (x - _position.x) / Mathf.Max(dt, 1e-4f);
             _position.x = x;
             _position.y = GroundAt(x);
