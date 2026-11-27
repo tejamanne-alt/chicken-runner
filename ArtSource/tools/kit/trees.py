@@ -2767,10 +2767,11 @@ def h1_3(K):
         K.lathe([(P.m(4), P.z(ky + 14)), (P.m(6), P.z(ky + 6)), (P.m(6), P.z(ky - 6)), (P.m(4), P.z(ky - 14))], rope,
                 segments=10, centre=(P.x(kx), yb, 0.0), name="knot")
         for sx, dy in ((sx0, -P.m(28)), (sx1, P.m(28))):
-            K.tube([knot, (P.x(sx), yb + dy, P.z(888))], P.m(2.6), rope, segments=6, name="rope_v")
-    # the plank seat (its painted top face is the perspective of a level plank: from the front, its front face)
+            K.tube([knot, (P.x(sx), yb + dy, P.z(876))], P.m(2.6), rope, segments=6, name="rope_v")
+    # the plank seat, hanging a little askew as painted and turned in plan (its left end shows), level across its
+    # depth; the painted top face is perspective and not matched
     ys, _ = wood.at(470, 495)
-    K.block((P.x(383) + P.x(582)) / 2, ys, P.z(897), P.m(200), P.m(62), P.m(22), plank, rot=(0, 3.4, 0),
+    K.block((P.x(386) + P.x(578)) / 2, ys, P.z(887), P.m(192), P.m(62), P.m(30), plank, rot=(0, 3.4, 12),
             bevel=P.m(2), name="seat")
     # the frayed rope ends under it: the painted tassels, crossed cards (thin tubes read as black legs)
     def fibres(rgb):

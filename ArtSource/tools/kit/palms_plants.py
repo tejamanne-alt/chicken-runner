@@ -623,7 +623,7 @@ def turn_about(xc, yc, deg, dz=0.0, scale=1.0, zc=0.0):
 
 
 # ====================================================================== solids
-def ink_px(K, k=0.8):
+def ink_px(K, k=1.5):
     """How many painting px of the game's ink outline (as the audit draws it: 3-12 mm) to take off a painted
     radius that already includes the painted ink line, so the outlined solid is as wide as the painting."""
     P = K.paint
@@ -1999,7 +1999,7 @@ def h6_2(K):
     r, g, b, mx, mn = chan(rgb)
     opaque = P.rgba[..., 3] > 0.5
     t = 0.11                                       # half the wall's thickness
-    plaster = K.tile((310, 360, 450, 440), vary=0.05, soften=0.45)
+    plaster = K.tile((310, 360, 450, 440), vary=0.07, soften=0.25)
     coping = patch_tile(K, opaque & (mx > 120), (566, 146, 640, 166), vary=0.05, soften=0.35)   # its clean face
     brick = K.tile((505, 420, 620, 490), vary=0.04, soften=0.1)
     zb, ztop = P.z(503), P.z(176)
@@ -2010,8 +2010,8 @@ def h6_2(K):
                 (-t - 0.045, P.z(146))], P.x(14), P.x(80), coping, name="pillar_cap")
     # the pillar's outer end: its plaster cracked and fallen low down to the brick, as on its front
     xe = P.x(27) - 0.0015
-    patch_card(K, (30, 380, 100, 500), [Vector(v) for v in ((xe, t + 0.03, P.z(500)), (xe, -t - 0.03, P.z(500)),
-                                                             (xe, -t - 0.03, P.z(380)), (xe, t + 0.03, P.z(380)))],
+    patch_card(K, (28, 310, 100, 505), [Vector(v) for v in ((xe, t + 0.03, P.z(505)), (xe, -t - 0.03, P.z(505)),
+                                                             (xe, -t - 0.03, P.z(310)), (xe, t + 0.03, P.z(310)))],
                brickish, (-1.0, 0.0, 0.3), name="brick_pillar_end")
     # the coping along the top: sloping back a little, so from the front its top shows as the painted band
     along_x(K, [(-t - 0.025, P.z(176)), (t + 0.025, P.z(176)), (t + 0.025, P.z(150)), (0.0, P.z(138)),
@@ -2024,12 +2024,10 @@ def h6_2(K):
         patch_card(K, box, [Vector(v) for v in ((xb + w, t + 0.0015, P.z(y1)), (xb, t + 0.0015, P.z(y1)),
                                                 (xb, t + 0.0015, P.z(y0)), (xb + w, t + 0.0015, P.z(y0)))],
                    brickish, (0.0, 1.0, 0.3), name="brick_back")
-    K.quad([(P.x(632) + 0.001, -t, P.z(498)), (P.x(632) + 0.001, t, P.z(498)), (P.x(632) + 0.001, t, P.z(365)),
-            (P.x(632) + 0.001, -t, P.z(365))], patch_decal(K, (540, 365, 628, 498), brickish, (310, 360, 450, 440)),
-           name="brick_end")
-    K.quad([(P.x(632) + 0.001, -t, P.z(285)), (P.x(632) + 0.001, t, P.z(285)), (P.x(632) + 0.001, t, P.z(178)),
-            (P.x(632) + 0.001, -t, P.z(178))], patch_decal(K, (560, 178, 630, 285), brickish, (310, 360, 450, 440)),
-           name="brick_end")
+    xe2 = P.x(632) + 0.0015
+    for box, z0, z1 in (((540, 365, 628, 498), P.z(498), P.z(365)), ((560, 178, 630, 285), P.z(285), P.z(178))):
+        patch_card(K, box, [Vector(v) for v in ((xe2, -t, z0), (xe2, t, z0), (xe2, t, z1), (xe2, -t, z1))],
+                   brickish, (1.0, 0.0, 0.3), name="brick_end")
     # ---- the bougainvillea: a heap over the top of the wall, and its sprays hanging down the front and the back
     # the bracts (pink to deep purple), the olive leaves, and the ink round them; not the coping, plaster, brick
     magenta = (r > g + 25) & (b > g - 5)

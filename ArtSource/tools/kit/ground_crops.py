@@ -578,6 +578,24 @@ def tri_sheet(K, mask, step, yfn, mat, eps=1.2, back_y=None, thickness=0.0, name
     return ob
 
 
+def ground_anchor(K, foot_px):
+    """The one solid part a model of cards needs (the kit otherwise adds a dark 2 mm cube at the frame's foot, which
+    shows): a 2 mm triangle lying flat 1 mm under the ground, under the plant's foot: edge on from the side, under the
+    plant from above, under the ground in the game."""
+    P = K.paint
+    x = P.x(foot_px[0])
+    bm = bmesh.new()
+    vs = [bm.verts.new((x + dx, dy, -0.001)) for dx, dy in ((-0.001, -0.001), (0.001, -0.001), (0.0, 0.001))]
+    f = bm.faces.new(vs)
+    f.normal_update()
+    if f.normal.z > 0:
+        f.normal_flip()
+    rgb = P.colour((foot_px[0] - 3, foot_px[1] - 8, foot_px[0] + 4, foot_px[1] - 1))
+    K.parts.append(_obj("anchor", bm, K.colour(rgb, vary=0.0), smooth=False))
+    K.front_projection = False
+    K.ao = 0.0
+
+
 def ring_cards(K, box, base_px, yaws, y=0.0, scale=(0.85, 1.0), spread=0.0, normal_up=0.6, name="blades"):
     """Copies of the painting inside `box` (a tuft, a rosette, a bush) stood round its foot (base_px, painted), each
     turned to one of `yaws` degrees and scaled, its foot up to `spread` metres off the middle, so it is a tuft from
@@ -787,8 +805,11 @@ def coconut(K):
     c = np.array((xs.mean() + 0.5, ys.mean() + 0.5))
     inner = ndimage.binary_erosion(body, iterations=6) & halo_free(P)
     rgb, okr = unrolled(P, inner, c, d, 110, 100)
-    pil, size = quilt(K, okr, out=192, patch=22, overlap=6, soften=0.1, turn=False, rgb=rgb)
-    fib = ndimage.convolve1d(np.asarray(pil).astype(np.float32), np.ones(13) / 13, axis=1, mode="wrap")
+    # only the husk's mid tones: its painted light and shade quilted together come out as blotches
+    med = np.median(rgb[okr], axis=0)
+    okr &= np.linalg.norm(rgb - med, axis=-1) < 34
+    pil, size = quilt(K, okr, out=192, patch=16, overlap=5, soften=0.15, turn=False, rgb=rgb)
+    fib = ndimage.convolve1d(np.asarray(pil).astype(np.float32), np.ones(21) / 21, axis=1, mode="wrap")
     pil = Image.fromarray(fib.clip(0, 255).astype(np.uint8), "RGB")      # drawn out into fibres along the nut
     ob, _ = lying_body(K, inset_px(body, 3), None, lobes=0.035, name="nut")
     rho = float(max(v.co.y for v in ob.data.vertices))
@@ -948,7 +969,8 @@ def twigs(K):
         mid = (run[0] + run[-1]) / 2
         return x + n[0] * mid, y + n[1] * mid, (run[-1] - run[0]) / 2
     radius_of = {}
-    for pts in TWIGS:
+    branches = (1, 2, 4, 5, 7, 8, 10)                   # these start inside another twig: their first stretch is not
+    for ti, pts in enumerate(TWIGS):                    # snapped (the painted fork there is wider than the branch)
         # densify, snap onto the painted twig, with a little crook in depth so a twig is not a straight rod
         dense = []
         for (x0, y0, r0), (x1, y1, r1) in zip(pts, pts[1:]):
@@ -957,10 +979,16 @@ def twigs(K):
         dense.append(pts[-1])
         snapped = []
         for i, (x, y, r) in enumerate(dense):
+            if ti in branches and i < 4:
+                snapped.append((x, y, r))
+                continue
             a, b = dense[max(0, i - 1)], dense[min(len(dense) - 1, i + 1)]
             d = np.array((b[0] - a[0], b[1] - a[1]))
             d = d / max(1e-6, np.linalg.norm(d))
-            snapped.append(snap(x, y, d, r))
+            sx, sy, sr = snap(x, y, d, r)
+            if math.hypot(sx - x, sy - y) > 7:
+                sx, sy = x, y
+            snapped.append((sx, sy, float(np.clip(sr, 0.75 * r, 1.3 * r))))
         rr = ndimage.uniform_filter1d(np.array([r for _, _, r in snapped]), 3)
         xs = ndimage.uniform_filter1d(np.array([x for x, _, _ in snapped]), 3)
         ys = ndimage.uniform_filter1d(np.array([y for _, y, _ in snapped]), 3)
@@ -1051,9 +1079,10 @@ def tuft(K, n=5):
     foot = ((xs.min() + xs.max()) / 2, ys.max())
     K.card_from_painting(box, P.pt((box[0] + box[2]) / 2, (box[1] + box[3]) / 2, 0.0), name="tuft",
                          normal=(0, -0.4, 0.8))
-    # the turned copies between 35 and 145 degrees (never near face on: from the front they stay inside the painted
+    # the turned copies between 50 and 130 degrees (never near face on: from the front they stay inside the painted
     # fan, narrowed by their turn), on the painted foot; no mound (the painting has none)
-    yaws = [35 + 110 / max(1, n - 1) * k + K.rng.uniform(-6, 6) for k in range(n)]
+    yaws = [50 + 80 / max(1, n - 1) * k + K.rng.uniform(-5, 5) for k in range(n)]
+    ground_anchor(K, foot)
     ring_cards(K, box, foot, yaws, y=P.m(4), scale=(0.8, 0.92), spread=P.m(box[2] - box[0]) * 0.05, name="tuft")
 
 
@@ -1103,7 +1132,8 @@ def weed(K, stems, flowers, rosette_box, foot, upper=()):
         for yaw in (80, -80):
             K.card_from_painting(box, P.pt(cx, cy, P.m(3)), yaw=yaw + K.rng.uniform(-6, 6), name="flower",
                                  normal=(0, -0.3, 1))
-    ring_cards(K, rosette_box, foot, [45, 90, 135], y=P.m(3), scale=(0.8, 0.92), name="rosette")
+    ring_cards(K, rosette_box, foot, [50, 90, 130], y=P.m(3), scale=(0.8, 0.92), name="rosette")
+    ground_anchor(K, foot)
     for box, yaw in upper:
         cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
         K.card_from_painting(box, P.pt(cx, cy, P.m(4)), yaw=yaw, name="leaf", normal=(0, -0.3, 1))

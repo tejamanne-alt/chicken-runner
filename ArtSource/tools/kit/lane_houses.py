@@ -2548,10 +2548,11 @@ def panchayat_office(K):
     K.front_min = 0.1
     halo_exclude(K, [(1600, 580, 1872, 943)])
     wall = K.tile((180, 60, 520, 135), size=1.2, vary=0.05, soften=0.25)
-    deck = K.tile((168, 645, 222, 748), size=1.0, vary=0.06, soften=0.3)      # lit plaster, for the roof deck
+    deck = clean_tile(K, (180, 60, 520, 135), size=1.4, soften=0.3)          # the lit plaster, cleaned, for the roof
     # the dado where it is lit, right of the door (the old crop took a pillar's diagonal shadow)
     dado = K.tile((1005, 760, 1072, 868), size=0.7, vary=0.05, soften=0.3)
-    green = strip_tile(K, (300, 262, 900, 288), soften=0.3)                   # the sunshade's painted green, squared
+    # the sunshade's painted green between its ink edges (with them, stacked rows made a grille of dark lines)
+    green = strip_tile(K, (300, 261, 900, 278), soften=0.4, mirror=False)
     plinth = strip_tile(K, (100, 880, 600, 930), soften=0.3)                   # stacked square: its top is the floor
     wood = K.tile((760, 440, 860, 840), vary=0.04)
     frame = K.colour((225, 410, 235, 630), vary=0.06)

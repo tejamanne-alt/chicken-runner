@@ -1096,12 +1096,12 @@ def stall_h_2(K):
     K.front_min = 0.12
     rope = K.colour((0.12, 0.09, 0.04), vary=0.1)
     bam = pole_tile(K, line=((170, 560), (171, 700)), half=5)
-    # ---------------------------------------------------------------- a low, level plinth of packed red earth under the
+    # ---------------------------------------------------------------- a level patch of packed red earth under the
     # shelter (the painted red band is the ground seen from above; a rise sloping up to the back, as before, was a wedge
     # of earth from the sides). The posts, the stool and the basin stand on it.
-    hp = 0.12
-    earth = ktile(K, (40, 790, 140, 885), vary=0.08, soften=0.4)
-    K.box(P.x(25), P.x(1025), -0.98, 0.82, 0.0, hp, earth, bevel=0.035, name="plinth")
+    hp = 0.025
+    earth = ktile(K, (40, 790, 140, 885), vary=0.12, soften=0.1)
+    earth_patch(K, 0.0, -0.08, P.W / 2 + 0.05, 1.05, earth, h=hp)
     # the back posts' feet are painted over the red band: from the front their lower parts wear their own bamboo
     K.front_exclude += [(240, 735, 278, 780), (776, 735, 810, 770)]
     yfp, ybp = -0.79, 0.59
@@ -1208,7 +1208,7 @@ def stall_h_2(K):
         pts = [(cx2 + s_ * 0.035 * math.sin(2 * math.pi * i / 16) + s_ * 0.03, foot.y,
                 foot.z + hgt - 0.005 + 0.035 * math.cos(2 * math.pi * i / 16)) for i in range(17)]
         K.tube(pts, 0.008, brass, segments=6, name="basin_handle")
-    soap = K.projected(squeeze=1.0, keep=[(598, 852, 682, 900)], inset=2)
+    soap = ktile(K, (615, 864, 662, 880), vary=0.04)
     K.block(P.x(640), -0.86, hp + 0.03, P.m(80), 0.11, 0.06, soap, rot=(0, 0, 4), bevel=0.012, name="soap")
 
 
@@ -2007,7 +2007,7 @@ def stall_sweets(K):
     for (ax_, ay_), (bx_, by_) in (((150, 602), (262, 562)), ((190, 615), (272, 572)), ((268, 618), (290, 565)),
                                    ((348, 615), (308, 568)), ((432, 603), (330, 566))):
         K.tube([P.pt(ax_, ay_, yh - 0.42), P.pt(bx_, by_, yh)], P.m(14), logw, segments=8, name="log")
-    ember = K.colour((0.6, 0.15, 0.02), vary=0.2)
+    ember = ktile(K, (262, 562, 318, 582), vary=0.1)
     K.lathe([(0.0, 0.0), (0.14, 0.0), (0.11, 0.03), (0.0, 0.045)], ember, segments=16, centre=(P.x(287), yh + 0.06, 0.0),
             name="embers")
     K.leaves_only((235, 500, 350, 595), fire_pixels)
@@ -2045,7 +2045,7 @@ def stall_sweets(K):
         turned(K, cx, prof, y, m, segs=24, name="vessel")
     # ---------------------------------------------------------------- the low stone platform he sits on
     # stone blocks: a strip of the painted slab's front, squared, laid in courses (a plain grey block before)
-    slab = pole_tile(K, (440, 510, 900, 522), soften=0.35, vary=0.08)
+    slab = ktile(K, (350, 520, 420, 570), vary=0.08, soften=0.3)          # the painted stone of the hearth
     K.box(P.x(430), P.x(935), -0.25, 0.6, 0.0, Z(506), slab, bevel=0.02, name="platform")
     joint_ = K.colour((0.18, 0.17, 0.16), vary=0.05)
     for x_ in np.linspace(P.x(430), P.x(935), 5)[1:-1]:
@@ -2062,9 +2062,11 @@ def stall_sweets(K):
                 sy=0.5, name="jalebi")
     y3 = 0.25
     zt = Z(506)
-    K.box(P.x(677), P.x(814), y3 - 0.2, y3 + 0.2, zt, Z(472), plate, bevel=0.008, name="tray")
+    # a shallow steel tray (its painted front edge is the tray; the heap of jalebi fills the rest)
+    trayw = pole_tile(K, (690, 478, 800, 488), soften=0.2)
+    K.box(P.x(677), P.x(814), y3 - 0.2, y3 + 0.2, zt, Z(478), trayw, bevel=0.008, name="tray")
     j3 = ktile(K, (705, 440, 785, 470), vary=0.05)
-    heap_px(K, 745, y3, [(58, 474), (50, 455), (35, 442), (0, 432)], j3, sy=0.25 / P.m(58), name="jalebi")
+    heap_px(K, 745, y3, [(58, 478), (50, 455), (35, 442), (0, 432)], j3, sy=0.25 / P.m(58), name="jalebi")
     weave = ktile(K, (820, 470, 900, 495), vary=0.06)
     basket(K, P.x(868), 0.3, zt, [(P.m(52), 0.0), (P.m(62), Z(480) - zt), (P.m(66), Z(462) - zt)], weave, sy=0.85)
     j4 = ktile(K, (825, 415, 905, 460), vary=0.05)
@@ -2177,8 +2179,11 @@ def stall_veg(K):
         # a bed of the same produce under the top layer, so no board shows between the pieces
         b0, b1 = box[1], box[3]
         y0_, y1_ = board_y(Z(b1)), board_y(Z(b0))
+        # (a tile of the region's own produce: projected through, its back edge and underside were dragged stripes)
+        bw, bh = box[2] - box[0], box[3] - box[1]
+        bed_m = ktile(K, (box[0] + bw * 0.25, box[1] + bh * 0.3, box[2] - bw * 0.25, box[3] - bh * 0.2), vary=0.05)
         quad_sheet(K, [(P.x(box[0] + 6), y0_ - 0.03, Z(b1) + 0.02), (P.x(box[2] - 6), y0_ - 0.03, Z(b1) + 0.02),
-                       (P.x(box[2] - 6), y1_ - 0.03, Z(b0) + 0.02), (P.x(box[0] + 6), y1_ - 0.03, Z(b0) + 0.02)], m,
+                       (P.x(box[2] - 6), y1_ - 0.03, Z(b0) + 0.02), (P.x(box[0] + 6), y1_ - 0.03, Z(b0) + 0.02)], bed_m,
                    nu=4, nv=3, thick=0.03, name="bed")
         on_board(box, m, dark, mn, long, rmax)
     # the greens at the right end of the board

@@ -1,7 +1,36 @@
 """The lane's props, modelled from their paintings (ArtSource/cutouts/lane). See kitlib.py for the kit."""
 import math
 
-from kitlib import model
+from kitlib import model as _kit_model
+
+
+def square_first(K):
+    """Puts first a part whose material has no image, or only square ones. The kit's atlas packer squashes every UV
+    island by the aspect of the first material's image (the painting's own, 1.9:1 for the rope cot, when a projected
+    leg came first), so the atlas held the whole model at half its resolution one way (audit: uv_stretch)."""
+    def square(ob):
+        mats = [m for m in ob.data.materials if m is not None]
+        if not mats or not mats[0].node_tree:
+            return False
+        ims = [n.image for n in mats[0].node_tree.nodes if n.type == "TEX_IMAGE" and n.image is not None]
+        return all(abs(im.size[0] - im.size[1]) <= 1 for im in ims)
+    for i, ob in enumerate(K.parts):
+        if square(ob):
+            if i:
+                K.parts.insert(0, K.parts.pop(i))
+            return
+
+
+def model(name, folder, **kw):
+    """kitlib.model, with square_first() run after the builder."""
+    def wrap(fn):
+        def built(K):
+            fn(K)
+            square_first(K)
+        built.__name__, built.__doc__ = fn.__name__, fn.__doc__
+        _kit_model(name, folder, **kw)(built)
+        return fn
+    return wrap
 
 
 def smooth(pts, n=4):
@@ -386,6 +415,22 @@ def wood_pixels(rgba):
     import numpy as np
     r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
     return (a > 220) & (r > 90) & (r - b > 55) & (r > g) & (g < 175) & ~((g > 150) & (b < 80) & (r > 210))
+
+
+def stone_pixels(rgba):
+    """Painted stone, light or dark (sandstone too): opaque, not the ink line, not white flowers, not the vivid
+    orange and yellow of marigolds."""
+    import numpy as np
+    r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    return (a > 220) & (mx > 90) & (mx - mn < 150) & (mn < 200)
+
+
+def hay_pixels(rgba):
+    """Painted hay and straw: golden yellow (and its darker gold shading), opaque."""
+    import numpy as np
+    r, g, b, a = [rgba[..., i].astype(np.int32) for i in range(4)]
+    return (a > 220) & (r > 150) & (g > 95) & (b < 110) & (r - b > 90)
 
 
 def blue_pixels(rgba):
@@ -927,7 +972,7 @@ def chicken_basket(K):
         return (X0 + R * math.sin(a), -R * math.cos(a), z)
     K.sheet(lining, 32, 12, dark, name="inner_shadow", thickness=0.006)
     # straw on the ground inside
-    straw_m = quilt_tile(K, (60, 205, 260, 233), keep=plain_pixels, patch_px=12, size_px=72, soften=0.2)
+    straw_m = quilt_tile(K, (40, 200, 280, 235), keep=hay_pixels, patch_px=12, size_px=72, soften=0.2)
     K.lathe(prof(P, [(0, 228), (60, 229), (100, 231.5), (118, 233), (118, 236), (0, 236)]), straw_m, segments=40,
             centre=(X0, 0, 0), name="straw_bed", wobble=0.05)
     earth(K, cx, 245, 251, 138, 0.33, (110, 246, 140, 252), grass=[(6, 202, 42, 248), (280, 212, 306, 248)],
@@ -1496,7 +1541,7 @@ def lamp_pillar(K):
     # the pedestal: a square block with its mouldings and a sunk panel on each face
     # the pedestal's own sandstone (the garland and the bell hang in front of its painted face: its back and sides
     # wear the stone, not the painted face pushed through, which brought the shadows under the garland round)
-    ped = quilt_tile(K, (330, 940, 535, 1112), keep=plain_pixels, patch_px=16, size_px=96, soften=0.25,
+    ped = quilt_tile(K, (330, 940, 535, 1112), keep=stone_pixels, patch_px=16, size_px=96, soften=0.25,
                      exclude=[(345, 920, 515, 1060), (392, 1030, 472, 1112)])
     D = P.m(89)
     K.box(X(cx) - D, X(cx) + D, -D, D, Z(1080), Z(990), ped, name="pedestal")
@@ -1903,7 +1948,7 @@ def bullock_cart(K):
     beam_m = wood
     blue = quilt_tile(K, (90, 100, 480, 200), keep=blue_pixels, patch_px=12, size_px=72, soften=0.15)
     iron = K.colour((0.05, 0.05, 0.06), vary=0.08)
-    straw_m = K.tile((200, 40, 260, 70), vary=0.12, soften=0.1)
+    straw_m = quilt_tile(K, (180, 25, 480, 90), keep=hay_pixels, patch_px=12, size_px=84, soften=0.1)
     W = 0.62                                         # the body's half width
     # the body: floor, side panels, end boards
 

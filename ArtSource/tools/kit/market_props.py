@@ -1520,11 +1520,13 @@ def parapet_gap(K):
     X, Z = P.x, P.z
     wall = K.tile((140, 92, 215, 148), vary=0.05, soften=0.45)
     wall2 = K.tile((25, 30, 80, 148), vary=0.05, soften=0.45)
-    coping = K.colour((138, 74, 218, 85), vary=0.12, scale=6.0)
-    red = strip_tile(K, (100, 186, 280, 194), vary=0.06, soften=0.3)
+    coping = square_tile(K, (30, 12, 86, 21), vary=0.06, soften=0.25)        # the painted red-oxide coping
+    # the plinth's red-oxide plaster (its kolam is painted on the front only: the projection paints it there)
+    red = square_tile(K, (100, 188, 290, 194), vary=0.06, soften=0.3)
     d = 0.26
     # the plinth all along, the piers standing proud of the wall, the steps and the low middle
-    K.box(X(22), X(327), -0.04, d + 0.04, 0.0, Z(152), red, bevel=0.01, name="plinth")
+    # (it stands on its painted foot, py 195; the record's lift sets it down)
+    K.box(X(22), X(327), -0.04, d + 0.04, Z(195), Z(152), red, bevel=0.01, name="plinth")
     K.box(X(22), X(327), -0.045, d + 0.045, Z(154), Z(151), K.colour((40, 151, 300, 154), vary=0.05), bevel=0.004,
           name="plinth_lip")
     for x0, x1, top, cx0, cx1, ctop, cbot, dy in ((22, 90, 22, 18, 94, 7, 24, -0.03), (265, 326, 22, 262, 330, 7, 24, -0.03),

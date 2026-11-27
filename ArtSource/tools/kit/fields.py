@@ -1274,9 +1274,9 @@ def canal_bridge(K):
     xR = lambda y: P.x(450) + (P.x(332) - P.x(450)) * min(1.0, (y - y_front) / (y_b0 - y_front))
     # the painted red earth of the banks: its grain (the painted light and its ink marks taken out) at its colour, so
     # the long slopes show no grid of dark smudges; a soft large-scale variation over it
-    earth_px = P.crop((462, 68, 498, 90))
-    earth = img_tile(K, speckle(earth_px, sigma=2.5, base=img_median(earth_px) * 0.95, amount=0.9), P.m(36),
-                     vary=0.05, mottle=0.16, mottle_size=0.5, key="earth")
+    earth_px = P.crop((470, 78, 506, 104))                  # (its colour the banks' sunlit orange laterite)
+    grain = speckle(earth_px, sigma=2.0, amount=0.5, base=(214, 138, 60))
+    earth = img_tile(K, quilt(grain, 4, seed=4), P.m(80), vary=0.08, mottle=0.26, mottle_size=0.35, key="earth")
     stone_m = K.tile((110, 104, 158, 140), soften=0.3, vary=0.05)
     rock_m = K.tile((86, 150, 140, 182), soften=0.3, vary=0.05)
 
