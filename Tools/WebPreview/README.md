@@ -19,8 +19,8 @@ python3 Tools/WebPreview/make_site.py
 ```
 
 The kid, the rooster and the pickups are drawn from frames of their 3D models: render them into FRAMES/kid,
-FRAMES/rooster and FRAMES/pickups with `ArtSource/tools/characters/hull_character.py kid|rooster --frames
-FRAMES/<who>` and `pickups.py --frames FRAMES/pickups`.
+FRAMES/rooster and FRAMES/pickups with `ArtSource/tools/characters/meshy_kid.py --frames FRAMES/kid`,
+`hull_character.py rooster --frames FRAMES/rooster` and `pickups.py --frames FRAMES/pickups`.
 
 The bamboo ladder the kid climbs is drawn from `art/bamboo_ladder.png`, a picture of its 3D model leaning as it does
 in the game (`ArtSource/tools/models/ladder_model.py --picture`); the kid's Climb frames show her from behind, as the

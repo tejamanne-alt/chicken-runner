@@ -187,9 +187,37 @@ paintings drawn in perspective (a house's side wall, a tray seen from above) are
 front a model can differ from its painting a little at those edges; everywhere else the front is the painting. The
 older routes below (extrusions, TRELLIS, Meshy sheets) remain for the animals and people, and as fallbacks.
 
-### The kid and the rooster, from their turnarounds
+### The kid, from her rigged Meshy model
 
-`tools/characters/hull_character.py` builds each from its four painted views (A0 front/back/left/right, B11-B14):
+`tools/characters/meshy_kid.py` builds the game's kid from the rigged Meshy model generated from her four views
+(`ArtSource/supplied/kid_meshy.fbx`):
+
+1. The model is taken at rest, scaled to the kid's height (1.08 m, feet on the ground), welded along Meshy's texture
+   seams and reduced to the character's budget (36,000 faces).
+2. Its texture is fixed to her brief (`view_prompts.KID_LOOKS`, `KID_JEWELS`, `KID_HENNA`): the hairband repainted plain
+   peacock blue, the grey smudges on the cheeks taken back to skin, and the maruthani painted on (dyed fingertips and
+   toe tips, a leaf vine on the back of each hand ending in dots below the bangles, a band round each sole, a vine from
+   the big toe to the ankle, dots below each anklet, a vine halfway up each shin). Every texel's place on the body comes
+   from a bake of the surface's position and normal, so the design is laid on the body, not on the texture's islands.
+3. What the model lacks is added: a matching pair of gold jhumkas, five bangles on each wrist (gold with red and green
+   glass between), and, because Meshy's legs stop at the knee inside a hollow skirt, her thighs and peacock-blue
+   bloomers with their seat up to under the waist.
+4. The rig is the hand-built kid's (`kid_model.BONES`) with its joints moved to Meshy's, skinned with Meshy's own
+   weights (fingers, toes and the upper chest folded into the hand, foot and chest); the frock hangs on the skirt bones
+   and the hair below the ears on the hair bones, so every clip in `kid_anims.py` plays on it. Exported as
+   `Assets/ChickenRunner/Art/Characters/Kid.fbx` with `Kid_painted.png` and `Kid.clips.json`.
+
+```bash
+python ArtSource/tools/characters/meshy_kid.py --sheet kid.png --closeup kid_close.png --check CHECK_DIR
+```
+
+`--check DIR` renders her from eight sides, close looks at the jewellery, the henna and under the skirt, and every
+clip at three moments.
+
+### The rooster (and the earlier kid), from their turnarounds
+
+`tools/characters/hull_character.py` builds each from its four painted views (A0 front/back/left/right, B11-B14). It
+built the kid until her Meshy model came; running it for the kid now would replace `Kid.fbx` with the carved one:
 
 1. Each view is cut from its background and scaled to the character's height (1.08 m and 0.64 m).
 2. The shape is carved slice by slice: every span the front and back views see is paired with every span the side
