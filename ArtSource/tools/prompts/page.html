@@ -1,0 +1,416 @@
+<title>Chicken Runner Art Prompts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Hind:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column of prompt cards under a sticky filter bar, on an indigo-tinted lime-wash ground. */
+:root {
+  --bg: #edf0f6;          /* lime-wash with a touch of neel, as village walls are */
+  --surface: #fbfcfe;
+  --ink: #1e2347;         /* indigo */
+  --muted: #58607f;
+  --line: #d3d8e6;
+  --chip: #e1e5ef;
+  --accent: #e3a21a;      /* turmeric */
+  --accent-ink: #241a04;
+  --kumkum: #b8243a;
+  --earth: #a8502a;
+  --leaf: #2f7d4a;        /* banana leaf: images already in the repo */
+  --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Hind", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141830; --surface: #1c2140; --ink: #eceef7; --muted: #a5abc8; --line: #2e3459; --chip: #272c4f;
+    --accent: #f0b43a; --accent-ink: #1b1404; --kumkum: #e5566a; --earth: #dd7b4e; --leaf: #6cc48c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141830; --surface: #1c2140; --ink: #eceef7; --muted: #a5abc8; --line: #2e3459; --chip: #272c4f;
+  --accent: #f0b43a; --accent-ink: #1b1404; --kumkum: #e5566a; --earth: #dd7b4e; --leaf: #6cc48c; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 1rem/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
+}
+.wrap { max-width: 880px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 0.85em; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+header.top { padding-block: 2.5rem 1.5rem; display: grid; gap: 1rem; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--earth); }
+h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); font-weight: 800; }
+.lede { max-width: 62ch; color: var(--muted); font-size: 1.08rem; margin: 0; }
+/* A pulli grid: kolam starts from a field of dots. */
+.pulli { height: 18px; background-image: radial-gradient(var(--earth) 1.6px, transparent 1.8px); background-size: 18px 18px; opacity: 0.55; }
+
+.howto { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-block: 1.5rem; }
+.howto ol { margin: 0; padding-left: 1.3rem; display: grid; gap: 0.4rem; }
+.howto h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+.howto p { margin: 0; color: var(--muted); }
+
+/* Sticky filter bar */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  border-bottom: 1px solid var(--line); padding-block: 0.75rem; display: grid; gap: 0.6rem;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tool { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.tool-label { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--earth); }
+.seg {
+  border: 2px solid var(--ink); background: transparent; border-radius: 8px; padding: 0.15rem 0.9rem; cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 1rem;
+}
+.seg[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.chip {
+  border: 1px solid var(--line); background: var(--chip); border-radius: 999px; padding: 0.2rem 0.8rem; cursor: pointer;
+  font-size: 0.92rem; font-weight: 500;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.progress { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.92rem; color: var(--muted); }
+.meter { flex: 1 1 160px; height: 8px; background: var(--chip); border-radius: 999px; overflow: hidden; min-width: 120px; }
+.meter > span { display: block; height: 100%; width: 0; background: var(--leaf); transition: width 0.3s ease; }
+.toggle { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.toggle input { accent-color: var(--kumkum); width: 1.05rem; height: 1.05rem; }
+
+/* Style blocks */
+.rules { display: grid; gap: 1rem; margin-block: 1.75rem; }
+.rule { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; display: grid; gap: 0.5rem; }
+.rule h2 { font-size: 1.15rem; }
+.rule p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+/* Sections and cards */
+section.group { margin-block: 2.25rem; display: grid; gap: 1rem; }
+section.group > header { display: grid; gap: 0.25rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--earth); }
+section.group h2 { font-size: 1.7rem; }
+section.group h2 .key { color: var(--earth); margin-right: 0.35rem; }
+section.group > header p { margin: 0; color: var(--muted); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem 1.1rem; display: grid; gap: 0.7rem; min-width: 0; }
+.card.done { opacity: 0.62; }
+.card-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+.card-head .id { font-family: var(--font-mono); font-weight: 500; font-size: 0.9rem; background: var(--chip); border-radius: 6px; padding: 0.05rem 0.45rem; }
+.card-head h3 { font-size: 1.3rem; font-weight: 700; flex: 1 1 auto; min-width: 0; }
+.pill { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 0.1rem 0.6rem; border: 1px solid currentColor; }
+.pill.first { color: var(--kumkum); }
+.pill.second { color: var(--muted); }
+.pill.new { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.pill.made { color: var(--leaf); }
+.pill.updated { color: var(--accent-ink); background: var(--chip); border-color: var(--accent); }
+.pill.redo { color: #fff; background: var(--kumkum); border-color: var(--kumkum); }
+.redo-note { margin: 0; color: var(--kumkum); font-weight: 600; font-size: 0.95rem; }
+.made-note { margin: 0; color: var(--leaf); font-size: 0.95rem; }
+.repo-note { color: var(--leaf); font-weight: 600; }
+.status { display: grid; gap: 0.15rem; }
+.status small { font-size: 0.82rem; color: var(--muted); }
+dl.meta { display: flex; flex-wrap: wrap; gap: 0.35rem 1.4rem; margin: 0; font-size: 0.92rem; }
+dl.meta div { display: flex; gap: 0.4rem; min-width: 0; }
+dl.meta dt { color: var(--muted); }
+dl.meta dd { margin: 0; overflow-wrap: anywhere; }
+.use { margin: 0; font-size: 0.95rem; }
+.use b { font-weight: 600; }
+.prompt {
+  margin: 0; padding: 0.8rem 0.9rem; border-radius: 8px; background: var(--bg); border: 1px solid var(--line);
+  white-space: pre-wrap; overflow-wrap: anywhere; font: 400 0.97rem/1.55 var(--font-body);
+}
+.actions { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
+.copy {
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 0.45rem 1rem;
+  font-weight: 600; cursor: pointer;
+}
+.copy:hover { filter: brightness(1.05); }
+.copy-name {
+  border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 6px;
+  padding: 0.05rem 0.55rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.copy-name:hover { border-color: var(--ink); }
+dl.meta dd.file { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  /* Keep the sticky bar short on phones: the section chips scroll sideways in one row. */
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; }
+}
+.note { font-size: 0.85rem; color: var(--muted); }
+.fallback { width: 100%; min-height: 9rem; font: 0.9rem/1.5 var(--font-mono); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 0.6rem; }
+.empty { color: var(--muted); padding-block: 1rem; }
+
+/* After */
+.after { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-block: 2.5rem 3rem; }
+.after > div { min-width: 0; }
+.after h2 { font-size: 1.4rem; margin-bottom: 0.6rem; }
+.after ol, .after ul { margin: 0; padding-left: 1.3rem; display: grid; gap: 0.5rem; }
+.after b { font-family: var(--font-display); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Art pipeline · ChatGPT or Gemini images → Blender → Unity</div>
+    <h1>Chicken Runner Art Prompts</h1>
+    <p class="lede">Prompts for the village scenes, characters, props, textures and story frames, written for ChatGPT and for Gemini. Each image has an ID, a file name and a shape, so it comes back named for the Blender scene it feeds.</p>
+    <div class="pulli" aria-hidden="true"></div>
+  </header>
+
+  <div class="howto" data-for="chatgpt">
+    <div>
+      <h2>How to use it with ChatGPT</h2>
+      <ol>
+        <li>Make <b>A0</b> first, in a new ChatGPT chat, attaching your four kid images. Then make <b>A1</b>, attaching A0 and your rooster photo.</li>
+        <li>Stay in that chat. Each copied prompt asks ChatGPT to match A1 and carries the style rules. Attach the files under <i>Attach</i>; A0 is the kid reference from now on.</li>
+        <li>Save each image with its file name.</li>
+        <li>Put them in the repo at <code>ArtSource/references/</code>, or upload them here, in batches. Start with the <b id="first-count"></b> marked first batch.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Regenerate when</h2>
+      <p>Words or labels appear in the image, a model sheet is not side-on and flat, or a background that should be plain is not. Ask ChatGPT to fix just that, in the same chat.</p>
+    </div>
+  </div>
+  <div class="howto" data-for="gemini" hidden>
+    <div>
+      <h2>How to use it with Gemini</h2>
+      <ol id="gemini-howto"></ol>
+    </div>
+    <div>
+      <h2>Fixing an image</h2>
+      <p id="gemini-fix"></p>
+    </div>
+  </div>
+
+  <div class="bar" role="region" aria-label="Filters and progress">
+    <div class="tool" role="group" aria-label="Prompts written for">
+      <span class="tool-label">Prompts for</span>
+      <button type="button" class="seg" data-tool="chatgpt" aria-pressed="true">ChatGPT</button>
+      <button type="button" class="seg" data-tool="gemini" aria-pressed="false">Gemini</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="progress">
+      <span class="status"><span id="progress-label" aria-live="polite"></span><small id="repo-label"></small></span>
+      <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+      <label class="toggle" for="first-only"><input type="checkbox" id="first-only"> First batch only</label>
+      <label class="toggle" for="new-only"><input type="checkbox" id="new-only"> New only</label>
+      <label class="toggle" for="todo-only"><input type="checkbox" id="todo-only"> Still to make</label>
+      <button type="button" class="copy-name" id="copy-names">Copy file names</button>
+    </div>
+  </div>
+
+  <div class="rules">
+    <div class="rule">
+      <h2>Style rules</h2>
+      <p id="style-text"></p>
+      <div class="actions"><button class="copy" data-copy="style" type="button">Copy style rules</button><span class="note" id="style-note">Added to every scene, character and prop prompt when you copy it.</span></div>
+    </div>
+    <div class="rule">
+      <h2>Texture rules</h2>
+      <p id="texture-text"></p>
+      <div class="actions"><button class="copy" data-copy="texture" type="button">Copy texture rules</button><span class="note" id="texture-note">Added to the T prompts instead.</span></div>
+    </div>
+  </div>
+
+  <main id="groups"></main>
+
+  <div class="after">
+    <div>
+      <h2>What I do with them in Blender</h2>
+      <ol id="pipeline"></ol>
+    </div>
+    <div>
+      <h2>What I need from you</h2>
+      <ul id="needs"></ul>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('data').textContent);
+  const KEY = 'chicken-runner-art-prompts';
+  let saved = { done: {}, section: 'all', firstOnly: false, newOnly: false, todoOnly: false, tool: 'chatgpt' };
+  try { saved = Object.assign(saved, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* storage unavailable */ }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) { /* ignore */ } };
+
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v; else n.setAttribute(k, v);
+    }
+    kids.forEach(k => n.append(k));
+    return n;
+  };
+
+  document.getElementById('first-count').textContent = data.firstCount;
+  // Trusted, author-written HTML (bold and italics only).
+  data.geminiHowto.forEach(step => { const li = el('li'); li.innerHTML = step; document.getElementById('gemini-howto').append(li); });
+  document.getElementById('gemini-fix').innerHTML = data.geminiFix + ' Start with the ' + data.firstCount + ' marked first batch.';
+  const isGemini = () => saved.tool === 'gemini';
+  const ruleText = key => isGemini() ? (key === 'style' ? data.geminiStyle : data.geminiTexture) : data[key];
+
+  async function copyText(text, button, card) {
+    const label = button.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = label; }, 1400);
+    } catch (e) {
+      // Clipboard refused: show the text selected so it can be copied by hand.
+      const host = card || button.closest('.rule, .bar');
+      let box = host.querySelector('.fallback');
+      if (!box) { box = el('textarea', { class: 'fallback', readonly: '', 'aria-label': 'Prompt text to copy' }); host.append(box); }
+      box.value = text; box.focus(); box.select();
+      button.textContent = 'Press Ctrl+C or Cmd+C';
+      setTimeout(() => { button.textContent = label; }, 2500);
+    }
+  }
+  document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => copyText(ruleText(b.dataset.copy), b)));
+  document.querySelectorAll('.seg').forEach(b => b.addEventListener('click', () => { saved.tool = b.dataset.tool; save(); render(); }));
+
+  // Section chips
+  const chips = document.getElementById('chips');
+  const chipDefs = [{ key: 'all', name: 'All' }].concat(data.sections.map(s => ({ key: s.key, name: s.key + ' · ' + (n => n[0].toUpperCase() + n.slice(1))(s.name.replace(/^Zone \d: /, '')) })));
+  chipDefs.forEach(c => {
+    const b = el('button', { class: 'chip', type: 'button', 'aria-pressed': String(saved.section === c.key), text: c.name });
+    b.addEventListener('click', () => { saved.section = c.key; save(); render(); });
+    chips.append(b);
+  });
+  const firstOnly = document.getElementById('first-only');
+  firstOnly.checked = !!saved.firstOnly;
+  firstOnly.addEventListener('change', () => { saved.firstOnly = firstOnly.checked; save(); render(); });
+  const newOnly = document.getElementById('new-only');
+  newOnly.checked = !!saved.newOnly;
+  newOnly.addEventListener('change', () => { saved.newOnly = newOnly.checked; save(); render(); });
+  const todoOnly = document.getElementById('todo-only');
+  todoOnly.checked = !!saved.todoOnly;
+  todoOnly.addEventListener('change', () => { saved.todoOnly = todoOnly.checked; save(); render(); });
+  // An image counts as made when it is in the repo (checked when the sheet was built) or ticked on this device.
+  const inRepo = p => p.inRepo.length > 0;
+  const isMade = p => inRepo(p) || !!saved.done[p.id];
+  const inScope = p => (!saved.firstOnly || p.batch === 1) && (!saved.newOnly || p.new);
+  const shownByFilters = p => inScope(p) && (!saved.todoOnly || !isMade(p));
+
+  // Cards
+  const groups = document.getElementById('groups');
+  const cards = {};
+  data.sections.forEach(s => {
+    const items = data.prompts.filter(p => p.id[0] === s.key);
+    const group = el('section', { class: 'group', 'data-key': s.key, 'aria-labelledby': 'h-' + s.key },
+      el('header', {},
+        (() => { const h = el('h2', { id: 'h-' + s.key }); h.append(el('span', { class: 'key', text: s.key }), s.name); return h; })(),
+        el('p', { text: s.blurb })));
+    items.forEach(p => {
+      const done = el('input', { type: 'checkbox', id: 'done-' + p.id });
+      done.checked = isMade(p);
+      if (inRepo(p)) done.disabled = true;
+      const copy = el('button', { class: 'copy', type: 'button', text: 'Copy prompt' });
+      const head = el('div', { class: 'card-head' },
+        el('span', { class: 'id', text: p.id }),
+        el('h3', { text: p.title }),
+        el('span', { class: 'pill ' + (p.batch === 1 ? 'first' : 'second'), text: p.batch === 1 ? 'First batch' : 'Second batch' }));
+      if (p.new) head.append(el('span', { class: 'pill new', text: 'New' }));
+      if (inRepo(p)) head.append(el('span', { class: 'pill made', text: 'Made' }));
+      if (p.redo) head.append(el('span', { class: 'pill redo', text: 'Make again' }));
+      if (p.refined && !inRepo(p)) head.append(el('span', { class: 'pill updated', text: 'Prompt updated' }));
+      const nameBtn = el('button', { class: 'copy-name', type: 'button', 'aria-label': 'Copy file name ' + p.file, text: 'Copy name' });
+      const shape = el('dd');
+      const promptText = el('p', { class: 'prompt' });
+      const note = el('span', { class: 'note' });
+      const meta = el('dl', { class: 'meta' },
+        el('div', {}, el('dt', { text: 'Save as' }), el('dd', { class: 'file' }, el('code', { text: p.file }), nameBtn)),
+        el('div', {}, el('dt', { text: 'Shape' }), shape),
+        el('div', {}, el('dt', { text: 'Attach' }), el('dd', { text: p.attach })));
+      const use = el('p', { class: 'use' }, el('b', { text: 'Used for: ' }), p.use);
+      const card = el('article', { class: 'card', id: 'p-' + p.id }, head, meta, use,
+        ...(p.redo ? [el('p', { class: 'redo-note', text: p.redo })] : []),
+        ...(p.note ? [el('p', { class: 'made-note', text: p.note })] : []),
+        promptText,
+        el('div', { class: 'actions' }, copy,
+          inRepo(p)
+            ? el('span', { class: 'repo-note', text: p.inRepo.length > 1 ? 'In the repo, ' + p.inRepo.length + ' files' : 'In the repo' })
+            : el('label', { class: 'toggle', for: 'done-' + p.id }, done, 'Made it'),
+          note));
+      copy.addEventListener('click', () => copyText(isGemini() ? p.gtext : p.text, copy, card));
+      nameBtn.addEventListener('click', () => copyText(p.file, nameBtn, card));
+      done.addEventListener('change', () => { saved.done[p.id] = done.checked; save(); render(); });
+      cards[p.id] = { card, p, shape, promptText, note };
+      group.append(card);
+    });
+    group.append(el('p', { class: 'empty', hidden: '', text: 'Nothing here with these filters.' }));
+    groups.append(group);
+  });
+
+  data.pipeline.forEach(([head, body]) => {
+    const li = el('li'); li.append(el('b', { text: head + '. ' }), body);
+    document.getElementById('pipeline').append(li);
+  });
+  data.needs.forEach(n => document.getElementById('needs').append(el('li', { text: n })));
+
+  const copyNames = document.getElementById('copy-names');
+  copyNames.addEventListener('click', () => {
+    const shown = data.prompts.filter(p => { const c = cards[p.id].card; return !c.hidden && !c.closest('section').hidden; });
+    copyText(shown.map(p => p.file).join('\n'), copyNames);
+  });
+
+  function renderTool() {
+    const g = isGemini();
+    document.querySelectorAll('.seg').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === saved.tool)));
+    document.querySelectorAll('.howto').forEach(h => { h.hidden = h.dataset.for !== saved.tool; });
+    document.getElementById('style-text').textContent = ruleText('style');
+    document.getElementById('texture-text').textContent = ruleText('texture');
+    document.getElementById('style-note').textContent = g
+      ? 'Gemini version, in full sentences. Added to every scene, character and prop prompt when you copy it.'
+      : 'Added to every scene, character and prop prompt when you copy it.';
+    document.getElementById('texture-note').textContent = 'Added to the T prompts instead.';
+    Object.values(cards).forEach(({ p, shape, promptText, note }) => {
+      shape.textContent = g ? p.gshape : p.aspect;
+      promptText.textContent = g ? p.gbody : p.prompt;
+      note.textContent = p.block === 'texture'
+        ? (g ? 'Copies with the upload roles and texture paragraph' : 'Copies with the texture rules')
+        : (g ? 'Copies with the upload roles and style paragraph'
+             : (p.attach.split(', ').includes('A1') ? 'Copies with the A1 match line and style rules' : 'Copies with the style rules'));
+    });
+  }
+
+  function render() {
+    renderTool();
+    chips.querySelectorAll('.chip').forEach((b, i) => b.setAttribute('aria-pressed', String(chipDefs[i].key === saved.section)));
+    document.querySelectorAll('section.group').forEach(g => {
+      const key = g.dataset.key;
+      const showGroup = saved.section === 'all' || saved.section === key;
+      g.hidden = !showGroup;
+      let visible = 0;
+      g.querySelectorAll('.card').forEach(c => {
+        const p = cards[c.id.slice(2)].p;
+        const show = shownByFilters(p);
+        c.hidden = !show;
+        c.classList.toggle('done', isMade(p));
+        if (show) visible++;
+      });
+      g.querySelector('.empty').hidden = visible > 0;
+    });
+    // Progress counts every image in scope, so ticking "Still to make" doesn't change the score.
+    const pool = data.prompts.filter(inScope);
+    const made = pool.filter(isMade).length;
+    const repo = pool.filter(inRepo).length;
+    const scope = (saved.newOnly ? ' new' : '') + (saved.firstOnly ? ' first-batch' : '');
+    document.getElementById('progress-label').textContent = made + ' of ' + pool.length + scope + ' images made';
+    document.getElementById('repo-label').textContent = repo + ' in the repo as of ' + data.repoChecked
+      + (made > repo ? ', ' + (made - repo) + ' ticked here' : '') + ' · ' + (pool.length - made) + ' to go';
+    document.getElementById('meter').style.width = (pool.length ? (100 * made / pool.length) : 0) + '%';
+  }
+  render();
+})();
+</script>

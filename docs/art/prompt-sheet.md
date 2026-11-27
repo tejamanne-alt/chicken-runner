@@ -1,8 +1,10 @@
 # Chicken Runner — art prompt sheet
 
-Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md). Four-view model sheets of the 36 pieces worth a full 3D model, for building them in Meshy, are in [prompt-sheet-3d.md](prompt-sheet-3d.md).
+Image prompts for ChatGPT, written for the Blender pipeline: every image has an ID, a file name and a shape, so the images come back named for the scenes they feed. The web version has copy buttons and a checklist. Gemini versions of the same prompts, with the same IDs and file names, are in [prompt-sheet-gemini.md](prompt-sheet-gemini.md).
 
-**Progress:** checked 23 Nov 2026. Still to make: **D12** (more crops; the six crop strips in the fields are placeholders until it exists) and **D13** (the second band of distant fields). To make again: **D9**, **E17** and **E18** (the versions in the repo were rejected). No longer needed: **M1–M10**, the textures for the hand-built kid, rooster and pickups, which are being replaced by full models (see [prompt-sheet-3d.md](prompt-sheet-3d.md)).
+**Progress:** 102 of 114 images are in `ArtSource/references/` (checked 27 Nov 2026); 61 of the 73 first-batch images. First batch still to make: E17, E18, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10.
+
+**The village is celebrating Pongal.** Every image already made gets a festive edit in [section P](#p-pongal-the-festive-repaint) (keep the picture, add the festival); every new image is made for the festival.
 
 ## How to use it
 
@@ -676,7 +678,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### D9 · Canal pieces
 
-🔁 make again: Came out as cut-away blocks of earth seen from above at an angle, with blurred water under them: make it again with the updated prompt, each piece flat and side-on on a ground line. · prompt updated · Save as `D9_canal_pieces.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D1, D3  
+✅ in the repo · Save as `D9_canal_pieces.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D1, D3  
 Used for: Things along the canals: water lifts, a stone bridge, a bathing ghat, so every canal crossing differs.
 
 ```text
@@ -733,7 +735,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### D12 · More crops
 
-⬜ to make · prompt updated · Save as `D12_more_crops.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D1, D6  
+✅ in the repo · Save as `D12_more_crops.png` · Landscape 3:2 · first batch · **new** · Attach: A1, D1, D6  
 Used for: More crops to plant field by field, so each field looks different.
 
 ```text
@@ -752,7 +754,7 @@ Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game s
 
 ### D13 · Fields middle layer 2
 
-⬜ to make · prompt updated · Save as `D13_fields_mid_layer_2.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C8, D1, D7  
+✅ in the repo · Save as `D13_fields_mid_layer_2.png` · Landscape 3:2 · first batch · **new** · Attach: A1, C8, D1, D7  
 Used for: A second band of distant fields, so the one behind the fields doesn't repeat.
 
 ```text
@@ -2117,6 +2119,998 @@ The setting is a South Indian village in the 1970s and 1980s, like a vintage sto
 Market shades are plain faded cotton cloth (undyed, indigo, turmeric or madder red), woven palm-leaf mats, thatch or big black cloth umbrellas, never red-and-white or other striped awnings.
 
 Art style: stylised, hand-painted 3D game art for a side-scrolling mobile game set in a South Indian village. Characters and props have clean dark outlines, flat saturated colour and soft two-tone cel shading, like a painted toy diorama. Paint everything crisp and clear, with visible brush texture inside each shape. Palette: terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-washed walls, paddy green, warm golden light. Mood: warm, gentle, funny and immersive. No text, letters, numbers, logos, signatures, borders or watermarks.
+```
+
+## P. Pongal: the festive repaint
+
+The whole village is celebrating Pongal, the harvest festival. Each prompt below edits a painting you have already made: it keeps the picture exactly as it is, so its cut-outs and the Blender models traced from it still fit, and adds the festival in the same painted style: mango-leaf thoranams over the doors, marigold garlands, coloured Pongal kolams, tall sugarcane stalks, new clay Pongal pots boiling over on brick hearths with a turmeric plant tied round their necks, cattle with painted horns, bells and garlands, new festival clothes, bunting and kites. Gemini keeps the rest of a picture best: use it for these edits.
+
+1. Attach the painting named in the prompt, from `ArtSource/references/` (it is the image you made before).
+2. Paste the prompt. Gemini keeps everything else in place best; in ChatGPT, use its edit mode on the attached image.
+3. Check it against the old one (flip between the two): nothing may move, grow, shrink or disappear; only the festival touches are new. If something moved, reply: *Put the … back exactly where it is in the image I uploaded, and keep the decorations.*
+4. Save it under the **same file name**, replacing the old painting (the old one stays in the repo's history), and put it in `ArtSource/references/` or upload it here, in batches. Start with A1, then the lane (C, G, K), the fields (D), the market and temple (E), the people and animals (B) and the story (F).
+5. I then cut the pieces out again and add the new decorations to each Blender model as real parts: thoranams as hanging leaf strings, sugarcane, pots on hearths and garlands modelled, the kolams and painted horns as the painting itself.
+
+Left as they are: A0 and the kid sheets, the rooster (B1-B4, B11-B14), B9's small animals, the far trees and plants (D4, D6, D11, D12, H1, H2, H4-H7), the ground details (C10), K2's roof edges, the textures (T) and the 3D textures (M): there is nothing on them to celebrate, or they are not seen in the festival's scenes.
+
+### P1 · A1 · Key art
+
+⬜ to make · Save as `A1_key_art.png` (replacing A1) · Landscape 3:2 · Attach: `A1_key_art.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (A1_key_art.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: on every house a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; in front of one house, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it; strings of small triangular cloth bunting in red, yellow, green and blue strung across overhead the lane; a few diamond-shaped paper kites with long tails high in the sky. Keep the toddler and the rooster exactly as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P2 · A2 · Colour script
+
+⬜ to make · Save as `A2_colour_script.png` (replacing A2) · Landscape 3:2 · Attach: `A2_colour_script.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (A2_colour_script.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: in the lane panels, mango-leaf thoranams over the doors, coloured kolams and bunting across the lane; in a yard, a Pongal pot boiling over on a brick hearth beside sugarcane stalks; in the field panels, cattle with brightly painted horns and garlands and sheaves of harvested paddy; over the rooftops, paper kites; at the market and the temple, more marigold garlands, sugarcane bundles and oil lamps.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P3 · B5 · Neighbour
+
+⬜ to make · Save as `B5_neighbour_sheet.png` (replacing B5) · Landscape 3:2 · Attach: `B5_neighbour_sheet.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (B5_neighbour_sheet.png) so it shows the village on Pongal, the harvest festival. Keep every figure exactly as it is: the same faces, bodies, poses, expressions and places on the sheet, the same painted style and the same plain light-grey background; change only what is described here.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: dress him for Pongal: a crisp new white veshti with a thin gold border instead of the checked lungi, a new white cotton shirt over the vest, a white sandal-paste stripe and a red kumkum dot on his forehead, and a small marigold garland round his neck in the standing views.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P4 · B6 · Amma
+
+⬜ to make · Save as `B6_amma_sheet.png` (replacing B6) · Landscape 3:2 · Attach: `B6_amma_sheet.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (B6_amma_sheet.png) so it shows the village on Pongal, the harvest festival. Keep every figure exactly as it is: the same faces, bodies, poses, expressions and places on the sheet, the same painted style and the same plain light-grey background; change only what is described here.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: dress her for Pongal: a new silk saree in turmeric yellow with a broad magenta and gold border instead of the cotton one, a thicker string of jasmine round her bun, small gold earrings, a few more glass bangles, and a red kumkum dot with a little turmeric on her forehead.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P5 · B7 · Village animals
+
+⬜ to make · Save as `B7_animals_sheet.png` (replacing B7) · Landscape 3:2 · Attach: `B7_animals_sheet.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (B7_animals_sheet.png) so it shows the village on Pongal, the harvest festival. Keep every figure exactly as it is: the same faces, bodies, poses, expressions and places on the sheet, the same painted style and the same plain light-grey background; change only what is described here.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the pair of white bullocks dressed for Mattu Pongal: horns painted in bright bands of red, blue and green with shining brass tips, a marigold garland and a string of brass bells round the neck, and a red kumkum dot on the forehead; the water buffalo with its horns painted red and a marigold garland round its neck. Leave the dog and the hens as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P6 · B8 · Cows and goats
+
+⬜ to make · Save as `B8_cows_goats.png` (replacing B8) · Landscape 3:2 · Attach: `B8_cows_goats.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (B8_cows_goats.png) so it shows the village on Pongal, the harvest festival. Keep every figure exactly as it is: the same faces, bodies, poses, expressions and places on the sheet, the same painted style and the same plain light-grey background; change only what is described here.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the white cow dressed for Mattu Pongal: horns painted in bright bands of red, blue and green with shining brass tips, a marigold garland and a string of brass bells round the neck, and a red kumkum dot on the forehead; the calf with a small marigold garland and one brass bell; the standing buffalo with its horns painted red and a garland round its neck. Leave the goats as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P7 · B10 · Villagers in the background
+
+⬜ to make · Save as `B10_villagers.png` (replacing B10) · Landscape 3:2 · Attach: `B10_villagers.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (B10_villagers.png) so it shows the village on Pongal, the harvest festival. Keep every figure exactly as it is: the same faces, bodies, poses, expressions and places on the sheet, the same painted style and the same plain light-grey background; change only what is described here.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: everyone in new, brighter Pongal clothes (new cotton and silk saris, crisp white veshtis); the woman drawing a kolam now draws a big coloured Pongal kolam with red, yellow and green powder; the woman with the water pot carries a new clay Pongal pot with a turmeric plant tied round its neck; the vegetable seller's cart is heaped with sugarcane stalks, turmeric plants and bananas; the milkman has two sugarcane stalks tied along his bicycle.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P8 · C1 · Lane mood painting
+
+⬜ to make · Save as `C1_lane_mood.png` (replacing C1) · Landscape 3:2 · Attach: `C1_lane_mood.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C1_lane_mood.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: on every house a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; in front of one house, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it; strings of small triangular cloth bunting in red, yellow, green and blue strung across overhead the lane; a few diamond-shaped paper kites with long tails high in the sky.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P9 · C2 · Lane far layer
+
+⬜ to make · Save as `C2_lane_far_layer.png` (replacing C2) · Landscape 3:2 · Attach: `C2_lane_far_layer.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C2_lane_far_layer.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a few diamond-shaped paper kites with long tails high in the sky, and a long string of bunting hanging from the distant temple tower.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P10 · C3 · Lane middle layer
+
+⬜ to make · Save as `C3_lane_mid_layer.png` (replacing C3) · Landscape 3:2 · Attach: `C3_lane_mid_layer.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C3_lane_mid_layer.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every shape in the same place, at the same size and in the same outline, the same painted style, colours and haze, and the same flat magenta background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: strings of small triangular cloth bunting between the roofs, mango-leaf thoranams under the eaves where a doorway shows, and two paper kites flying just above the roofs, inside the cut-out.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P11 · C4 · House kit elevations
+
+⬜ to make · Save as `C4_house_kit_elevations.png` (replacing C4) · Landscape 3:2 · Attach: `C4_house_kit_elevations.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C4_house_kit_elevations.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: on each of the four houses a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; in front of the lime-white house's door, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P12 · C5 · Lane props, sheet 1
+
+⬜ to make · Save as `C5_lane_props_a.png` (replacing C5) · Landscape 3:2 · Attach: `C5_lane_props_a.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C5_lane_props_a.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the top pot of the clay pot stack decorated as a Pongal pot, painted with white lime stripes and red kumkum dots, with a turmeric plant tied round its neck; a marigold garland hung on the hand pump; two sugarcane stalks tied along the bicycle's carrier; a marigold garland and a sprig of mango leaves on the tulsi planter, with a small coloured kolam on its pedestal; a turmeric smear and red kumkum dots on the necks of the brass water pots. Leave the dung and the cot as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P13 · C6 · Lane props, sheet 2
+
+⬜ to make · Save as `C6_lane_props_b.png` (replacing C6) · Landscape 3:2 · Attach: `C6_lane_props_b.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C6_lane_props_b.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the bullock cart's wheels and frame painted with turmeric-yellow and kumkum-red stripes, with two sugarcane stalks and a bunch of mango leaves tied to it; new bright silk sarees on the clothesline; two sugarcane stalks and a turmeric plant leaning on the jute sacks; the doorway's mango-leaf garland fresher, with a marigold garland too and a coloured kolam at its step; fresh turmeric and kumkum on the shrine stone with a lit clay lamp before it; a turmeric plant tied round the neck of the pot on the stand. Leave the chicken basket as it is.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P14 · C7 · Kolam decals
+
+⬜ to make · Save as `C7_kolam_decals.png` (replacing C7) · Square 1:1 · Attach: `C7_kolam_decals.png`
+
+```text
+Square 1:1 image, the same shape as the attached one.
+
+Edit the attached image (C7_kolam_decals.png) so it shows the village on Pongal, the harvest festival. Keep the six designs exactly where they are, at the same size and with the same white outlines, on the same flat dark-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: make all six into Pongal kolams: fill the white line designs with bright coloured powder (red, yellow, green, pink and orange), and work a small Pongal pot with sugarcane stalks, or a rising sun, into the middle of three of them.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P15 · C8 · Lane middle layer 2
+
+⬜ to make · Save as `C8_lane_mid_layer_2.png` (replacing C8) · Landscape 3:2 · Attach: `C8_lane_mid_layer_2.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C8_lane_mid_layer_2.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every shape in the same place, at the same size and in the same outline, the same painted style, colours and haze, and the same flat magenta background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: strings of small triangular cloth bunting between the roofs, mango-leaf thoranams under the eaves where a doorway shows, and a thin wisp of smoke from a Pongal hearth behind one house.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P16 · C9 · Lane middle layer 3
+
+⬜ to make · Save as `C9_lane_mid_layer_3.png` (replacing C9) · Landscape 3:2 · Attach: `C9_lane_mid_layer_3.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (C9_lane_mid_layer_3.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every shape in the same place, at the same size and in the same outline, the same painted style, colours and haze, and the same flat magenta background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of bunting and a marigold garland on the tiny white shrine, mango-leaf thoranams under the thatched eaves, and two paper kites caught high in the tamarind tree.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P17 · D1 · Fields mood painting
+
+⬜ to make · Save as `D1_fields_mood.png` (replacing D1) · Landscape 3:2 · Attach: `D1_fields_mood.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D1_fields_mood.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: sheaves of harvested paddy stacked along the bund; the scarecrow wearing a marigold garland and a new bright towel round its neck; a pair of grazing bullocks by the well with horns painted in bright bands of red, blue and green with shining brass tips, a marigold garland and a string of brass bells round the neck, and a red kumkum dot on the forehead; beside the farmhouse, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it and two sugarcane stalks; a mango-leaf thoranam and a marigold garland on the well's pulley frame; a few diamond-shaped paper kites with long tails high in the sky.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P18 · D2 · Fields far layer
+
+⬜ to make · Save as `D2_fields_far_layer.png` (replacing D2) · Landscape 3:2 · Attach: `D2_fields_far_layer.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D2_fields_far_layer.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a few diamond-shaped paper kites with long tails high in the sky.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P19 · D3 · Fields props
+
+⬜ to make · Save as `D3_fields_props.png` (replacing D3) · Landscape 3:2 · Attach: `D3_fields_props.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D3_fields_props.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a small marigold garland round the top of the haystack; a mango-leaf thoranam and a marigold garland on the well's pulley frame, with turmeric and kumkum dots on the well's stone rim; the scarecrow wearing a marigold garland and a new bright towel round its neck; a mango-leaf thoranam across the sluice gate's frame; a small coloured kolam on the bund path. Leave the canal and plank bridge as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P20 · D5 · Field buildings
+
+⬜ to make · Save as `D5_field_buildings.png` (replacing D5) · Landscape 3:2 · Attach: `D5_field_buildings.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D5_field_buildings.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a mango-leaf thoranam over the pump house door, with turmeric and kumkum dots on its wall; at the farmer's hut a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door, and beside its cattle pen a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it; a marigold garland and turmeric and kumkum dots on the granary's posts; the shrine with fresh marigold garlands, a lit clay lamp and a new red flag.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P21 · D7 · Fields middle layer
+
+⬜ to make · Save as `D7_fields_mid_layer.png` (replacing D7) · Landscape 3:2 · Attach: `D7_fields_mid_layer.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D7_fields_mid_layer.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every shape in the same place, at the same size and in the same outline, the same painted style, colours and haze, and the same flat magenta background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: mango-leaf thoranams on the farmhouse doors, a thin wisp of smoke from a Pongal hearth in each farmhouse yard, and a few cut paddy sheaves stacked on the bund.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P22 · D8 · Field buildings 2
+
+⬜ to make · Save as `D8_field_buildings_2.png` (replacing D8) · Landscape 3:2 · Attach: `D8_field_buildings_2.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D8_field_buildings_2.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the kavalai's bullocks with horns painted in bright bands of red, blue and green with shining brass tips, a marigold garland and a string of brass bells round the neck, and a red kumkum dot on the forehead; a mango-leaf thoranam across the well's pulley frame; a thoranam on the watch hut's ladder; at the threshing floor, a coloured kolam beside the paddy heaps and a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it, with two sugarcane stalks beside it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P23 · D9 · Canal pieces
+
+⬜ to make · Save as `D9_canal_pieces.png` (replacing D9) · Landscape 3:2 · Attach: `D9_canal_pieces.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D9_canal_pieces.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a marigold garland and a turmeric and kumkum mark on the picottah's post; a turmeric plant tied round the neck of the brass pot on the washing steps; a mango-leaf thoranam across the sluice gate's frame. Leave the slab bridge as it is.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P24 · D10 · Life in the fields
+
+⬜ to make · Save as `D10_field_life.png` (replacing D10) · Landscape 3:2 · Attach: `D10_field_life.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D10_field_life.png) so it shows the village on Pongal, the harvest festival. Keep every figure exactly as it is: the same faces, bodies, poses, expressions and places on the sheet, the same painted style and the same plain light-grey background; change only what is described here.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the ploughing bullocks and the kavalai bullocks with horns painted in bright bands of red, blue and green with shining brass tips, a marigold garland and a string of brass bells round the neck, and a red kumkum dot on the forehead; the three women in new bright saris; small marigold garlands on the herd boy's goats; the wallowing buffalo with its horns painted red; the farmer carrying a bundle of cut paddy with two sugarcane stalks.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P25 · D13 · Fields middle layer 2
+
+⬜ to make · Save as `D13_fields_mid_layer_2.png` (replacing D13) · Landscape 3:2 · Attach: `D13_fields_mid_layer_2.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (D13_fields_mid_layer_2.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every shape in the same place, at the same size and in the same outline, the same painted style, colours and haze, and the same flat magenta background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the grazing cattle with brightly painted horns, mango-leaf thoranams on the hut doors, thin wisps of smoke from Pongal hearths in the hamlet, and two paper kites just above the palms.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P26 · E1 · Rooftops mood painting
+
+⬜ to make · Save as `E1_rooftops_mood.png` (replacing E1) · Landscape 3:2 · Attach: `E1_rooftops_mood.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E1_rooftops_mood.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: more paper kites in the sunset sky; on one terrace, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it, with two sugarcane stalks; mango-leaf thoranams over the doors up to the roofs; coloured kolams on the terraces.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P27 · E2 · Market mood painting
+
+⬜ to make · Save as `E2_market_mood.png` (replacing E2) · Landscape 3:2 · Attach: `E2_market_mood.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E2_market_mood.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: tall bundles of sugarcane standing upright at the stalls; turmeric plants and new clay Pongal pots for sale; more marigold garlands; a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; strings of small triangular cloth bunting in red, yellow, green and blue strung across overhead the market.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P28 · E3 · Temple steps
+
+⬜ to make · Save as `E3_temple_steps_mood.png` (replacing E3) · Landscape 3:2 · Attach: `E3_temple_steps_mood.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E3_temple_steps_mood.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a big coloured Pongal kolam on the bottom step; tall sugarcane stalks tied either side of the temple gateway, with mango-leaf thoranams across it; beside the steps, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it; more marigold garlands on the bells.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P29 · E4 · Rooftop props
+
+⬜ to make · Save as `E4_rooftop_props.png` (replacing E4) · Landscape 3:2 · Attach: `E4_rooftop_props.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E4_rooftop_props.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the big clay water pot painted with white lime stripes and red kumkum dots, with a turmeric plant tied round its neck; more colours in the bunting. Leave the parapet, the mats and the kite as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P30 · E5 · Market and temple props
+
+⬜ to make · Save as `E5_market_props.png` (replacing E5) · Landscape 3:2 · Attach: `E5_market_props.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E5_market_props.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: on both stalls under the indigo awning and on the flower stall, a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; a coloured kolam and a marigold garland on the temple step segment. Leave the baskets, vessels and lantern as they are.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P31 · E6 · Village houses with roof terraces 1
+
+⬜ to make · Save as `E6_rooftop_houses_1.png` (replacing E6) · Landscape 3:2 · Attach: `E6_rooftop_houses_1.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E6_rooftop_houses_1.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: on both houses a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; in front of the first house, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it; strings of small triangular cloth bunting along the roof parapets.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P32 · E7 · Village houses with roof terraces 2
+
+⬜ to make · Save as `E7_rooftop_houses_2.png` (replacing E7) · Landscape 3:2 · Attach: `E7_rooftop_houses_2.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E7_rooftop_houses_2.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: on both houses a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; on the first house's terrace, beside the drying mats, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it; strings of small triangular cloth bunting along the roof parapets.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P33 · E8 · Shandy stalls 1
+
+⬜ to make · Save as `E8_market_stalls_1.png` (replacing E8) · Landscape 3:2 · Attach: `E8_market_stalls_1.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E8_market_stalls_1.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; bunches of turmeric plants and ginger among the vegetables; more marigold and jasmine garlands at the flower seller's.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P34 · E9 · Shandy stalls 2
+
+⬜ to make · Save as `E9_market_stalls_2.png` (replacing E9) · Landscape 3:2 · Attach: `E9_market_stalls_2.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E9_market_stalls_2.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; the coconut cart's bullocks with horns painted in bright bands of red, blue and green with shining brass tips, a marigold garland and a string of brass bells round the neck, and a red kumkum dot on the forehead; the potter's new pots painted with white lime stripes and red kumkum dots, some with turmeric plants tied round their necks, for Pongal.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P35 · E10 · Village temple lane
+
+⬜ to make · Save as `E10_temple_street.png` (replacing E10) · Landscape 3:2 · Attach: `E10_temple_street.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E10_temple_street.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: mango-leaf thoranams strung between the mandapam's pillars and marigold garlands round them, with lit clay lamps on the plinth; a thoranam across the chariot shed's front and sugarcane stalks tied either side; lit lamps and a coloured kolam on the temple tank's steps.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P36 · E11 · Shandy stalls 3
+
+⬜ to make · Save as `E11_shandy_stalls_3.png` (replacing E11) · Landscape 3:2 · Attach: `E11_shandy_stalls_3.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E11_shandy_stalls_3.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; bunches of turmeric plants for sale beside the spice seller's heaps.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P37 · E12 · Shandy stalls 4
+
+⬜ to make · Save as `E12_shandy_stalls_4.png` (replacing E12) · Landscape 3:2 · Attach: `E12_shandy_stalls_4.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E12_shandy_stalls_4.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; a few sugarcane pieces and bananas beside the jaggery blocks.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P38 · E13 · Shandy stalls 5
+
+⬜ to make · Save as `E13_shandy_stalls_5.png` (replacing E13) · Landscape 3:2 · Attach: `E13_shandy_stalls_5.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E13_shandy_stalls_5.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; bunches of turmeric plants and sugarcane stalks among the vegetables.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P39 · E14 · Shandy stalls 6
+
+⬜ to make · Save as `E14_shandy_stalls_6.png` (replacing E14) · Landscape 3:2 · Attach: `E14_shandy_stalls_6.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E14_shandy_stalls_6.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; a taller bundle of sugarcane at the juice seller's, and a tray of sweet Pongal in a brass dish among the sweets.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P40 · E15 · Shandy stalls 7
+
+⬜ to make · Save as `E15_shandy_stalls_7.png` (replacing E15) · Landscape 3:2 · Attach: `E15_shandy_stalls_7.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E15_shandy_stalls_7.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; more garlands and bowls of turmeric and kumkum at the bangle seller's.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P41 · E16 · Shandy stalls 8
+
+⬜ to make · Save as `E16_shandy_stalls_8.png` (replacing E16) · Landscape 3:2 · Attach: `E16_shandy_stalls_8.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E16_shandy_stalls_8.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P42 · E17 · Shandy stalls 9
+
+⬜ to make · Save as `E17_shandy_stalls_9.png` (replacing E17) · Landscape 3:2 · Attach: `E17_shandy_stalls_9.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E17_shandy_stalls_9.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; the cattle-fair seller's horn caps in brighter colours, with strings of brass bells and coloured tassels for Mattu Pongal.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P43 · E18 · Shandy stalls 10
+
+⬜ to make · Save as `E18_shandy_stalls_10.png` (replacing E18) · Landscape 3:2 · Attach: `E18_shandy_stalls_10.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (E18_shandy_stalls_10.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the front edge of every awning or shade, a marigold garland tied round each front pole, a few tall sugarcane stalks tied upright to the poles, and a small coloured Pongal kolam on the ground in front of each stall; a few banana leaves of sweet Pongal beside the idlis.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P44 · F1 · Title screen
+
+⬜ to make · Save as `F1_title_screen.png` (replacing F1) · Landscape 3:2 · Attach: `F1_title_screen.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F1_title_screen.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a coloured Pongal kolam on the ground instead of the white one, a mango-leaf thoranam over the yard's gate, sugarcane stalks leaning on the low wall, and in the background a Pongal pot boiling over on a brick hearth.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P45 · F2 · Story 1: the craving
+
+⬜ to make · Save as `F2_story_craving.png` (replacing F2) · Landscape 3:2 · Attach: `F2_story_craving.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F2_story_craving.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a coloured Pongal kolam on the doorstep, a mango-leaf thoranam over the door, two sugarcane stalks leaning beside it, and a mango-leaf thoranam over the neighbour's kitchen window.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P46 · F3 · Story 2: the plan
+
+⬜ to make · Save as `F3_story_plan.png` (replacing F3) · Landscape 3:2 · Attach: `F3_story_plan.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F3_story_plan.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a coloured Pongal kolam in the yard, a mango-leaf thoranam over the yard's gate, sugarcane stalks leaning on the wall, and a marigold garland on the tree's trunk.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P47 · F4 · Story 3: the basket
+
+⬜ to make · Save as `F4_story_basket.png` (replacing F4) · Landscape 3:2 · Attach: `F4_story_basket.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F4_story_basket.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the edge of a coloured Pongal kolam on the ground and a few marigold petals scattered there.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P48 · F5 · Story 4: the escape
+
+⬜ to make · Save as `F5_story_escape.png` (replacing F5) · Landscape 3:2 · Attach: `F5_story_escape.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F5_story_escape.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the coloured Pongal kolam in the yard scattered by the rooster in puffs of coloured powder, and a sugarcane stalk toppling against the wall.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P49 · F6 · Wriggle-free gag
+
+⬜ to make · Save as `F6_story_wriggle_free.png` (replacing F6) · Landscape 3:2 · Attach: `F6_story_wriggle_free.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F6_story_wriggle_free.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a puff of coloured kolam powder rising where the toddler lands, and a few marigold petals in the air.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P50 · F7 · Rooster escaped
+
+⬜ to make · Save as `F7_rooster_escaped.png` (replacing F7) · Landscape 3:2 · Attach: `F7_rooster_escaped.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F7_rooster_escaped.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: strings of triangular cloth bunting along the parapet and paper kites in the sunset sky.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P51 · F8 · Story 6: Amma's kitchen
+
+⬜ to make · Save as `F8_story_amma_kitchen.png` (replacing F8) · Landscape 3:2 · Attach: `F8_story_amma_kitchen.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (F8_story_amma_kitchen.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: the same composition and framing, every building, object, person and animal in the same place, at the same size and in the same shape, and the same painted style, colours and light.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a Pongal feast: a brass pot of sweet Pongal on the stove, pieces of sugarcane and bananas on banana leaves on the floor, a mango-leaf thoranam over the kitchen door and a coloured kolam by the stove.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P52 · G1 · Thatched hut
+
+⬜ to make · Save as `G1_thatched_hut.png` (replacing G1) · Landscape 3:2 · Attach: `G1_thatched_hut.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G1_thatched_hut.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; beside the door, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P53 · G2 · Hut with a bamboo porch
+
+⬜ to make · Save as `G2_hut_bamboo_porch.png` (replacing G2) · Landscape 3:2 · Attach: `G2_hut_bamboo_porch.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G2_hut_bamboo_porch.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; marigold garlands round the porch posts; beside the porch, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P54 · G3 · Orange mud house, tin roof
+
+⬜ to make · Save as `G3_mud_house_tin_roof.png` (replacing G3) · Landscape 3:2 · Attach: `G3_mud_house_tin_roof.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G3_mud_house_tin_roof.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P55 · G4 · Plank and sheet house
+
+⬜ to make · Save as `G4_plank_sheet_house.png` (replacing G4) · Landscape 3:2 · Attach: `G4_plank_sheet_house.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G4_plank_sheet_house.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; a new bright saree as the door curtain.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P56 · G5 · Village head's house
+
+⬜ to make · Save as `G5_village_head_house.png` (replacing G5) · Landscape 3:2 · Attach: `G5_village_head_house.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G5_village_head_house.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door, with more thoranams strung between the veranda pillars and marigold garlands round every pillar; the brass lamp by the door lit; in front of the steps, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it, in brass, larger than the others.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P57 · G6 · Tiled house with courtyard gate
+
+⬜ to make · Save as `G6_tiled_house_gate.png` (replacing G6) · Landscape 3:2 · Attach: `G6_tiled_house_gate.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G6_tiled_house_gate.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: over the courtyard gate and at it, a string of fresh mango leaves (a thoranam) hung across the top of the gate, a marigold garland swagged over the gate, a bright Pongal kolam on the ground in front of the gate, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the gate.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P58 · G7 · Provisions shop
+
+⬜ to make · Save as `G7_provisions_shop.png` (replacing G7) · Landscape 3:2 · Attach: `G7_provisions_shop.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G7_provisions_shop.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the awning's edge, a marigold garland on the signboard, bundles of sugarcane for sale leaning against the bench, bunches of turmeric plants hanging with the snacks, and a coloured kolam in front.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P59 · G8 · Tea stall
+
+⬜ to make · Save as `G8_tea_stall.png` (replacing G8) · Landscape 3:2 · Attach: `G8_tea_stall.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G8_tea_stall.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the thatch's edge, a marigold garland on the kettle's shelf, two sugarcane stalks leaning beside the bench, and a coloured kolam in front.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P60 · G9 · Tailor and cycle repair
+
+⬜ to make · Save as `G9_tailor_cycle_shop.png` (replacing G9) · Landscape 3:2 · Attach: `G9_tailor_cycle_shop.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G9_tailor_cycle_shop.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of mango leaves along the awning's edge, new bright festival blouses and a silk saree hung up at the tailor's, a marigold garland on the sewing machine and on the cycle pump, and a coloured kolam in front of each shop.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P61 · G10 · Potter's house
+
+⬜ to make · Save as `G10_potters_house.png` (replacing G10) · Landscape 3:2 · Attach: `G10_potters_house.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G10_potters_house.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; at the front, rows of new Pongal pots painted with white lime stripes and red kumkum dots, some with turmeric plants tied round their necks; a mango-leaf thoranam along the work shed's eave.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P62 · G11 · Weaver's house
+
+⬜ to make · Save as `G11_weavers_house.png` (replacing G11) · Landscape 3:2 · Attach: `G11_weavers_house.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G11_weavers_house.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves (a thoranam) hung across the top of the door frame, a marigold garland swagged over the door, a bright Pongal kolam on the ground in front of the door, drawn in white rice flour and filled with red, yellow, green and pink powder, with a little Pongal pot and two sugarcane stalks in its middle, and a pair of tall sugarcane stalks with their leaves on, leaning against the wall beside the door; a finished magenta silk saree hung up beside the door.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P63 · G12 · House being built
+
+⬜ to make · Save as `G12_house_being_built.png` (replacing G12) · Landscape 3:2 · Attach: `G12_house_being_built.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G12_house_being_built.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a mango-leaf thoranam and a marigold garland on the standing door frame, and a small coloured kolam on the ground before it (the blessing for a new house).
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P64 · G13 · Cattle shed
+
+⬜ to make · Save as `G13_cattle_shed.png` (replacing G13) · Landscape 3:2 · Attach: `G13_cattle_shed.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G13_cattle_shed.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: for Mattu Pongal, the calf with its small horns painted red and green, a marigold garland and a brass bell; a mango-leaf thoranam along the shed's eave; turmeric and kumkum dots on the posts; two sugarcane stalks tied to the front posts; a coloured kolam in front.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P65 · G14 · Panchayat office
+
+⬜ to make · Save as `G14_panchayat_office.png` (replacing G14) · Landscape 3:2 · Attach: `G14_panchayat_office.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G14_panchayat_office.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: mango-leaf thoranams along the veranda, marigold garlands round the pillars, two sugarcane stalks either side of the steps, a coloured kolam in front, and a string of triangular cloth bunting along the roof.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P66 · G15 · Village shrine
+
+⬜ to make · Save as `G15_village_shrine.png` (replacing G15) · Landscape 3:2 · Attach: `G15_village_shrine.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G15_village_shrine.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: more marigold garlands, every oil lamp lit, two sugarcane stalks tied either side of the entrance, a coloured kolam in front, and beside it a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P67 · G16 · Stone lamp pillar
+
+⬜ to make · Save as `G16_stone_lamp_pillar.png` (replacing G16) · Landscape 3:2 · Attach: `G16_stone_lamp_pillar.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (G16_stone_lamp_pillar.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a small flame lit on every lamp ledge, more marigold garlands at its foot, two sugarcane stalks tied either side of the base, and a coloured kolam round the base.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P68 · H3 · Meeting tree with platform
+
+⬜ to make · Save as `H3_peepal_platform.png` (replacing H3) · Landscape 3:2 · Attach: `H3_peepal_platform.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (H3_peepal_platform.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: fresh marigold garlands on the stone idols, the clay lamps lit, two sugarcane stalks leaning on the platform, and a coloured kolam on the ground in front of it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P69 · K1 · Doors and windows
+
+⬜ to make · Save as `K1_doors_windows.png` (replacing K1) · Landscape 3:2 · Attach: `K1_doors_windows.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (K1_doors_windows.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: a string of fresh mango leaves across the top of every door, and marigold garlands on the carved double door and the blue plank door.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
+```
+
+### P70 · K3 · Doorstep and wall details
+
+⬜ to make · Save as `K3_wall_details.png` (replacing K3) · Landscape 3:2 · Attach: `K3_wall_details.png`
+
+```text
+Landscape 3:2 image, the same shape as the attached one.
+
+Edit the attached image (K3_wall_details.png) so it shows the village on Pongal, the harvest festival. Keep everything in it exactly as it is: every piece in the same place, at the same size and in the same shape, the same gaps between the pieces, the same painted style and colours, and the same plain light-grey background.
+
+Add only these Pongal festival touches, painted in the same style and light as the rest: the kolams on the three front steps filled with bright red, yellow, green and pink powder; the mango-leaf garland fresher; and, as one more separate piece at the end of the row, a new clay Pongal pot, painted with white lime stripes and red kumkum dots and with a turmeric plant tied round its neck, boiling over with white froth on a small hearth of three bricks with a few sticks burning under it, with two sugarcane stalks beside it.
+
+Everything belongs to a Tamil village of the 1970s: no plastic, balloons, printed banners, electric lights, fireworks or text.
 ```
 
 ## What happens in Blender

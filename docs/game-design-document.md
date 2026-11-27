@@ -185,6 +185,16 @@ An endless mode, built from the same chunks with rising speed and a distance sco
 
 The world takes its look from the kid's reference art: clean dark outlines, flat saturated colour, soft two-tone shading.
 
+**The village is celebrating Pongal**, the Tamil harvest festival, in every level: the chase runs through a village in
+festive mood. Mango-leaf thoranams hang over every door, marigold garlands on doors, pillars, stalls and shrines,
+coloured Pongal kolams (rice flour filled with red, yellow, green and pink) before every house, tall sugarcane stalks
+leaning by the doors, new clay Pongal pots boiling over on brick hearths with turmeric plants tied round their necks,
+cattle dressed for Mattu Pongal (painted horns, brass bells, garlands), bunting across the lanes and over the terraces,
+kites in the sky, and everyone in new clothes. The fields are at harvest; the market sells sugarcane, turmeric plants,
+new pots and sweets; the temple has its Pongal pot and lamps. The neighbour's chicken curry is for the festival feast.
+Every painting gets a Pongal edit (prompt sheet section P) that keeps it as it is and adds the festival, and the
+hand-built models gain the decorations as real parts.
+
 - **Rendering:** toon shading with an outline pass on characters and props, so the supplied kid model and the world read as one drawing.
 - **Palette:** terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-wash house walls, paddy green, late-afternoon golden light.
 - **Camera:** side-on with a slight perspective, kid on the left third. It pulls back as the gap grows so the rooster stays in frame up to about 14 m; beyond that an edge arrow shows the distance.
@@ -192,7 +202,7 @@ The world takes its look from the kid's reference art: clean dark outlines, flat
 - **Readability rule:** anything that hurts has a dark outline and a warm colour; anything helpful (mangoes, chillies, ladders, cots) glints.
 - **UI:** hand-painted signboard style, chunky rounded type. The Baloo 2 family is a good fit: it has a matching font for each of nine Indian scripts if text is localised later.
 
-Village detail list for the art pass: bamboo chicken baskets, thatched and flat-roofed houses, doorstep kolam, tulsi planter, brass pots, cots, bullock cart, hand pump, hanging sarees, haystacks, scarecrow with a painted pot head, palm and mango trees, canal sluice, black water tanks, chillies and papad drying on terraces, market stalls with marigold garlands, festival bunting, kites.
+Village detail list for the art pass: bamboo chicken baskets, thatched and flat-roofed houses, doorstep kolam, tulsi planter, brass pots, cots, bullock cart, hand pump, hanging sarees, haystacks, scarecrow with a painted pot head, palm and mango trees, canal sluice, black water tanks, chillies and papad drying on terraces, market stalls with marigold garlands, festival bunting, kites; and for Pongal: thoranams, coloured kolams, sugarcane, Pongal pots on brick hearths and cattle with painted horns.
 
 ## Audio
 
