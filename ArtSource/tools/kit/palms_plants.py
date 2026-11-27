@@ -530,6 +530,35 @@ def fit_widths(mask, spine_px, hw, profile="frond", n=16, lo=0.35, hi=1.7, gap=3
     return out[0], out[1]
 
 
+def fit_widths_owned(mask, spine_px, hw, profile="frond", n=16, lo=0.35, hi=2.2, pct=98.0):
+    """Like fit_widths, for a mask holding only this frond's own pixels (each painted pixel given to the nearest
+    painted spine): every pixel goes to the spine station it lies across from, and each side's width at a station is
+    the farthest of its pixels (so slanting torn strips are reached at their tips), kept within lo..hi x nominal."""
+    sp = spline(spine_px, n)
+    dense = spline(spine_px, n * 8)
+    tg = np.gradient(dense, axis=0)
+    tg /= np.maximum(1e-9, np.linalg.norm(tg, axis=1))[:, None]
+    perp = np.stack([-tg[:, 1], tg[:, 0]], 1)
+    nom = widths(hw, np.linspace(0, 1, n), profile)
+    ys, xs = np.nonzero(mask)
+    out = []
+    if len(xs) == 0:
+        return nom.copy(), nom.copy()
+    pts = np.stack([xs, ys], 1).astype(np.float64)
+    from scipy.spatial import cKDTree
+    _, idx = cKDTree(dense).query(pts)
+    d = ((pts - dense[idx]) * perp[idx]).sum(1)
+    st = np.clip(np.round(idx / 8.0).astype(int), 0, n - 1)
+    for sgn in (-1.0, 1.0):
+        ws = np.zeros(n)
+        for i in range(n):
+            sel = (st == i) & (d * sgn > 0)
+            ws[i] = np.percentile(np.abs(d[sel]), pct) + 1.5 if sel.sum() > 3 else 0.0
+        ws = ndimage.maximum_filter1d(ws, 3)
+        out.append(np.clip(ws, nom * lo, nom * hi))
+    return out[0], out[1]
+
+
 def ribbon(K, spine_px, hw, y_of=0.0, rows=5, roll=0.0, fold=0.0, xform=None, normal=None, n=16, name="frond",
            profile="frond", droop=0.0, twist=0.0, fit=None):
     """A cut-out card bent along a painted spine: spine_px the painted centre line [(px, py), ...] (base to tip),
@@ -723,7 +752,7 @@ class Palm:
     """A palm's crown: fronds as ribbons radiating from the heart (centre_px, at depth 0), each painted frond where it
     is painted, arching to the front (d < 0) or back (d > 0) by d x R metres at its tip; copies turned round the back."""
 
-    def __init__(self, K, centre_px, R, ok_mask=None, fit_mask=None, fit_lim=(0.35, 2.2, 6)):
+    def __init__(self, K, centre_px, R, ok_mask=None, fit_mask=None, fit_lim=(0.35, 2.2, 6), owned=False):
         self.K, self.P = K, K.paint
         self.c = centre_px
         self.R = R
@@ -735,6 +764,24 @@ class Palm:
             ok_mask = P.rgba[..., 3] > 0.5 if fit_mask is None else ndimage.binary_dilation(fit_mask, iterations=3)
         self.alpha = ok_mask
         self.fit_mask, self.fit_lim, self._fits = fit_mask, fit_lim, {}
+        self.owned, self._owner = owned, None
+
+    def own(self, fronds):
+        """Gives every painted leaf pixel to the nearest painted spine (owned fitting)."""
+        P = self.P
+        H, W = self.fit_mask.shape
+        dists = []
+        self._keys = {}
+        for k, f in enumerate(fronds):
+            sp = f[0]
+            a, b = np.array(sp[-2], float), np.array(sp[-1], float)
+            dv = (b - a) / max(1e-6, np.linalg.norm(b - a))
+            spx = list(sp[:-1]) + [tuple(b), tuple(b + dv * 16)]
+            im = Image.new("L", (W, H), 255)
+            ImageDraw.Draw(im).line([tuple(p) for p in spline(spx, 64)], fill=0, width=2)
+            dists.append(ndimage.distance_transform_edt(np.asarray(im) > 0))
+            self._keys[tuple(map(tuple, spx))] = k
+        self._owner = np.argmin(np.stack(dists), axis=0)
 
     def fit_of(self, spine, hw, profile, n, k=1.0):
         """The painted frond's own widths either side of its spine (when the crown has a fit mask), x k."""
@@ -742,7 +789,12 @@ class Palm:
             return None
         key = (tuple(map(tuple, spine)), n, profile)
         if key not in self._fits:
-            self._fits[key] = fit_widths(self.fit_mask, spine, hw, profile, n, *self.fit_lim)
+            kk = self._keys.get(tuple(map(tuple, spine))) if self._owner is not None else None
+            if kk is not None:
+                self._fits[key] = fit_widths_owned(self.fit_mask & (self._owner == kk), spine, hw, profile, n,
+                                                   self.fit_lim[0], self.fit_lim[1])
+            else:
+                self._fits[key] = fit_widths(self.fit_mask, spine, hw, profile, n, *self.fit_lim)
         wm, wp = self._fits[key]
         return wm * k, wp * k
 
@@ -786,8 +838,17 @@ class Palm:
         w = widths(hw, np.linspace(0, 1, n), profile) * 0.7
         wm = wp = w
         if self.fit_mask is not None:            # the widths the frond will really have, either side
-            fm, fp = fit_widths(self.fit_mask, spine, hw, profile, n, *self.fit_lim)
+            a_, b_ = np.array(spine[-2], float), np.array(spine[-1], float)
+            dv = (b_ - a_) / max(1e-6, np.linalg.norm(b_ - a_))
+            spx = list(spine[:-1]) + [tuple(b_), tuple(b_ + dv * 16)]
+            fm, fp = self.fit_of(spx, hw, profile, 16)
+            fm, fp = np.interp(np.linspace(0, 1, n), np.linspace(0, 1, 16), fm), \
+                np.interp(np.linspace(0, 1, n), np.linspace(0, 1, 16), fp)
             wm, wp = fm * 0.9, fp * 0.9
+            sp = spline(spx, n)
+            tg = np.gradient(sp, axis=0)
+            tg /= np.maximum(1e-9, np.linalg.norm(tg, axis=1))[:, None]
+            perp = np.stack([-tg[:, 1], tg[:, 0]], 1)
         y_of = self.y_fn(d, power)
         good = tot = 0
         for i, t in enumerate(np.linspace(0, 1, n)):
@@ -807,6 +868,8 @@ class Palm:
         K, P = self.K, self.P
         rng = K.rng
         xc = P.x(self.c[0])
+        if self.owned and self.fit_mask is not None:
+            self.own(fronds)
         for f in fronds:
             spine, hw, d = f[0], f[1], f[2]
             prof = f[3] if len(f) > 3 else "frond"
@@ -1582,7 +1645,7 @@ def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, fo
     bx0, by0, bx1, by1 = bunch_box
     m &= ~ellipse_mask(opaque.shape, [((bx0 + bx1) / 2, (by0 + by1) / 2, (bx1 - bx0) / 2, (by1 - by0) / 2)], 2)
     K.leaves_only(leaf_box, mask_rule(m, leaf_box))
-    palm = Palm(K, heart, R=P.m(R_px), fit_mask=m, fit_lim=(0.35, 2.6, 16))     # torn leaves: gaps between strips
+    palm = Palm(K, heart, R=P.m(R_px), fit_mask=m, fit_lim=(0.35, 2.4, 16), owned=True)   # torn leaves: strips
     palm.crown(leaves, back=back, extra=extra, turn=(55, 175))
     stalk = masked_material(K, opaque & box_mask(opaque.shape, [stalk_box]) & not_ink(rgb, 60), inset=1)
     palm.stalks(stalk, min(9.0, stem[-1][2] * 0.5), min(6.0, stem[-1][2] * 0.33), frac=0.25)
@@ -2001,7 +2064,8 @@ def h6_2(K):
     opaque = P.rgba[..., 3] > 0.5
     t = 0.11                                       # half the wall's thickness
     plaster = K.tile((310, 360, 450, 440), vary=0.07, soften=0.25)
-    coping = patch_tile(K, opaque & (mx > 120), (566, 146, 640, 166), vary=0.05, soften=0.35)   # its clean face
+    coping = patch_tile(K, opaque & (mx > 120) & ~(r > g + 25) & ~(g > r), (566, 146, 640, 166), vary=0.05,
+                        soften=0.35)                                       # its clean face, no bloom on it
     brick = K.tile((505, 420, 620, 490), vary=0.04, soften=0.1)
     zb, ztop = P.z(503), P.z(176)
     K.box(P.x(62), P.x(632), -t, t, zb, ztop, plaster, name="wall")
@@ -2013,7 +2077,8 @@ def h6_2(K):
     xe = P.x(27) - 0.0015
     patch_card(K, (28, 310, 100, 505), [Vector(v) for v in ((xe, t + 0.03, P.z(505)), (xe, -t - 0.03, P.z(505)),
                                                              (xe, -t - 0.03, P.z(310)), (xe, t + 0.03, P.z(310)))],
-               brickish, (-1.0, 0.0, 0.3), name="brick_pillar_end")
+               lambda c: brickish(c) & ~((chan(c)[0] < chan(c)[1] + 45) & (chan(c)[3] > 90)), (-1.0, 0.0, 0.3),
+               name="brick_pillar_end")                    # the brick, not the pillar's painted shadow side
     # the coping along the top: sloping back a little, so from the front its top shows as the painted band
     along_x(K, [(-t - 0.025, P.z(176)), (t + 0.025, P.z(176)), (t + 0.025, P.z(150)), (0.0, P.z(138)),
                 (-t - 0.025, P.z(150))], P.x(70), P.x(646), coping, name="coping")
@@ -2061,7 +2126,6 @@ def h6_2(K):
     stone = masked_material(K, stone_ok, inset=2)
     rock(K, 190, 528, 150, 60, -t - 0.06, stone)
     rock(K, 240, 530, 50, 20, -t - 0.1, stone)
-    rock(K, 400, 515, 90, 40, t + 0.06, stone)
     gb = (0, 400, P.w, 538)
     gm = (leafy(rgb) | ((r > 110) & (g > 100) & (b < 80) & (g > r * 0.8))) & opaque & ~halo(rgb)
     gm &= ~ellipse_mask(opaque.shape, [(190, 497, 74, 30), (240, 520, 24, 10)])      # the stones, not grass

@@ -1865,6 +1865,8 @@ def stall_e_2(K):
         for y in (ty0 + 0.03, ty1 - 0.03):
             K.box(P.x(x0), P.x(x1), y - 0.025, y + 0.025, 0.0, Z(545), wood, name="table_leg")
     K.box(P.x(480), P.x(694), ty0 + 0.01, ty0 + 0.04, Z(560), Z(545), wood, name="apron")
+    # the board closing its back under the top (painted between the legs, y 555-625)
+    K.box(P.x(488), P.x(690), ty1 - 0.05, ty1 - 0.03, Z(625), Z(548), wood, name="back_board")
     K.box(P.x(485), P.x(690), ty1 - 0.06, ty1 - 0.02, Z(640), Z(620), wood, name="stretcher")
     K.box(P.x(478), P.x(495), ty0 + 0.05, ty1 - 0.05, Z(640), Z(620), wood, name="stretcher")
     K.box(P.x(676), P.x(695), ty0 + 0.05, ty1 - 0.05, Z(640), Z(620), wood, name="stretcher")

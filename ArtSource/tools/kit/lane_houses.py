@@ -892,7 +892,8 @@ def doorway_garland(K):
     # (a 30 px column box-projected round a 0.9 m deep side shows a seam every 30 cm)
     lat = strip_tile(K, (54, 100, 77, 345), soften=0.25)
     lat2 = strip_tile(K, (287, 100, 307, 345), soften=0.25)
-    slab = strip_tile(K, (100, 15, 300, 33), soften=0.35)   # the lintel's face clear of its edges, stacked square
+    slab = lat                                              # the lintel slab: the same laterite (its face is projected;
+                                                            # a stacked strip of it read as planks on the top)
     wood = K.tile((112, 235, 172, 330), vary=0.05)                  # the planks below the thoranam's leaf tips
     frame_w = wood                                                  # the frame's inner faces: the door's planks
     ochre = K.tile((48, 40, 72, 72), size=0.25, vary=0.05, soften=0.3)   # the painted corner blocks

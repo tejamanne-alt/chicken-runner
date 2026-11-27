@@ -120,6 +120,42 @@ def stand_on(K, z_foot, start=0):
                 v.co.z = max(v.co.z, z_foot)
 
 
+def wall_patch(K, poly, face, at, plane, inset=0.004, name="patch"):
+    """A painted patch (fallen plaster showing the brick beneath, a stain) traced as polygon poly [(px, py)] off the
+    painting, laid on another face of the building so the same hand painted it there too: face "back" (the wall
+    plane y = plane), "left" or "right" (x = plane); at = (centre along the wall, metres: x for the back, y for the
+    sides; centre height z). It reads the right way round from outside."""
+    P = K.paint
+    xs, ys = [p[0] for p in poly], [p[1] for p in poly]
+    box = (min(xs), min(ys), max(xs), max(ys))
+    w, h = P.m(box[2] - box[0]), P.m(box[3] - box[1])
+    m = K.decal(box)
+    bm = bmesh.new()
+    pts, uvs = [], []
+    for px, py in poly:
+        u, v = (px - box[0]) / (box[2] - box[0]), 1 - (py - box[1]) / (box[3] - box[1])
+        z = at[1] + (v - 0.5) * h
+        if face == "back":
+            pts.append((at[0] + (0.5 - u) * w, plane + inset, z))
+        elif face == "left":
+            pts.append((plane - inset, at[0] + (0.5 - u) * w, z))
+        else:
+            pts.append((plane + inset, at[0] + (u - 0.5) * w, z))
+        uvs.append((u, v))
+    f = bm.faces.new([bm.verts.new(c) for c in pts])
+    out = {"back": Vector((0, 1, 0)), "left": Vector((-1, 0, 0)), "right": Vector((1, 0, 0))}[face]
+    f.normal_update()
+    if f.normal.dot(out) < 0:
+        f.normal_flip()
+    layer = bm.loops.layers.uv.new("decal")
+    for lp in f.loops:
+        i = [tuple(round(c, 6) for c in p) for p in pts].index(tuple(round(c, 6) for c in lp.vert.co))
+        lp[layer].uv = uvs[i]
+    ob = _obj(name, bm, m)
+    K.parts.append(ob)
+    return ob
+
+
 def opaque_crop(K, box):
     """The painting inside box (px) as an RGB image with its transparent specks and holes filled from the nearest
     opaque pixel (a tile crop must be fully opaque, or its holes turn pale or white on every face it covers)."""
@@ -288,6 +324,30 @@ def pale_halo(K, near=3, cell=2, bright=135, sat=40, boxes=None):
     cells = pad.reshape(hc, cell, wc, cell).any(axis=(1, 3))
     for cy, cx in zip(*np.nonzero(cells)):
         K.front_exclude.append((cx * cell, cy * cell, (cx + 1) * cell, (cy + 1) * cell))
+
+
+def strand_tile(K, a, b, offset_px, thick_px, vary=0.12, soften=0.15, rows=None):
+    """A thatch tile from a band painted along a slanting line (the straw along a gable's rake, a to b px): the band
+    turned flat, its rows evened out (the band's light-to-dark shading would stripe the tile), then stacked into a
+    square, each row slid along by a random amount, so the straws run one way (down the slope, on a roof) with no
+    rows or seams; sampled twice (square_tile)."""
+    from PIL import Image
+    P = K.paint
+    ang = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+    cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    rot = P.img.convert("RGBA").rotate(ang, center=(cx, cy), resample=2)
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    box = (int(cx - L * 0.38), int(cy + offset_px), int(cx + L * 0.38), int(cy + offset_px + thick_px))
+    band = np.asarray(rot.crop(box).convert("RGB")).astype(np.float32)
+    band = band - band.mean(axis=1, keepdims=True) + band.reshape(-1, 3).mean(axis=0)
+    w = band.shape[1]
+    n = rows or max(1, w // band.shape[0])
+    out = [np.roll(band[k % band.shape[0]][None, :, :], int(K.rng.integers(0, w)), axis=1) for k in range(n)]
+    sq = np.concatenate(out, axis=0)
+    sq = ndimage.gaussian_filter(sq, (0.8, 0, 0))
+    img = Image.fromarray(np.clip(sq, 0, 255).astype(np.uint8)).resize((w, w), Image.BILINEAR)
+    return square_tile(K, box, vary=vary, soften=soften, image=img, size=P.m(w),
+                       key=("strand", tuple(a), tuple(b), offset_px, thick_px))
 
 
 def prof(P, pts):
@@ -2258,10 +2318,11 @@ def roof_house_b_2(K):
     P = K.paint
     X, Z = P.x, P.z
     D = 5.0
-    plaster = K.tile((380, 470, 560, 560), vary=0.05, soften=0.45)
-    upper = K.tile((470, 300, 640, 395), vary=0.05, soften=0.45)
+    # the cream lime plaster from clean patches (the old crop's tan drips repeated as vertical streaks)
+    plaster = ftile(K, (875, 490, 975, 570), vary=0.12, soften=0.25)
+    upper = ftile(K, (475, 650, 575, 730), vary=0.12, soften=0.25)
     ledge = strip_tile(K, (560, 405, 860, 425), vary=0.05, soften=0.4)
-    red = K.tile((450, 895, 590, 945), vary=0.06, soften=0.45)
+    red = ftile(K, (1115, 881, 1195, 911), vary=0.1, soften=0.2)          # the red plinth between its kolams
     door = K.tile((605, 575, 775, 860), P.m(170), vary=0.04)
     planks = K.tile((875, 215, 990, 280), vary=0.06, soften=0.1)
     straw = K.tile((900, 80, 1150, 170), vary=0.1, soften=0.15)
@@ -2313,12 +2374,12 @@ def roof_house_b_2(K):
     K.box(X(842), X(862), ry0 - 0.05, ry0 + 0.15, Z(400), Z(175), wood, name="corner_post")
     ym = (ry0 + ry1) / 2
     # a hipped thatch: its ends lean in to a short ridge, as painted (the left end over the gable, the right hip)
-    K.thatch(X(772), X(1268), ry0 - 0.35, ym, Z(205), Z(52), straw, thickness=0.22, overhang=0.15, shag=0.06,
+    K.thatch(X(772), X(1268), ry0 - 0.35, ym, Z(205), Z(22), straw, thickness=0.22, overhang=0.15, shag=0.06,
              name="thatch_front", hip=0.3)
-    K.thatch(X(772), X(1268), ry1 + 0.35, ym, Z(205), Z(52), straw, thickness=0.22, overhang=0.15, shag=0.06,
+    K.thatch(X(772), X(1268), ry1 + 0.35, ym, Z(205), Z(22), straw, thickness=0.22, overhang=0.15, shag=0.06,
              name="thatch_back", hip=0.3)
     for x in (rx0, rx1):
-        gable = [(ry0, Z(200)), (ry1, Z(200)), (ym, Z(62))]
+        gable = [(ry0, Z(200)), (ry1, Z(200)), (ym, Z(32))]
         bm = bmesh.new()
         vs = [bm.verts.new((x, y, z)) for y, z in gable]
         bm.faces.new(vs)
@@ -2360,6 +2421,11 @@ def roof_house_b_2(K):
         y = -K.rng.uniform(0.03, 0.25) if py > 285 else K.rng.uniform(-0.1, 0.4)
         blob_card(K, (px - 32, py - 30, px + 32, py + 30), (X(px), y, Z(py)), yaw=K.rng.uniform(-50, 50),
                   pitch=K.rng.uniform(-25, 25), name="jasmine")
+    for i in range(12):
+        # the strands hanging down the wall's left edge, as painted
+        px, py = K.rng.uniform(30, 95), K.rng.uniform(290, 630)
+        blob_card(K, (px - 28, py - 26, px + 28, py + 26), (X(px), -K.rng.uniform(0.03, 0.2), Z(py)),
+                  yaw=K.rng.uniform(-40, 40), pitch=K.rng.uniform(-20, 20), name="jasmine")
     for i in range(14):
         px, py = K.rng.uniform(40, 130), K.rng.uniform(300, 620)
         blob_card(K, (px - 30, py - 28, px + 30, py + 28), (X(80) - 0.04, K.rng.uniform(0.1, 1.4), Z(py)),
@@ -2375,6 +2441,18 @@ def roof_house_b_2(K):
     # the back: a door
     K.quad([(X(775), D + 0.004, Z(858)), (X(605), D + 0.004, Z(858)), (X(605), D + 0.004, Z(575)),
             (X(775), D + 0.004, Z(575))], K.decal((605, 575, 775, 858)), name="back_door")
+    # the plaster fallen away to the brick on the sides and the back too, as on the front
+    lower_l = [(83, 668), (105, 665), (125, 683), (150, 700), (180, 712), (205, 728), (225, 752), (83, 752)]
+    lower_r = [(1285, 668), (1265, 680), (1240, 700), (1215, 725), (1195, 745), (1170, 760), (1148, 780), (1145, 800),
+               (1160, 815), (1185, 835), (1215, 850), (1285, 850)]
+    upper_r = [(1085, 490), (1105, 478), (1140, 470), (1180, 472), (1215, 480), (1245, 495), (1255, 515), (1240, 530),
+               (1205, 535), (1180, 545), (1150, 540), (1125, 530), (1100, 515)]
+    for poly, face, at, plane in ((lower_r, "back", (X(1212), Z(759)), D), (upper_r, "back", (X(400), Z(508)), D),
+                                  (lower_l, "back", (X(870), Z(710)), D),
+                                  (lower_l, "left", (1.0, Z(710)), X(80)), (upper_r, "left", (3.9, Z(508)), X(80)),
+                                  (lower_r, "right", (4.1, Z(759)), X(1285)), (upper_r, "right", (1.1, Z(520)), X(1285))):
+        wall_patch(K, poly, face, at, plane)
+    stand_on(K, Z(953))
 
 
 def sq_frustum(K, cx, cy, tiers, mat, name="tier"):
@@ -2416,7 +2494,8 @@ def chariot_shed(K):
     D = 6.0
     mat = K.tile((70, 328, 215, 372), vary=0.06, soften=0.3)
     timber = K.tile((224, 300, 233, 460), P.m(9), vary=0.08)
-    straw = rake_tile(K, (14, 236), (390, 12), -10, 8, vary=0.12, soften=0.1)
+    # the thatch: straws running down the slopes, from the painted band along the left rake
+    straw = strand_tile(K, (14, 236), (390, 12), -11, 9, vary=0.14, soften=0.1)
     dark = K.colour((0.07, 0.055, 0.045), vary=0.1)
     earth = K.colour((0.12, 0.08, 0.05), vary=0.12)
     # the roof: two thatched slopes from the ridge, past the gable ends
@@ -2459,6 +2538,15 @@ def chariot_shed(K):
     K.prism([(X(x), Z(y)) for x, y in front[:5]], D - 0.06, D, mat, name="gable_back")
     for x0, x1 in ((50, 58), (722, 730)):
         K.box(X(x0), X(x1), 0.0, D, 0.0, Z(232), mat, name="side_wall")
+    # a small plank door in the back gable, in its timber frame
+    for x0, x1 in ((345, 355), (425, 435)):
+        K.box(X(x0), X(x1), D, D + 0.05, 0.0, Z(300), timber, bevel=0.006, name="door_frame")
+    K.box(X(345), X(435), D, D + 0.05, Z(300), Z(290), timber, bevel=0.006, name="door_frame")
+    for k in range(4):
+        xa = 355 + 70 * k / 4
+        K.box(X(xa) + 0.004, X(xa + 17.5) - 0.004, D, D + 0.03, 0.0, Z(290), timber, bevel=0.004, name="door_plank")
+    for py in (320, 440):
+        K.box(X(357), X(423), D + 0.03, D + 0.05, Z(py - 4) - 0.0, Z(py - 12), timber, name="door_ledge")
     # the frame: posts, wall plate, tie beam, lintel, king post, barge boards, battens; and down the sides
     for x0, x1, top in ((48, 62, 228), (718, 732, 228), (222, 235, 128), (548, 561, 128)):
         for y in (0.0, D - 0.12):

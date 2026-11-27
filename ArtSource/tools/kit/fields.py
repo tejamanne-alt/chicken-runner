@@ -575,7 +575,8 @@ def grass_pixels(rgb):
 def water_pixels(rgb):
     """A leaf rule for falling water: its pale blue-white and grey, not the brick or rust painted behind it."""
     r, g, b = [rgb[..., i].astype(np.int32) for i in range(3)]
-    return b >= r - 12
+    keep = (b >= r - 4) & (r - g < 12)
+    return ndimage.binary_erosion(keep, iterations=1) | ((b > r + 20) & keep)    # no rim of tinted pixels
 
 
 def everything(rgb):
@@ -1972,7 +1973,7 @@ def pump_house(K):
             (P.x(97), yp, P.z(232))], P.m(11), pipe, segments=12, name="pipe")
     K.tube([(P.x(118), yp, P.z(201)), (P.x(122), yp, P.z(201))], P.m(13), pipe, segments=12, name="pipe_collar")
     # the trough: a low brick channel along the wall, its rim round a floor of water
-    rimm = K.tile((100, 330, 132, 340), soften=0.25, vary=0.04)
+    rimm = plinth                                           # (the plinth's dressed stone)
     wt = K.tile((20, 350, 70, 366), vary=0.03)
     t0, t1, zt, rw = -0.05, 0.85, P.z(346), 0.07
     xa, xb = P.x(4), P.x(146)
