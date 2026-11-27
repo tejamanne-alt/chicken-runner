@@ -188,7 +188,10 @@ namespace ChickenRunner.EditorTools
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = renderer.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = Surface(mats[i], haze, flat ? 0f : outline);
+                // No ink on a flat piece, or round a part under 2 cm (a cards-only model's hidden anchor), where the
+                // outline would be all there is: a dark speck.
+                bool tiny = renderer.bounds.size.x < 0.02f && renderer.bounds.size.y < 0.02f && renderer.bounds.size.z < 0.02f;
+                for (int i = 0; i < mats.Length; i++) mats[i] = Surface(mats[i], haze, flat || tiny ? 0f : outline);
                 renderer.sharedMaterials = mats;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;

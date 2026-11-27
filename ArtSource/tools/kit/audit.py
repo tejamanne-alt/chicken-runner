@@ -288,12 +288,15 @@ def audit_one(name, out):
     main.data.materials.clear()
     main.data.materials.append(toon(image(MODELS / folder / f"{name}.jpg"), "toon_main"))
     W, H = rec["width"], rec["height"]
-    ink = main.modifiers.new("ink", "SOLIDIFY")
-    ink.thickness = min(0.012, max(0.003, 0.0025 * max(W, H)))
-    ink.offset = 1.0
-    ink.use_flip_normals = True
-    ink.material_offset = 1
-    main.data.materials.append(RV._ink(ink.thickness))
+    # The game's ink outline: none on flat pieces (they lie on the ground) or on a part under 2 cm (a cards-only
+    # model's anchor), as ArtModels.Place draws it.
+    if rec.get("kind") != "slab" and max(main.dimensions) >= 0.02:
+        ink = main.modifiers.new("ink", "SOLIDIFY")
+        ink.thickness = min(0.012, max(0.003, 0.0025 * max(W, H)))
+        ink.offset = 1.0
+        ink.use_flip_normals = True
+        ink.material_offset = 1
+        main.data.materials.append(RV._ink(ink.thickness))
     if leaves is not None:
         leaves.data.materials.clear()
         leaves.data.materials.append(toon(image(MODELS / folder / f"{name}_leaves.png"), "toon_leaves", cutout=True))

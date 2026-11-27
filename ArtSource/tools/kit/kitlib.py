@@ -1047,8 +1047,10 @@ def finish(K, spec):
     if not K.parts and not K.cards_parts:
         raise RuntimeError(f"{name}: no parts")
     if not K.parts:
-        # a model of cards only (a kolam, prints, a rut, a tuft): one tiny hidden quad carries its name and atlas
-        K.box(-0.001, 0.001, 0.0, 0.002, 0.0, 0.002, K.colour((0.2, 0.2, 0.2), vary=0), name="anchor")
+        # a model of cards only (a kolam, prints, a rut, a tuft): one tiny hidden quad carries its name and atlas.
+        # 1 mm, in the painting's own colour (a dark 2 mm cube showed as a speck below prints and tufts); the game and
+        # the audit draw no ink round a part this small.
+        K.box(-0.0005, 0.0005, 0.0, 0.001, 0.0, 0.001, K.colour((0, 0, P.w, P.h), vary=0), name="anchor")
         K.front_projection = False
         K.ao = 0.0
     ob = _join(K.parts, name)
