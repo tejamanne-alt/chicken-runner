@@ -8,7 +8,8 @@ a grassy hump between them and grass at its edges; the market and the temple str
 2 m long with their joints and hairline cracks, stains and sandy dust blown onto its edges.
 
 Each tile is 4 m along the lane (u, seamless) by the road's 3.4 m width (v, from its front edge toward the camera at
-v = 0 to its back edge by the houses at v = 1); the kid's running line, z = 0, is at v = 0.71. The PaintedGround shader
+v = 0 to its back edge by the houses at v = 1; the image's bottom row is v = 0); the kid's running line, z = 0, is at
+v = 0.71. The PaintedGround shader
 lays it as a band from z -2.4 to z 1.0 with soft, slightly wavy edges into the zone's earth (GameBuilder.ZoneGround).
 Writes ArtSource/cutouts/textures/road_mud_lane.png, road_cart_track.png and road_cement.png, and the side lanes that
 run back between the houses: ArtSource/cutouts/ground/side_lane_mud.png (with alpha).
@@ -247,7 +248,9 @@ def main():
     out = {}
     for name, make in (("road_mud_lane", mud_lane), ("road_cart_track", cart_track), ("road_cement", cement)):
         img = make(rng)
-        img.save(TEX / f"{name}.png")
+        # Painted with v = 0 (the road's front edge) on the top row; a texture's v = 0 is its bottom row, so it is saved
+        # upside down, putting the front edge where PaintedGround samples it (v = (z - RoadFront) / width).
+        img.transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(TEX / f"{name}.png")
         out[name] = img
         print(f"{name}: {img.size[0]}x{img.size[1]} px, {PX:.0f} px/m")
     lane = side_lane(rng)
