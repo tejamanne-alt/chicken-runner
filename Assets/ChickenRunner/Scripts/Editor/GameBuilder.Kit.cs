@@ -529,12 +529,21 @@ namespace ChickenRunner.EditorTools
                 const float rise = 0.25f;
                 const float tread = 0.7f;
                 float end = x + count * tread * 2f + landing;
+                // The hand-built granite flight (ArtSource/tools/models/steps_model.py: six steps, a 6 m landing, six down)
+                // over the step boxes, which stay as what she walks on; another size keeps the grey boxes.
+                GameObject model = null;
+                if (count == 6 && Mathf.Abs(landing - 6f) < 0.01f)
+                {
+                    var middle = new Vector3((x + end) * 0.5f, 0f, 0.4f);
+                    model = ArtModels.Stand(_root, "market", "temple_steps", middle, middle + Vector3.up);
+                }
                 for (int i = 0; i < count; i++)
                 {
                     float from = x + i * tread;
                     float to = end - i * tread;
                     var step = Box("Step", _root, new Vector3((from + to) * 0.5f, i * rise + rise * 0.5f, 0.4f), new Vector3(to - from, rise, 2.2f), _z.prims, true);
-                    step.AddComponent<GreyboxColor>().SetColor(Color.Lerp(Palette.Granite, Palette.Granite * 0.85f, i % 2));
+                    if (model != null) step.GetComponent<Renderer>().enabled = false;
+                    else step.AddComponent<GreyboxColor>().SetColor(Color.Lerp(Palette.Granite, Palette.Granite * 0.85f, i % 2));
                 }
                 float top = count * rise;
                 for (int k = 0; k < 2; k++)
