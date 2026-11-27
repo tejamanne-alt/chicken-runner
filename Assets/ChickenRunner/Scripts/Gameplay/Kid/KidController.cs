@@ -24,6 +24,16 @@ namespace ChickenRunner
     /// quickly instead of vaulted. Trigger colliders are obstacles, pickups, bouncers (cots, awnings, a buffalo's back)
     /// and canal water, recognised by their components.
     /// </summary>
+    /// <summary>What the level 1 opening shows the kid doing before the chase (her visual plays the matching clip).</summary>
+    public enum KidIntroPose
+    {
+        None,
+        /// <summary>Sneaking past the sleeping neighbour to the basket.</summary>
+        Tiptoe,
+        /// <summary>Lifting the basket's rim: <see cref="KidController.IntroLift"/> scrubs the BasketLift clip.</summary>
+        Lift,
+    }
+
     public sealed class KidController : MonoBehaviour
     {
         const int MaxOverlaps = 16;
@@ -81,6 +91,10 @@ namespace ChickenRunner
         float _diveGroundY;
 
         public KidPose Pose { get; private set; }
+        /// <summary>Set by <see cref="GameFlow"/> during the basket intro; None in the chase.</summary>
+        public KidIntroPose IntroPose { get; set; }
+        /// <summary>The basket lift, 0 to 1, while <see cref="IntroPose"/> is Lift.</summary>
+        public float IntroLift { get; set; }
         public float X => _position.x;
         public Vector2 Position => _position;
         public float VerticalSpeed => _verticalSpeed;

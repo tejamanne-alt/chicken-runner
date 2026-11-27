@@ -13,6 +13,8 @@ namespace ChickenRunner
         Wriggle,
         /// <summary>Running off after escaping or wriggling free.</summary>
         Flee,
+        /// <summary>Out from under the lifted basket, sprinting to his head start (level 1's opening).</summary>
+        Burst,
     }
 
     /// <summary>
@@ -77,6 +79,39 @@ namespace ChickenRunner
             Debris.Feathers(new Vector3(_position.x, _position.y + 0.4f, 0f), new Color(0.9f, 0.45f, 0.15f), 6);
         }
 
+        float _burstFrom;
+        float _burstTo;
+        float _burstTime;
+        float _burstDuration;
+
+        /// <summary>Seconds since the burst began (his visual shows the startled leap first).</summary>
+        public float BurstTime => _burstTime;
+
+        /// <summary>He bursts out from under the basket and sprints to <paramref name="toX"/> over <paramref name="duration"/> s.</summary>
+        public void BeginBurst(float toX, float duration)
+        {
+            Act = RoosterAct.Burst;
+            _hop = null;
+            _burstFrom = _position.x;
+            _burstTo = toX;
+            _burstTime = 0f;
+            _burstDuration = Mathf.Max(0.1f, duration);
+            WorldBarks.Show("BAWK!", _position + Vector2.up * 1f, new Color(0.85f, 0.2f, 0.1f));
+            Debris.Feathers(new Vector3(_position.x, _position.y + 0.4f, 0f), new Color(0.9f, 0.45f, 0.15f), 10);
+        }
+
+        void TickBurst(float dt)
+        {
+            _burstTime += dt;
+            // A beat on the spot (the startled leap), then a sprint that eases into his run at the end.
+            float k = Mathf.Clamp01((_burstTime - 0.25f) / Mathf.Max(0.05f, _burstDuration - 0.25f));
+            float eased = k * (2f - k);
+            float x = Mathf.Lerp(_burstFrom, _burstTo, eased);
+            Speed = (x - _position.x) / Mathf.Max(dt, 1e-4f);
+            _position.x = x;
+            _position.y = GroundAt(x);
+        }
+
         /// <summary>The kid's dive reached him: he pops out of the kid's hands and runs off.</summary>
         public void BeginWriggle()
         {
@@ -105,6 +140,9 @@ namespace ChickenRunner
                     break;
                 case RoosterAct.Wriggle:
                     TickWriggle(dt);
+                    break;
+                case RoosterAct.Burst:
+                    TickBurst(dt);
                     break;
                 case RoosterAct.Flee:
                     Speed = _t.roosterRunSpeed * fleeSpeedMultiplier;

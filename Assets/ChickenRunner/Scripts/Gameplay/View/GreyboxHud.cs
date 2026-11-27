@@ -64,7 +64,7 @@ namespace ChickenRunner
 
             var director = flow.Director;
             DrawBarks(scale);
-            if (flow.State != FlowState.Ready)
+            if (flow.State != FlowState.Ready && flow.State != FlowState.Intro)
             {
                 DrawGapBar(director, width);
                 DrawCounters(director);
@@ -77,14 +77,35 @@ namespace ChickenRunner
                 case FlowState.Ready:
                     DrawReady(width, height);
                     break;
+                case FlowState.Intro:
+                    DrawIntro(width, height);
+                    break;
                 case FlowState.Result:
                     // In the full game the GameMenus draw the result with its buttons.
                     if (flow.TapToRetry) DrawResult(director, width, height);
                     break;
             }
             if (flow.Paused && flow.TapToRetry) DrawCentred(width, height * 0.34f, "Paused", "Tap to carry on");
-            if (flow.State != FlowState.Ready && director.Feathers > 0) DrawFeathers(director);
+            if (flow.State != FlowState.Ready && flow.State != FlowState.Intro && director.Feathers > 0) DrawFeathers(director);
             if (flow.ShowDebug) DrawDebug(director);
+        }
+
+        /// <summary>The basket intro: hush while she sneaks in, then how to lift it and how far it is up.</summary>
+        void DrawIntro(float width, float height)
+        {
+            if (flow.IntroWalking)
+            {
+                var level = flow.Level;
+                DrawCentred(width, height * 0.2f, level != null ? level.DisplayName : "Shh...",
+                    "Shh... the neighbour is asleep, and his rooster is under that basket.\nTap to hurry");
+                return;
+            }
+            if (!flow.IntroHolding) return;
+            DrawCentred(width, height * 0.2f, "Hold to lift the basket", "Slowly... don't let go!");
+            var bar = new Rect(width * 0.5f - 160f, height * 0.2f + 96f, 320f, 22f);
+            Fill(new Rect(bar.x - 5f, bar.y - 5f, bar.width + 10f, bar.height + 10f), s_panel);
+            Fill(bar, new Color(0f, 0f, 0f, 0.35f));
+            Fill(new Rect(bar.x, bar.y, bar.width * flow.IntroLift, bar.height), flow.IntroDrops == 0 ? s_close : s_mid);
         }
 
         void DrawGapBar(ChaseDirector director, float width)

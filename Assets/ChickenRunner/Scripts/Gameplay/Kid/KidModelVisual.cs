@@ -62,6 +62,36 @@ namespace ChickenRunner
         void OnDoubleJumped() => _doubleTimer = 0.4f;
         void OnHit(Obstacle obstacle, float metres) => _stumbleTimer = 0.7f;
 
+        static readonly int TiptoeState = Animator.StringToHash("Tiptoe");
+        static readonly int LiftState = Animator.StringToHash("BasketLift");
+
+        /// <summary>
+        /// The basket intro: Tiptoe at its own pace, or BasketLift held at the lift's progress (the clip is scrubbed by the
+        /// player's hold). False if the model has no such clip, so the usual states play instead.
+        /// </summary>
+        bool PlayIntro()
+        {
+            bool lift = kid.IntroPose == KidIntroPose.Lift;
+            int hash = lift ? LiftState : TiptoeState;
+            if (!animator.HasState(0, hash)) return false;
+            if (lift)
+            {
+                animator.speed = 0f;
+                animator.Play(hash, 0, Mathf.Clamp01(kid.IntroLift) * 0.999f);
+                _state = "BasketLift";
+                SetFace(faceStraining);
+                return true;
+            }
+            animator.speed = 1f;
+            if (_state != "Tiptoe")
+            {
+                animator.CrossFadeInFixedTime(hash, crossFade, 0, 0f);
+                _state = "Tiptoe";
+            }
+            SetFace(faceNeutral);
+            return true;
+        }
+
         /// <summary>The kid has the rooster in her hands for a moment: grin.</summary>
         public void SetCaught(bool caught) => _caught = caught;
 
@@ -75,6 +105,7 @@ namespace ChickenRunner
 
             string state;
             float speed = 1f;
+            if (kid.IntroPose != KidIntroPose.None && PlayIntro()) return;
             switch (kid.Pose)
             {
                 case KidPose.Dive: state = "Dive"; break;

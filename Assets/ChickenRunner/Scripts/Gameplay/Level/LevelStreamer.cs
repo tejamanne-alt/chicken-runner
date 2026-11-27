@@ -46,7 +46,8 @@ namespace ChickenRunner
             _course.Clear();
             float x = runwayStart;
             var runway = _level.RunwayChunk;
-            if (runway != null) x = Place(runway, x);
+            var opening = _level.StartChunk;
+            if (opening != null) x = Place(opening, x);
 
             float end = _level.CourseLength;
             var chunks = _level.Chunks;

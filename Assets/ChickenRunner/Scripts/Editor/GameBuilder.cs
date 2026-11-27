@@ -81,6 +81,7 @@ namespace ChickenRunner.EditorTools
                 var tunings = new TuningConfig[StoryMap.ZoneCount + 1];
                 var arts = new ZoneArt[StoryMap.ZoneCount + 1];
                 var chunks = new Dictionary<string, Chunk>[StoryMap.ZoneCount + 1];
+                var kits = new ZoneKit[StoryMap.ZoneCount + 1];
                 for (int zone = 1; zone <= StoryMap.ZoneCount; zone++)
                 {
                     EditorUtility.DisplayProgressBar("Building the game", "Zone " + zone, zone / 4f);
@@ -88,6 +89,7 @@ namespace ChickenRunner.EditorTools
                     var ground = ZoneGround(zone);
                     arts[zone] = ZoneArtBuilder.Build(zone, s_layouts[zone - 1], ground, SceneryFolder);
                     var kit = new ZoneKit { zone = zone, tuning = tunings[zone].Values, prims = prims, ground = ground, water = water, obstacles = obstacles };
+                    kits[zone] = kit;
                     chunks[zone] = new Dictionary<string, Chunk>();
                     foreach (var design in ChunkDesigns(zone))
                         chunks[zone][design.name] = SaveChunk(design.build(kit), $"Z{zone}_{design.name}");
@@ -95,7 +97,18 @@ namespace ChickenRunner.EditorTools
 
                 var levels = new LevelDefinition[s_levels.Length];
                 for (int i = 0; i < s_levels.Length; i++)
-                    levels[i] = CreateLevel(i, s_levels[i], tunings[s_levels[i].zone], arts[s_levels[i].zone], chunks[s_levels[i].zone]);
+                {
+                    var design = s_levels[i];
+                    levels[i] = CreateLevel(i, design, tunings[design.zone], arts[design.zone], chunks[design.zone]);
+                    if (string.IsNullOrEmpty(design.plan)) continue;
+                    EditorUtility.DisplayProgressBar("Building the game", "Level " + (i + 1) + " from its plan", 0.9f);
+                    var plan = LoadPlan(design.plan);
+                    if (plan == null) continue; // the error is logged; the level keeps its chunk pool
+                    if (plan.zone != 0 && plan.zone != design.zone)
+                        Debug.LogError($"Level plan {design.plan} is for zone {plan.zone}, but level {i + 1} is in zone {design.zone}.");
+                    ApplyPlan(levels[i], plan, BuildPlanChunks(design.plan, plan, kits[design.zone]));
+                    EditorUtility.SetDirty(levels[i]);
+                }
 
                 BuildScene(levels, arts[1], prims);
                 EditorSceneManager.SaveScene(scene, ScenePath);
@@ -233,6 +246,7 @@ namespace ChickenRunner.EditorTools
             level.tuning = tuning;
             level.art = art;
             level.runwayChunk = chunks["Runway"];
+            level.startChunk = null;
             level.chunks = new List<Chunk>();
             foreach (var name in design.chunks)
             {

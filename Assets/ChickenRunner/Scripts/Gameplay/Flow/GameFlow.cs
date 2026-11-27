@@ -6,6 +6,12 @@ namespace ChickenRunner
 {
     public enum FlowState
     {
+        /// <summary>
+        /// Level 1's opening in the neighbour's yard (<see cref="BasketIntro"/>): the kid tiptoes to the basket, the
+        /// player holds to lift it, the rooster bursts out and the neighbour wakes. A smooth lift gives the rooster the
+        /// short head start, a dropped one the long one. Played once per level load; a retry starts at the chase.
+        /// </summary>
+        Intro,
         /// <summary>Kid and rooster in place, waiting for the first tap.</summary>
         Ready,
         Chase,
@@ -46,6 +52,24 @@ namespace ChickenRunner
             + "result and pause buttons (a tap that ended the pause would take the button away before it was clicked).")]
         [SerializeField] internal bool tapToRetry = true;
 
+        [Header("Basket intro (level 1)")]
+        [Tooltip("The kid's tiptoe past the sleeping neighbour, m/s.")]
+        [SerializeField] internal float tiptoeSpeed = 1.1f;
+        [Tooltip("Seconds of holding to lift the basket all the way.")]
+        [SerializeField] internal float liftSeconds = 1.6f;
+        [Tooltip("How fast the basket drops back when the hold is let go, per second.")]
+        [SerializeField] internal float dropRate = 2.5f;
+        [Tooltip("From the rooster bursting out to the chase starting, seconds.")]
+        [SerializeField] internal float burstDuration = 1.1f;
+
+        enum IntroPhase { Walk, Hold, Burst }
+
+        IntroPhase _introPhase;
+        BasketLift _lift;
+        bool _introDone;
+        bool _neighbourWoke;
+        float _introGap;
+        float _introTimer;
         float _accumulator;
         bool _ready;
         bool _started;
@@ -60,6 +84,14 @@ namespace ChickenRunner
         public ChaseDirector Director => director;
         public ChaseCamera ChaseCamera => chaseCamera;
         public bool CanDismissResult => State == FlowState.Result && StateTime >= resultInputDelay;
+        /// <summary>In the basket intro, sneaking up to the basket.</summary>
+        public bool IntroWalking => State == FlowState.Intro && _introPhase == IntroPhase.Walk;
+        /// <summary>In the basket intro, waiting for (or during) the hold that lifts the basket.</summary>
+        public bool IntroHolding => State == FlowState.Intro && _introPhase == IntroPhase.Hold;
+        /// <summary>The basket lift, 0 to 1.</summary>
+        public float IntroLift => _lift.Lift;
+        /// <summary>How many times the basket was dropped back (any drop makes the lift clumsy).</summary>
+        public int IntroDrops => _lift.Drops;
         public bool TapToRetry
         {
             get => tapToRetry;
@@ -86,6 +118,7 @@ namespace ChickenRunner
         public void LoadLevel(LevelDefinition newLevel)
         {
             level = newLevel;
+            _introDone = false;
             if (!Validate()) return;
             var tuning = level.Tuning.Values;
             kid.Init(tuning);
@@ -146,6 +179,9 @@ namespace ChickenRunner
 
             switch (State)
             {
+                case FlowState.Intro:
+                    TickIntro(Time.deltaTime);
+                    break;
                 case FlowState.Ready:
                     if (input.AnyPress)
                     {
@@ -167,7 +203,7 @@ namespace ChickenRunner
 
             Simulate(Time.deltaTime);
             // Once the chase is over, stream around the kid only, so the fleeing rooster does not load the rest of the course.
-            bool chasing = State == FlowState.Ready || State == FlowState.Chase;
+            bool chasing = State == FlowState.Intro || State == FlowState.Ready || State == FlowState.Chase;
             streamer.Refresh(kid.X, chasing ? rooster.X : kid.X);
 
             float alpha = _accumulator * simulationRate;
@@ -189,7 +225,8 @@ namespace ChickenRunner
         public void Retry()
         {
             ResetLevel();
-            StartChase();
+            // A retry before the basket intro has finished plays the intro again; after it, straight into the chase.
+            if (State != FlowState.Intro) StartChase();
         }
 
         /// <summary>Back to the start of the level, waiting for the first tap.</summary>
@@ -204,12 +241,119 @@ namespace ChickenRunner
             WorldBarks.Clear();
             Debris.ClearAll();
             streamer.ResetCourse();
-            streamer.Refresh(0f, level.StartGap);
+            float gap = _introDone ? _introGap : level.StartGap;
+            streamer.Refresh(0f, gap);
+            kid.IntroPose = KidIntroPose.None;
             kid.ResetTo(0f);
-            rooster.ResetTo(level.StartGap);
+            rooster.ResetTo(gap);
             director.ResetChase();
             input.CancelGesture();
+
+            // Level 1 opens in the neighbour's yard: the first time, the basket intro; on a retry, the yard as it was
+            // left (the basket flung aside, the neighbour awake) and the head start the lift earned.
+            var intro = BasketIntro.Active;
+            if (intro != null && !_introDone) BeginIntro(intro);
+            else if (intro != null)
+            {
+                intro.SetLift(1f);
+                intro.SetToss(1f);
+                intro.Wake(true);
+            }
             if (chaseCamera != null) chaseCamera.Snap();
+        }
+
+        void BeginIntro(BasketIntro intro)
+        {
+            Enter(FlowState.Intro);
+            _introPhase = IntroPhase.Walk;
+            _lift.Reset();
+            _neighbourWoke = false;
+            _introTimer = 0f;
+            intro.ResetPart();
+            kid.ResetTo(intro.WalkFrom);
+            kid.IntroPose = KidIntroPose.Tiptoe;
+            kid.IntroLift = 0f;
+            rooster.ResetTo(intro.RoosterX);
+        }
+
+        void TickIntro(float dt)
+        {
+            var intro = BasketIntro.Active;
+            if (intro == null)
+            {
+                FinishIntro(level.StartGap);
+                return;
+            }
+            switch (_introPhase)
+            {
+                case IntroPhase.Walk:
+                {
+                    // A tap skips the walk (and a press held on from it starts the lift).
+                    float x = input.AnyPress ? 0f : Mathf.MoveTowards(kid.X, 0f, tiptoeSpeed * dt);
+                    kid.ResetTo(x);
+                    if (x >= -1e-3f)
+                    {
+                        _introPhase = IntroPhase.Hold;
+                        kid.IntroPose = KidIntroPose.Lift;
+                        kid.IntroLift = 0f;
+                        _lift.Reset(input.JumpHeld);
+                    }
+                    break;
+                }
+                case IntroPhase.Hold:
+                {
+                    if (_lift.Step(input.JumpHeld, dt, liftSeconds, dropRate))
+                    {
+                        // Let go part way up: the basket drops back with a clunk and the neighbour stirs.
+                        var rim = new Vector3(intro.RoosterX, 0.9f, intro.transform.position.z);
+                        WorldBarks.Show("CLUNK!", rim, new Color(0.55f, 0.35f, 0.12f));
+                        WorldBarks.Show(_lift.Drops == 1 ? "Hmm..?" : "Mmph!", intro.NeighbourPosition + Vector3.up * 1.3f,
+                            new Color(0.25f, 0.3f, 0.55f));
+                    }
+                    kid.IntroLift = _lift.Lift;
+                    intro.SetLift(_lift.Lift);
+                    if (_lift.Done) BeginBurst();
+                    break;
+                }
+                case IntroPhase.Burst:
+                {
+                    _introTimer += dt;
+                    intro.SetToss(Mathf.Clamp01((_introTimer - 0.15f) / 0.45f));
+                    if (_introTimer >= 0.15f) kid.IntroPose = KidIntroPose.None;
+                    if (_introTimer >= 0.3f && !_neighbourWoke)
+                    {
+                        _neighbourWoke = true;
+                        intro.Wake(true);
+                        WorldBarks.Show("OI! MY ROOSTER!", intro.NeighbourPosition + Vector3.up * 1.5f, new Color(0.25f, 0.3f, 0.55f), 1.6f);
+                    }
+                    if (_introTimer >= burstDuration) FinishIntro(_introGap);
+                    break;
+                }
+            }
+        }
+
+        void BeginBurst()
+        {
+            _introPhase = IntroPhase.Burst;
+            _introTimer = 0f;
+            _introGap = _lift.Gap(level.Tuning.Values);
+            rooster.BeginBurst(_introGap, burstDuration * 0.9f);
+        }
+
+        void FinishIntro(float gap)
+        {
+            _introDone = true;
+            _introGap = gap;
+            kid.IntroPose = KidIntroPose.None;
+            input.CancelGesture(); // the hold that lifted the basket is not a jump
+            var intro = BasketIntro.Active;
+            if (intro != null)
+            {
+                intro.SetLift(1f);
+                intro.SetToss(1f);
+                intro.Wake(true);
+            }
+            StartChase();
         }
 
         void StartChase()
@@ -238,7 +382,7 @@ namespace ChickenRunner
 
         void Simulate(float frameDt)
         {
-            if (State == FlowState.Ready)
+            if (State == FlowState.Ready || (State == FlowState.Intro && _introPhase != IntroPhase.Burst))
             {
                 _accumulator = 0f;
                 return;
@@ -258,6 +402,12 @@ namespace ChickenRunner
 
         void Tick(float dt)
         {
+            if (State == FlowState.Intro)
+            {
+                // The burst: only the rooster moves; the kid stays where the lift left her.
+                rooster.Tick(dt, director.Gap, kid.X);
+                return;
+            }
             kid.Tick(dt);
             rooster.Tick(dt, director.Gap, kid.X);
 

@@ -43,6 +43,10 @@ namespace ChickenRunner
             {
                 case RoosterAct.Idle: state = "Idle"; break;
                 case RoosterAct.Wriggle: state = "Tumble"; break;
+                case RoosterAct.Burst:
+                    state = rooster.BurstTime < 0.3f ? "Startled" : "Panic";
+                    speed = state == "Panic" ? Mathf.Clamp(rooster.Speed / Mathf.Max(0.1f, runReferenceSpeed * 1.3f), 1f, 2.5f) : 1f;
+                    break;
                 default:
                     if (rooster.IsAirborne) state = "Flutter";
                     else if (rooster.Mood == RoosterMood.Taunting && rooster.Speed < 1f) { state = "Crow"; }

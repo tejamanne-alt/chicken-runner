@@ -62,6 +62,7 @@ namespace ChickenRunner.EditorTools
             }
 
             public float Length => _length;
+            public Transform Root => _root;
 
             public GameObject Finish()
             {
@@ -176,11 +177,12 @@ namespace ChickenRunner.EditorTools
                 return obstacle;
             }
 
-            public Obstacle PotStack(float x, bool hiddenUntilMischief = false, float y = 0f)
+            public Obstacle PotStack(float x, bool hiddenUntilMischief = false, float y = 0f, bool? mirror = null)
             {
                 var obstacle = MakeObstacle("PotStack", x, _z.obstacles.pots, 0.45f, 0.6f, 0f, hiddenUntilMischief, y);
                 var v = obstacle.visual;
-                if (Art(v, "pot_stack", 0f, 0f, 0.05f, out _, height: 0.68f, mirror: _random.NextDouble() < 0.5) == null)
+                bool flip = mirror ?? _random.NextDouble() < 0.5;
+                if (Art(v, "pot_stack", 0f, 0f, 0.05f, out _, height: 0.68f, mirror: flip) == null)
                 {
                     Prim(PrimitiveType.Sphere, "Pot", v, new Vector3(0f, 0.15f, 0f), new Vector3(0.46f, 0.3f, 0.46f), Palette.Terracotta);
                     Prim(PrimitiveType.Sphere, "Pot", v, new Vector3(0f, 0.38f, 0f), new Vector3(0.36f, 0.24f, 0.36f), Palette.Terracotta);
@@ -220,12 +222,13 @@ namespace ChickenRunner.EditorTools
             }
 
             /// <summary>Sarees on a line across the lane, hanging from 1.6 m down to 0.7 m: slide under, or double jump over.</summary>
-            public void Clothesline(float x)
+            public void Clothesline(float x, bool? mirror = null)
             {
                 const float bottom = 0.7f;
                 const float top = 1.6f;
                 var obstacle = MakeObstacle("Clothesline", x, _z.obstacles.clothesline, 1.7f, top - bottom, bottom);
-                if (Art(obstacle.visual, "clothesline", 0f, 0f, 0.05f, out _, width: 2.2f, mirror: _random.NextDouble() < 0.5) == null)
+                bool flip = mirror ?? _random.NextDouble() < 0.5;
+                if (Art(obstacle.visual, "clothesline", 0f, 0f, 0.05f, out _, width: 2.2f, mirror: flip) == null)
                 {
                     Prim(PrimitiveType.Cube, "Sarees", obstacle.visual, new Vector3(0f, (top + bottom) * 0.5f, 0f), new Vector3(1.6f, top - bottom, 0.04f), Palette.Kumkum);
                     Prim(PrimitiveType.Cylinder, "PoleLeft", _root, new Vector3(x - 1f, 0.85f, 0f), new Vector3(0.07f, 0.85f, 0.07f), Palette.Wood);

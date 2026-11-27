@@ -20,6 +20,9 @@ namespace ChickenRunner
         [Tooltip("Flat chunk the kid starts on; also used after the course end so the rooster has somewhere to run.")]
         [SerializeField] internal Chunk runwayChunk;
 
+        [Tooltip("A level's own opening (level 1's neighbour's yard), laid where the runway would be. Empty: the runway.")]
+        [SerializeField] internal Chunk startChunk;
+
         [Tooltip("The course, in order. Laid end to end after the runway until the course length is covered.")]
         [SerializeField] internal List<Chunk> chunks = new List<Chunk>();
 
@@ -41,6 +44,7 @@ namespace ChickenRunner
         public bool ShuffleRepeats => shuffleRepeats;
         public int Seed => seed;
         public Chunk RunwayChunk => runwayChunk;
+        public Chunk StartChunk => startChunk != null ? startChunk : runwayChunk;
         public IReadOnlyList<Chunk> Chunks => chunks;
         public bool LoopChunks => loopChunks;
 

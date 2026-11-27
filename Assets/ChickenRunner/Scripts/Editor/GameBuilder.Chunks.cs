@@ -28,6 +28,8 @@ namespace ChickenRunner.EditorTools
             public int seed;
             public float courseLength;
             public string[] chunks;
+            /// <summary>A level plan in Art/Levels (e.g. "level1"): when set, the level is laid from it, not from <see cref="chunks"/>.</summary>
+            public string plan;
         }
 
         // Every level holds at least one chunk with each of its three hidden feathers (index 0, 1 and 2), on the
@@ -35,8 +37,10 @@ namespace ChickenRunner.EditorTools
         // feather again, which counts once.
         static readonly LevelDesign[] s_levels =
         {
+            // Level 1 is laid piece by piece from its audited plan (ArtSource/tools/levels/level1.py): the neighbour's yard
+            // and the basket, then 25 sections that teach, practise and test the jump. The chunk list is its fallback.
             new LevelDesign { title = "Pots and the sleeping dog", subtitle = "Tap to jump. Hold for higher.", zone = 1, seed = 11,
-                chunks = new[] { "Pots", "DungAndDog", "Puddle", "Cart" } },
+                chunks = new[] { "Pots", "DungAndDog", "Puddle", "Cart" }, plan = "level1" },
             new LevelDesign { title = "Washing day", subtitle = "Swipe down to slide. Bounce on the cot.", zone = 1, seed = 12,
                 chunks = new[] { "Clotheslines", "CotBounce", "DungAndDog", "ClothesAndPots", "Cart", "Mischief" } },
             new LevelDesign { title = "Up on the roofs", subtitle = "Ladders, roofs and the jump between them.", zone = 1, seed = 13,
