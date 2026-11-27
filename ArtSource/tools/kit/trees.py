@@ -2070,7 +2070,13 @@ def _trace_field_tree_2(K):
         return (mx - mn < 45) & (mx < 170) & (mx > 25) & ~((g > r + 3) & (g > b + 12)) & (r >= b) & \
             ((r >= g + 2) | (mx < 60))
     mask = wood_mask(K, rule, boxes=[(0, 0, 525, 528)], exclude=[(160, 478, 208, 530), (312, 488, 352, 530),
-                                                                 (150, 518, 400, 560)], close=1, hole=300, min_area=40)
+                                                                 (150, 518, 400, 560)], close=2, hole=600, min_area=40)
+    # out to the painted edge of the wood (its pale highlights and ink line), not into the leaves
+    rgb = (K.paint.rgba[..., :3] * 255).astype(np.int32)
+    r, g, b, mx, mn = chan(rgb)
+    not_leaf = ~((g >= r) & (g > b + 8) & (mx > 60)) & ~((mn > 175) & (mx - mn < 45)) & (K.paint.rgba[..., 3] > 0.5)
+    for _ in range(3):
+        mask |= ndimage.binary_dilation(mask) & not_leaf & box_mask(mask.shape, [(0, 0, 525, 528)])
     return mask, Wood(K, mask, root_px=(255, 525), spur=1.3, min_len=5)
 
 
