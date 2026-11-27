@@ -1568,10 +1568,10 @@ def banana(K, stem, leaves, heart, R_px, stalk_box, bunch_spec, rocks, grass, fo
     bx0, by0, bx1, by1 = bunch_box
     m &= ~ellipse_mask(opaque.shape, [((bx0 + bx1) / 2, (by0 + by1) / 2, (bx1 - bx0) / 2, (by1 - by0) / 2)], 2)
     K.leaves_only(leaf_box, mask_rule(m, leaf_box))
-    palm = Palm(K, heart, R=P.m(R_px), fit_mask=m)
+    palm = Palm(K, heart, R=P.m(R_px), fit_mask=m, fit_lim=(0.35, 2.6, 16))     # torn leaves: gaps between strips
     palm.crown(leaves, back=back, extra=extra, turn=(55, 175))
     stalk = masked_material(K, opaque & box_mask(opaque.shape, [stalk_box]) & not_ink(rgb, 60), inset=1)
-    palm.stalks(stalk, 9, 6, frac=0.25)
+    palm.stalks(stalk, min(9.0, stem[-1][2] * 0.5), min(6.0, stem[-1][2] * 0.33), frac=0.25)
     # ---- the bunch
     yb = -P.m(stem[-1][2]) * 1.6
     pts = [P.pt(x, y_, yb * min(1.0, i / 1.5)) for i, (x, y_, _) in enumerate(ped)]
@@ -2678,7 +2678,7 @@ def h7_3(K):
           segments=16)
     keep = opaque & ~halo(rgb)
     K.leaves_only((0, 0, P.w, P.h), mask_rule(keep, (0, 0, P.w, P.h)))
-    palm = Palm(K, (490, 250), R=P.m(420) * 0.7, fit_mask=keep & ~st_ok)
+    palm = Palm(K, (490, 250), R=P.m(420) * 0.7, fit_mask=keep & ~st_ok, fit_lim=(0.35, 2.6, 16))
     palm.crown(H73_LEAVES, back=1.0, extra=2, turn=(35, 70), need=0.9)
     stalk = masked_material(K, st_ok, inset=1)
     palm.stalks(stalk, 7, 5, frac=0.2)

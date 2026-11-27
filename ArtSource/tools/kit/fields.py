@@ -427,14 +427,21 @@ def lit_median(K, box, min_lum=100):
     return tuple(float(v) for v in np.median(px, axis=0))
 
 
-def img_tile(K, img, size, soften=0.0, vary=0.0, key=None, name=None):
-    """A material tiling a PIL image (speckle(), turned_crop()), box-projected `size` metres across."""
-    k = ("imgtile", key if key is not None else zlib.crc32(img.tobytes()), round(size, 4), soften, vary)
+def img_tile(K, img, size, soften=0.0, vary=0.0, key=None, name=None, mottle=0.0, mottle_size=0.6):
+    """A material tiling a PIL image (speckle(), turned_crop()), box-projected `size` metres across. mottle: a soft
+    light-and-dark variation over it about mottle_size metres across (patches of damp and dry earth), so a small tile
+    of a surface's grain does not read as a repeat."""
+    k = ("imgtile", key if key is not None else zlib.crc32(img.tobytes()), round(size, 4), soften, vary, mottle,
+         mottle_size)
     if k in K._mats:
         return K._mats[k]
     m = Mat(name or f"{K.name}_img{len(K._mats)}")
     coord = m.nt.nodes.new("ShaderNodeTexCoord")
-    m.set_colour(_tile_socket(K, m, coord, (0, 0, img.width, img.height), size, soften, vary, image=img))
+    col = _tile_socket(K, m, coord, (0, 0, img.width, img.height), size, soften, vary, image=img)
+    if mottle:
+        from kitlib import _vary
+        col = _vary(m, col, mottle, 1.0 / mottle_size)
+    m.set_colour(col)
     K._mats[k] = m
     return m
 
@@ -1225,9 +1232,9 @@ def canal_bridge(K):
     xR = lambda y: P.x(450) + (P.x(332) - P.x(450)) * min(1.0, (y - y_front) / (y_b0 - y_front))
     # the painted red earth of the banks: its grain (the painted light and its ink marks taken out) at its colour, so
     # the long slopes show no grid of dark smudges; a soft large-scale variation over it
-    earth_px = P.crop((456, 64, 506, 100))
-    earth = img_tile(K, speckle(delined(earth_px, 3), sigma=3.0, base=img_median(earth_px) * 0.97, amount=1.3), 0.3,
-                     vary=0.14, key="earth")
+    earth_px = P.crop((462, 68, 498, 90))
+    earth = img_tile(K, speckle(earth_px, sigma=2.5, base=img_median(earth_px) * 0.95, amount=0.9), P.m(36),
+                     vary=0.05, mottle=0.16, mottle_size=0.5, key="earth")
     stone_m = K.tile((110, 104, 158, 140), soften=0.3, vary=0.05)
     rock_m = K.tile((86, 150, 140, 182), soften=0.3, vary=0.05)
 
@@ -1237,9 +1244,9 @@ def canal_bridge(K):
         return interp([(0.0, 0.0), (0.05, sh - 0.06), (0.3, sh), (0.45, (sh + cr) / 2 + 0.02), (0.58, cr),
                        (0.7, cr - 0.05), (0.82, cr * 0.62), (0.92, cr * 0.25), (0.97, cr * 0.08), (1.0, 0.0)])(u)
     _, left = channel_bank(K, lambda y: xL, -1, lambda y: xL - P.x(22), y_front, y_end, prof, earth, rough=0.02,
-                           taper=0.3, name="bank")          # out to the painted banks' outer edges, no further
+                           taper=0.06, name="bank")         # out to the painted banks' outer edges, no further;
     _, right = channel_bank(K, xR, 1, lambda y: P.x(528) - xR(y), y_front, y_end, prof, earth, rough=0.02,
-                            taper=0.3, name="bank")
+                            taper=0.06, name="bank")        # cut off at the back as at the front (a stretch of canal)
     # the dry-stone walling lining both sides of the channel, three courses up to the banks' shoulders
     courses = [(0.0, 0.36), (0.36, 0.69), (0.69, 1.0)]
     lining(K, [(xL, y_front), (xL, y_end - 0.06)], -1, y_front, courses, stone_m, top=zl)

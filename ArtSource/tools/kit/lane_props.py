@@ -95,11 +95,12 @@ def dirt_pixels(rgba):
     return (a > 220) & ~grass & (r > 95) & (r - b > 30) & ~((mn > 165) & (mx - mn < 45))
 
 
-def quilt(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.0, exclude=()):
+def quilt(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.0, exclude=(), turn=True):
     """A seamless square texture of the painting's own material inside box (px): small patches of its `keep` pixels
     (the others, and the `exclude` boxes, filled from the nearest kept one) laid over each other at random, turned
     and flipped, each feathered into the ones under it and wrapping round the edges. So a thin painted strip of earth
-    becomes a square tile of the same earth, with no bands and no grid of the same pebble or tuft."""
+    becomes a square tile of the same earth, with no bands and no grid of the same pebble or tuft. turn=False keeps
+    every patch the way it is painted (only mirrored left to right): wood keeps its grain running one way."""
     import zlib
     import numpy as np
     from PIL import Image
@@ -124,13 +125,14 @@ def quilt(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.0, exc
     med = np.median(src[ok], axis=0)
     canvas = np.tile(med, (N, N, 1)).astype(np.float32)
     k = np.arange(p) + 0.5 - p / 2
-    win = np.clip((p / 2 - np.hypot(k[:, None], k[None, :])) / (p * 0.22), 0, 1)[..., None]   # a soft round dab
-    for _ in range(int(5 * (N / p) ** 2)):
+    rr = np.hypot(k[:, None], k[None, :])
+    win = (np.exp(-(rr / (p * 0.3)) ** 2) * np.clip((p / 2 - rr) / (p * 0.1), 0, 1))[..., None]   # a soft dab
+    for _ in range(int(8 * (N / p) ** 2)):
         for _try in range(12):
             sy, sx = int(rng.integers(0, h - p + 1)), int(rng.integers(0, w - p + 1))
             if okf[sy:sy + p, sx:sx + p].mean() > 0.75:
                 break
-        pt = np.rot90(src[sy:sy + p, sx:sx + p], int(rng.integers(0, 4)))
+        pt = np.rot90(src[sy:sy + p, sx:sx + p], int(rng.integers(0, 4)) if turn else 0)
         if rng.random() < 0.5:
             pt = pt[:, ::-1]
         ys, xs = (int(rng.integers(0, N)) + np.arange(p)) % N, (int(rng.integers(0, N)) + np.arange(p)) % N
@@ -185,13 +187,18 @@ def pil_tile(K, pil, sw, key, vary=0.0):
     return m
 
 
-def quilt_tile(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.3, vary=0.05, exclude=()):
+def quilt_tile(K, box, keep=dirt_pixels, size_px=None, patch_px=None, soften=0.3, vary=0.05, exclude=(), turn=True,
+               upright=False):
     """A tile of the painting's own material (earth, stone, weave) quilted from box (see quilt()), at its painted
-    scale."""
-    key = ("quilt", tuple(int(v) for v in box), keep.__name__, size_px, patch_px, soften, tuple(map(tuple, exclude)))
+    scale. upright: the tile turned a quarter round (wood grain painted along rails, set to run up a stake)."""
+    key = ("quilt", tuple(int(v) for v in box), keep.__name__, size_px, patch_px, soften, tuple(map(tuple, exclude)),
+           turn, upright)
     if key in K._mats:
         return K._mats[key]
-    pil = quilt(K, box, keep, size_px, patch_px, soften, exclude)
+    pil = quilt(K, box, keep, size_px, patch_px, soften, exclude, turn)
+    if upright:
+        from PIL import Image
+        pil = pil.transpose(Image.Transpose.ROTATE_90)
     return pil_tile(K, pil, K.paint.m(pil.width), key, vary=vary)
 
 
@@ -1874,8 +1881,10 @@ def bullock_cart(K):
         return (x, O.y + ax.y * s_ + nrm.y * off, Z(py))
     # the cart's own painted wood and blue boards, quilted into square tiles (a strip of one rail laid on a stake
     # or a beam runs into bands)
-    wood = quilt_tile(K, (0, 40, 500, 240), keep=wood_pixels, patch_px=14, size_px=84, soften=0.2,
-                      exclude=[(100, 90, 390, 372)])
+    wood = quilt_tile(K, (0, 90, 500, 240), keep=wood_pixels, patch_px=14, size_px=84, soften=0.2,
+                      exclude=[(100, 90, 390, 372), (60, 40, 250, 112)], turn=False)
+    stake_m = quilt_tile(K, (0, 90, 500, 240), keep=wood_pixels, patch_px=14, size_px=84, soften=0.2,
+                         exclude=[(100, 90, 390, 372), (60, 40, 250, 112)], turn=False, upright=True)
     beam_m = wood
     blue = quilt_tile(K, (90, 100, 480, 200), keep=blue_pixels, patch_px=12, size_px=72, soften=0.15)
     iron = K.colour((0.05, 0.05, 0.06), vary=0.08)
@@ -1924,7 +1933,7 @@ def bullock_cart(K):
             slab(10, 490, py1, py0, off - 0.025, off + 0.025, wood, "rail")
         stakes = ((48, 45), (108, 30), (309, 12), (478, 22)) if off < 0 else ((48, 45), (108, 30), (413, 7), (478, 22))
         for px, top in stakes:
-            K.tube([C(px, 232, off), C(px, top + 26, off)], P.m(10), wood, segments=8, name="stake")
+            K.tube([C(px, 232, off), C(px, top + 26, off)], P.m(10), stake_m, segments=8, name="stake")
             K.lathe([(P.m(10.5), 0.0), (P.m(11.5), P.m(8)), (P.m(9), P.m(18)), (P.m(4), P.m(25)), (0.0, P.m(26))],
                     wood, segments=12, centre=(C(px, top, off)[0], C(px, top, off)[1], Z(top + 26)), name="knob")
             for dz in (0, 7):
@@ -1975,7 +1984,7 @@ def bullock_cart(K):
     K.tube([C(304, 228, -0.9), C(304, 228, 0.9)], 0.04, iron, segments=10, name="axle")
     # the prop under the pole, the clamp holding it, the coils of rope
     K.block(*C(776, 190, 0.0), P.m(46), 0.16, P.m(42), wood, rot=(0, 0, -18), bevel=0.01, name="clamp")
-    K.tube([C(778, 205, 0.0), C(783, 280, 0.0), C(788, 352, 0.0)], [P.m(15), P.m(14), P.m(12)], wood, segments=7,
+    K.tube([C(778, 205, 0.0), C(783, 280, 0.0), C(788, 352, 0.0)], [P.m(15), P.m(14), P.m(12)], stake_m, segments=7,
            name="prop")
     rope = K.colour((515, 180, 540, 215), vary=0.1)
     for px0, n_ in ((514, 4), (694, 3)):
