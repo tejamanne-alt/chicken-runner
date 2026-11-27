@@ -168,6 +168,15 @@ def idle(t):
     return out(P, loc[1])
 
 
+# flags judged natural by eye in the check renders (meshy_rooster prints them marked): (clip or *, kind, region, why)
+NATURAL_FLAGS = [
+    ("Idle", "cross", "beak x neck", "his wattles pressing into his neck feathers at the bottom of the peck"),
+    ("Idle", "cross", "head x neck", "his wattles pressing into his neck feathers at the bottom of the peck"),
+    ("*", "squash", "Neck", "the neck feathers bunching on the inside of the bend"),
+    ("*", "fold", "Neck", "the neck feathers bunching on the inside of the bend"),
+    ("*", "squash", "LowerLeg", "the inside of the bent hock"),
+]
+
 CLIPS = [
     ("Idle", 54, True, "", idle),
     ("Run", round(RUN_T * 30), True, "", run),

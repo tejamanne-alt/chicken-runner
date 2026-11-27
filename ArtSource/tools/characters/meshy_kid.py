@@ -943,6 +943,7 @@ FIT["SkirtBack"] = ((0, y0 + rw, WAIST), (0, y0 + R_HEM, HEM))
 FIT["SkirtLeft"] = ((rw, y0, WAIST), (R_HEM, y0, HEM))
 FIT["SkirtRight"] = ((-rw, y0, WAIST), (-R_HEM, y0, HEM))
 bones = [(b[0],) + FIT.get(b[0], (b[1], b[2])) + tuple(b[3:]) for b in M.BONES]
+
 arm = K.armature(f"{NAME}Rig", bones)
 body.parent = arm
 mod = body.modifiers.new("Armature", "ARMATURE")

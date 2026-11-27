@@ -99,58 +99,55 @@ DRESS_SPARE = 0.025             # metres the skirt clears a leg by (its gathers 
 
 def dress(P):
     """The skirt clears her legs: each panel flares at least as far as the thigh, knee, shin and foot under it need,
-    worked out in the hips' frame from the leg's angles (its swing and its spread to the side). For each point of the
-    leg the skirt's surface where the point lies round it (its azimuth) must come out past it, DRESS_SPARE metres to
-    spare (the gathers fold in inside the skirt's line); the panels share that by azimuth (cos^2 round to the front or
-    back panel, sin^2 to the side's), so a knee in front lifts the front, a knee spread wide flares the side out, and a
-    heel behind the back. Each side also swings forward with its own leg's need in front (back with a heel behind),
-    sharing the flare round the hem. The clip's own values stand where they are larger."""
+    worked out in the hips' frame from the leg's angles. A leg sits to the side of her middle, where the round skirt is
+    further back than at its front and its front panel moves it only by its share (cos^2 of the way round), so the
+    flare is what brings the skirt's surface behind the limb's middle and at its outer edge in front of it, DRESS_SPARE
+    metres to spare (the gathers fold in inside the skirt's line; the lining turned up inside the hem takes 3 cm more).
+    Each side swings forward with its own leg's need in front (back with a heel behind), sharing the flare round the
+    hem. The clip's own values stand where they are larger."""
     a, b, hz = LEGS["thigh"], LEGS["shank"], LEGS["hip"]
     W, pv, L, lean = SKIRT_FIT["waist"], SKIRT_FIT["pivot"], SKIRT_FIT["length"], SKIRT_FIT["lean"]
     tl = math.tan(math.radians(lean))
     need = {}
-    for side, s in (("Left", 1), ("Right", -1)):
+    for side in ("Left", "Right"):
         up = math.radians(P[f"{side}UpperLeg"][0]) + LEGS["thigh_rest"]
-        spread = math.sin(math.radians(max(0.0, P[f"{side}UpperLeg"][2] * s)))
         lo = up + math.radians(P[f"{side}LowerLeg"][0]) + (LEGS["shank_rest"] - LEGS["thigh_rest"])
         kf, kz = a * math.sin(up), hz - a * math.cos(up)
         af, az = kf + b * math.sin(lo), kz - b * math.cos(lo)
         toe = lo + math.radians(90.0 + P[f"{side}Foot"][0])           # the foot, square to the shin at rest
         tf, tz = af + 0.09 * math.sin(toe), az - 0.09 * math.cos(toe)
-        x0 = LEGS.get("x", 0.058)
-        pts = [(a * 0.35 * math.sin(up), hz - a * 0.35 * math.cos(up), 0.075, 0.35 * a),
-               (a * 0.7 * math.sin(up), hz - a * 0.7 * math.cos(up), 0.065, 0.7 * a), (kf, kz, 0.055, a),
-               ((kf + af) / 2, (kz + az) / 2, 0.05, a + b / 2), (af, az, 0.048, a + b), (tf, tz, 0.04, a + b)]
-        nf = nb = no = 0.0
-        for f, z, r, along in pts:
+        pts = [(a * 0.35 * math.sin(up), hz - a * 0.35 * math.cos(up), 0.075),
+               (a * 0.7 * math.sin(up), hz - a * 0.7 * math.cos(up), 0.065), (kf, kz, 0.055),
+               ((kf + af) / 2, (kz + az) / 2, 0.05), (af, az, 0.048), (tf, tz, 0.04)]
+        nf = nb = 0.0
+        for f, z, r in pts:
             depth = W - z
-            x = x0 + along * spread
-            if depth < 0.02 or math.hypot(math.hypot(abs(f), x) - pv, depth) > L + r:
+            if depth < 0.02 or math.hypot(abs(f) - pv, depth) > L + r:
                 continue                       # above the waist, or past the hem's reach
             R = pv + depth * tl                # the skirt's radius at that height, at rest
             if depth > L * math.cos(math.radians(lean)) - 0.05:
                 R -= 0.03                      # the lining turned up inside the hem
-            gap = math.hypot(abs(f), x) + r + DRESS_SPARE - R
-            if gap <= 0:
+            n = 0.0
+            for lat, ahead in ((0.0, 1.0), (0.8, 0.6)):        # behind the limb's middle, and at its outer edge
+                xc = min(LEGS.get("x", 0.058) + lat * r, 0.95 * R)
+                reach = math.sqrt(R * R - xc * xc)  # how far forward (or back) the skirt is there
+                gap = abs(f) + ahead * r + DRESS_SPARE - reach
+                if gap > 0:
+                    share = (reach / R) ** 2 + 0.4 * (xc / R) ** 2
+                    n = max(n, min(80.0, math.degrees(math.atan2(gap, depth)) / share))
+            if n <= 0:
                 continue
-            n = min(80.0, math.degrees(math.atan2(gap, depth)))
-            c2 = f * f / (f * f + x * x)       # cos^2 of its azimuth: the front's (or back's) share there
-            if c2 > 0.5:
-                n /= c2 + 0.4 * (1 - c2)
-                if f >= 0:
-                    nf = max(nf, n)
-                else:
-                    nb = max(nb, n)
+            if f >= 0:
+                nf = max(nf, n)
             else:
-                no = max(no, n / ((1 - c2) + 0.3 * c2))
-        need[side] = (min(80.0, nf), min(80.0, nb), min(80.0, no))
+                nb = max(nb, n)
+        need[side] = (nf, nb)
     P["SkirtFront"] = [max(P["SkirtFront"][0], need["Left"][0], need["Right"][0]), 0.0, P["SkirtFront"][2]]
     P["SkirtBack"] = [max(P["SkirtBack"][0], need["Left"][1], need["Right"][1]), 0.0, P["SkirtBack"][2]]
-    for side, s in (("Left", 1), ("Right", -1)):
+    for side in ("Left", "Right"):
         k = f"Skirt{side}"
         swing = 0.4 * (need[side][0] - need[side][1])      # forward with a knee in front, back with a heel behind
-        flare = max(P[k][2] * s, need[side][2])
-        P[k] = [max(P[k][0], swing) if swing >= 0 else min(P[k][0], swing), 0.0, flare * s]
+        P[k] = [max(P[k][0], swing) if swing >= 0 else min(P[k][0], swing), 0.0, P[k][2]]
 
 
 def out(P, hips=(0.0, 0.0, 0.0)):
@@ -707,7 +704,7 @@ def basket_lift(t):
         thigh = math.degrees(upper - LEGS["thigh_rest"]) + tilt
         knee = math.degrees((lower - upper) - (LEGS["shank_rest"] - LEGS["thigh_rest"]))
         foot = -math.degrees(lower - LEGS["shank_rest"])        # the sole flat on the ground: heels down
-        leg(P, side, thigh, knee, foot, out=lerp(40, 10, e))          # knees wide, as a toddler squats
+        leg(P, side, thigh, knee, foot, out=lerp(26, 8, e))          # knees apart: she folds in between them
     P["Spine"] = [lerp(44, 30, e), 0, 0]
     P["Chest"] = [lerp(26, 16, e), 0, 0]
     for side in ("Left", "Right"):
@@ -717,7 +714,7 @@ def basket_lift(t):
     P["Head"] = [lerp(-26, -16, e), lerp(0, 10, e), lerp(0, 8, e)]
     hair(P, back=lerp(4, -2, e), sides=lerp(2, -1, e), out=1)
     # squatting, her skirt spreads out round her so its hem stays off the ground
-    skirt(P, front=4, back=lerp(34, 6, e), left=(0.0, lerp(20, 4, e)), right=(0.0, lerp(20, 4, e)))
+    skirt(P, front=4, back=lerp(34, 6, e), left=(0.0, lerp(30, 4, e)), right=(0.0, lerp(30, 4, e)))
     # her hands on the near rim: the wrist 5.5 cm short of the grip, toward her shoulder
     for side in ("Left", "Right"):
         if not RIG:
@@ -735,6 +732,17 @@ def basket_lift(t):
     P["_ik"] = [1, 0, 0]
     return out(P, hips)
 
+
+# flags judged natural by eye in the check renders (meshy_kid prints them marked): (clip or *, kind, region, why)
+NATURAL_FLAGS = [
+    ("*", "squash", "LowerLeg", "the back of a deeply bent knee folding in (run heel flick, squats, landings)"),
+    ("*", "squash", "UpperLeg", "the back of a deeply bent knee folding in"),
+    ("*", "fold", "LowerLeg", "the crease behind a deeply bent knee"),
+    ("*", "fold", "UpperLeg", "the crease behind a deeply bent knee"),
+    ("*", "squash", "LowerArm", "the inside of a bent elbow"),
+    ("*", "fold", "LowerArm", "the crease inside a bent elbow"),
+    ("*", "squash", "Foot", "the front of the ankle folding as the toes point"),
+]
 
 CLIPS = [
     ("Idle", 72, True, "neutral", idle),
