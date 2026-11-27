@@ -2781,21 +2781,23 @@ def cattle_shed(K):
     # towards the camera, their own material is a tile of the painted hay: projected, it ran down their sides in
     # vertical streaks like a beehive)
     hm = K.tile((1250, 490, 1420, 565), size=0.6, vary=0.06, soften=0.1)
-    # the painted hay kept off the front bake (on a mound 1 m deep it ran down the flanks in vertical streaks): the
-    # hay tufts cut from the painting, laid on the mounds' faces, carry the painted look from the front
-    exclude_where(K, (880, 440, 1480, 880), hay_pixels, grow=2)
+    # each heap its painted dome outline carried straight back with rounded edges: its front face takes the painting,
+    # its sides and top face away from the camera and take the hay tile (a turned dome took the painting all over its
+    # flanks, which from the side ran in vertical streaks like a beehive)
     heaps = ((1315, 300, 455, D - 0.8), (1120, 280, 555, 1.85), (975, 210, 700, 1.4))
     for px, w, top, y in heaps:
         sz = P.z(top) - zf
         R = P.m(w) / 2
-        K.lathe([(R * a_, zf + sz * b_) for a_, b_ in ((1.0, 0.0), (0.98, 0.2), (0.9, 0.45), (0.72, 0.7), (0.45, 0.88),
-                                                       (0.15, 0.98), (0.0, 1.0))], hm, segments=24,
-                centre=(P.x(px), y, 0.0), wobble=0.1, scale_y=min(1.0, 0.55 / R), name="hay")
+        dome = ((1.0, 0.0), (0.98, 0.2), (0.9, 0.45), (0.72, 0.7), (0.45, 0.88), (0.15, 0.98))
+        right = [(P.x(px) + R * a_, zf + sz * b_) for a_, b_ in dome]
+        left = [(P.x(px) - R * a_, zf + sz * b_) for a_, b_ in reversed(dome)]
+        dd = min(2 * R, 1.1)
+        K.prism(right + [(P.x(px), zf + sz)] + left, y - dd / 2, y + dd / 2, hm, bevel=0.08, name="hay")
     K.leaves_only((870, 440, 1480, 880), with_figure((870, 440, 1480, 880), hay_pixels, CALF_SHED))
     K.leaves_only((220, 690, 830, 870), straw_clean)
     calf = (930, 612, 1385, 875)                       # hay cards never sample the calf's box (it is its own card)
     # tufts of hay on the heaps' faces where they are painted (never out in the air above or round them)
-    for i in range(320):
+    for i in range(160):
         cx, cy = K.rng.uniform(890, 1470), K.rng.uniform(460, 860)
         if cx + 55 > calf[0] and cx - 55 < calf[2] and cy + 45 > calf[1]:
             continue
@@ -2807,7 +2809,7 @@ def cattle_shed(K):
         R = P.m(w) / 2
         u = abs(cx - px) / (w / 2)
         h = (P.z(cy) - zf) / sz                               # how far up the mound: its radius there
-        depth = min(R, 0.55) * max(0.1, (1 - h ** 1.6)) * math.sqrt(max(0.0, 1 - u * u))
+        depth = min(R, 0.55) * K.rng.uniform(0.9, 1.05)          # on the heap's front face
         blob_card(K, (cx - 50, cy - 40, cx + 50, cy + 40), (P.x(cx), y - depth * K.rng.uniform(0.6, 1.0), P.z(cy)),
                   yaw=K.rng.uniform(-60, 60), pitch=K.rng.uniform(-25, 25), name="hay_tuft", rag=0.3)
     for i in range(10):

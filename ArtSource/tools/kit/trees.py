@@ -2132,7 +2132,8 @@ def field_tree_2(K):
     wood, crown, bark, thin = traced_tree(
         K, mask, (255, 525), (0, 0, 525, 410), (262, 220), (220, 0, 410), sage_inked, spread=0.6, root_z_px=505,
         card_px=(70, 60), n_cards=(220, 100, 50, 20), limb_py_max=330, n_limbs=7, n_roots=0, depth_ratio=0.343,
-        core=0.2, dome_pow=0.9, min_r_px=2.2, trunk=(536, 380, 300, 500, 0.25), foot=foot)
+        core=0.2, dome_pow=0.9, min_r_px=2.2, trunk=(536, 380, 300, 500, 0.25), foot=foot,
+        rscale=1.1)                                   # (its knobbly limbs are wider than their inscribed circles)
     # grass tufts and stones on the earth
     K.leaves_only((150, 470, 360, 530), plant_pixels)
     for box, cx in (((160, 470, 210, 528), 185), ((312, 485, 352, 528), 332)):
