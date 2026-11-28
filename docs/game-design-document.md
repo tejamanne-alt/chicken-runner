@@ -197,7 +197,7 @@ hand-built models gain the decorations as real parts.
 
 - **Rendering:** toon shading with an outline pass on characters and props, so the supplied kid model and the world read as one drawing.
 - **Palette:** terracotta and red-earth ground, turmeric yellow, kumkum red, indigo and lime-wash house walls, paddy green, late-afternoon golden light.
-- **Camera:** side-on with a slight perspective, framed close as in Kick Off: about 5.4 m of height in view, so the kid is about a fifth of the screen tall and the village fills the picture behind her, kid on the left third. A close rooster is pulled into frame; a farther one is shown by an edge arrow with the distance. Before each chase the camera shows kid and rooster together, then eases in.
+- **Camera:** side-on with a slight perspective, framed as Kick Off's gameplay: the kid a quarter of the screen tall (24%), her feet 17% up it and 40% across, the road under her from 9% to 27% of the screen's height, the village houses close behind and the sky above. A close rooster is pulled into frame; a farther one is shown by an edge arrow with the distance. Before each chase the camera shows kid and rooster together, then eases in.
 - **Depth:** three parallax layers behind the play lane: hills and a temple tower, then fields and palms, then huts and trees.
 - **Readability rule:** anything that hurts has a dark outline and a warm colour; anything helpful (mangoes, chillies, ladders, cots) glints.
 - **UI:** hand-painted signboard style, chunky rounded type. The Baloo 2 family is a good fit: it has a matching font for each of nine Indian scripts if text is localised later.

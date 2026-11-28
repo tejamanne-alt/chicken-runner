@@ -200,11 +200,12 @@ namespace ChickenRunner.EditorTools
         }
 
         // The village road along the lane, as a band of the ground (PaintedGround's _RoadTex): from its front edge toward
-        // the camera to its back edge by the houses, so the running line (z = 0) is well on it (1.3 m in from its back edge,
-        // which from the camera's low angle is a thin band of the screen) and the roadside things (hens, the hand pump, the
-        // neighbour's cot, z 1.1 to 1.4) stand at its edge. ArtSource/tools/models/road_textures.py paints the tiles to these.
-        internal const float RoadFront = -2.0f;
-        internal const float RoadBack = 1.3f;
+        // the camera to its back edge by the houses. From the chase camera it fills the screen from 8.7% to 27% of its
+        // height, where Kick Off's pavement lies, with the kid's running line (z = 0) along its middle and the roadside
+        // things (hens, the hand pump, the neighbour's cot, z 1.1 to 1.4) on its back half. Below it, the earth verge, as
+        // Kick Off's kerb. ArtSource/tools/models/road_textures.py paints the tiles to these.
+        internal const float RoadFront = -1.25f;
+        internal const float RoadBack = 2.05f;
         const float RoadTile = 4f;
         static readonly string[] s_roads = { "road_mud_lane", "road_cart_track", "road_cement" };
 
@@ -220,6 +221,7 @@ namespace ChickenRunner.EditorTools
             {
                 var paddy = ArtAssets.Texture(ArtAssets.Cutout("paddy_water"), true);
                 ground = GroundMaterial("Ground_Zone2", earth, 3.5f, paddy, Color.white, 0.14f, 10f, 55f);
+                ground.SetFloat("_BandBack", RoadBack + 0.15f);   // the paddy from the cart track's back edge, by the crops
             }
             else
             {

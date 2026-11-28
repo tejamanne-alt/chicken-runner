@@ -9,8 +9,8 @@ a grassy hump between them and grass at its edges; the market and the temple str
 
 Each tile is 4 m along the lane (u, seamless) by the road's 3.3 m width (v, from its front edge toward the camera at
 v = 0 to its back edge by the houses at v = 1; the image's bottom row is v = 0); the kid's running line, z = 0, is at
-v = 0.61. The PaintedGround shader lays it as a band from z -2.0 to z 1.3 with soft, slightly wavy edges into the zone's
-earth (GameBuilder.ZoneGround).
+v = 0.38. The PaintedGround shader lays it as a band from z -1.25 to z 2.05 with soft, slightly wavy edges into the
+zone's earth (GameBuilder.ZoneGround): from the chase camera, 8.7% to 27% of the screen's height, as Kick Off's pavement.
 Writes ArtSource/cutouts/textures/road_mud_lane.png, road_cart_track.png and road_cement.png, the side lanes that run
 back between the houses (ArtSource/cutouts/ground/side_lane_mud.png, with alpha), the hand pump's puddle
 (ground/puddle_water.png) and the canals' water (textures/canal_water_light.png).
@@ -25,7 +25,7 @@ from scipy import ndimage
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 TEX = ROOT / "ArtSource" / "cutouts" / "textures"
 GROUND = ROOT / "ArtSource" / "cutouts" / "ground"
-FRONT, BACK = -2.0, 1.3           # GameBuilder.RoadFront / RoadBack (depth)
+FRONT, BACK = -1.25, 2.05         # GameBuilder.RoadFront / RoadBack (depth)
 LENGTH, WIDTH = 4.0, BACK - FRONT  # metres along and across the road (RoadTile along)
 W = 1024
 H = int(round(W * WIDTH / LENGTH))
@@ -128,7 +128,7 @@ def mud_lane(rng):
     col = ramp(t, [(0.0, (150, 98, 62)), (0.35, (188, 136, 90)), (0.6, (212, 164, 112)), (0.85, (228, 186, 134)),
                    (1.0, (238, 200, 150))])
     wobble = (noise(rng, 2, 1) - 0.5) * 0.04
-    for c in (v_of(-1.65), v_of(-0.25)):
+    for c in (0.11, 0.53):                            # across the road, as v
         rut = band(v + wobble, c, 0.02, 0.035) * (0.45 + 0.55 * noise(rng, 5, 2))
         col = col * (1 - 0.3 * rut[..., None]) + np.array([140, 92, 58]) * 0.3 * rut[..., None]
     col = finish(col, rng)
@@ -144,7 +144,7 @@ def cart_track(rng):
     v = np.linspace(0, 1, H)[:, None] * np.ones((1, W))
     t = 0.45 + 0.35 * (fbm(rng, 3, 3) - 0.5) + 0.25 * (streaks(rng) - 0.5)
     col = ramp(t, [(0.0, (142, 96, 60)), (0.4, (180, 130, 86)), (0.7, (204, 156, 106)), (1.0, (226, 182, 132))])
-    ruts = [v_of(-1.3), v_of(0.1)]
+    ruts = [v_of(-0.29), v_of(1.09)]                   # 1.38 m apart, the kid running between them
     for c in ruts:
         rut = band(v, c, 0.035, 0.03)
         col = col * (1 - 0.12 * rut[..., None]) + np.array([230, 190, 140]) * 0.12 * rut[..., None]   # worn smooth, paler
@@ -170,7 +170,7 @@ def cement(rng):
     v = np.linspace(0, 1, H)[:, None] * np.ones((1, W))
     u = np.linspace(0, 1, W)[None, :] * np.ones((H, 1))
     t = 0.55 + 0.25 * (fbm(rng, 4, 4) - 0.5) + 0.08 * (noise(rng, 120, 100, order=1) - 0.5)
-    t = t + band(v, LINE, 0.08, 0.15) * 0.08 + band(v, v_of(-1.4), 0.05, 0.1) * 0.05
+    t = t + band(v, LINE, 0.08, 0.15) * 0.08 + band(v, 0.18, 0.05, 0.1) * 0.05
     col = ramp(t, [(0.0, (160, 150, 134)), (0.4, (190, 180, 162)), (0.7, (210, 200, 182)), (1.0, (226, 216, 198))])
     # slabs: a joint across every 2 m, the two lanes' joint along the middle, the slab edges a touch darker
     joint = np.zeros((H, W))

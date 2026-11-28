@@ -55,8 +55,9 @@ the plan placed them (from the same picture sizes), and logs an error if not.
 
 ## The view and the road
 
-The camera frames as Kick Off's does (`ChaseCamera`): 34 degrees, about 10 m back, 5.4 m of height at the lane, the
-kid on the left third and about a fifth of the screen tall, following the ground she runs on. Each zone's village road
-runs along the lane (`PaintedGround`'s road band, tiles from `ArtSource/tools/models/road_textures.py`): the lane's
-hardened mud street, the fields' cart track, the market's cement road, from z -2.0 to z 1.3, with mud side lanes back
-between the houses.
+The camera frames as Kick Off's gameplay does on a phone (`ChaseCamera`, measured from a screenshot of it): the kid
+24% of the screen tall, her feet 17% up it and 40% across, following the ground she runs on; for the 1.08 m kid that is
+34 degrees, about 7.3 m back, 4.5 m of height at the lane. Each zone's village road runs along the lane
+(`PaintedGround`'s road band, tiles from `ArtSource/tools/models/road_textures.py`): the lane's hardened mud street, the
+fields' cart track, the market's cement road, from z -1.25 to z 2.05, which fills the screen from 9% to 27% of its
+height as Kick Off's pavement does, with mud side lanes back between the houses.

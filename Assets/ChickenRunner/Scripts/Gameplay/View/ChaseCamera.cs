@@ -3,11 +3,12 @@ using UnityEngine;
 namespace ChickenRunner
 {
     /// <summary>
-    /// The chase camera, framed as Kick Off frames its kid (Kick Off's CameraFollow2D): a perspective camera looking
-    /// along +z at the lane, tilted down a touch so the ground reads as ground, close enough that the kid is about a
-    /// fifth of the screen tall (5.4 m of height at the lane, or more on a narrow screen to keep 11 m of lane across),
-    /// with the village close behind her and the sky above it. The kid stands on the left third with the lane ahead
-    /// of her; a faster zone pulls back just enough to keep a second of lane ahead in view.
+    /// The chase camera, framed as Kick Off's gameplay is on a phone (measured from a 2868 x 1320 screenshot of it): a
+    /// perspective camera looking along +z at the lane, tilted 4 degrees down, the kid 24.1% of the screen tall with her
+    /// feet 16.9% up it and 40% of the way across, the road under her and the village close behind (a house's base about
+    /// 35% up the screen, its eaves about 70%), the sky above. Kick Off's kid is 1.3 m tall in a 5.4 m view; this kid is
+    /// 1.08 m, so the view is 4.48 m tall, about 7.3 m back, and on the screen she is the same size. A faster zone pulls
+    /// back just enough to keep three quarters of a second of lane ahead in view.
     ///
     /// Unlike Kick Off's camera it follows the ground the kid runs on rather than the kid, so jumps do not bob the
     /// view: it rises when she lands on a roof and drops when she drops. The rooster: a close one is brought into the
@@ -22,19 +23,19 @@ namespace ChickenRunner
         [SerializeField] internal RoosterBrain rooster;
         [SerializeField] internal ChaseDirector director;
 
-        [Header("Framing, as Kick Off's")]
-        [Tooltip("Half the visible height at the lane (m): 2.7 shows 5.4 m, so the kid is about a fifth of the screen tall.")]
-        [SerializeField] internal float viewHalfHeight = 2.7f;
-        [Tooltip("At least this much lane either side of the view's centre (m); a narrower screen pulls back to keep it.")]
-        [SerializeField] internal float minHalfWidth = 5.5f;
-        [Tooltip("At least this many seconds of lane ahead of the kid at her running speed: a faster zone pulls back a little.")]
-        [SerializeField] internal float lookAheadSeconds = 1f;
-        [Tooltip("Where the kid stands across the screen (0 = left edge): the left third, the lane ahead of her.")]
-        [SerializeField, Range(0.2f, 0.5f)] internal float kidScreenX = 1f / 3f;
-        [Tooltip("How far the view's centre is above the ground she runs on (m), so her feet sit low in the frame "
-            + "(Kick Off: 1.15 m above the kid's middle).")]
-        [SerializeField] internal float focusHeight = 1.75f;
-        [Tooltip("Downward tilt in degrees, so the lane's ground shows.")]
+        [Header("Framing, measured from Kick Off's gameplay")]
+        [Tooltip("The kid's standing height (m): the Kid model is 1.08 m.")]
+        [SerializeField] internal float kidHeight = 1.08f;
+        [Tooltip("How tall she stands on screen, as a share of its height (Kick Off: 0.241).")]
+        [SerializeField, Range(0.1f, 0.4f)] internal float kidScreenHeight = 0.241f;
+        [Tooltip("Where her feet are on screen, as a share of its height up from the bottom (Kick Off: 0.169).")]
+        [SerializeField, Range(0.05f, 0.4f)] internal float feetScreenY = 0.169f;
+        [Tooltip("Where she stands across the screen (0 = left edge; Kick Off: 0.40), the lane ahead of her.")]
+        [SerializeField, Range(0.2f, 0.5f)] internal float kidScreenX = 0.4f;
+        [Tooltip("At least this many seconds of lane ahead of her at her running speed: a faster zone, or a narrower "
+            + "screen, pulls back just enough.")]
+        [SerializeField] internal float lookAheadSeconds = 0.75f;
+        [Tooltip("Downward tilt in degrees, so the lane's ground shows (Kick Off: 4).")]
         [SerializeField] internal float pitch = 4f;
 
         [Header("The rooster")]
@@ -83,13 +84,15 @@ namespace ChickenRunner
             // The ground she runs on: where she last stood, or lower if she falls below it (off a roof, into a canal).
             if (snap || !_started || kid.IsGrounded || feet.y < _ground) _ground = feet.y;
 
-            // The close framing: Kick Off's size, or wider on a narrow screen or in a fast zone.
+            // The close framing: the kid as big on screen as Kick Off's, or a touch wider where a fast zone or a narrow
+            // screen needs the lane ahead.
             float run = director != null && director.Tuning != null ? director.Tuning.kidRunSpeed : 6f;
-            float minHalf = Mathf.Max(minHalfWidth, lookAheadSeconds * run / (2f * (1f - kidScreenX)));
-            float baseHalfHeight = Mathf.Max(viewHalfHeight, minHalf / aspect);
+            float minHalf = lookAheadSeconds * run / (2f * (1f - kidScreenX));
+            float baseHalfHeight = Mathf.Max(0.5f * kidHeight / Mathf.Max(0.05f, kidScreenHeight), minHalf / aspect);
             float targetZoom = RoosterZoom(baseHalfHeight * aspect);
 
-            float targetHeight = _ground + focusHeight;
+            // The view's centre above the ground she runs on, so her feet sit feetScreenY up the screen at any zoom.
+            float targetHeight = _ground + (1f - 2f * feetScreenY) * baseHalfHeight * targetZoom;
             if (snap || !_started)
             {
                 _zoom = targetZoom;

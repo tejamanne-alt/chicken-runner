@@ -129,8 +129,8 @@ def cs_number(rel, name, default):
 
 _CC = "Gameplay/View/ChaseCamera.cs"
 CAMERA = {k: cs_number(_CC, k, d) for k, d in (
-    ("viewHalfHeight", 2.7), ("minHalfWidth", 5.5), ("lookAheadSeconds", 1.0), ("kidScreenX", 1 / 3),
-    ("focusHeight", 1.75), ("pitch", 4.0), ("maxRoosterZoom", 1.25), ("roosterScreenX", 0.9),
+    ("kidHeight", 1.08), ("kidScreenHeight", 0.241), ("feetScreenY", 0.169), ("lookAheadSeconds", 0.75),
+    ("kidScreenX", 0.4), ("pitch", 4.0), ("maxRoosterZoom", 1.25), ("roosterScreenX", 0.9),
     ("maxEstablishingZoom", 2.4))}
 BUILDER_FOV = cs_number("Editor/GameBuilder.cs", "fieldOfView", 34.0)
 # The Kick Off framing is made for a 34 degree lens (GameBuilder.BuildScene); --fov overrides.
@@ -178,7 +178,7 @@ NOT_OBSTACLES = ("prop", "decal", "mango", "chilli", "feather", "hop", "mischief
                  "roof", "box", "house", "houses", "bridge", "plank")
 STARTS_AT_X = ("cart", "cot", "haystack", "buffalo", "canal", "steps", "stall")     # Kit calls that start at x
 CANAL_BED = cs_number("Editor/GameBuilder.Kit.cs", "CanalBed", -0.28)
-ROAD = {"front": cs_number("Editor/GameBuilder.cs", "RoadFront", -2.4), "back": cs_number("Editor/GameBuilder.cs", "RoadBack", 1.0),
+ROAD = {"front": cs_number("Editor/GameBuilder.cs", "RoadFront", -1.25), "back": cs_number("Editor/GameBuilder.cs", "RoadBack", 2.05),
         "tile": cs_number("Editor/GameBuilder.cs", "RoadTile", 4.0), "soft": 0.32, "wave": 0.2,
         "tiles": ["road_mud_lane", "road_cart_track", "road_cement"]}
 for _k in ("soft", "wave"):                    # ZoneGround: ground.SetFloat("_RoadSoft", 0.32f) and "_RoadWave"
@@ -312,12 +312,13 @@ def outline_for(w, h):
 
 # ====================================================================== the chase camera and who stands where
 def frame_camera(kid_x, ground_y, gap, aspect=16 / 9, run=6.0, establishing=False):
-    """ChaseCamera.Frame (snapped), Kick Off's framing: position and aim in course axes (x along, y up, z in).
-    The half-height comes from the zone's run speed; the screen's centre is on the lane plane, 1.75 m over the ground
-    she stands on (it does not follow jumps); a close rooster pulls the view back (up to 1.25, or 2.4 before the chase)."""
+    """ChaseCamera.Frame (snapped), framed as Kick Off's gameplay measures on a phone: the kid kidScreenHeight of the
+    screen tall, her feet feetScreenY up it, kidScreenX across; wider only where the zone's run speed needs the lane
+    ahead; the screen's centre on the lane plane over the ground she stands on (it does not follow jumps); a close
+    rooster pulls the view back (up to 1.25, or 2.4 before the chase)."""
     c = CAMERA
-    min_half = max(c["minHalfWidth"], c["lookAheadSeconds"] * run / (2 * (1 - c["kidScreenX"])))
-    base_h = max(c["viewHalfHeight"], min_half / aspect)
+    min_half = c["lookAheadSeconds"] * run / (2 * (1 - c["kidScreenX"]))
+    base_h = max(0.5 * c["kidHeight"] / max(0.05, c["kidScreenHeight"]), min_half / aspect)
     zoom = 1.0
     if gap > 0:
         needed = (gap + 0.6) / (2 * max(0.05, c["roosterScreenX"] - c["kidScreenX"])) / max(0.1, base_h * aspect)
@@ -327,7 +328,7 @@ def frame_camera(kid_x, ground_y, gap, aspect=16 / 9, run=6.0, establishing=Fals
             zoom = max(1.0, needed) if needed <= c["maxRoosterZoom"] else 1.0
     half_h = base_h * zoom
     half_w = half_h * aspect
-    cy = max(ground_y + c["focusHeight"], ground_y + 1.3 - half_h * 0.85)
+    cy = max(ground_y + (1 - 2 * c["feetScreenY"]) * half_h, ground_y + 1.3 - half_h * 0.85)
     cy = min(cy, ground_y + half_h * 0.8)
     cx = kid_x + (0.5 - c["kidScreenX"]) * 2 * half_w
     dist = half_h / math.tan(math.radians(c["fov"]) / 2)
@@ -1535,7 +1536,7 @@ def blender_main():
     if L.zone == 2 and cutout("paddy_water"):
         # GameBuilder.ZoneGround: the bund's earth along the lane, paddy water beyond it, a longer haze; the zone's road
         GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 10.0, 55.0, far=cutout("paddy_water"),
-                                     road=road_tex)
+                                     band_back=ROAD["back"] + 0.15, road=road_tex)
     else:
         GROUND_MAT = ground_material("ground", earth, 3.5, (1, 1, 1), 0.14, 6.0, 40.0, road=road_tex)
     water_tex = cutout("canal_water")
