@@ -158,21 +158,41 @@ def out(P, hips=(0.0, 0.0, 0.0)):
 
 
 # ------------------------------------------------------------------ run: Kick Off's gait, with the foot planted by IK
-# Each step is as long as the ground the body covers while that foot is down, so a planted foot stays put (Kick Off's
-# KidAnimator.StrideSwing). Here the planted foot is solved for exactly: while it is down it slides back under the hips
-# at the game's run speed (KidModelVisual plays this clip at 6 m/s, faster or slower with her speed), flat on the ground,
-# and the thigh and knee angles come from it (two-bone IK); in the swing the heel flicks up behind and the knee drives
-# through before the leg reaches out to land. Her leg can reach about 0.2 m either side of her hips, so at 6 m/s each
-# foot is down for about 0.07 s of a 0.4 s stride: a bounding toddler's sprint with long flights between the steps.
+# Kick Off's kid (KidAnimator) runs at 4.2 m/s taking 1.9 x 4.2 / 4 = 2.0 strides a second, each step as long as the
+# ground the body covers while that foot is down, so a planted foot stays put. Both games frame the kid at the same
+# share of the screen, so its pace on screen is 4.2 x 1.08 / 1.3 = 3.5 m/s for her: the game's run speed, and this
+# clip's (KidModelVisual plays it faster or slower with her speed). At 3.5 m/s and 2.0 strides a second a stride is
+# 1.75 m. The planted foot is solved for exactly: while it is down it slides back under the hips at the run speed, flat
+# on the ground, then the heel rises and the foot rolls over the ball, which stays where it is, to push off on the toes
+# (RUN_TOE_OFF); the thigh and knee come from it (two-bone IK). Each foot is down for RUN_DUTY of the stride (0.14 s,
+# twice the old sprint's share), so the flights between the steps are short and low: a kid's run, not a bound. Her
+# hips sit as low as lets the leg reach the planted foot from touch-down (knee a little bent) to toe-off (nearly
+# straight), dip a centimetre as the knee gives at mid-stance and rise a centimetre in each flight. In the swing the
+# heel flicks up behind (Kick Off's knee fold, most early in the swing), the foot passes under her a hand above the
+# ground with the knee forward, the leg reaches out and comes back a little to land (the foot nearly at rest on the
+# ground as it touches). The arms swing against the legs (Kick Off's 34 degrees) with the elbows bent 70-95 degrees,
+# bending more as the arm comes forward; the body leans 7 degrees and the head keeps the eyes level.
 # LEGS is the kid model's (meshy_kid sets it from the model): thigh and shank lengths, the hip and ankle heights at rest
 # and the rest angles of thigh and shank from straight down (forward positive, radians).
 LEGS = {"thigh": 0.282, "shank": 0.191, "hip": 0.54, "ankle": 0.067, "ball": 0.07, "thigh_rest": 0.0, "shank_rest": 0.0}
-RUN_SPEED = 6.0
-RUN_T = 12 / 30
-RUN_DUTY = 0.18                 # the part of a stride each foot is down
-SWING = 40.0                    # the arms swing in step with this (Kick Off's maxLegSwing)
-RUN_LIFT = 0.20                 # how high the swinging foot rises (lower than Kick Off's 0.24, so the knee and heel stay
-                                # under the skirt the model can flare without tearing it)
+RUN_SPEED = 3.5
+RUN_T = 15 / 30                 # 2.0 strides a second (Kick Off's 1.9 x 4.2 / 4)
+RUN_DUTY = 0.28                 # the part of a stride each foot is down
+RUN_LEAN = 7.0                  # Kick Off's body lean
+RUN_DIP = 0.010                 # the hips' dip at mid-stance (the knee giving)
+RUN_RISE = 0.008                # and their rise in each flight
+RUN_TOE_OFF = 55.0              # how far the heel has risen (degrees) when the toes leave the ground
+RUN_ROLL = 0.45                 # the part of the stance the foot is flat; then the heel rises
+RUN_REACH = (0.975, 0.985)      # the leg's length at touch-down and at toe-off, of its full length
+SWING = 42.0                    # Kick Off's maxLegSwing
+ARM_SWING = 34.0                # Kick Off's maxArmSwing: each arm swings this far either side
+# the swinging ankle's path: (part of the swing, metres forward of the hip, metres above the ground); the touch-down's
+# forward reach is added to the last key (it comes from the stance)
+RUN_SWING_KEYS = ((0.12, -0.262, 0.135),  # rising off the toes, still going back
+                  (0.33, -0.20, 0.25),     # the heel flicked up behind
+                  (0.60, 0.00, 0.13),      # passing under her, the knee forward
+                  (0.84, 0.035, 0.105))    # reaching out, a little ahead of where it lands
+RUN_LAND = 0.6                  # the swinging foot comes back at this share of the run speed as it touches down
 
 
 def two_bone(x, y, a, b, bend=1.0):
@@ -187,70 +207,170 @@ def two_bone(x, y, a, b, bend=1.0):
     return upper, lower
 
 
-def run_leg(u, T=None, speed=None):
-    """The leg at stride phase u (0..1, contact at 0): thigh, knee and foot angles (degrees) and the ankle's height."""
-    T = T or RUN_T
-    speed = speed or RUN_SPEED
+def hermite(keys, w):
+    """A smooth path through keys [(w, value, slope or None)] at w: cubic Hermite, each slope left None taken from its
+    neighbours (Catmull-Rom); values and slopes may be tuples (a path in the plane)."""
+    n = len(keys)
+    ws = [k[0] for k in keys]
+    vals = [k[1] if isinstance(k[1], tuple) else (k[1],) for k in keys]
+    slopes = []
+    for i, k in enumerate(keys):
+        if k[2] is not None:
+            slopes.append(k[2] if isinstance(k[2], tuple) else (k[2],))
+        else:
+            j0, j1 = max(0, i - 1), min(n - 1, i + 1)
+            slopes.append(tuple((vals[j1][c] - vals[j0][c]) / (ws[j1] - ws[j0]) for c in range(len(vals[i]))))
+    i = 0
+    while i < n - 2 and w > ws[i + 1]:
+        i += 1
+    dw = ws[i + 1] - ws[i]
+    s = max(0.0, min(1.0, (w - ws[i]) / dw))
+    h00, h10, h01, h11 = 2 * s ** 3 - 3 * s * s + 1, s ** 3 - 2 * s * s + s, -2 * s ** 3 + 3 * s * s, s ** 3 - s * s
+    out_ = tuple(h00 * vals[i][c] + h10 * dw * slopes[i][c] + h01 * vals[i + 1][c] + h11 * dw * slopes[i + 1][c]
+                 for c in range(len(vals[i])))
+    return out_ if len(out_) > 1 else out_[0]
+
+
+_RUN_FIT = {}
+
+
+def run_fit():
+    """How the stance fits her legs at RUN_SPEED and RUN_DUTY: the hips' height (at touch-down and toe-off) and how far
+    ahead of them the foot lands, so that the leg is RUN_REACH[0] of its length at touch-down and RUN_REACH[1] at
+    toe-off, the stance's ground covered being RUN_SPEED x RUN_DUTY x RUN_T."""
+    key = (tuple(sorted(LEGS.items())), RUN_SPEED, RUN_T, RUN_DUTY, RUN_TOE_OFF, RUN_REACH)
+    if key in _RUN_FIT:
+        return _RUN_FIT[key]
     a, b = LEGS["thigh"], LEGS["shank"]
-    half = speed * RUN_DUTY * T / 2                 # the foot travels from +half to -half under the hips while down
-    hip_ankle = math.sqrt(max(0.05, (0.985 * (a + b)) ** 2 - half * half))
-    u = u % 1.0
-    if u < RUN_DUTY:
-        w = u / RUN_DUTY
-        roll = 22 * smooth((w - 0.55) / 0.45)        # rolling onto the toes to push off: the heel rises, the toes stay
-        x, lift = half - 2 * half * w, LEGS.get("ball", 0.07) * math.sin(math.radians(roll))
-    else:
-        w = (u - RUN_DUTY) / (1 - RUN_DUTY)
-        # the heel flicks up behind, the knee drives through high, the leg reaches out and comes down to land
-        x = -half * math.cos(math.pi * w) - 0.07 * math.sin(math.pi * w) * (1 - w) ** 1.5
-        lift = RUN_LIFT * max(0.0, math.sin(math.pi * w)) ** 0.9 * (1 - 0.45 * w)
-    upper, lower = two_bone(x, hip_ankle - lift, a, b, 1.0)
+    h, ball = LEGS["ankle"], LEGS.get("ball", 0.07)
+    L = a + b
+    p = math.radians(RUN_TOE_OFF)
+    back = RUN_SPEED * RUN_DUTY * RUN_T - ball + ball * math.cos(p) - h * math.sin(p)   # touch-down to toe-off ankle
+    y_off = ball * math.sin(p) + h * math.cos(p)                                       # the ankle's height at toe-off
+    r_td, r_to = RUN_REACH[0] * L, RUN_REACH[1] * L
+    lo, hi = h + 0.05, h + r_td
+    for _ in range(60):
+        y = (lo + hi) / 2
+        front = math.sqrt(max(0.0, r_td ** 2 - (y - h) ** 2))
+        if (front - back) ** 2 + (y - y_off) ** 2 > r_to ** 2:
+            hi = y
+        else:
+            lo = y
+    front = math.sqrt(max(0.0, r_td ** 2 - (lo - h) ** 2))
+    _RUN_FIT[key] = {"hip": lo, "front": front}
+    return _RUN_FIT[key]
+
+
+def run_hips(u):
+    """The hips' height above the ground at stride phase u (left foot down at 0): each step a stance, the hips at their
+    lowest at mid-stance, then a short flight."""
+    Y = run_fit()["hip"]
+    h = (u % 0.5) / 0.5
+    st = 2 * RUN_DUTY
+    if h < st:
+        return Y - RUN_DIP * math.sin(math.pi * h / st)
+    return Y + RUN_RISE * math.sin(math.pi * (h - st) / (1 - st))
+
+
+def stance_ankle(w):
+    """The planted foot at stance phase w (0..1): the ankle's place (metres forward of the hip, metres above the
+    ground) and how far the heel has risen (degrees)."""
+    fit = run_fit()
+    h, ball = LEGS["ankle"], LEGS.get("ball", 0.07)
+    ball_x = fit["front"] + ball - RUN_SPEED * RUN_DUTY * RUN_T * w       # the ball moves back at the run speed
+    k = max(0.0, (w - RUN_ROLL) / (1 - RUN_ROLL))
+    roll = RUN_TOE_OFF * k ** 1.6
+    p = math.radians(roll)
+    return ball_x - ball * math.cos(p) + h * math.sin(p), ball * math.sin(p) + h * math.cos(p), roll
+
+
+def swing_ankle(w):
+    """The swinging foot at swing phase w (0 at toe-off, 1 at touch-down): the ankle's place, as stance_ankle."""
+    fit = run_fit()
+    sw = (1 - RUN_DUTY) / RUN_DUTY                                          # stance slopes in swing units
+    x0, y0, _ = stance_ankle(1.0)
+    x1, y1, _ = stance_ankle(0.999)
+    leave = ((x0 - x1) / 0.001 * sw, (y0 - y1) / 0.001 * sw)
+    span = RUN_SPEED * (1 - RUN_DUTY) * RUN_T                               # metres per unit of swing at the run speed
+    land = (-RUN_LAND * span, -0.25 * (1 - RUN_DUTY) * RUN_T)
+    keys = [(0.0, (x0, y0), leave)]
+    for i, (wk, xk, yk) in enumerate(RUN_SWING_KEYS):
+        x = xk + (fit["front"] if i == len(RUN_SWING_KEYS) - 1 else 0.0)
+        keys.append((wk, (x, yk), None))
+    keys.append((1.0, (fit["front"], LEGS["ankle"]), land))
+    return hermite(keys, w)
+
+
+def leg_ik(x, hip_y, ankle_y):
+    """Thigh and knee angles (degrees, from the rest pose) putting the ankle x forward of the hip and ankle_y above the
+    ground with the hips at hip_y, and the foot angle that keeps the sole level."""
+    a, b = LEGS["thigh"], LEGS["shank"]
+    upper, lower = two_bone(x, hip_y - ankle_y, a, b, 1.0)
     thigh = math.degrees(upper - LEGS["thigh_rest"])
     knee = math.degrees((lower - upper) - (LEGS["shank_rest"] - LEGS["thigh_rest"]))
     flat = -math.degrees(lower - LEGS["shank_rest"])            # the sole level with the ground
+    return thigh, knee, flat
+
+
+def run_leg(u, hip_y=None):
+    """The leg at its own stride phase u (0..1, touch-down at 0) with the hips at hip_y: thigh, knee and foot angles
+    (degrees)."""
+    u = u % 1.0
+    if hip_y is None:
+        hip_y = run_fit()["hip"]
     if u < RUN_DUTY:
-        foot = flat - roll
-    else:
-        foot = flat * (1 - smooth(w / 0.3)) - 22 * (1 - smooth(w / 0.3)) + (-12 + 18 * smooth((w - 0.6) / 0.4)) * smooth(w / 0.3)
-    return thigh, knee, foot, hip_ankle
+        x, y, roll = stance_ankle(u / RUN_DUTY)
+        thigh, knee, flat = leg_ik(x, hip_y, y)
+        return thigh, knee, flat - roll
+    w = (u - RUN_DUTY) / (1 - RUN_DUTY)
+    x, y = swing_ankle(w)
+    thigh, knee, flat = leg_ik(x, hip_y, y)
+    # the toes stay pointed as the foot leaves the ground, the foot hangs loose in the swing, and comes level (the toes
+    # a touch up) to land flat
+    k_out, k_in = smooth(w / 0.35), smooth((w - 0.55) / 0.4)
+    foot = (flat - RUN_TOE_OFF) * (1 - k_out) - 18 * k_out
+    foot = foot * (1 - k_in) + (flat + 5 * (1 - smooth((w - 0.88) / 0.12))) * k_in
+    return thigh, knee, foot
 
 
-def run_pose(t, lean=8.0):
-    """Legs from run_leg (left on the stride's first half, right on its second); each arm swings against its own leg,
-    as far as the legs swing, the elbow bending more on its forward swing; the body leans in, the head turns back against
-    most of the lean (eyes level) and nods a touch under each foot strike; the hips sit low enough for the planted leg to
-    reach and rise a little in each flight."""
+# The left foot touches down at RUN_LEFT of the stride, the right half a stride later; the clip starts (u = 0) with the
+# right foot at mid-stance and the left leg passing under her, the pose the take-off, the landing and the stumble
+# blend from and into.
+def run_left():
+    return 0.5 - RUN_DUTY / 2
+
+
+def run_pose(t, lean=None):
+    """Legs from run_leg; each arm swings against its own leg (Kick Off's 34 degrees), the elbow bending more on its
+    forward swing (70 to 95 degrees); the hips turn with the forward leg and the shoulders against them; the body leans
+    in, the head turns back against most of the lean (eyes level) and nods a touch as each foot takes the weight; the
+    hips dip at mid-stance and rise in each flight, and sway over the planted foot."""
+    lean = RUN_LEAN if lean is None else lean
     P = pose()
     u = (t / RUN_T) % 1.0
-    thighs, shins = {}, {}
-    hip_ankle = None
-    for side, uu in (("Left", u), ("Right", u + 0.5)):
-        thigh, knee, foot, hip_ankle = run_leg(uu)
+    ul = run_left()
+    hip_y = run_hips(u - ul)
+    for side, uu in (("Left", u - ul), ("Right", u - ul - 0.5)):
+        thigh, knee, foot = run_leg(uu, hip_y)
         leg(P, side, thigh, knee, foot)
-        thighs[side] = thigh
-        shins[side] = -(thigh + knee)         # how far back the shin points (the heel flicked up behind)
-    phi = 2 * math.pi * u                     # left foot strikes at phi = 0, right at phi = pi
-    arm_swing = 32.0 * SWING / 42.0
+    # phi: 0 as the left leg reaches furthest forward (just before it lands), pi as the right one does
+    phi = 2 * math.pi * (u - ul + 0.04)
     for side, p in (("Left", phi), ("Right", phi + math.pi)):
-        c = math.cos(p)                       # its own leg forward at the strike (c = 1): this arm back
-        arm(P, side, forward=-arm_swing * c - 6, out=9, elbow=70 + 25 * max(0.0, c), hand=-6)
+        c = math.cos(p)                       # its own leg forward (c = 1): this arm back
+        arm(P, side, forward=-ARM_SWING * c - 6, out=9, elbow=70 + 25 * max(0.0, -c), hand=-6)
     P["Hips"] = [0, -7 * math.cos(phi), 0]                       # the hips turn with the forward leg
     P["Spine"] = [lean * 0.6, 3 * math.cos(phi), 0]
     P["Chest"] = [lean * 0.4, 9 * math.cos(phi), 0]               # the shoulders turn against the hips
     P["Neck"] = [-0.3 * lean, -6 * math.cos(phi), 0]
-    nod = 2.5 * math.cos(2 * phi - 0.7)
+    strike = 2 * math.pi * (u - ul)            # each foot strike at a multiple of pi
+    nod = 2.5 * math.cos(2 * strike - 2 * math.pi * RUN_DUTY)       # a dip of the head at each mid-stance
     P["Head"] = [-0.45 * lean + 2 + nod, -3 * math.cos(phi), 0]
-    lag = math.cos(2 * phi - 0.95 * math.pi)
-    hair(P, back=-10 - 4 * lag, sides=-5 - 2 * lag, out=2 + lag)
-    # The skirt flares only as far as the legs need: its front clears the knee driving up, its back the heel flicking
-    # up behind, and each side swings forward with its own thigh (never back, which would tear it from the front).
-    # the skirt's sway; dress() (in out) flares it as far as the knee driving up and the heel flicking up behind need
-    skirt(P, front=3 + 2 * lag, back=6 + 2 * lag, left=(0.0, 5 + 2 * lag), right=(0.0, 5 + 2 * lag))
-    # each half stride: a stance (both hips at the planted leg's height), then a flight that rises and falls
-    h = (u % 0.5) / 0.5
-    flight = 0.0 if h < 2 * RUN_DUTY else math.sin(math.pi * (h - 2 * RUN_DUTY) / (1 - 2 * RUN_DUTY))
-    drop = (LEGS["hip"] - LEGS["ankle"]) - hip_ankle
-    return P, (0.005 * math.cos(phi), -drop + 0.02 * flight, 0.0)
+    lag = math.cos(2 * strike - 0.95 * math.pi)
+    hair(P, back=-8 - 3 * lag, sides=-4 - 1.5 * lag, out=2 + lag)
+    # the skirt's sway; dress() (in out) flares it as far as the knee coming through and the heel flicking up behind need
+    skirt(P, front=3 + 2 * lag, back=5 + 2 * lag, left=(0.0, 4 + 2 * lag), right=(0.0, 4 + 2 * lag))
+    sway = 0.006 * math.cos(2 * math.pi * (u - ul - RUN_DUTY / 2))  # over the planted foot (+: her left)
+    return P, (sway, hip_y - LEGS["hip"], 0.0)
 
 
 def run(t):
