@@ -4989,9 +4989,9 @@
     },
     {
      "kind": "prop",
-     "x": 168.8,
+     "x": 169.5,
      "piece": "water_pot_stand",
-     "z": 1.6,
+     "z": 1.7,
      "h": 1.1,
      "w": 0.0,
      "mirror": false,
@@ -4999,9 +4999,9 @@
      "visuals": [
       {
        "piece": "water_pot_stand",
-       "x": 168.8,
+       "x": 169.5,
        "y": 0.0,
-       "z": 1.6,
+       "z": 1.7,
        "w": 0.96,
        "h": 1.1,
        "mirror": false,

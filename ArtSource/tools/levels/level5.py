@@ -88,7 +88,7 @@ def design():
     # ---- the opening: the grove's edge
     s = p.section("Grove", -10.0, 18.0, "The bund road into the mango grove: the rooster struts ahead; tap to chase.")
     p.prop(s, "tree_mango_2", -6.0, 5.0, h=5.6)
-    p.prop(s, "palmyra_3", 2.0, 6.5, h=9.0)
+    p.prop(s, "palmyra_3", -3.0, 6.5, h=9.0)
     p.prop(s, "cow", 5.5, 2.8, h=1.45, mirror=True)
     p.prop(s, "goat_eating", -1.5, 2.2, h=0.9)
     p.mango_line(s, 1.5, 4, 1.4, 0.6)
@@ -168,7 +168,7 @@ def design():
     s = p.section("Mischief", 153.0, 13.0, "Dung; the rooster knocks the water pots off their stand by the well into "
                                          "the road; a canal after.")
     p.dung(s, 156.0)
-    p.prop(s, "water_pot_stand", 160.8, 1.6, h=1.1)     # by the well (the fields' own, behind)
+    p.prop(s, "water_pot_stand", 161.5, 1.7, h=1.1)     # by the well (the fields' own, behind)
     p.pots(s, 160.5, hidden=True, ident="knocked")
     p.mischief(s, 161.0, "knocked")
     p.jump_arc(s, 160.5)
@@ -227,7 +227,7 @@ def design():
 
     s = p.section("OpenGrove", 290.0, 15.0, "The road opens out: if he is still ahead, he gets away at 295 m.")
     p.mango_line(s, 291.0, 9, 1.1, 0.6)
-    p.prop(s, "tree_mango_1", 299.0, 5.0, h=5.6, mirror=True)
+    p.prop(s, "tree_mango_1", 297.5, 5.0, h=5.6, mirror=True)
     p.litter(s, 3)
     return p
 

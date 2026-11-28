@@ -160,7 +160,7 @@ def design():
     s = p.section("Mischief", 162.0, 13.0, "Dung; then the rooster knocks the water pots off their stand by the well "
                                          "into the road; a canal after.")
     p.dung(s, 164.0)
-    p.prop(s, "water_pot_stand", 168.8, 1.6, h=1.1)     # by the well (the fields' own, behind)
+    p.prop(s, "water_pot_stand", 169.5, 1.7, h=1.1)     # by the well (the fields' own, behind)
     p.pots(s, 168.5, hidden=True, ident="knocked")
     p.mischief(s, 169.0, "knocked")
     p.jump_arc(s, 168.5)
