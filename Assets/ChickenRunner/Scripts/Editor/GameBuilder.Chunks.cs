@@ -168,9 +168,9 @@ namespace ChickenRunner.EditorTools
         static GameObject Clotheslines(ZoneKit z)
         {
             var kit = new Kit("Clotheslines", 18f, z, 4);
-            kit.Clothesline(5f);
+            kit.LowBranch(5f);
             kit.MangoLine(4.2f, 3, 0.6f, 0.3f);
-            kit.Clothesline(12f);
+            kit.LowBranch(12f);
             kit.MangoLine(11.2f, 3, 0.6f, 0.3f);
             kit.Litter(3);
             return kit.Finish();
@@ -190,7 +190,7 @@ namespace ChickenRunner.EditorTools
         static GameObject Cart(ZoneKit z)
         {
             var kit = new Kit("Cart", 18f, z, 6);
-            kit.Cart(4f);
+            kit.Sacks(4f);
             kit.MangoLine(4.4f, 4, 0.5f, 1.5f);
             kit.MangoLine(4.8f, 3, 0.7f, 2.9f);
             kit.Hop(3.2f, 4f, 1.6f);
@@ -209,7 +209,7 @@ namespace ChickenRunner.EditorTools
             if (kit.Art("water_pot_stand", 12.3f, 1.6f, height: 1.1f) == null) kit.Art("brass_pots", 12.3f, 1.6f, height: 0.5f);
             var knocked = kit.PotStack(12f, hiddenUntilMischief: true);
             kit.Mischief(13f, knocked);
-            kit.Clothesline(17f);
+            kit.LowBranch(17f);
             kit.MangoLine(16.2f, 3, 0.6f, 0.3f);
             return kit.Finish();
         }
@@ -217,10 +217,10 @@ namespace ChickenRunner.EditorTools
         static GameObject ClothesAndPots(ZoneKit z)
         {
             var kit = new Kit("ClothesAndPots", 20f, z, 8);
-            kit.Clothesline(4f);
+            kit.LowBranch(4f);
             kit.MangoLine(3.2f, 3, 0.6f, 0.3f);
             JumpPots(kit, 10f);
-            kit.Clothesline(16f);
+            kit.LowBranch(16f);
             kit.MangoLine(15.2f, 3, 0.6f, 0.3f);
             return kit.Finish();
         }
@@ -299,7 +299,7 @@ namespace ChickenRunner.EditorTools
         static GameObject FieldCart(ZoneKit z)
         {
             var kit = new Kit("FieldCart", 20f, z, 25);
-            kit.Cart(5f);
+            kit.Sacks(5f);
             kit.MangoLine(5.4f, 4, 0.5f, 1.5f);
             kit.Hop(4.2f, 4f, 1.6f);
             kit.Feather(8.4f, 3.4f, 1);
@@ -405,9 +405,9 @@ namespace ChickenRunner.EditorTools
         static GameObject MarketClotheslines(ZoneKit z)
         {
             var kit = new Kit("MarketClotheslines", 20f, z, 33);
-            kit.Clothesline(5f);
+            kit.LowBranch(5f);
             kit.MangoLine(4.2f, 3, 0.6f, 0.3f);
-            kit.Clothesline(12f);
+            kit.LowBranch(12f);
             kit.Feather(12f, 2.7f, 2); // over the line, not under it
             kit.Litter(3);
             return kit.Finish();
@@ -489,7 +489,7 @@ namespace ChickenRunner.EditorTools
             kit.Art("hens_basket", 14.4f, 1.4f, height: 0.6f);
             var knocked = kit.HensBasket(14f, hiddenUntilMischief: true);
             kit.Mischief(15f, knocked);
-            kit.Clothesline(19.5f);
+            kit.LowBranch(19.5f);
             kit.MangoLine(18.7f, 3, 0.6f, 0.3f);
             return kit.Finish();
         }
