@@ -21,9 +21,12 @@ namespace ChickenRunner
         [SerializeField] internal Texture2D faceGrin;
         [SerializeField] internal Texture2D faceShocked;
         [SerializeField] internal Texture2D faceStraining;
-        [Tooltip("The run speed the Run clip was made for, in m/s.")]
-        [SerializeField] internal float runReferenceSpeed = 6f;
+        [Tooltip("The run speed the Run clip was made for, in m/s (Kick Off's on-screen pace: 2 strides a second).")]
+        [SerializeField] internal float runReferenceSpeed = 3.5f;
         [SerializeField] internal float crossFade = 0.07f;
+        [Tooltip("Seconds the rise eases into the fall over at the top of a jump (Kick Off's air pose blends with the " +
+                 "vertical speed, from the lead knee up to the legs reaching down, rather than switching).")]
+        [SerializeField] internal float fallCrossFade = 0.2f;
         [Tooltip("How far in front of the rungs the kid's body is while she climbs a ladder, in metres.")]
         [SerializeField] internal float ladderStandOff = 0.16f;
         [Tooltip("Seconds of one loop of the Climb clip, which moves each hand up one rung (two rungs a loop).")]
@@ -132,7 +135,7 @@ namespace ChickenRunner
             FaceLadder(dt);
             if (state != _state)
             {
-                animator.CrossFadeInFixedTime(state, crossFade, 0, 0f);
+                animator.CrossFadeInFixedTime(state, state == "Fall" ? fallCrossFade : crossFade, 0, 0f);
                 _state = state;
             }
             SetFace(FaceFor(state));

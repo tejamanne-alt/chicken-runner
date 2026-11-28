@@ -542,10 +542,10 @@ def slide(t):
     leg(P, "Left", thigh=90 - pelvis, knee=-4, foot=-14)                # level, the heel skimming the ground
     thigh_w, shin_w = 120.0, 40.0                                       # the far leg's thigh and shin, in the world
     leg(P, "Right", thigh=thigh_w - pelvis, knee=shin_w - thigh_w, foot=-(shin_w - math.degrees(LEGS["shank_rest"])))
-    arm(P, "Right", forward=12 - lean, out=18, elbow=8, hand=30)        # down by her side to the hand on the ground
+    arm(P, "Right", forward=12 - lean, out=30, elbow=8, hand=12)        # down by her side to the hand on the ground
     arm(P, "Left", forward=80 - lean, out=12, elbow=30, hand=-6)        # reaching forward toward her feet, kept low
     hair(P, back=-30 + 2 * w, sides=-16, out=8)
-    skirt(P, front=8, back=88, left=(14, 38), right=(14, 38))          # spread out round her on the ground
+    skirt(P, front=8, back=88, left=(14, 38), right=(14, 22))          # spread out round her on the ground
     hip_y = 0.10                                                        # the hip joints above the ground
     drop = LEGS.get("pelvis", 0.074)
     return out(P, (0, hip_y + drop * math.cos(math.radians(pelvis)) - (LEGS["hip"] + drop), 0.0))

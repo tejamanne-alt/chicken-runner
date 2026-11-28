@@ -225,20 +225,52 @@ shape (spine into the Body, the neck's chain into Neck1 and Neck2, skull, comb, 
 the lower beak by its colour onto the Jaw, the tail, the wings hanging back from the spine and the legs into theirs),
 so every clip in `rooster_anims.py` plays. `--src` builds another Meshy rooster the same way.
 
+His clips are a real rooster's: standing (Idle), he looks about in jerks, his head holding still and then snapping to a
+new place, often turned to look with one eye, cocks it at something on the ground and pecks at it twice; running (Run,
+Panic) he is the low, level, forward-tipped bird of the next section; fluttering up onto a roof he beats his wings 7.5
+times a second, a hard downstroke with them spread wide and a quicker upstroke half folded and twisted edge-on, his body
+tipped up into the climb, legs folded and toes curled, tail spread down; before crowing he stands tall and claps his
+wings three times, then stretches his neck up, throws his head back and opens his beak, his throat working through the
+call; startled, he crouches and leaps with his wings thrown up and one beat down, landing in the panic's crouch.
+
 ```bash
 python ArtSource/tools/characters/meshy_rooster.py --sheet rooster.png --check CHECK_DIR
 ```
 
 ### Running, jumping and landing, as in Kick Off
 
-The clips follow Kick Off's `KidAnimator`: each step as long as the ground covered while that foot is down, so a planted
-foot stays put; knees folding early in the swing, elbows driving against the legs, the head steady against the lean;
-the jump driving a knee up, the double jump a second push in the air (no spin), the landing a quick crouch. The kid's
-run solves each planted foot by two-bone IK (`kid_anims.run_leg`: flat on the ground, sliding back under her at the
-game's 6 m/s, rolling onto the toes to push off), with her model's leg lengths. Both builders then set every grounded
-clip down so its lowest point touches the ground (`charkit.ground`, like Kick Off's `CharacterRig.KeepOnGround`) and
-measure the run (`charkit.gait`: how fast a sole point that is down slides back, against the run speed; the kid's is
-1.07). The rooster's 0.18 m legs cannot stay planted at 5.5 m/s, so he scuttles with a quick, long stride.
+The kid's clips follow Kick Off's `KidAnimator`, at Kick Off's pace on screen. Its kid (1.3 m) runs at 4.2 m/s taking
+1.9 x 4.2 / 4 = 2.0 strides a second, and both games frame the kid at 24% of the screen's height, so ours (1.08 m) runs
+at 3.5 m/s, 2.0 strides a second, 1.75 m a stride (`KidModelVisual` plays Run faster or slower with her speed). Each
+step is as long as the ground covered while that foot is down, so a planted foot stays put: `kid_anims.run_leg` solves
+it by two-bone IK with her model's leg lengths, flat on the ground and sliding back under her at the run speed, then
+rolling over the front of its sole to push off (her toes are folded into the foot). Each foot is down 28% of the
+stride (0.14 s), so the flights between the steps are short and low, a kid's run rather than a sprinter's bound; her
+hips sit as low as lets the leg reach from touch-down to toe-off, dip a centimetre at mid-stance and rise one in each
+flight. In the swing the heel flicks up behind with the thigh still back (Kick Off's knee fold, most early in the
+swing), the foot passes under her a hand above the ground with the knee forward (the thigh reaching Kick Off's 42
+degrees) and comes back a little to land; the arms swing 34 degrees either side against the legs, the elbows bent 70
+to 95 degrees, more as the arm comes forward; the body leans 7 degrees, the head stays level against it and nods a touch
+at each mid-stance. The jump drives the lead knee up off the other foot and eases out of it as the rise slows (Kick
+Off's air pose follows the vertical speed; `KidModelVisual` blends into Fall over 0.2 s at the top); the double jump is
+a second push in the air, no spin; the landing sinks 7 cm through the knees and back in 0.22 s while the stride runs
+on underneath; the slide leans 56 degrees back, the near leg out with its heel skimming the ground, the far knee up,
+the far hand on the ground and the near arm reaching toward the feet, held still; the stumble is short catch-up steps
+at the stumble's 0.45 of the run speed, planted the same way, with Kick Off's wobble of the head, body and arms on top.
+Both builders then set every grounded clip down so its lowest point touches the ground (`charkit.ground`, like Kick
+Off's `CharacterRig.KeepOnGround`) and measure the run (`charkit.gait`: how fast a sole point that is down slides back,
+against the run speed; the kid's is 1.02).
+
+The rooster runs at 3.2 m/s (Panic at 1.3 times it), his feet planted the same way by IK from his model's knee,
+drumstick, shank and toes (`rooster_anims.gait_pose`): 5 strides a second, each foot down a quarter of the stride, its
+toes flat and then rolling onto their tips to push off, curling as the foot is snatched up and folded under him and
+spreading to land. A running rooster is not a standing one: his body is tipped 14 degrees toward level and carried
+level, low, with a centimetre's bob over each foot; his neck is stretched forward in an S and holds his head level
+against the bob, jabbing it forward a little with each step as a walking bird's head holds and thrusts (at his ten
+steps a second it cannot hold still in space: that would need the head to slide back 15 cm a step); his wings are held
+a little out from his sides and his tail bounces a beat behind the body (`charkit.gait`: 0.89). Panicking he
+scrambles at 6 strides a second, tipped further forward with his neck thrust out low and his beak open, his wings half
+open and flapping once a stride, the two not quite together.
 
 ### The earlier kid and rooster, from their turnarounds
 

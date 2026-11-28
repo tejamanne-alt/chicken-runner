@@ -105,7 +105,7 @@ def gait(**over):
     """The run's numbers, with any changed: speed, T (a stride, s), duty, pitch (the body tipped nose-down, degrees),
     roll (the toes' roll onto their tips at push-off, degrees), reach (the leg's length at touch-down and at push-off,
     of its full length), dip and rise (the body's bob, m), lift (how high the swinging foot is carried, m)."""
-    G = {"speed": RUN_SPEED, "T": RUN_T, "duty": 0.30, "pitch": 18.0, "roll": 30.0, "reach": (0.95, 0.975),
+    G = {"speed": RUN_SPEED, "T": RUN_T, "duty": 0.26, "pitch": 14.0, "roll": 24.0, "reach": (0.9, 0.95),
          "dip": 0.006, "rise": 0.004, "lift": 0.075}
     G.update(over)
     return G
@@ -157,7 +157,7 @@ def swing_foot(w, G, front, knee0):
     keys = [(0.0, (x0, y0), (leave[0], max(leave[1], 0.3 * span))),
             (0.16, (x0 + 0.008, h + 0.85 * lift), None),             # snatched up off the ground, the toes curling
             (0.5, (kx - 0.03, h + lift), None),                      # folded up under him
-            (0.8, (kx + front + 0.025, h + 0.6 * lift), None),       # reaching out, the toes spreading
+            (0.8, (kx + front + 0.012, h + 0.6 * lift), None),       # reaching out, the toes spreading
             (1.0, (kx + front, h), (-0.95 * span, -0.6 * span))]     # down onto the ground, at rest on it
     x, y = hermite(keys, w)
     toe0 = math.degrees(R["toe0"])
@@ -182,7 +182,7 @@ def gait_legs(P, u, G, up, front, pitch):
         legs(P, side, *leg_angles(knee, ankle, pitch, toe))
 
 
-def gait_pose(t, G, neck=20.0, head=8.0, wing=(6.0, 16.0), wing_beat=(0.0, 0.0), beak=0.0, tail=(-6.0, 5.0, 7.0),
+def gait_pose(t, G, neck=22.0, head=6.0, wing=(4.0, 9.0), wing_beat=(0.0, 0.0), beak=0.0, tail=(-6.0, 5.0, 7.0),
               jab=0.012):
     """A running stride at time t: the legs from gait_legs; the body low and level, dipping over each planted foot and
     rising a little between; the neck stretched forward (neck degrees) holding the head steady against the bob, the
@@ -206,8 +206,8 @@ def gait_pose(t, G, neck=20.0, head=8.0, wing=(6.0, 16.0), wing_beat=(0.0, 0.0),
     jab_k = (1 - 2 * smooth(hold)) * jab / 0.012
     level = bob / 0.006
     P["Neck1"] = [neck + 5 * jab_k + 3 * level, -2.5 * math.cos(2 * math.pi * u), 0]
-    P["Neck2"] = [0.25 * neck - 3 * jab_k - 2 * level, 0, 0]
-    P["Head"] = [head - pitch - 1.25 * neck - 2 * jab_k - level, 1.5 * math.cos(2 * math.pi * u), 0]
+    P["Neck2"] = [-0.7 * neck - 3 * jab_k - 2 * level, 0, 0]
+    P["Head"] = [head - pitch - 0.3 * neck - 2 * jab_k - level, 1.5 * math.cos(2 * math.pi * u), 0]
     P["Jaw"] = [-beak, 0, 0]
     beat = math.sin(step - 0.6)
     wings(P, lift=wing[0] + wing_beat[0] * beat, spread=wing[1] + wing_beat[1] * beat)
@@ -226,8 +226,8 @@ def run(t):
 # lower, the neck thrust out low, the beak open squawking, the wings half open and flapping (twice a stride, the two
 # not quite together) and the tail jerking. Two strides a loop, the second a little different from the first.
 def panic(t):
-    G = gait(speed=RUN_SPEED * 1.3, T=PANIC_T, duty=0.30, pitch=24.0, roll=34.0, lift=0.075, dip=0.008, rise=0.006)
-    P, up = gait_pose(t, G, neck=30.0, head=4.0, beak=0.0, tail=(-2.0, 9.0, 12.0), jab=0.006)
+    G = gait(speed=RUN_SPEED * 1.3, T=PANIC_T, duty=0.27, pitch=20.0, roll=34.0, lift=0.075, dip=0.008, rise=0.006)
+    P, up = gait_pose(t, G, neck=28.0, head=2.0, beak=0.0, tail=(-2.0, 9.0, 12.0), jab=0.006)
     stride = int(t / PANIC_T) % 2
     q = 2 * math.pi * t / PANIC_T                    # one wingbeat a stride
     lw = math.sin(q + 0.3)
@@ -331,8 +331,8 @@ def startled(t):
     wings(beat, lift=-18, spread=72, twist=10)        # the downstroke that carries him
     beat["Body"] = [6, 0, 0]
     beat["Tail1"] = [6, 0, 0]
-    land, land_up = gait_pose(0.0, gait(speed=RUN_SPEED * 1.3, T=PANIC_T, duty=0.30, pitch=24.0, roll=34.0,
-                                        lift=0.075), neck=30.0, head=4.0)
+    land, land_up = gait_pose(0.0, gait(speed=RUN_SPEED * 1.3, T=PANIC_T, duty=0.27, pitch=20.0, roll=34.0,
+                                        lift=0.075), neck=28.0, head=2.0)
     wings(land, lift=40, spread=50)
     keys = [(0, rest, (0, up, 0)), (2, crouch, (0, up - 0.015, 0)), (4, leap, (0, 0.10, 0)), (6, beat, (0, 0.09, 0)),
             (9, land, (0, land_up - 0.006, 0))]
@@ -365,16 +365,16 @@ def tumble(t):
 # for breathing, a shift of weight and a flick of the tail.
 def idle(t):
     look_l = pose()
-    look_l["Neck1"], look_l["Neck2"], look_l["Head"] = [2, 8, 0], [0, 8, 0], [0, 22, 8]
+    look_l["Neck1"], look_l["Neck2"], look_l["Head"] = [2, 11, 0], [0, 11, 0], [0, 14, 6]
     wings(look_l, lift=2, spread=3)
     look_r = pose()
-    look_r["Neck1"], look_r["Neck2"], look_r["Head"] = [4, -8, 0], [2, -8, 0], [-4, -26, -10]
+    look_r["Neck1"], look_r["Neck2"], look_r["Head"] = [4, -12, 0], [2, -12, 0], [-3, -16, -7]
     wings(look_r, lift=2, spread=3)
     ahead = pose()
     ahead["Neck1"], ahead["Neck2"], ahead["Head"] = [-4, 0, 0], [-2, 0, 0], [4, 4, 0]
     wings(ahead, lift=2, spread=3)
     spot = pose()                                     # cocking his head at something on the ground
-    spot["Body"], spot["Neck1"], spot["Neck2"], spot["Head"] = [-8, 0, 0], [14, 0, 0], [8, 0, 0], [16, -18, -14]
+    spot["Body"], spot["Neck1"], spot["Neck2"], spot["Head"] = [-8, 0, 0], [14, -6, 0], [8, -6, 0], [14, -12, -10]
     wings(spot, lift=2, spread=3)
     peck = pose()
     # a peck bends him down through his body, both neck joints and his head, not at one joint

@@ -13,7 +13,7 @@
  },
  {
   "name": "Panic",
-  "frames": 5,
+  "frames": 10,
   "loop": true,
   "face": ""
  },

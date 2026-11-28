@@ -12,8 +12,8 @@ namespace ChickenRunner
     {
         [SerializeField] internal RoosterBrain rooster;
         [SerializeField] internal Animator animator;
-        [Tooltip("The run speed the Run clip was made for, in m/s.")]
-        [SerializeField] internal float runReferenceSpeed = 5.5f;
+        [Tooltip("The run speed the Run clip was made for, in m/s (Panic was made for 1.3 times it).")]
+        [SerializeField] internal float runReferenceSpeed = 3.2f;
         [SerializeField] internal float crossFade = 0.06f;
 
         string _state;
