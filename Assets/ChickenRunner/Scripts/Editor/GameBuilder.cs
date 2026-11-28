@@ -353,10 +353,21 @@ namespace ChickenRunner.EditorTools
 
         static void AddSceneToBuildSettings(string path)
         {
-            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            var current = EditorBuildSettings.scenes;
+            if (current.Length > 0 && current[0].path == path && current[0].enabled) return;
+            var scenes = new List<EditorBuildSettingsScene>(current);
             scenes.RemoveAll(s => s.path == path);
             scenes.Insert(0, new EditorBuildSettingsScene(path, true));
             EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        /// <summary>
+        /// Puts the game scene first in the build's scene list, if it has been built. The list lives in ProjectSettings,
+        /// which is not in git, so a checkout that has the scene may still have an empty list (GameBuildHook).
+        /// </summary>
+        internal static void ListGameScene()
+        {
+            if (File.Exists(ScenePath)) AddSceneToBuildSettings(ScenePath);
         }
 
         // ------------------------------------------------------------------ scene

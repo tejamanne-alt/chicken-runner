@@ -14,6 +14,8 @@ A side-scrolling chase runner: a village kid chases a smug rooster through an In
 3. Choose **Chicken Runner > Build Game** from the menu bar. This copies the art it needs from `ArtSource` into `Assets/ChickenRunner/Art/Textures`, generates the tuning and obstacle assets, every zone's chunk prefabs, the nine levels and each zone's scenery, and saves `Assets/ChickenRunner/Game/Game.unity` (first in the build settings). Then **Chicken Runner > Open Game Scene**.
 4. Press **Play**: the title, then the story strip the first time, then level 1. Tap, click or press Space to start each chase. Each zone's first level (1, 4 and 7) is open on the village map from the start; the others open with stars, as the doc says. To go straight into any level, use **Chicken Runner > Play Level > 1 to 9**.
 
+To make a build, use Unity's own **Build** or **Build And Run** (Build Profiles). If the game hasn't been built on this machine yet, they build it first (as **Build Game** does) and put `Game.unity` first in the scene list, so there's no prompt to save an untitled scene; they also apply the Player Settings above.
+
 To try any level straight away, tick **Unlock All** on the `Game` object's GameSession: Play then opens on the village map with every stop open. The save lives in the app's persistent data folder; **Reset** on the title screen (tap twice) erases it.
 
 Re-run **Build Game** after new art arrives (after `cutouts.py` and the zone scene builders in `ArtSource/tools`, see [ArtSource/README.md](ArtSource/README.md)). It keeps the tuning and obstacle assets, so numbers tuned in the Inspector survive. Commit what it generates (the `Game`, `Config` and `Art` folders and their `.meta` files) so every machine shares the same assets.
