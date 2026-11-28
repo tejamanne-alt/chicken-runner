@@ -298,13 +298,21 @@ namespace ChickenRunner.EditorTools
     /// textures clamped at the edges with their alpha kept.</summary>
     internal sealed class ArtModelImport : AssetPostprocessor
     {
+        // Raised when these settings change, so Unity imports the models and textures again with them (2: the leaf
+        // textures keep their coverage in the smaller mips).
+        public override uint GetVersion() => 2;
+
         void OnPreprocessTexture()
         {
             if (!assetPath.StartsWith(ArtModels.Folder + "/") || !assetPath.EndsWith("_leaves.png")) return;
             var importer = (TextureImporter)assetImporter;
             importer.wrapMode = TextureWrapMode.Clamp;
-            importer.alphaIsTransparency = true;
+            importer.alphaIsTransparency = true;      // the colour runs on past the leaf's edge: no dark fringe
             importer.mipmapEnabled = true;
+            // A leaf keeps its size far away: the smaller mips keep as much of the card cut in as the full size does,
+            // instead of averaging the alpha down until the crown thins out to sticks.
+            importer.mipMapsPreserveCoverage = true;
+            importer.alphaTestReferenceValue = 0.5f;
         }
 
         void OnPreprocessModel()

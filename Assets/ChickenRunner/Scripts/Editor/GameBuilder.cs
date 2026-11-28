@@ -278,10 +278,21 @@ namespace ChickenRunner.EditorTools
         {
             string path = ConfigFolder + "/Tuning_Zone" + zone + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<TuningConfig>(path);
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                // Kept, so numbers tuned in the Inspector survive a rebuild; unless the design has moved on since
+                // (ChaseTuning.DesignVersion: the real-world pace), when the old numbers no longer fit the levels.
+                if (existing.IsOutdated)
+                {
+                    existing.ResetToDesignValues();
+                    EditorUtility.SetDirty(existing);
+                    Debug.Log($"{path}: reset to the current design values (the kid runs {existing.Values.kidRunSpeed} m/s).");
+                }
+                return existing;
+            }
             var config = ScriptableObject.CreateInstance<TuningConfig>();
             config.zone = zone;
-            config.values = ChaseTuning.ForZone(zone);
+            config.ResetToDesignValues();
             AssetDatabase.CreateAsset(config, path);
             return config;
         }
@@ -295,6 +306,10 @@ namespace ChickenRunner.EditorTools
             clothesline = CreateObstacle("Clothesline", "Clothesline of sarees", PenaltyKind.Tangle, 1.1f, HitReaction.Wobble, Palette.Kumkum, "TANGLED!"),
             hens = CreateObstacle("Hens", "Hens and their basket", PenaltyKind.Stumble, 0.9f, HitReaction.Wake, Palette.Hen, "BAWK BAWK!"),
             tank = CreateObstacle("WaterTank", "Water tank on a roof", PenaltyKind.Stumble, 1f, HitReaction.Wobble, Palette.Ink, "CLONG!"),
+            goats = CreateObstacle("Goats", "Goat kids crossing", PenaltyKind.Stumble, 1f, HitReaction.Wake, Palette.Dog, "MAA-AA!"),
+            ducks = CreateObstacle("Ducks", "Ducks crossing", PenaltyKind.Stumble, 0.9f, HitReaction.Wake, Palette.Hen, "QUACK!"),
+            sand = CreateObstacle("SandHeap", "Heap of building sand", PenaltyKind.Stumble, 1.1f, HitReaction.Splat, Palette.Hay, "FLUMP!"),
+            branch = CreateObstacle("LowBranch", "Low neem branch", PenaltyKind.Tangle, 1f, HitReaction.Wobble, Palette.Leaf, "SWISH!"),
         };
 
         static ObstacleDefinition CreateObstacle(string file, string displayName, PenaltyKind penalty, float durationScale,

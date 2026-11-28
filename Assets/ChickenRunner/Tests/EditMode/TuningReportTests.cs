@@ -14,14 +14,20 @@ namespace ChickenRunner.Tests
         }
 
         [Test]
-        public void Zone3MistakesAndChilliesAreWorthMoreAtItsSpeed()
+        public void Zone3DocValuesFlagOnlyTheRoofHeight()
         {
-            // Stumble and chilli are defined in seconds, so at 8 m/s they move more metres than the doc's figures.
+            // Stumble and chilli are checked in seconds of running, so they hold at the zone's pace as at any other.
             var report = TuningReport.Build(ChaseTuning.ForZone(3));
-            Assert.That(report.Warnings.Count, Is.EqualTo(3), string.Join(" | ", report.Warnings));
-            Assert.That(report.Warnings, Has.Some.Contains("stumble costs 3.08 m"));
-            Assert.That(report.Warnings, Has.Some.Contains("chilli gains 6.16 m"));
-            Assert.That(report.Warnings, Has.Some.Contains("tallest roof"));
+            Assert.That(report.Warnings.Count, Is.EqualTo(1), string.Join(" | ", report.Warnings));
+            StringAssert.Contains("tallest roof", report.Warnings[0]);
+        }
+
+        [Test]
+        public void AStumbleOutOfTheDocsRangeIsFlagged()
+        {
+            var t = ChaseTuning.ForZone(2);
+            t.stumbleDuration = 2f;
+            Assert.That(TuningReport.Build(t).Warnings, Has.Some.Contains("stumble costs"));
         }
 
         [Test]
@@ -51,7 +57,7 @@ namespace ChickenRunner.Tests
         public void ARoosterFasterThanTheKidIsFlagged()
         {
             var t = ChaseTuning.ForZone(1);
-            t.roosterRunSpeed = 6.2f;
+            t.roosterRunSpeed = 3.6f;
             var report = TuningReport.Build(t);
             Assert.That(report.Warnings, Has.Some.Contains("never catches"));
         }
@@ -60,8 +66,8 @@ namespace ChickenRunner.Tests
         public void WidestCanalFitsADoubleJump()
         {
             var t = ChaseTuning.ForZone(2);
-            Assert.That(TuningReport.DoubleJumpLength(t), Is.GreaterThan(4.5f));
-            Assert.That(JumpMath.JumpLengthAt(t, t.kidRunSpeed), Is.LessThan(4.5f), "the widest canal should need the double jump");
+            Assert.That(TuningReport.DoubleJumpLength(t), Is.GreaterThan(2.6f));
+            Assert.That(JumpMath.JumpLengthAt(t, t.kidRunSpeed), Is.LessThan(2.6f), "the widest canal should need the double jump");
         }
     }
 }

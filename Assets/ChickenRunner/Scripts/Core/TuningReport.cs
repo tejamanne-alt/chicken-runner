@@ -22,6 +22,14 @@ namespace ChickenRunner.Core
         /// <summary>Take-off room a gap meant for a single jump should leave, in metres.</summary>
         public const float MinTakeOffRoom = 0.3f;
 
+        /// <summary>The widest thing on the road taken in one jump (a sleeping dog curled up), in metres.</summary>
+        public const float WidestJumpedObstacle = 0.9f;
+
+        // The doc's costs and gains are in seconds of the kid's running, so they hold at any pace: a mistake costs a
+        // third to a half of a second (2 to 3 m at the old 6 m/s), a chilli about 0.8 s (5 m then).
+        public const float MinStumbleSeconds = 0.33f, MaxStumbleSeconds = 0.5f;
+        public const float MinChilliSeconds = 0.67f, MaxChilliSeconds = 1f;
+
         public static TuningReport Build(ChaseTuning t, float forecastStep = 1f / 60f)
         {
             var r = new TuningReport();
@@ -69,11 +77,14 @@ namespace ChickenRunner.Core
             else if (clean.time < 20f || clean.time > 40f)
                 r.Warnings.Add("A clean run catches the rooster in " + F(clean.time, "0") + " s; the doc aims for about 30 s.");
 
-            if (stumbleLoss < 2f || stumbleLoss > 3f)
-                r.Warnings.Add("A stumble costs " + F(stumbleLoss) + " m; the doc says mistakes cost 2 to 3 m.");
+            float run = Math.Max(0.01f, t.kidRunSpeed);
+            if (stumbleLoss / run < MinStumbleSeconds || stumbleLoss / run > MaxStumbleSeconds)
+                r.Warnings.Add("A stumble costs " + F(stumbleLoss) + " m (" + F(stumbleLoss / run) + " s of running); the doc says "
+                    + "a mistake costs a third to a half of a second.");
 
-            if (chilliGain < 4f || chilliGain > 6f)
-                r.Warnings.Add("A chilli gains " + F(chilliGain) + " m; the doc says about 5 m.");
+            if (chilliGain / run < MinChilliSeconds || chilliGain / run > MaxChilliSeconds)
+                r.Warnings.Add("A chilli gains " + F(chilliGain) + " m (" + F(chilliGain / run) + " s of running); the doc says "
+                    + "about 0.8 s.");
 
             if (roosterSlower < 0.05f || roosterSlower > 0.12f)
                 r.Warnings.Add("The rooster is " + F(roosterSlower * 100f, "0") + "% slower than the kid; the doc says about 8%.");
@@ -114,8 +125,9 @@ namespace ChickenRunner.Core
                 }
             }
 
-            if (jumpLength < 2.5f)
-                r.Warnings.Add("A full jump is only " + F(jumpLength) + " m long; pot stacks and dogs will feel cramped.");
+            if (jumpLength < WidestJumpedObstacle + 3f * MinTakeOffRoom)
+                r.Warnings.Add("A full jump is only " + F(jumpLength) + " m long; a sleeping dog (" + F(WidestJumpedObstacle)
+                    + " m) will feel cramped.");
         }
 
         /// <summary>Ground-to-ground length of a full jump with the double jump pressed at the first apex.</summary>

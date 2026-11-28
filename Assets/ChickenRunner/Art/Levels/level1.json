@@ -3,15 +3,15 @@
  "zone": 1,
  "title": "Pots and the sleeping dog",
  "subtitle": "Tap to jump. Hold for higher.",
- "courseLength": 500.0,
- "startGapSmooth": 10.0,
- "startGapClumsy": 14.0,
- "jumpLength": 3.7,
+ "courseLength": 290.0,
+ "startGapSmooth": 6.0,
+ "startGapClumsy": 8.0,
+ "jumpLength": 2.158,
  "sections": [
   {
    "name": "Yard",
    "x": -10.0,
-   "length": 24.0,
+   "length": 20.0,
    "note": "The neighbour naps on his cot; hens peck about; hold to lift the basket.",
    "items": [
     {
@@ -251,12 +251,12 @@
     },
     {
      "kind": "mango",
-     "x": 6.2,
+     "x": 6.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 6.2,
+       "x": 6.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -270,12 +270,12 @@
     },
     {
      "kind": "mango",
-     "x": 7.4,
+     "x": 7.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 7.4,
+       "x": 7.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -289,12 +289,12 @@
     },
     {
      "kind": "mango",
-     "x": 8.6,
+     "x": 8.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 8.6,
+       "x": 8.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -307,24 +307,79 @@
      ]
     },
     {
-     "kind": "mango",
-     "x": 9.8,
-     "y": 0.6,
+     "kind": "decal",
+     "x": 5.486,
+     "piece": "leaf_1",
+     "z": -1.3,
+     "w": 0.14,
+     "turn": 140.3,
      "visuals": [
       {
-       "piece": "Mango",
-       "x": 9.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
+       "piece": "leaf_1",
+       "x": 5.486,
+       "y": 0.0,
+       "z": -1.3,
+       "w": 0.14,
+       "h": 0.216,
        "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
+       "flat": true,
+       "turn": 140.3,
+       "kind": "decal"
       }
      ]
     },
+    {
+     "kind": "decal",
+     "x": -4.44,
+     "piece": "tuft_3",
+     "z": 0.966,
+     "w": 0.236,
+     "turn": -15.5,
+     "visuals": [
+      {
+       "piece": "tuft_3",
+       "x": -4.44,
+       "y": 0.0,
+       "z": 0.966,
+       "w": 0.236,
+       "h": 0.288,
+       "mirror": false,
+       "flat": false,
+       "turn": -15.5,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": -8.919,
+     "piece": "tuft_2",
+     "z": -1.519,
+     "w": 0.188,
+     "turn": 17.2,
+     "visuals": [
+      {
+       "piece": "tuft_2",
+       "x": -8.919,
+       "y": 0.0,
+       "z": -1.519,
+       "w": 0.188,
+       "h": 0.21,
+       "mirror": false,
+       "flat": false,
+       "turn": 17.2,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "FirstPot",
+   "x": 10.0,
+   "length": 10.0,
+   "note": "The potter's pots drying by the road: one stack alone, the rooster hops it.",
+   "items": [
     {
      "kind": "mango",
      "x": 11.0,
@@ -345,67 +400,232 @@
      ]
     },
     {
+     "kind": "mango",
+     "x": 11.6,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 11.6,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 12.2,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 12.2,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "pots",
+     "x": 15.5,
+     "mirror": false,
+     "hidden": false,
+     "id": "",
+     "top": 0.6,
+     "span": 0.45,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 15.5,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.47,
+       "h": 0.68,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 14.675,
+     "length": 1.65,
+     "height": 0.93,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 14.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 14.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 15.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 15.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 15.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 15.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 15.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 15.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 16.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 16.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "prop",
+     "x": 17.8,
+     "piece": "pot_stack",
+     "z": 2.1,
+     "h": 0.62,
+     "w": 0.0,
+     "mirror": false,
+     "y": 0.0,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 17.8,
+       "y": 0.0,
+       "z": 2.1,
+       "w": 0.428,
+       "h": 0.62,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
      "kind": "decal",
-     "x": 8.641,
+     "x": 17.349,
      "piece": "leaf_1",
-     "z": -1.3,
-     "w": 0.14,
-     "turn": 140.3,
+     "z": 1.447,
+     "w": 0.119,
+     "turn": 329.9,
      "visuals": [
       {
        "piece": "leaf_1",
-       "x": 8.641,
+       "x": 17.349,
        "y": 0.0,
-       "z": -1.3,
-       "w": 0.14,
-       "h": 0.216,
+       "z": 1.447,
+       "w": 0.119,
+       "h": 0.185,
        "mirror": false,
        "flat": true,
-       "turn": 140.3,
+       "turn": 329.9,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": -3.374,
-     "piece": "tuft_3",
-     "z": 0.966,
-     "w": 0.236,
-     "turn": -15.5,
+     "x": 18.8,
+     "piece": "footprints",
+     "z": -1.28,
+     "w": 1.249,
+     "turn": 119.8,
      "visuals": [
       {
-       "piece": "tuft_3",
-       "x": -3.374,
+       "piece": "footprints",
+       "x": 18.8,
        "y": 0.0,
-       "z": 0.966,
-       "w": 0.236,
-       "h": 0.288,
+       "z": -1.28,
+       "w": 1.249,
+       "h": 0.248,
        "mirror": false,
-       "flat": false,
-       "turn": -15.5,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": -8.796,
-     "piece": "tuft_2",
-     "z": -1.519,
-     "w": 0.188,
-     "turn": 17.2,
-     "visuals": [
-      {
-       "piece": "tuft_2",
-       "x": -8.796,
-       "y": 0.0,
-       "z": -1.519,
-       "w": 0.188,
-       "h": 0.21,
-       "mirror": false,
-       "flat": false,
-       "turn": 17.2,
+       "flat": true,
+       "turn": 119.8,
        "kind": "decal"
       }
      ]
@@ -413,68 +633,11 @@
    ]
   },
   {
-   "name": "FirstPot",
-   "x": 14.0,
-   "length": 18.0,
-   "note": "One pot stack alone: the rooster hops it, mangoes trace the jump.",
+   "name": "TwoPots",
+   "x": 20.0,
+   "length": 10.0,
+   "note": "Two pot stacks 4 m apart: jump, land, jump.",
    "items": [
-    {
-     "kind": "mango",
-     "x": 15.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 15.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 15.9,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 15.9,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 16.8,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 16.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
     {
      "kind": "pots",
      "x": 23.0,
@@ -507,12 +670,12 @@
     },
     {
      "kind": "mango",
-     "x": 21.767,
+     "x": 22.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 21.767,
+       "x": 22.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -526,12 +689,12 @@
     },
     {
      "kind": "mango",
-     "x": 22.383,
+     "x": 22.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 22.383,
+       "x": 22.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -564,12 +727,12 @@
     },
     {
      "kind": "mango",
-     "x": 23.617,
+     "x": 23.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 23.617,
+       "x": 23.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -583,211 +746,12 @@
     },
     {
      "kind": "mango",
-     "x": 24.233,
+     "x": 23.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 24.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 27.436,
-     "piece": "leaf_1",
-     "z": 1.447,
-     "w": 0.119,
-     "turn": 329.9,
-     "visuals": [
-      {
-       "piece": "leaf_1",
-       "x": 27.436,
-       "y": 0.0,
-       "z": 1.447,
-       "w": 0.119,
-       "h": 0.185,
-       "mirror": false,
-       "flat": true,
-       "turn": 329.9,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 30.177,
-     "piece": "footprints",
-     "z": -1.28,
-     "w": 1.249,
-     "turn": 119.8,
-     "visuals": [
-      {
-       "piece": "footprints",
-       "x": 30.177,
-       "y": 0.0,
-       "z": -1.28,
-       "w": 1.249,
-       "h": 0.248,
-       "mirror": false,
-       "flat": true,
-       "turn": 119.8,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 23.131,
-     "piece": "husk",
-     "z": 1.313,
-     "w": 0.287,
-     "turn": -8.5,
-     "visuals": [
-      {
-       "piece": "husk",
-       "x": 23.131,
-       "y": 0.0,
-       "z": 1.313,
-       "w": 0.287,
-       "h": 0.205,
-       "mirror": false,
-       "flat": false,
-       "turn": -8.5,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "TwoPots",
-   "x": 32.0,
-   "length": 18.0,
-   "note": "Two pot stacks 7 m apart: jump, land, jump.",
-   "items": [
-    {
-     "kind": "pots",
-     "x": 38.0,
-     "mirror": false,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 38.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 37.175,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 36.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 36.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 37.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 37.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 38.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 38.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 38.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 38.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 39.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 39.233,
+       "x": 23.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -801,7 +765,7 @@
     },
     {
      "kind": "pots",
-     "x": 45.0,
+     "x": 27.0,
      "mirror": false,
      "hidden": false,
      "id": "",
@@ -810,7 +774,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 45.0,
+       "x": 27.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -824,19 +788,19 @@
     },
     {
      "kind": "hop",
-     "x": 44.175,
+     "x": 26.175,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 43.767,
+     "x": 26.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 43.767,
+       "x": 26.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -850,12 +814,12 @@
     },
     {
      "kind": "mango",
-     "x": 44.383,
+     "x": 26.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 44.383,
+       "x": 26.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -869,12 +833,12 @@
     },
     {
      "kind": "mango",
-     "x": 45.0,
+     "x": 27.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 45.0,
+       "x": 27.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -888,12 +852,12 @@
     },
     {
      "kind": "mango",
-     "x": 45.617,
+     "x": 27.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 45.617,
+       "x": 27.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -907,12 +871,12 @@
     },
     {
      "kind": "mango",
-     "x": 46.233,
+     "x": 27.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 46.233,
+       "x": 27.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -926,66 +890,44 @@
     },
     {
      "kind": "decal",
-     "x": 41.09,
-     "piece": "leaf_1",
-     "z": 0.285,
-     "w": 0.122,
-     "turn": 267.7,
+     "x": 24.229,
+     "piece": "tuft_2",
+     "z": -1.046,
+     "w": 0.255,
+     "turn": 19.3,
      "visuals": [
       {
-       "piece": "leaf_1",
-       "x": 41.09,
+       "piece": "tuft_2",
+       "x": 24.229,
        "y": 0.0,
-       "z": 0.285,
-       "w": 0.122,
-       "h": 0.189,
-       "mirror": false,
-       "flat": true,
-       "turn": 267.7,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 41.83,
-     "piece": "hen_prints",
-     "z": 0.65,
-     "w": 0.792,
-     "turn": 239.0,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 41.83,
-       "y": 0.0,
-       "z": 0.65,
-       "w": 0.792,
-       "h": 0.198,
-       "mirror": false,
-       "flat": true,
-       "turn": 239.0,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 34.335,
-     "piece": "pebbles",
-     "z": -1.076,
-     "w": 0.588,
-     "turn": 3.8,
-     "visuals": [
-      {
-       "piece": "pebbles",
-       "x": 34.335,
-       "y": 0.0,
-       "z": -1.076,
-       "w": 0.588,
-       "h": 0.264,
+       "z": -1.046,
+       "w": 0.255,
+       "h": 0.285,
        "mirror": false,
        "flat": false,
-       "turn": 3.8,
+       "turn": 19.3,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 27.144,
+     "piece": "tuft_2",
+     "z": -1.323,
+     "w": 0.195,
+     "turn": -1.1,
+     "visuals": [
+      {
+       "piece": "tuft_2",
+       "x": 27.144,
+       "y": 0.0,
+       "z": -1.323,
+       "w": 0.195,
+       "h": 0.218,
+       "mirror": false,
+       "flat": false,
+       "turn": -1.1,
        "kind": "decal"
       }
      ]
@@ -994,19 +936,19 @@
   },
   {
    "name": "Dung",
-   "x": 50.0,
-   "length": 16.0,
+   "x": 30.0,
+   "length": 9.0,
    "note": "Cow dung: low, a tap clears it; miss it and she slips.",
    "items": [
     {
      "kind": "dung",
-     "x": 57.0,
+     "x": 34.0,
      "top": 0.2,
      "span": 0.55,
      "visuals": [
       {
        "piece": "dung",
-       "x": 57.0,
+       "x": 34.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.6,
@@ -1020,19 +962,19 @@
     },
     {
      "kind": "hop",
-     "x": 56.125,
+     "x": 33.125,
      "length": 1.75,
      "height": 0.51,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 55.767,
+     "x": 33.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 55.767,
+       "x": 33.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -1046,12 +988,12 @@
     },
     {
      "kind": "mango",
-     "x": 56.383,
+     "x": 33.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 56.383,
+       "x": 33.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -1065,12 +1007,12 @@
     },
     {
      "kind": "mango",
-     "x": 57.0,
+     "x": 34.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 57.0,
+       "x": 34.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -1084,12 +1026,12 @@
     },
     {
      "kind": "mango",
-     "x": 57.617,
+     "x": 34.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 57.617,
+       "x": 34.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -1103,12 +1045,12 @@
     },
     {
      "kind": "mango",
-     "x": 58.233,
+     "x": 34.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 58.233,
+       "x": 34.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -1122,12 +1064,12 @@
     },
     {
      "kind": "mango",
-     "x": 60.0,
+     "x": 35.6,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 60.0,
+       "x": 35.6,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -1141,12 +1083,12 @@
     },
     {
      "kind": "mango",
-     "x": 60.8,
+     "x": 36.2,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 60.8,
+       "x": 36.2,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -1160,31 +1102,12 @@
     },
     {
      "kind": "mango",
-     "x": 61.6,
+     "x": 36.8,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 61.6,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 62.4,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 62.4,
+       "x": 36.8,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -1198,61 +1121,39 @@
     },
     {
      "kind": "decal",
-     "x": 54.5,
+     "x": 32.0,
      "piece": "hoof_prints",
      "z": 0.9,
      "w": 1.2,
-     "turn": 169.0,
+     "turn": 302.4,
      "visuals": [
       {
        "piece": "hoof_prints",
-       "x": 54.5,
+       "x": 32.0,
        "y": 0.0,
        "z": 0.9,
        "w": 1.2,
        "h": 0.338,
        "mirror": false,
        "flat": true,
-       "turn": 169.0,
+       "turn": 302.4,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 55.128,
-     "piece": "tuft_3",
-     "z": 1.115,
-     "w": 0.212,
-     "turn": 1.7,
-     "visuals": [
-      {
-       "piece": "tuft_3",
-       "x": 55.128,
-       "y": 0.0,
-       "z": 1.115,
-       "w": 0.212,
-       "h": 0.258,
-       "mirror": false,
-       "flat": false,
-       "turn": 1.7,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 53.055,
+     "x": 31.849,
      "piece": "leaf_1",
-     "z": 0.007,
+     "z": -0.874,
      "w": 0.134,
      "turn": 194.3,
      "visuals": [
       {
        "piece": "leaf_1",
-       "x": 53.055,
+       "x": 31.849,
        "y": 0.0,
-       "z": 0.007,
+       "z": -0.874,
        "w": 0.134,
        "h": 0.208,
        "mirror": false,
@@ -1261,24 +1162,46 @@
        "kind": "decal"
       }
      ]
+    },
+    {
+     "kind": "decal",
+     "x": 33.251,
+     "piece": "hen_prints",
+     "z": 1.112,
+     "w": 0.91,
+     "turn": 96.9,
+     "visuals": [
+      {
+       "piece": "hen_prints",
+       "x": 33.251,
+       "y": 0.0,
+       "z": 1.112,
+       "w": 0.91,
+       "h": 0.227,
+       "mirror": false,
+       "flat": true,
+       "turn": 96.9,
+       "kind": "decal"
+      }
+     ]
     }
    ]
   },
   {
    "name": "SleepingDog",
-   "x": 66.0,
-   "length": 20.0,
-   "note": "The sleeping dog: long, so hold the jump. A feather above for a double jump.",
+   "x": 39.0,
+   "length": 11.0,
+   "note": "The dog asleep in the dust: long, so hold the jump. A feather above it.",
    "items": [
     {
      "kind": "dog",
-     "x": 74.0,
+     "x": 44.0,
      "top": 0.36,
-     "span": 0.9,
+     "span": 0.75,
      "visuals": [
       {
        "piece": "dog_sleeping",
-       "x": 74.0,
+       "x": 44.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.95,
@@ -1292,19 +1215,19 @@
     },
     {
      "kind": "hop",
-     "x": 72.95,
+     "x": 42.95,
      "length": 2.1,
      "height": 0.78,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 72.767,
+     "x": 43.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 72.767,
+       "x": 43.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -1318,12 +1241,12 @@
     },
     {
      "kind": "mango",
-     "x": 73.383,
+     "x": 43.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 73.383,
+       "x": 43.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -1337,12 +1260,12 @@
     },
     {
      "kind": "mango",
-     "x": 74.0,
+     "x": 44.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 74.0,
+       "x": 44.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -1356,12 +1279,12 @@
     },
     {
      "kind": "mango",
-     "x": 74.617,
+     "x": 44.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 74.617,
+       "x": 44.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -1375,12 +1298,12 @@
     },
     {
      "kind": "mango",
-     "x": 75.233,
+     "x": 44.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 75.233,
+       "x": 44.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -1394,13 +1317,13 @@
     },
     {
      "kind": "feather",
-     "x": 74.1,
+     "x": 44.1,
      "y": 2.8,
      "index": 0,
      "visuals": [
       {
        "piece": "Feather",
-       "x": 74.1,
+       "x": 44.1,
        "y": 2.8,
        "z": 0.0,
        "w": 0.35,
@@ -1414,12 +1337,12 @@
     },
     {
      "kind": "mango",
-     "x": 78.5,
+     "x": 46.8,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 78.5,
+       "x": 46.8,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -1433,12 +1356,12 @@
     },
     {
      "kind": "mango",
-     "x": 79.3,
+     "x": 47.4,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 79.3,
+       "x": 47.4,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -1452,12 +1375,12 @@
     },
     {
      "kind": "mango",
-     "x": 80.1,
+     "x": 48.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 80.1,
+       "x": 48.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -1471,29 +1394,7 @@
     },
     {
      "kind": "decal",
-     "x": 73.033,
-     "piece": "hen_prints",
-     "z": 1.112,
-     "w": 0.91,
-     "turn": 96.9,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 73.033,
-       "y": 0.0,
-       "z": 1.112,
-       "w": 0.91,
-       "h": 0.227,
-       "mirror": false,
-       "flat": true,
-       "turn": 96.9,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 76.912,
+     "x": 44.98,
      "piece": "leaf_1",
      "z": 1.463,
      "w": 0.118,
@@ -1501,7 +1402,7 @@
      "visuals": [
       {
        "piece": "leaf_1",
-       "x": 76.912,
+       "x": 44.98,
        "y": 0.0,
        "z": 1.463,
        "w": 0.118,
@@ -1515,7 +1416,7 @@
     },
     {
      "kind": "decal",
-     "x": 84.638,
+     "x": 49.046,
      "piece": "tuft_2",
      "z": 1.403,
      "w": 0.249,
@@ -1523,7 +1424,7 @@
      "visuals": [
       {
        "piece": "tuft_2",
-       "x": 84.638,
+       "x": 49.046,
        "y": 0.0,
        "z": 1.403,
        "w": 0.249,
@@ -1539,18 +1440,37 @@
   },
   {
    "name": "Breather",
-   "x": 86.0,
-   "length": 16.0,
+   "x": 50.0,
+   "length": 9.0,
    "note": "Room to breathe: a wave of mangoes and the first chilli.",
    "items": [
     {
+     "kind": "chilli",
+     "x": 50.6,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Chilli",
+       "x": 50.6,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.3,
+       "h": 0.3,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
      "kind": "mango",
-     "x": 87.0,
+     "x": 52.4,
      "y": 0.8,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 87.0,
+       "x": 52.4,
        "y": 0.8,
        "z": 0.0,
        "w": 0.28,
@@ -1564,12 +1484,12 @@
     },
     {
      "kind": "mango",
-     "x": 87.9,
+     "x": 53.0,
      "y": 1.087,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 87.9,
+       "x": 53.0,
        "y": 1.087,
        "z": 0.0,
        "w": 0.28,
@@ -1583,12 +1503,12 @@
     },
     {
      "kind": "mango",
-     "x": 88.8,
+     "x": 53.6,
      "y": 1.2,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 88.8,
+       "x": 53.6,
        "y": 1.2,
        "z": 0.0,
        "w": 0.28,
@@ -1602,12 +1522,12 @@
     },
     {
      "kind": "mango",
-     "x": 89.7,
+     "x": 54.2,
      "y": 1.07,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 89.7,
+       "x": 54.2,
        "y": 1.07,
        "z": 0.0,
        "w": 0.28,
@@ -1621,12 +1541,12 @@
     },
     {
      "kind": "mango",
-     "x": 90.6,
+     "x": 54.8,
      "y": 0.777,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 90.6,
+       "x": 54.8,
        "y": 0.777,
        "z": 0.0,
        "w": 0.28,
@@ -1640,12 +1560,12 @@
     },
     {
      "kind": "mango",
-     "x": 91.5,
+     "x": 55.4,
      "y": 0.497,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 91.5,
+       "x": 55.4,
        "y": 0.497,
        "z": 0.0,
        "w": 0.28,
@@ -1659,12 +1579,12 @@
     },
     {
      "kind": "mango",
-     "x": 92.4,
+     "x": 56.0,
      "y": 0.402,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 92.4,
+       "x": 56.0,
        "y": 0.402,
        "z": 0.0,
        "w": 0.28,
@@ -1677,46 +1597,8 @@
      ]
     },
     {
-     "kind": "mango",
-     "x": 93.3,
-     "y": 0.547,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 93.3,
-       "y": 0.547,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "chilli",
-     "x": 95.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Chilli",
-       "x": 95.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.3,
-       "h": 0.3,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
      "kind": "decal",
-     "x": 94.92,
+     "x": 54.991,
      "piece": "leaf_1",
      "z": -0.237,
      "w": 0.122,
@@ -1724,7 +1606,7 @@
      "visuals": [
       {
        "piece": "leaf_1",
-       "x": 94.92,
+       "x": 54.991,
        "y": 0.0,
        "z": -0.237,
        "w": 0.122,
@@ -1738,7 +1620,7 @@
     },
     {
      "kind": "decal",
-     "x": 94.816,
+     "x": 54.935,
      "piece": "pebbles",
      "z": 1.411,
      "w": 0.612,
@@ -1746,7 +1628,7 @@
      "visuals": [
       {
        "piece": "pebbles",
-       "x": 94.816,
+       "x": 54.935,
        "y": 0.0,
        "z": 1.411,
        "w": 0.612,
@@ -1757,51 +1639,29 @@
        "kind": "decal"
       }
      ]
-    },
-    {
-     "kind": "decal",
-     "x": 86.92,
-     "piece": "twigs",
-     "z": -0.865,
-     "w": 0.469,
-     "turn": 65.1,
-     "visuals": [
-      {
-       "piece": "twigs",
-       "x": 86.92,
-       "y": 0.0,
-       "z": -0.865,
-       "w": 0.469,
-       "h": 0.312,
-       "mirror": false,
-       "flat": true,
-       "turn": 65.1,
-       "kind": "decal"
-      }
-     ]
     }
    ]
   },
   {
    "name": "HandPump",
-   "x": 102.0,
-   "length": 20.0,
-   "note": "The hand-pump puddle: wide and low, only a held jump clears it.",
+   "x": 59.0,
+   "length": 10.0,
+   "note": "The puddle round the hand pump: wide and low, hold the jump.",
    "items": [
     {
      "kind": "puddle",
-     "x": 114.0,
-     "width": 1.6,
+     "x": 64.5,
+     "width": 0.9,
      "top": 0.15,
-     "span": 1.6,
+     "span": 0.9,
      "visuals": [
       {
        "piece": "puddle_water",
-       "x": 114.0,
+       "x": 64.5,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.84,
-       "h": 1.035,
+       "w": 1.035,
+       "h": 0.582,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -1809,7 +1669,7 @@
       },
       {
        "piece": "hand_pump",
-       "x": 113.52,
+       "x": 64.23,
        "y": 0.0,
        "z": 1.35,
        "w": 1.304,
@@ -1823,19 +1683,19 @@
     },
     {
      "kind": "hop",
-     "x": 112.6,
-     "length": 2.8,
-     "height": 0.64,
+     "x": 63.45,
+     "length": 2.1,
+     "height": 0.51,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 112.767,
+     "x": 63.781,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 112.767,
+       "x": 63.781,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -1849,12 +1709,12 @@
     },
     {
      "kind": "mango",
-     "x": 113.383,
+     "x": 64.14,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 113.383,
+       "x": 64.14,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -1868,12 +1728,12 @@
     },
     {
      "kind": "mango",
-     "x": 114.0,
+     "x": 64.5,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 114.0,
+       "x": 64.5,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -1887,12 +1747,12 @@
     },
     {
      "kind": "mango",
-     "x": 114.617,
+     "x": 64.86,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 114.617,
+       "x": 64.86,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -1906,12 +1766,12 @@
     },
     {
      "kind": "mango",
-     "x": 115.233,
+     "x": 65.219,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 115.233,
+       "x": 65.219,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -1925,7 +1785,29 @@
     },
     {
      "kind": "decal",
-     "x": 104.24,
+     "x": 59.752,
+     "piece": "twigs",
+     "z": -0.865,
+     "w": 0.469,
+     "turn": 65.1,
+     "visuals": [
+      {
+       "piece": "twigs",
+       "x": 59.752,
+       "y": 0.0,
+       "z": -0.865,
+       "w": 0.469,
+       "h": 0.312,
+       "mirror": false,
+       "flat": true,
+       "turn": 65.1,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 60.324,
      "piece": "footprints",
      "z": 0.163,
      "w": 1.206,
@@ -1933,7 +1815,7 @@
      "visuals": [
       {
        "piece": "footprints",
-       "x": 104.24,
+       "x": 60.324,
        "y": 0.0,
        "z": 0.163,
        "w": 1.206,
@@ -1944,10 +1826,165 @@
        "kind": "decal"
       }
      ]
+    }
+   ]
+  },
+  {
+   "name": "GoatKid",
+   "x": 69.0,
+   "length": 9.0,
+   "note": "A goat kid wandering across the street: jump it.",
+   "items": [
+    {
+     "kind": "goats",
+     "x": 73.5,
+     "count": 1,
+     "top": 0.45,
+     "span": 0.44,
+     "visuals": [
+      {
+       "piece": "goat_kid",
+       "x": 73.5,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.575,
+       "h": 0.55,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 72.68,
+     "length": 1.64,
+     "height": 0.88,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 72.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 72.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 73.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 73.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 73.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 73.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 73.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 73.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 74.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 74.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "prop",
+     "x": 76.2,
+     "piece": "goat_eating",
+     "z": 2.3,
+     "h": 0.95,
+     "w": 0.0,
+     "mirror": false,
+     "y": 0.0,
+     "visuals": [
+      {
+       "piece": "goat_eating",
+       "x": 76.2,
+       "y": 0.0,
+       "z": 2.3,
+       "w": 1.05,
+       "h": 0.95,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
     },
     {
      "kind": "decal",
-     "x": 103.839,
+     "x": 70.064,
      "piece": "tuft_1",
      "z": 1.178,
      "w": 0.257,
@@ -1955,7 +1992,7 @@
      "visuals": [
       {
        "piece": "tuft_1",
-       "x": 103.839,
+       "x": 70.064,
        "y": 0.0,
        "z": 1.178,
        "w": 0.257,
@@ -1966,28 +2003,50 @@
        "kind": "decal"
       }
      ]
+    },
+    {
+     "kind": "decal",
+     "x": 71.496,
+     "piece": "tuft_3",
+     "z": -1.25,
+     "w": 0.183,
+     "turn": 4.5,
+     "visuals": [
+      {
+       "piece": "tuft_3",
+       "x": 71.496,
+       "y": 0.0,
+       "z": -1.25,
+       "w": 0.183,
+       "h": 0.223,
+       "mirror": false,
+       "flat": false,
+       "turn": 4.5,
+       "kind": "decal"
+      }
+     ]
     }
    ]
   },
   {
-   "name": "Cart",
-   "x": 122.0,
-   "length": 20.0,
-   "note": "The bullock cart: jump onto its bed, run off the end. A feather for a double jump.",
+   "name": "Sacks",
+   "x": 78.0,
+   "length": 11.0,
+   "note": "Sacks of paddy waiting for the cart: hop onto them, run off the end. A feather.",
    "items": [
     {
-     "kind": "cart",
-     "x": 127.0,
-     "bed": 0.95,
-     "span": 2.232,
+     "kind": "sacks",
+     "x": 82.0,
+     "bed": 0.8,
+     "span": 1.035,
      "visuals": [
       {
-       "piece": "bullock_cart",
-       "x": 128.8,
+       "piece": "jute_sacks",
+       "x": 82.575,
        "y": 0.0,
        "z": 0.05,
-       "w": 3.6,
-       "h": 1.635,
+       "w": 1.153,
+       "h": 0.8,
        "mirror": false,
        "flat": false,
        "turn": 0.0,
@@ -1997,20 +2056,20 @@
     },
     {
      "kind": "hop",
-     "x": 126.2,
-     "length": 4.0,
-     "height": 1.6,
+     "x": 81.3,
+     "length": 2.6,
+     "height": 1.3,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 127.8,
-     "y": 1.55,
+     "x": 82.25,
+     "y": 1.35,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 127.8,
-       "y": 1.55,
+       "x": 82.25,
+       "y": 1.35,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -2023,89 +2082,13 @@
     },
     {
      "kind": "mango",
-     "x": 128.3,
-     "y": 1.55,
+     "x": 82.75,
+     "y": 1.35,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 128.3,
-       "y": 1.55,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 128.8,
-     "y": 1.55,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 128.8,
-       "y": 1.55,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 127.8,
-     "y": 2.9,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 127.8,
-       "y": 2.9,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 128.5,
-     "y": 2.9,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 128.5,
-       "y": 2.9,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 129.2,
-     "y": 2.9,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 129.2,
-       "y": 2.9,
+       "x": 82.75,
+       "y": 1.35,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -2118,14 +2101,14 @@
     },
     {
      "kind": "feather",
-     "x": 131.2,
-     "y": 3.4,
+     "x": 82.9,
+     "y": 3.2,
      "index": 1,
      "visuals": [
       {
        "piece": "Feather",
-       "x": 131.2,
-       "y": 3.4,
+       "x": 82.9,
+       "y": 3.2,
        "z": 0.0,
        "w": 0.35,
        "h": 0.35,
@@ -2138,29 +2121,7 @@
     },
     {
      "kind": "decal",
-     "x": 127.242,
-     "piece": "tuft_3",
-     "z": -1.25,
-     "w": 0.183,
-     "turn": 4.5,
-     "visuals": [
-      {
-       "piece": "tuft_3",
-       "x": 127.242,
-       "y": 0.0,
-       "z": -1.25,
-       "w": 0.183,
-       "h": 0.223,
-       "mirror": false,
-       "flat": false,
-       "turn": 4.5,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 125.682,
+     "x": 80.175,
      "piece": "twigs",
      "z": -0.783,
      "w": 0.486,
@@ -2168,7 +2129,7 @@
      "visuals": [
       {
        "piece": "twigs",
-       "x": 125.682,
+       "x": 80.175,
        "y": 0.0,
        "z": -0.783,
        "w": 0.486,
@@ -2179,18 +2140,40 @@
        "kind": "decal"
       }
      ]
+    },
+    {
+     "kind": "decal",
+     "x": 83.238,
+     "piece": "pebbles",
+     "z": -1.524,
+     "w": 0.582,
+     "turn": -13.4,
+     "visuals": [
+      {
+       "piece": "pebbles",
+       "x": 83.238,
+       "y": 0.0,
+       "z": -1.524,
+       "w": 0.582,
+       "h": 0.261,
+       "mirror": false,
+       "flat": false,
+       "turn": -13.4,
+       "kind": "decal"
+      }
+     ]
     }
    ]
   },
   {
    "name": "PotsDungPots",
-   "x": 142.0,
-   "length": 22.0,
-   "note": "Pots, dung, pots: 6.5 m apart, the first rhythm.",
+   "x": 89.0,
+   "length": 13.0,
+   "note": "Pots, dung, pots: the first rhythm.",
    "items": [
     {
      "kind": "pots",
-     "x": 148.0,
+     "x": 92.0,
      "mirror": true,
      "hidden": false,
      "id": "",
@@ -2199,7 +2182,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 148.0,
+       "x": 92.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -2213,19 +2196,19 @@
     },
     {
      "kind": "hop",
-     "x": 147.175,
+     "x": 91.175,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 146.767,
+     "x": 91.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 146.767,
+       "x": 91.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -2239,12 +2222,12 @@
     },
     {
      "kind": "mango",
-     "x": 147.383,
+     "x": 91.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 147.383,
+       "x": 91.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -2258,12 +2241,12 @@
     },
     {
      "kind": "mango",
-     "x": 148.0,
+     "x": 92.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 148.0,
+       "x": 92.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -2277,12 +2260,12 @@
     },
     {
      "kind": "mango",
-     "x": 148.617,
+     "x": 92.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 148.617,
+       "x": 92.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -2296,12 +2279,12 @@
     },
     {
      "kind": "mango",
-     "x": 149.233,
+     "x": 92.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 149.233,
+       "x": 92.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -2315,13 +2298,13 @@
     },
     {
      "kind": "dung",
-     "x": 154.5,
+     "x": 96.0,
      "top": 0.2,
      "span": 0.55,
      "visuals": [
       {
        "piece": "dung",
-       "x": 154.5,
+       "x": 96.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.6,
@@ -2335,19 +2318,19 @@
     },
     {
      "kind": "hop",
-     "x": 153.625,
+     "x": 95.125,
      "length": 1.75,
      "height": 0.51,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 153.267,
+     "x": 95.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 153.267,
+       "x": 95.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -2361,12 +2344,12 @@
     },
     {
      "kind": "mango",
-     "x": 153.883,
+     "x": 95.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 153.883,
+       "x": 95.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -2380,12 +2363,12 @@
     },
     {
      "kind": "mango",
-     "x": 154.5,
+     "x": 96.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 154.5,
+       "x": 96.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -2399,12 +2382,12 @@
     },
     {
      "kind": "mango",
-     "x": 155.117,
+     "x": 96.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 155.117,
+       "x": 96.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -2418,12 +2401,12 @@
     },
     {
      "kind": "mango",
-     "x": 155.733,
+     "x": 96.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 155.733,
+       "x": 96.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -2437,306 +2420,7 @@
     },
     {
      "kind": "pots",
-     "x": 161.0,
-     "mirror": false,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 161.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 160.175,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 159.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 159.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 160.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 160.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 161.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 161.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 161.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 161.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 162.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 162.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 152.926,
-     "piece": "footprints",
-     "z": -1.235,
-     "w": 1.379,
-     "turn": 151.5,
-     "visuals": [
-      {
-       "piece": "footprints",
-       "x": 152.926,
-       "y": 0.0,
-       "z": -1.235,
-       "w": 1.379,
-       "h": 0.274,
-       "mirror": false,
-       "flat": true,
-       "turn": 151.5,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 146.449,
-     "piece": "tuft_2",
-     "z": -1.252,
-     "w": 0.262,
-     "turn": 7.6,
-     "visuals": [
-      {
-       "piece": "tuft_2",
-       "x": 146.449,
-       "y": 0.0,
-       "z": -1.252,
-       "w": 0.262,
-       "h": 0.293,
-       "mirror": false,
-       "flat": false,
-       "turn": 7.6,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "DogPots",
-   "x": 164.0,
-   "length": 20.0,
-   "note": "The dog, then a pot stack.",
-   "items": [
-    {
-     "kind": "dog",
-     "x": 170.5,
-     "top": 0.36,
-     "span": 0.9,
-     "visuals": [
-      {
-       "piece": "dog_sleeping",
-       "x": 170.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.95,
-       "h": 0.541,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 169.45,
-     "length": 2.1,
-     "height": 0.78,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 169.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 169.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 169.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 169.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 170.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 170.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 171.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 171.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 171.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 171.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 177.5,
+     "x": 100.0,
      "mirror": true,
      "hidden": false,
      "id": "",
@@ -2745,7 +2429,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 177.5,
+       "x": 100.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -2759,19 +2443,19 @@
     },
     {
      "kind": "hop",
-     "x": 176.675,
+     "x": 99.175,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 176.267,
+     "x": 99.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 176.267,
+       "x": 99.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -2785,12 +2469,12 @@
     },
     {
      "kind": "mango",
-     "x": 176.883,
+     "x": 99.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 176.883,
+       "x": 99.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -2804,12 +2488,12 @@
     },
     {
      "kind": "mango",
-     "x": 177.5,
+     "x": 100.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 177.5,
+       "x": 100.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -2823,12 +2507,12 @@
     },
     {
      "kind": "mango",
-     "x": 178.117,
+     "x": 100.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 178.117,
+       "x": 100.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -2842,12 +2526,12 @@
     },
     {
      "kind": "mango",
-     "x": 178.733,
+     "x": 100.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 178.733,
+       "x": 100.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -2861,39 +2545,326 @@
     },
     {
      "kind": "decal",
-     "x": 167.283,
-     "piece": "twigs",
-     "z": 0.7,
-     "w": 0.453,
-     "turn": 182.3,
+     "x": 98.262,
+     "piece": "tuft_3",
+     "z": 1.526,
+     "w": 0.2,
+     "turn": 11.2,
      "visuals": [
       {
-       "piece": "twigs",
-       "x": 167.283,
+       "piece": "tuft_3",
+       "x": 98.262,
        "y": 0.0,
-       "z": 0.7,
-       "w": 0.453,
-       "h": 0.301,
+       "z": 1.526,
+       "w": 0.2,
+       "h": 0.244,
        "mirror": false,
-       "flat": true,
-       "turn": 182.3,
+       "flat": false,
+       "turn": 11.2,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 172.607,
+     "x": 98.126,
      "piece": "tuft_2",
-     "z": 1.063,
+     "z": -1.087,
+     "w": 0.239,
+     "turn": 16.1,
+     "visuals": [
+      {
+       "piece": "tuft_2",
+       "x": 98.126,
+       "y": 0.0,
+       "z": -1.087,
+       "w": 0.239,
+       "h": 0.267,
+       "mirror": false,
+       "flat": false,
+       "turn": 16.1,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "DogHens",
+   "x": 102.0,
+   "length": 11.0,
+   "note": "The dog, then two hens pecking in the road.",
+   "items": [
+    {
+     "kind": "dog",
+     "x": 105.0,
+     "top": 0.36,
+     "span": 0.75,
+     "visuals": [
+      {
+       "piece": "dog_sleeping",
+       "x": 105.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.95,
+       "h": 0.541,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 103.95,
+     "length": 2.1,
+     "height": 0.78,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 104.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 104.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 104.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 104.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 105.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 105.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 105.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 105.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 105.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 105.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "hens",
+     "x": 109.5,
+     "count": 2,
+     "top": 0.4,
+     "span": 0.7,
+     "visuals": [
+      {
+       "piece": "hen_1",
+       "x": 109.35,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.409,
+       "h": 0.42,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      },
+      {
+       "piece": "hen_2",
+       "x": 109.65,
+       "y": 0.0,
+       "z": 0.13,
+       "w": 0.376,
+       "h": 0.42,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 108.55,
+     "length": 1.9,
+     "height": 0.84,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 108.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 108.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 109.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 109.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 109.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 109.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 109.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 109.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 110.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 110.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 104.706,
+     "piece": "tuft_2",
+     "z": 1.522,
      "w": 0.222,
      "turn": 8.6,
      "visuals": [
       {
        "piece": "tuft_2",
-       "x": 172.607,
+       "x": 104.706,
        "y": 0.0,
-       "z": 1.063,
+       "z": 1.522,
        "w": 0.222,
        "h": 0.248,
        "mirror": false,
@@ -2902,170 +2873,10 @@
        "kind": "decal"
       }
      ]
-    }
-   ]
-  },
-  {
-   "name": "Lane",
-   "x": 184.0,
-   "length": 14.0,
-   "note": "A short run of mangoes.",
-   "items": [
-    {
-     "kind": "mango",
-     "x": 185.5,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 185.5,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 186.6,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 186.6,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 187.7,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 187.7,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 188.8,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 188.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 189.9,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 189.9,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 191.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 191.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 192.1,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 192.1,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 193.2,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 193.2,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
     },
     {
      "kind": "decal",
-     "x": 184.899,
+     "x": 102.807,
      "piece": "hen_prints",
      "z": 0.56,
      "w": 0.973,
@@ -3073,7 +2884,7 @@
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 184.899,
+       "x": 102.807,
        "y": 0.0,
        "z": 0.56,
        "w": 0.973,
@@ -3084,10 +2895,132 @@
        "kind": "decal"
       }
      ]
+    }
+   ]
+  },
+  {
+   "name": "Lane",
+   "x": 113.0,
+   "length": 7.0,
+   "note": "A short run of mangoes.",
+   "items": [
+    {
+     "kind": "mango",
+     "x": 113.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 113.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 114.6,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 114.6,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 115.4,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 115.4,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 116.2,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 116.2,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 117.0,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 117.0,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 117.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 117.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
     },
     {
      "kind": "decal",
-     "x": 194.087,
+     "x": 117.925,
      "piece": "husk",
      "z": -1.198,
      "w": 0.347,
@@ -3095,7 +3028,7 @@
      "visuals": [
       {
        "piece": "husk",
-       "x": 194.087,
+       "x": 117.925,
        "y": 0.0,
        "z": -1.198,
        "w": 0.347,
@@ -3109,7 +3042,7 @@
     },
     {
      "kind": "decal",
-     "x": 195.661,
+     "x": 118.651,
      "piece": "footprints",
      "z": -0.607,
      "w": 1.554,
@@ -3117,7 +3050,7 @@
      "visuals": [
       {
        "piece": "footprints",
-       "x": 195.661,
+       "x": 118.651,
        "y": 0.0,
        "z": -0.607,
        "w": 1.554,
@@ -3133,13 +3066,13 @@
   },
   {
    "name": "PotTrio",
-   "x": 198.0,
-   "length": 22.0,
+   "x": 120.0,
+   "length": 14.0,
    "note": "Three pot stacks in rhythm; a feather at the top of a double jump over the middle.",
    "items": [
     {
      "kind": "pots",
-     "x": 204.0,
+     "x": 123.0,
      "mirror": true,
      "hidden": false,
      "id": "",
@@ -3148,7 +3081,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 204.0,
+       "x": 123.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -3162,19 +3095,19 @@
     },
     {
      "kind": "hop",
-     "x": 203.175,
+     "x": 122.175,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 202.767,
+     "x": 122.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 202.767,
+       "x": 122.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3188,12 +3121,12 @@
     },
     {
      "kind": "mango",
-     "x": 203.383,
+     "x": 122.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 203.383,
+       "x": 122.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3207,12 +3140,12 @@
     },
     {
      "kind": "mango",
-     "x": 204.0,
+     "x": 123.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 204.0,
+       "x": 123.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -3226,12 +3159,12 @@
     },
     {
      "kind": "mango",
-     "x": 204.617,
+     "x": 123.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 204.617,
+       "x": 123.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3245,12 +3178,12 @@
     },
     {
      "kind": "mango",
-     "x": 205.233,
+     "x": 123.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 205.233,
+       "x": 123.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3264,7 +3197,7 @@
     },
     {
      "kind": "pots",
-     "x": 210.5,
+     "x": 127.0,
      "mirror": true,
      "hidden": false,
      "id": "",
@@ -3273,7 +3206,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 210.5,
+       "x": 127.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -3287,19 +3220,19 @@
     },
     {
      "kind": "hop",
-     "x": 209.675,
+     "x": 126.175,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 209.267,
+     "x": 126.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 209.267,
+       "x": 126.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3313,12 +3246,12 @@
     },
     {
      "kind": "mango",
-     "x": 209.883,
+     "x": 126.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 209.883,
+       "x": 126.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3332,12 +3265,12 @@
     },
     {
      "kind": "mango",
-     "x": 210.5,
+     "x": 127.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 210.5,
+       "x": 127.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -3351,12 +3284,12 @@
     },
     {
      "kind": "mango",
-     "x": 211.117,
+     "x": 127.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 211.117,
+       "x": 127.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3370,12 +3303,12 @@
     },
     {
      "kind": "mango",
-     "x": 211.733,
+     "x": 127.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 211.733,
+       "x": 127.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3389,13 +3322,13 @@
     },
     {
      "kind": "feather",
-     "x": 210.6,
+     "x": 127.1,
      "y": 2.8,
      "index": 2,
      "visuals": [
       {
        "piece": "Feather",
-       "x": 210.6,
+       "x": 127.1,
        "y": 2.8,
        "z": 0.0,
        "w": 0.35,
@@ -3409,7 +3342,7 @@
     },
     {
      "kind": "pots",
-     "x": 217.0,
+     "x": 131.0,
      "mirror": false,
      "hidden": false,
      "id": "",
@@ -3418,7 +3351,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 217.0,
+       "x": 131.0,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -3432,19 +3365,19 @@
     },
     {
      "kind": "hop",
-     "x": 216.175,
+     "x": 130.175,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 215.767,
+     "x": 130.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 215.767,
+       "x": 130.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3458,12 +3391,12 @@
     },
     {
      "kind": "mango",
-     "x": 216.383,
+     "x": 130.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 216.383,
+       "x": 130.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3477,12 +3410,12 @@
     },
     {
      "kind": "mango",
-     "x": 217.0,
+     "x": 131.0,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 217.0,
+       "x": 131.0,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -3496,12 +3429,12 @@
     },
     {
      "kind": "mango",
-     "x": 217.617,
+     "x": 131.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 217.617,
+       "x": 131.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3515,12 +3448,12 @@
     },
     {
      "kind": "mango",
-     "x": 218.233,
+     "x": 131.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 218.233,
+       "x": 131.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3534,7 +3467,7 @@
     },
     {
      "kind": "decal",
-     "x": 199.296,
+     "x": 120.993,
      "piece": "tuft_3",
      "z": 1.022,
      "w": 0.202,
@@ -3542,7 +3475,7 @@
      "visuals": [
       {
        "piece": "tuft_3",
-       "x": 199.296,
+       "x": 120.993,
        "y": 0.0,
        "z": 1.022,
        "w": 0.202,
@@ -3556,7 +3489,7 @@
     },
     {
      "kind": "decal",
-     "x": 198.88,
+     "x": 120.735,
      "piece": "hen_prints",
      "z": -0.957,
      "w": 1.021,
@@ -3564,7 +3497,7 @@
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 198.88,
+       "x": 120.735,
        "y": 0.0,
        "z": -0.957,
        "w": 1.021,
@@ -3580,24 +3513,24 @@
   },
   {
    "name": "PuddleDog",
-   "x": 220.0,
-   "length": 20.0,
+   "x": 134.0,
+   "length": 11.0,
    "note": "The puddle, then the dog.",
    "items": [
     {
      "kind": "puddle",
-     "x": 226.5,
-     "width": 1.6,
+     "x": 137.5,
+     "width": 0.9,
      "top": 0.15,
-     "span": 1.6,
+     "span": 0.9,
      "visuals": [
       {
        "piece": "puddle_water",
-       "x": 226.5,
+       "x": 137.5,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.84,
-       "h": 1.035,
+       "w": 1.035,
+       "h": 0.582,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -3605,7 +3538,7 @@
       },
       {
        "piece": "hand_pump",
-       "x": 226.02,
+       "x": 137.23,
        "y": 0.0,
        "z": 1.35,
        "w": 1.304,
@@ -3619,19 +3552,19 @@
     },
     {
      "kind": "hop",
-     "x": 225.1,
-     "length": 2.8,
-     "height": 0.64,
+     "x": 136.45,
+     "length": 2.1,
+     "height": 0.51,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 225.267,
+     "x": 136.781,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 225.267,
+       "x": 136.781,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3645,12 +3578,12 @@
     },
     {
      "kind": "mango",
-     "x": 225.883,
+     "x": 137.14,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 225.883,
+       "x": 137.14,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3664,12 +3597,12 @@
     },
     {
      "kind": "mango",
-     "x": 226.5,
+     "x": 137.5,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 226.5,
+       "x": 137.5,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -3683,12 +3616,12 @@
     },
     {
      "kind": "mango",
-     "x": 227.117,
+     "x": 137.86,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 227.117,
+       "x": 137.86,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3702,12 +3635,12 @@
     },
     {
      "kind": "mango",
-     "x": 227.733,
+     "x": 138.219,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 227.733,
+       "x": 138.219,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3721,13 +3654,13 @@
     },
     {
      "kind": "dog",
-     "x": 234.5,
+     "x": 141.8,
      "top": 0.36,
-     "span": 0.9,
+     "span": 0.75,
      "visuals": [
       {
        "piece": "dog_sleeping",
-       "x": 234.5,
+       "x": 141.8,
        "y": 0.0,
        "z": 0.05,
        "w": 0.95,
@@ -3741,19 +3674,19 @@
     },
     {
      "kind": "hop",
-     "x": 233.45,
+     "x": 140.75,
      "length": 2.1,
      "height": 0.78,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 233.267,
+     "x": 141.081,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 233.267,
+       "x": 141.081,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3767,12 +3700,12 @@
     },
     {
      "kind": "mango",
-     "x": 233.883,
+     "x": 141.44,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 233.883,
+       "x": 141.44,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3786,12 +3719,12 @@
     },
     {
      "kind": "mango",
-     "x": 234.5,
+     "x": 141.8,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 234.5,
+       "x": 141.8,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -3805,12 +3738,12 @@
     },
     {
      "kind": "mango",
-     "x": 235.117,
+     "x": 142.16,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 235.117,
+       "x": 142.16,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -3824,12 +3757,12 @@
     },
     {
      "kind": "mango",
-     "x": 235.733,
+     "x": 142.519,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 235.733,
+       "x": 142.519,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -3843,7 +3776,7 @@
     },
     {
      "kind": "decal",
-     "x": 223.068,
+     "x": 135.851,
      "piece": "footprints",
      "z": -0.226,
      "w": 1.52,
@@ -3851,7 +3784,7 @@
      "visuals": [
       {
        "piece": "footprints",
-       "x": 223.068,
+       "x": 135.851,
        "y": 0.0,
        "z": -0.226,
        "w": 1.52,
@@ -3865,7 +3798,7 @@
     },
     {
      "kind": "decal",
-     "x": 229.705,
+     "x": 139.345,
      "piece": "husk",
      "z": 1.554,
      "w": 0.262,
@@ -3873,7 +3806,7 @@
      "visuals": [
       {
        "piece": "husk",
-       "x": 229.705,
+       "x": 139.345,
        "y": 0.0,
        "z": 1.554,
        "w": 0.262,
@@ -3888,24 +3821,146 @@
    ]
   },
   {
-   "name": "CartPots",
-   "x": 240.0,
-   "length": 22.0,
-   "note": "The cart as a step: off its bed straight into a jump over pots.",
+   "name": "SandHeap",
+   "x": 145.0,
+   "length": 12.0,
+   "note": "A house being built: a heap of sand at the road's edge, then the sacks.",
    "items": [
     {
-     "kind": "cart",
-     "x": 244.0,
-     "bed": 0.95,
-     "span": 2.232,
+     "kind": "sand",
+     "x": 148.5,
+     "top": 0.4,
+     "span": 0.7,
      "visuals": [
       {
-       "piece": "bullock_cart",
-       "x": 245.8,
+       "piece": "sand_heap",
+       "x": 148.5,
        "y": 0.0,
        "z": 0.05,
-       "w": 3.6,
-       "h": 1.635,
+       "w": 1.24,
+       "h": 0.45,
+       "mirror": false,
+       "flat": false,
+       "turn": 0,
+       "kind": "model"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 147.4,
+     "length": 2.2,
+     "height": 0.93,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 147.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 147.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 148.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 148.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 148.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 148.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 148.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 148.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 149.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 149.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "sacks",
+     "x": 152.5,
+     "bed": 0.8,
+     "span": 1.035,
+     "visuals": [
+      {
+       "piece": "jute_sacks",
+       "x": 153.075,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 1.153,
+       "h": 0.8,
        "mirror": false,
        "flat": false,
        "turn": 0.0,
@@ -3915,20 +3970,20 @@
     },
     {
      "kind": "hop",
-     "x": 243.2,
-     "length": 4.0,
-     "height": 1.6,
+     "x": 151.8,
+     "length": 2.6,
+     "height": 1.3,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 244.8,
-     "y": 1.55,
+     "x": 152.75,
+     "y": 1.35,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 244.8,
-       "y": 1.55,
+       "x": 152.75,
+       "y": 1.35,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -3941,13 +3996,103 @@
     },
     {
      "kind": "mango",
-     "x": 245.3,
-     "y": 1.55,
+     "x": 153.25,
+     "y": 1.35,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 245.3,
-       "y": 1.55,
+       "x": 153.25,
+       "y": 1.35,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 146.963,
+     "piece": "tuft_2",
+     "z": -1.067,
+     "w": 0.203,
+     "turn": 13.3,
+     "visuals": [
+      {
+       "piece": "tuft_2",
+       "x": 146.963,
+       "y": 0.0,
+       "z": -1.067,
+       "w": 0.203,
+       "h": 0.227,
+       "mirror": false,
+       "flat": false,
+       "turn": 13.3,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 152.102,
+     "piece": "hen_prints",
+     "z": 1.092,
+     "w": 0.872,
+     "turn": 41.0,
+     "visuals": [
+      {
+       "piece": "hen_prints",
+       "x": 152.102,
+       "y": 0.0,
+       "z": 1.092,
+       "w": 0.872,
+       "h": 0.218,
+       "mirror": false,
+       "flat": true,
+       "turn": 41.0,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ChilliStraight",
+   "x": 157.0,
+   "length": 10.0,
+   "note": "A long straight and a chilli to win back ground.",
+   "items": [
+    {
+     "kind": "chilli",
+     "x": 157.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Chilli",
+       "x": 157.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.3,
+       "h": 0.3,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 159.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 159.8,
+       "y": 0.6,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -3960,13 +4105,13 @@
     },
     {
      "kind": "mango",
-     "x": 245.8,
-     "y": 1.55,
+     "x": 160.6,
+     "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 245.8,
-       "y": 1.55,
+       "x": 160.6,
+       "y": 0.6,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -3979,13 +4124,13 @@
     },
     {
      "kind": "mango",
-     "x": 244.8,
-     "y": 2.9,
+     "x": 161.4,
+     "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 244.8,
-       "y": 2.9,
+       "x": 161.4,
+       "y": 0.6,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -3998,13 +4143,13 @@
     },
     {
      "kind": "mango",
-     "x": 245.5,
-     "y": 2.9,
+     "x": 162.2,
+     "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 245.5,
-       "y": 2.9,
+       "x": 162.2,
+       "y": 0.6,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -4017,13 +4162,2275 @@
     },
     {
      "kind": "mango",
-     "x": 246.2,
-     "y": 2.9,
+     "x": 163.0,
+     "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 246.2,
-       "y": 2.9,
+       "x": 163.0,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 163.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 163.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 164.6,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 164.6,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 159.617,
+     "piece": "tuft_1",
+     "z": 1.421,
+     "w": 0.269,
+     "turn": 18.4,
+     "visuals": [
+      {
+       "piece": "tuft_1",
+       "x": 159.617,
+       "y": 0.0,
+       "z": 1.421,
+       "w": 0.269,
+       "h": 0.308,
+       "mirror": false,
+       "flat": false,
+       "turn": 18.4,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 158.438,
+     "piece": "leaf_2",
+     "z": -1.475,
+     "w": 0.118,
+     "turn": 356.8,
+     "visuals": [
+      {
+       "piece": "leaf_2",
+       "x": 158.438,
+       "y": 0.0,
+       "z": -1.475,
+       "w": 0.118,
+       "h": 0.3,
+       "mirror": false,
+       "flat": true,
+       "turn": 356.8,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "DungPair",
+   "x": 167.0,
+   "length": 10.0,
+   "note": "Two cow pats: tap, tap.",
+   "items": [
+    {
+     "kind": "dung",
+     "x": 170.0,
+     "top": 0.2,
+     "span": 0.55,
+     "visuals": [
+      {
+       "piece": "dung",
+       "x": 170.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.6,
+       "h": 0.252,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 169.125,
+     "length": 1.75,
+     "height": 0.51,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 169.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 169.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 169.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 169.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 170.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 170.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 170.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 170.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 170.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 170.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "dung",
+     "x": 174.0,
+     "top": 0.2,
+     "span": 0.55,
+     "visuals": [
+      {
+       "piece": "dung",
+       "x": 174.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.6,
+       "h": 0.252,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 173.125,
+     "length": 1.75,
+     "height": 0.51,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 173.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 173.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 173.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 173.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 174.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 174.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 174.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 174.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 174.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 174.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 168.826,
+     "piece": "leaf_2",
+     "z": -1.2,
+     "w": 0.128,
+     "turn": 281.5,
+     "visuals": [
+      {
+       "piece": "leaf_2",
+       "x": 168.826,
+       "y": 0.0,
+       "z": -1.2,
+       "w": 0.128,
+       "h": 0.325,
+       "mirror": false,
+       "flat": true,
+       "turn": 281.5,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 172.594,
+     "piece": "hen_prints",
+     "z": 1.447,
+     "w": 1.046,
+     "turn": 203.2,
+     "visuals": [
+      {
+       "piece": "hen_prints",
+       "x": 172.594,
+       "y": 0.0,
+       "z": 1.447,
+       "w": 1.046,
+       "h": 0.261,
+       "mirror": false,
+       "flat": true,
+       "turn": 203.2,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Mischief",
+   "x": 177.0,
+   "length": 13.0,
+   "note": "The puddle; then the rooster knocks a pot stack off its stand into the lane.",
+   "items": [
+    {
+     "kind": "puddle",
+     "x": 180.0,
+     "width": 0.9,
+     "top": 0.15,
+     "span": 0.9,
+     "visuals": [
+      {
+       "piece": "puddle_water",
+       "x": 180.0,
+       "y": 0.004,
+       "z": 0.0,
+       "w": 1.035,
+       "h": 0.582,
+       "mirror": false,
+       "flat": true,
+       "turn": 0.0,
+       "kind": "decal"
+      },
+      {
+       "piece": "hand_pump",
+       "x": 179.73,
+       "y": 0.0,
+       "z": 1.35,
+       "w": 1.304,
+       "h": 1.2,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 178.95,
+     "length": 2.1,
+     "height": 0.51,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 179.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 179.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 179.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 179.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 180.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 180.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 180.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 180.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 180.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 180.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "prop",
+     "x": 186.3,
+     "piece": "water_pot_stand",
+     "z": 1.6,
+     "h": 1.1,
+     "w": 0.0,
+     "mirror": false,
+     "y": 0.0,
+     "visuals": [
+      {
+       "piece": "water_pot_stand",
+       "x": 186.3,
+       "y": 0.0,
+       "z": 1.6,
+       "w": 0.96,
+       "h": 1.1,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "pots",
+     "x": 186.0,
+     "mirror": false,
+     "hidden": true,
+     "id": "knocked",
+     "top": 0.6,
+     "span": 0.45,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 186.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.47,
+       "h": 0.68,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "mischief",
+     "x": 186.6,
+     "target": "knocked",
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 185.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 185.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 185.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 185.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 186.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 186.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 186.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 186.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 186.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 186.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 182.993,
+     "piece": "leaf_1",
+     "z": -0.713,
+     "w": 0.137,
+     "turn": 4.5,
+     "visuals": [
+      {
+       "piece": "leaf_1",
+       "x": 182.993,
+       "y": 0.0,
+       "z": -0.713,
+       "w": 0.137,
+       "h": 0.212,
+       "mirror": false,
+       "flat": true,
+       "turn": 4.5,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 185.545,
+     "piece": "leaf_2",
+     "z": -1.307,
+     "w": 0.137,
+     "turn": 284.4,
+     "visuals": [
+      {
+       "piece": "leaf_2",
+       "x": 185.545,
+       "y": 0.0,
+       "z": -1.307,
+       "w": 0.137,
+       "h": 0.347,
+       "mirror": false,
+       "flat": true,
+       "turn": 284.4,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "DogDung",
+   "x": 190.0,
+   "length": 11.0,
+   "note": "The dog and the dung.",
+   "items": [
+    {
+     "kind": "dog",
+     "x": 193.5,
+     "top": 0.36,
+     "span": 0.75,
+     "visuals": [
+      {
+       "piece": "dog_sleeping",
+       "x": 193.5,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.95,
+       "h": 0.541,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 192.45,
+     "length": 2.1,
+     "height": 0.78,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 192.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 192.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 193.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 193.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 193.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 193.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 193.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 193.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 194.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 194.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "dung",
+     "x": 197.5,
+     "top": 0.2,
+     "span": 0.55,
+     "visuals": [
+      {
+       "piece": "dung",
+       "x": 197.5,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.6,
+       "h": 0.252,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 196.625,
+     "length": 1.75,
+     "height": 0.51,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 196.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 196.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 197.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 197.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 197.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 197.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 197.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 197.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 198.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 198.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 192.379,
+     "piece": "tuft_3",
+     "z": 0.914,
+     "w": 0.199,
+     "turn": -18.4,
+     "visuals": [
+      {
+       "piece": "tuft_3",
+       "x": 192.379,
+       "y": 0.0,
+       "z": 0.914,
+       "w": 0.199,
+       "h": 0.243,
+       "mirror": false,
+       "flat": false,
+       "turn": -18.4,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 192.174,
+     "piece": "leaf_2",
+     "z": -0.827,
+     "w": 0.12,
+     "turn": 347.3,
+     "visuals": [
+      {
+       "piece": "leaf_2",
+       "x": 192.174,
+       "y": 0.0,
+       "z": -0.827,
+       "w": 0.12,
+       "h": 0.306,
+       "mirror": false,
+       "flat": true,
+       "turn": 347.3,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "ChilliLane",
+   "x": 201.0,
+   "length": 10.0,
+   "note": "A breather and a chilli.",
+   "items": [
+    {
+     "kind": "chilli",
+     "x": 201.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Chilli",
+       "x": 201.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.3,
+       "h": 0.3,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 203.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 203.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 204.6,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 204.6,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 205.4,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 205.4,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 206.2,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 206.2,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 207.0,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 207.0,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 207.8,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 207.8,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 208.758,
+     "piece": "footprints",
+     "z": 0.137,
+     "w": 1.46,
+     "turn": 256.2,
+     "visuals": [
+      {
+       "piece": "footprints",
+       "x": 208.758,
+       "y": 0.0,
+       "z": 0.137,
+       "w": 1.46,
+       "h": 0.29,
+       "mirror": false,
+       "flat": true,
+       "turn": 256.2,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 204.33,
+     "piece": "hen_prints",
+     "z": -0.936,
+     "w": 0.777,
+     "turn": 3.8,
+     "visuals": [
+      {
+       "piece": "hen_prints",
+       "x": 204.33,
+       "y": 0.0,
+       "z": -0.936,
+       "w": 0.777,
+       "h": 0.194,
+       "mirror": false,
+       "flat": true,
+       "turn": 3.8,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "PotQuartet",
+   "x": 211.0,
+   "length": 18.0,
+   "note": "Four of the potter's stacks, 4 m apart.",
+   "items": [
+    {
+     "kind": "pots",
+     "x": 214.0,
+     "mirror": false,
+     "hidden": false,
+     "id": "",
+     "top": 0.6,
+     "span": 0.45,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 214.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.47,
+       "h": 0.68,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 213.175,
+     "length": 1.65,
+     "height": 0.93,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 213.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 213.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 213.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 213.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 214.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 214.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 214.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 214.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 214.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 214.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "pots",
+     "x": 218.0,
+     "mirror": true,
+     "hidden": false,
+     "id": "",
+     "top": 0.6,
+     "span": 0.45,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 218.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.47,
+       "h": 0.68,
+       "mirror": true,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 217.175,
+     "length": 1.65,
+     "height": 0.93,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 217.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 217.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 217.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 217.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 218.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 218.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 218.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 218.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 218.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 218.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "pots",
+     "x": 222.0,
+     "mirror": false,
+     "hidden": false,
+     "id": "",
+     "top": 0.6,
+     "span": 0.45,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 222.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.47,
+       "h": 0.68,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 221.175,
+     "length": 1.65,
+     "height": 0.93,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 221.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 221.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 221.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 221.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 222.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 222.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 222.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 222.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 222.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 222.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "pots",
+     "x": 226.0,
+     "mirror": true,
+     "hidden": false,
+     "id": "",
+     "top": 0.6,
+     "span": 0.45,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 226.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.47,
+       "h": 0.68,
+       "mirror": true,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 225.175,
+     "length": 1.65,
+     "height": 0.93,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 225.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 225.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 225.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 225.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 226.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 226.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 226.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 226.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 226.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 226.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "prop",
+     "x": 220.0,
+     "piece": "pot_stack",
+     "z": 2.2,
+     "h": 0.62,
+     "w": 0.0,
+     "mirror": true,
+     "y": 0.0,
+     "visuals": [
+      {
+       "piece": "pot_stack",
+       "x": 220.0,
+       "y": 0.0,
+       "z": 2.2,
+       "w": 0.428,
+       "h": 0.62,
+       "mirror": true,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 216.826,
+     "piece": "hen_prints",
+     "z": -1.399,
+     "w": 1.07,
+     "turn": 349.1,
+     "visuals": [
+      {
+       "piece": "hen_prints",
+       "x": 216.826,
+       "y": 0.0,
+       "z": -1.399,
+       "w": 1.07,
+       "h": 0.268,
+       "mirror": false,
+       "flat": true,
+       "turn": 349.1,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 213.393,
+     "piece": "tuft_3",
+     "z": -0.911,
+     "w": 0.224,
+     "turn": -19.2,
+     "visuals": [
+      {
+       "piece": "tuft_3",
+       "x": 213.393,
+       "y": 0.0,
+       "z": -0.911,
+       "w": 0.224,
+       "h": 0.274,
+       "mirror": false,
+       "flat": false,
+       "turn": -19.2,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "GoatSacks",
+   "x": 229.0,
+   "length": 13.0,
+   "note": "A goat kid, then the last sacks.",
+   "items": [
+    {
+     "kind": "goats",
+     "x": 232.5,
+     "count": 1,
+     "top": 0.45,
+     "span": 0.44,
+     "visuals": [
+      {
+       "piece": "goat_kid",
+       "x": 232.5,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.575,
+       "h": 0.55,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 231.68,
+     "length": 1.64,
+     "height": 0.88,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 231.781,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 231.781,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 232.14,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 232.14,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 232.5,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 232.5,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 232.86,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 232.86,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 233.219,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 233.219,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "sacks",
+     "x": 236.5,
+     "bed": 0.8,
+     "span": 1.035,
+     "visuals": [
+      {
+       "piece": "jute_sacks",
+       "x": 237.075,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 1.153,
+       "h": 0.8,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 235.8,
+     "length": 2.6,
+     "height": 1.3,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 236.75,
+     "y": 1.35,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 236.75,
+       "y": 1.35,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 237.25,
+     "y": 1.35,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 237.25,
+       "y": 1.35,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 239.911,
+     "piece": "hen_prints",
+     "z": -0.099,
+     "w": 0.847,
+     "turn": 195.0,
+     "visuals": [
+      {
+       "piece": "hen_prints",
+       "x": 239.911,
+       "y": 0.0,
+       "z": -0.099,
+       "w": 0.847,
+       "h": 0.212,
+       "mirror": false,
+       "flat": true,
+       "turn": 195.0,
+       "kind": "decal"
+      }
+     ]
+    },
+    {
+     "kind": "decal",
+     "x": 233.188,
+     "piece": "leaf_2",
+     "z": -0.812,
+     "w": 0.136,
+     "turn": 32.2,
+     "visuals": [
+      {
+       "piece": "leaf_2",
+       "x": 233.188,
+       "y": 0.0,
+       "z": -0.812,
+       "w": 0.136,
+       "h": 0.347,
+       "mirror": false,
+       "flat": true,
+       "turn": 32.2,
+       "kind": "decal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "DogDungPots",
+   "x": 242.0,
+   "length": 14.0,
+   "note": "Dog, dung, pots.",
+   "items": [
+    {
+     "kind": "dog",
+     "x": 245.0,
+     "top": 0.36,
+     "span": 0.75,
+     "visuals": [
+      {
+       "piece": "dog_sleeping",
+       "x": 245.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.95,
+       "h": 0.541,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 243.95,
+     "length": 2.1,
+     "height": 0.78,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 244.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 244.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 244.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 244.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 245.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 245.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 245.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 245.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 245.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 245.719,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "dung",
+     "x": 249.0,
+     "top": 0.2,
+     "span": 0.55,
+     "visuals": [
+      {
+       "piece": "dung",
+       "x": 249.0,
+       "y": 0.0,
+       "z": 0.05,
+       "w": 0.6,
+       "h": 0.252,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "art"
+      }
+     ]
+    },
+    {
+     "kind": "hop",
+     "x": 248.125,
+     "length": 1.75,
+     "height": 0.51,
+     "visuals": []
+    },
+    {
+     "kind": "mango",
+     "x": 248.281,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 248.281,
+       "y": 1.328,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 248.64,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 248.64,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 249.0,
+     "y": 1.95,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 249.0,
+       "y": 1.95,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 249.36,
+     "y": 1.794,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 249.36,
+       "y": 1.794,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 249.719,
+     "y": 1.328,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 249.719,
+       "y": 1.328,
        "z": 0.0,
        "w": 0.28,
        "h": 0.28,
@@ -4037,7 +6444,7 @@
     {
      "kind": "pots",
      "x": 253.0,
-     "mirror": true,
+     "mirror": false,
      "hidden": false,
      "id": "",
      "top": 0.6,
@@ -4050,7 +6457,7 @@
        "z": 0.05,
        "w": 0.47,
        "h": 0.68,
-       "mirror": true,
+       "mirror": false,
        "flat": false,
        "turn": 0.0,
        "kind": "art"
@@ -4066,12 +6473,12 @@
     },
     {
      "kind": "mango",
-     "x": 251.767,
+     "x": 252.281,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 251.767,
+       "x": 252.281,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -4085,12 +6492,12 @@
     },
     {
      "kind": "mango",
-     "x": 252.383,
+     "x": 252.64,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 252.383,
+       "x": 252.64,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -4123,12 +6530,12 @@
     },
     {
      "kind": "mango",
-     "x": 253.617,
+     "x": 253.36,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 253.617,
+       "x": 253.36,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -4142,12 +6549,12 @@
     },
     {
      "kind": "mango",
-     "x": 254.233,
+     "x": 253.719,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 254.233,
+       "x": 253.719,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -4161,44 +6568,44 @@
     },
     {
      "kind": "decal",
-     "x": 256.441,
+     "x": 254.73,
      "piece": "footprints",
-     "z": 0.321,
-     "w": 1.37,
-     "turn": 122.5,
+     "z": -0.35,
+     "w": 1.21,
+     "turn": 67.3,
      "visuals": [
       {
        "piece": "footprints",
-       "x": 256.441,
+       "x": 254.73,
        "y": 0.0,
-       "z": 0.321,
-       "w": 1.37,
-       "h": 0.272,
+       "z": -0.35,
+       "w": 1.21,
+       "h": 0.24,
        "mirror": false,
        "flat": true,
-       "turn": 122.5,
+       "turn": 67.3,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 246.616,
+     "x": 245.696,
      "piece": "tuft_3",
-     "z": 1.176,
-     "w": 0.225,
-     "turn": -2.6,
+     "z": -1.277,
+     "w": 0.211,
+     "turn": -5.5,
      "visuals": [
       {
        "piece": "tuft_3",
-       "x": 246.616,
+       "x": 245.696,
        "y": 0.0,
-       "z": 1.176,
-       "w": 0.225,
-       "h": 0.274,
+       "z": -1.277,
+       "w": 0.211,
+       "h": 0.257,
        "mirror": false,
        "flat": false,
-       "turn": -2.6,
+       "turn": -5.5,
        "kind": "decal"
       }
      ]
@@ -4206,19 +6613,19 @@
    ]
   },
   {
-   "name": "ChilliStraight",
-   "x": 262.0,
-   "length": 18.0,
-   "note": "A long straight and a chilli to win back ground.",
+   "name": "FinalChilli",
+   "x": 256.0,
+   "length": 10.0,
+   "note": "The last chilli.",
    "items": [
     {
      "kind": "chilli",
-     "x": 263.5,
+     "x": 256.8,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Chilli",
-       "x": 263.5,
+       "x": 256.8,
        "y": 0.6,
        "z": 0.0,
        "w": 0.3,
@@ -4232,12 +6639,12 @@
     },
     {
      "kind": "mango",
-     "x": 266.0,
+     "x": 258.8,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 266.0,
+       "x": 258.8,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -4251,12 +6658,12 @@
     },
     {
      "kind": "mango",
-     "x": 267.1,
+     "x": 259.6,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 267.1,
+       "x": 259.6,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -4270,12 +6677,12 @@
     },
     {
      "kind": "mango",
-     "x": 268.2,
+     "x": 260.4,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 268.2,
+       "x": 260.4,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -4289,12 +6696,12 @@
     },
     {
      "kind": "mango",
-     "x": 269.3,
+     "x": 261.2,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 269.3,
+       "x": 261.2,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -4308,12 +6715,12 @@
     },
     {
      "kind": "mango",
-     "x": 270.4,
+     "x": 262.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 270.4,
+       "x": 262.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -4327,88 +6734,12 @@
     },
     {
      "kind": "mango",
-     "x": 271.5,
+     "x": 262.8,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 271.5,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 272.6,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 272.6,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 273.7,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 273.7,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 274.8,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 274.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 275.9,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 275.9,
+       "x": 262.8,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -4422,66 +6753,44 @@
     },
     {
      "kind": "decal",
-     "x": 270.809,
-     "piece": "leaf_2",
-     "z": 0.256,
-     "w": 0.115,
-     "turn": 146.4,
+     "x": 258.706,
+     "piece": "husk",
+     "z": -1.535,
+     "w": 0.297,
+     "turn": -3.5,
      "visuals": [
       {
-       "piece": "leaf_2",
-       "x": 270.809,
+       "piece": "husk",
+       "x": 258.706,
        "y": 0.0,
-       "z": 0.256,
-       "w": 0.115,
-       "h": 0.293,
+       "z": -1.535,
+       "w": 0.297,
+       "h": 0.212,
        "mirror": false,
-       "flat": true,
-       "turn": 146.4,
+       "flat": false,
+       "turn": -3.5,
        "kind": "decal"
       }
      ]
     },
     {
      "kind": "decal",
-     "x": 268.964,
-     "piece": "twigs",
-     "z": 1.572,
-     "w": 0.513,
-     "turn": 122.7,
+     "x": 264.308,
+     "piece": "leaf_1",
+     "z": 0.733,
+     "w": 0.129,
+     "turn": 104.7,
      "visuals": [
       {
-       "piece": "twigs",
-       "x": 268.964,
+       "piece": "leaf_1",
+       "x": 264.308,
        "y": 0.0,
-       "z": 1.572,
-       "w": 0.513,
-       "h": 0.341,
+       "z": 0.733,
+       "w": 0.129,
+       "h": 0.199,
        "mirror": false,
        "flat": true,
-       "turn": 122.7,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 272.958,
-     "piece": "pebbles",
-     "z": 0.902,
-     "w": 0.526,
-     "turn": 18.1,
-     "visuals": [
-      {
-       "piece": "pebbles",
-       "x": 272.958,
-       "y": 0.0,
-       "z": 0.902,
-       "w": 0.526,
-       "h": 0.236,
-       "mirror": false,
-       "flat": false,
-       "turn": 18.1,
+       "turn": 104.7,
        "kind": "decal"
       }
      ]
@@ -4489,321 +6798,25 @@
    ]
   },
   {
-   "name": "DungPair",
-   "x": 280.0,
-   "length": 18.0,
-   "note": "Two cow pats: tap, tap.",
-   "items": [
-    {
-     "kind": "dung",
-     "x": 286.0,
-     "top": 0.2,
-     "span": 0.55,
-     "visuals": [
-      {
-       "piece": "dung",
-       "x": 286.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.6,
-       "h": 0.252,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 285.125,
-     "length": 1.75,
-     "height": 0.51,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 284.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 284.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 285.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 285.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 286.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 286.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 286.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 286.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 287.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 287.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "dung",
-     "x": 292.0,
-     "top": 0.2,
-     "span": 0.55,
-     "visuals": [
-      {
-       "piece": "dung",
-       "x": 292.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.6,
-       "h": 0.252,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 291.125,
-     "length": 1.75,
-     "height": 0.51,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 290.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 290.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 291.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 291.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 292.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 292.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 292.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 292.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 293.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 293.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 290.121,
-     "piece": "hen_prints",
-     "z": 1.447,
-     "w": 1.046,
-     "turn": 203.2,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 290.121,
-       "y": 0.0,
-       "z": 1.447,
-       "w": 1.046,
-       "h": 0.261,
-       "mirror": false,
-       "flat": true,
-       "turn": 203.2,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 296.226,
-     "piece": "footprints",
-     "z": -0.135,
-     "w": 1.243,
-     "turn": 16.5,
-     "visuals": [
-      {
-       "piece": "footprints",
-       "x": 296.226,
-       "y": 0.0,
-       "z": -0.135,
-       "w": 1.243,
-       "h": 0.247,
-       "mirror": false,
-       "flat": true,
-       "turn": 16.5,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "Mischief",
-   "x": 298.0,
-   "length": 22.0,
-   "note": "The puddle; then the rooster knocks a pot stack off its stand into the lane.",
+   "name": "PuddlePots",
+   "x": 266.0,
+   "length": 13.0,
+   "note": "The puddle and two pots: the last test.",
    "items": [
     {
      "kind": "puddle",
-     "x": 303.5,
-     "width": 1.6,
+     "x": 269.5,
+     "width": 0.9,
      "top": 0.15,
-     "span": 1.6,
+     "span": 0.9,
      "visuals": [
       {
        "piece": "puddle_water",
-       "x": 303.5,
+       "x": 269.5,
        "y": 0.004,
        "z": 0.0,
-       "w": 1.84,
-       "h": 1.035,
+       "w": 1.035,
+       "h": 0.582,
        "mirror": false,
        "flat": true,
        "turn": 0.0,
@@ -4811,7 +6824,7 @@
       },
       {
        "piece": "hand_pump",
-       "x": 303.02,
+       "x": 269.23,
        "y": 0.0,
        "z": 1.35,
        "w": 1.304,
@@ -4825,463 +6838,19 @@
     },
     {
      "kind": "hop",
-     "x": 302.1,
-     "length": 2.8,
-     "height": 0.64,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 302.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 302.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 302.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 302.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 303.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 303.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 304.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 304.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 304.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 304.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "prop",
-     "x": 313.3,
-     "piece": "water_pot_stand",
-     "z": 1.6,
-     "h": 1.1,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "water_pot_stand",
-       "x": 313.3,
-       "y": 0.0,
-       "z": 1.6,
-       "w": 0.96,
-       "h": 1.1,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 313.0,
-     "mirror": true,
-     "hidden": true,
-     "id": "knocked",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 313.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "mischief",
-     "x": 314.0,
-     "target": "knocked",
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 311.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 311.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 312.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 312.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 313.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 313.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 313.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 313.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 314.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 314.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 311.387,
-     "piece": "pebbles",
-     "z": -1.553,
-     "w": 0.534,
-     "turn": 18.6,
-     "visuals": [
-      {
-       "piece": "pebbles",
-       "x": 311.387,
-       "y": 0.0,
-       "z": -1.553,
-       "w": 0.534,
-       "h": 0.239,
-       "mirror": false,
-       "flat": false,
-       "turn": 18.6,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 307.341,
-     "piece": "twigs",
-     "z": -1.23,
-     "w": 0.49,
-     "turn": 57.2,
-     "visuals": [
-      {
-       "piece": "twigs",
-       "x": 307.341,
-       "y": 0.0,
-       "z": -1.23,
-       "w": 0.49,
-       "h": 0.325,
-       "mirror": false,
-       "flat": true,
-       "turn": 57.2,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "DogDung",
-   "x": 320.0,
-   "length": 20.0,
-   "note": "The dog and the dung.",
-   "items": [
-    {
-     "kind": "dog",
-     "x": 326.5,
-     "top": 0.36,
-     "span": 0.9,
-     "visuals": [
-      {
-       "piece": "dog_sleeping",
-       "x": 326.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.95,
-       "h": 0.541,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 325.45,
+     "x": 268.45,
      "length": 2.1,
-     "height": 0.78,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 325.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 325.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 325.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 325.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 326.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 326.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 327.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 327.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 327.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 327.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "dung",
-     "x": 333.5,
-     "top": 0.2,
-     "span": 0.55,
-     "visuals": [
-      {
-       "piece": "dung",
-       "x": 333.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.6,
-       "h": 0.252,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 332.625,
-     "length": 1.75,
      "height": 0.51,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 332.267,
+     "x": 268.781,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 332.267,
+       "x": 268.781,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -5295,12 +6864,12 @@
     },
     {
      "kind": "mango",
-     "x": 332.883,
+     "x": 269.14,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 332.883,
+       "x": 269.14,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -5314,12 +6883,12 @@
     },
     {
      "kind": "mango",
-     "x": 333.5,
+     "x": 269.5,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 333.5,
+       "x": 269.5,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -5333,12 +6902,12 @@
     },
     {
      "kind": "mango",
-     "x": 334.117,
+     "x": 269.86,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 334.117,
+       "x": 269.86,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -5352,12 +6921,12 @@
     },
     {
      "kind": "mango",
-     "x": 334.733,
+     "x": 270.219,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 334.733,
+       "x": 270.219,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -5370,324 +6939,8 @@
      ]
     },
     {
-     "kind": "decal",
-     "x": 335.823,
-     "piece": "footprints",
-     "z": 0.137,
-     "w": 1.46,
-     "turn": 256.2,
-     "visuals": [
-      {
-       "piece": "footprints",
-       "x": 335.823,
-       "y": 0.0,
-       "z": 0.137,
-       "w": 1.46,
-       "h": 0.29,
-       "mirror": false,
-       "flat": true,
-       "turn": 256.2,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 326.475,
-     "piece": "hen_prints",
-     "z": -0.936,
-     "w": 0.777,
-     "turn": 3.8,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 326.475,
-       "y": 0.0,
-       "z": -0.936,
-       "w": 0.777,
-       "h": 0.194,
-       "mirror": false,
-       "flat": true,
-       "turn": 3.8,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "ChilliLane",
-   "x": 340.0,
-   "length": 20.0,
-   "note": "A breather and a chilli.",
-   "items": [
-    {
-     "kind": "chilli",
-     "x": 341.5,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Chilli",
-       "x": 341.5,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.3,
-       "h": 0.3,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 344.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 344.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 345.1,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 345.1,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 346.2,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 346.2,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 347.3,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 347.3,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 348.4,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 348.4,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 349.5,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 349.5,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 350.6,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 350.6,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 351.7,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 351.7,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 352.8,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 352.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 341.696,
-     "piece": "tuft_3",
-     "z": 1.323,
-     "w": 0.238,
-     "turn": -19.9,
-     "visuals": [
-      {
-       "piece": "tuft_3",
-       "x": 341.696,
-       "y": 0.0,
-       "z": 1.323,
-       "w": 0.238,
-       "h": 0.29,
-       "mirror": false,
-       "flat": false,
-       "turn": -19.9,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 356.985,
-     "piece": "hen_prints",
-     "z": -0.099,
-     "w": 0.847,
-     "turn": 195.0,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 356.985,
-       "y": 0.0,
-       "z": -0.099,
-       "w": 0.847,
-       "h": 0.212,
-       "mirror": false,
-       "flat": true,
-       "turn": 195.0,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 346.339,
-     "piece": "leaf_2",
-     "z": -0.812,
-     "w": 0.136,
-     "turn": 32.2,
-     "visuals": [
-      {
-       "piece": "leaf_2",
-       "x": 346.339,
-       "y": 0.0,
-       "z": -0.812,
-       "w": 0.136,
-       "h": 0.347,
-       "mirror": false,
-       "flat": true,
-       "turn": 32.2,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "PotQuartet",
-   "x": 360.0,
-   "length": 26.0,
-   "note": "Four pot stacks, 6.5 m apart.",
-   "items": [
-    {
      "kind": "pots",
-     "x": 364.0,
+     "x": 273.8,
      "mirror": false,
      "hidden": false,
      "id": "",
@@ -5696,7 +6949,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 364.0,
+       "x": 273.8,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -5710,19 +6963,19 @@
     },
     {
      "kind": "hop",
-     "x": 363.175,
+     "x": 272.975,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 362.767,
+     "x": 273.081,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 362.767,
+       "x": 273.081,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -5736,12 +6989,12 @@
     },
     {
      "kind": "mango",
-     "x": 363.383,
+     "x": 273.44,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 363.383,
+       "x": 273.44,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -5755,12 +7008,12 @@
     },
     {
      "kind": "mango",
-     "x": 364.0,
+     "x": 273.8,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 364.0,
+       "x": 273.8,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -5774,12 +7027,12 @@
     },
     {
      "kind": "mango",
-     "x": 364.617,
+     "x": 274.16,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 364.617,
+       "x": 274.16,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -5793,12 +7046,12 @@
     },
     {
      "kind": "mango",
-     "x": 365.233,
+     "x": 274.519,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 365.233,
+       "x": 274.519,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -5812,7 +7065,7 @@
     },
     {
      "kind": "pots",
-     "x": 370.5,
+     "x": 277.8,
      "mirror": true,
      "hidden": false,
      "id": "",
@@ -5821,7 +7074,7 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 370.5,
+       "x": 277.8,
        "y": 0.0,
        "z": 0.05,
        "w": 0.47,
@@ -5835,19 +7088,19 @@
     },
     {
      "kind": "hop",
-     "x": 369.675,
+     "x": 276.975,
      "length": 1.65,
      "height": 0.93,
      "visuals": []
     },
     {
      "kind": "mango",
-     "x": 369.267,
+     "x": 277.081,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 369.267,
+       "x": 277.081,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -5861,12 +7114,12 @@
     },
     {
      "kind": "mango",
-     "x": 369.883,
+     "x": 277.44,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 369.883,
+       "x": 277.44,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -5880,12 +7133,12 @@
     },
     {
      "kind": "mango",
-     "x": 370.5,
+     "x": 277.8,
      "y": 1.95,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 370.5,
+       "x": 277.8,
        "y": 1.95,
        "z": 0.0,
        "w": 0.28,
@@ -5899,12 +7152,12 @@
     },
     {
      "kind": "mango",
-     "x": 371.117,
+     "x": 278.16,
      "y": 1.794,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 371.117,
+       "x": 278.16,
        "y": 1.794,
        "z": 0.0,
        "w": 0.28,
@@ -5918,262 +7171,12 @@
     },
     {
      "kind": "mango",
-     "x": 371.733,
+     "x": 278.519,
      "y": 1.328,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 371.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 377.0,
-     "mirror": false,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 377.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 376.175,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 375.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 375.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 376.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 376.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 377.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 377.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 377.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 377.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 378.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 378.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 383.5,
-     "mirror": true,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 383.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 382.675,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 382.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 382.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 382.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 382.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 383.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 383.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 384.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 384.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 384.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 384.733,
+       "x": 278.519,
        "y": 1.328,
        "z": 0.0,
        "w": 0.28,
@@ -6187,746 +7190,7 @@
     },
     {
      "kind": "decal",
-     "x": 366.186,
-     "piece": "leaf_1",
-     "z": 1.493,
-     "w": 0.116,
-     "turn": 114.0,
-     "visuals": [
-      {
-       "piece": "leaf_1",
-       "x": 366.186,
-       "y": 0.0,
-       "z": 1.493,
-       "w": 0.116,
-       "h": 0.179,
-       "mirror": false,
-       "flat": true,
-       "turn": 114.0,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 381.678,
-     "piece": "footprints",
-     "z": 1.259,
-     "w": 1.31,
-     "turn": 36.3,
-     "visuals": [
-      {
-       "piece": "footprints",
-       "x": 381.678,
-       "y": 0.0,
-       "z": 1.259,
-       "w": 1.31,
-       "h": 0.26,
-       "mirror": false,
-       "flat": true,
-       "turn": 36.3,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "LastCart",
-   "x": 386.0,
-   "length": 22.0,
-   "note": "The last cart, and pots after it.",
-   "items": [
-    {
-     "kind": "cart",
-     "x": 390.0,
-     "bed": 0.95,
-     "span": 2.232,
-     "visuals": [
-      {
-       "piece": "bullock_cart",
-       "x": 391.8,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 3.6,
-       "h": 1.635,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 389.2,
-     "length": 4.0,
-     "height": 1.6,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 390.8,
-     "y": 1.55,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 390.8,
-       "y": 1.55,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 391.3,
-     "y": 1.55,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 391.3,
-       "y": 1.55,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 391.8,
-     "y": 1.55,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 391.8,
-       "y": 1.55,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 390.8,
-     "y": 2.9,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 390.8,
-       "y": 2.9,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 391.5,
-     "y": 2.9,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 391.5,
-       "y": 2.9,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 392.2,
-     "y": 2.9,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 392.2,
-       "y": 2.9,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 399.0,
-     "mirror": false,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 399.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 398.175,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 397.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 397.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 398.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 398.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 399.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 399.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 399.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 399.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 400.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 400.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 403.459,
-     "piece": "husk",
-     "z": -1.305,
-     "w": 0.257,
-     "turn": -12.2,
-     "visuals": [
-      {
-       "piece": "husk",
-       "x": 403.459,
-       "y": 0.0,
-       "z": -1.305,
-       "w": 0.257,
-       "h": 0.183,
-       "mirror": false,
-       "flat": false,
-       "turn": -12.2,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 388.019,
-     "piece": "leaf_2",
-     "z": 0.164,
-     "w": 0.133,
-     "turn": 7.7,
-     "visuals": [
-      {
-       "piece": "leaf_2",
-       "x": 388.019,
-       "y": 0.0,
-       "z": 0.164,
-       "w": 0.133,
-       "h": 0.337,
-       "mirror": false,
-       "flat": true,
-       "turn": 7.7,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "DogDungPots",
-   "x": 408.0,
-   "length": 24.0,
-   "note": "Dog, dung, pots.",
-   "items": [
-    {
-     "kind": "dog",
-     "x": 413.5,
-     "top": 0.36,
-     "span": 0.9,
-     "visuals": [
-      {
-       "piece": "dog_sleeping",
-       "x": 413.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.95,
-       "h": 0.541,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 412.45,
-     "length": 2.1,
-     "height": 0.78,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 412.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 412.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 412.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 412.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 413.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 413.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 414.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 414.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 414.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 414.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "dung",
-     "x": 420.5,
-     "top": 0.2,
-     "span": 0.55,
-     "visuals": [
-      {
-       "piece": "dung",
-       "x": 420.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.6,
-       "h": 0.252,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 419.625,
-     "length": 1.75,
-     "height": 0.51,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 419.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 419.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 419.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 419.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 420.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 420.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 421.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 421.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 421.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 421.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 427.0,
-     "mirror": true,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 427.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 426.175,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 425.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 425.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 426.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 426.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 427.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 427.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 427.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 427.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 428.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 428.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 428.341,
+     "x": 276.852,
      "piece": "tuft_2",
      "z": -1.107,
      "w": 0.247,
@@ -6934,7 +7198,7 @@
      "visuals": [
       {
        "piece": "tuft_2",
-       "x": 428.341,
+       "x": 276.852,
        "y": 0.0,
        "z": -1.107,
        "w": 0.247,
@@ -6948,7 +7212,7 @@
     },
     {
      "kind": "decal",
-     "x": 426.353,
+     "x": 275.815,
      "piece": "hen_prints",
      "z": 1.552,
      "w": 0.861,
@@ -6956,7 +7220,7 @@
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 426.353,
+       "x": 275.815,
        "y": 0.0,
        "z": 1.552,
        "w": 0.861,
@@ -6971,38 +7235,19 @@
    ]
   },
   {
-   "name": "FinalChilli",
-   "x": 432.0,
-   "length": 18.0,
-   "note": "The last chilli.",
+   "name": "OpenLane",
+   "x": 279.0,
+   "length": 21.0,
+   "note": "The lane opens out: if he is still ahead, he gets away at 290 m.",
    "items": [
     {
-     "kind": "chilli",
-     "x": 433.5,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Chilli",
-       "x": 433.5,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.3,
-       "h": 0.3,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
      "kind": "mango",
-     "x": 436.0,
+     "x": 280.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 436.0,
+       "x": 280.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7016,12 +7261,12 @@
     },
     {
      "kind": "mango",
-     "x": 437.1,
+     "x": 281.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 437.1,
+       "x": 281.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7035,12 +7280,12 @@
     },
     {
      "kind": "mango",
-     "x": 438.2,
+     "x": 282.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 438.2,
+       "x": 282.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7054,12 +7299,12 @@
     },
     {
      "kind": "mango",
-     "x": 439.3,
+     "x": 283.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 439.3,
+       "x": 283.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7073,12 +7318,12 @@
     },
     {
      "kind": "mango",
-     "x": 440.4,
+     "x": 284.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 440.4,
+       "x": 284.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7092,12 +7337,12 @@
     },
     {
      "kind": "mango",
-     "x": 441.5,
+     "x": 285.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 441.5,
+       "x": 285.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7111,12 +7356,12 @@
     },
     {
      "kind": "mango",
-     "x": 442.6,
+     "x": 286.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 442.6,
+       "x": 286.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7130,12 +7375,12 @@
     },
     {
      "kind": "mango",
-     "x": 443.7,
+     "x": 287.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 443.7,
+       "x": 287.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7149,12 +7394,31 @@
     },
     {
      "kind": "mango",
-     "x": 444.8,
+     "x": 288.0,
      "y": 0.6,
      "visuals": [
       {
        "piece": "Mango",
-       "x": 444.8,
+       "x": 288.0,
+       "y": 0.6,
+       "z": 0.0,
+       "w": 0.28,
+       "h": 0.28,
+       "mirror": false,
+       "flat": false,
+       "turn": 0.0,
+       "kind": "pickup"
+      }
+     ]
+    },
+    {
+     "kind": "mango",
+     "x": 289.0,
+     "y": 0.6,
+     "visuals": [
+      {
+       "piece": "Mango",
+       "x": 289.0,
        "y": 0.6,
        "z": 0.0,
        "w": 0.28,
@@ -7168,7 +7432,7 @@
     },
     {
      "kind": "decal",
-     "x": 446.69,
+     "x": 296.194,
      "piece": "twigs",
      "z": 0.326,
      "w": 0.523,
@@ -7176,7 +7440,7 @@
      "visuals": [
       {
        "piece": "twigs",
-       "x": 446.69,
+       "x": 296.194,
        "y": 0.0,
        "z": 0.326,
        "w": 0.523,
@@ -7190,7 +7454,7 @@
     },
     {
      "kind": "decal",
-     "x": 447.978,
+     "x": 297.71,
      "piece": "hen_prints",
      "z": -1.498,
      "w": 1.024,
@@ -7198,7 +7462,7 @@
      "visuals": [
       {
        "piece": "hen_prints",
-       "x": 447.978,
+       "x": 297.71,
        "y": 0.0,
        "z": -1.498,
        "w": 1.024,
@@ -7212,7 +7476,7 @@
     },
     {
      "kind": "decal",
-     "x": 435.529,
+     "x": 283.063,
      "piece": "twigs",
      "z": -0.216,
      "w": 0.39,
@@ -7220,7 +7484,7 @@
      "visuals": [
       {
        "piece": "twigs",
-       "x": 435.529,
+       "x": 283.063,
        "y": 0.0,
        "z": -0.216,
        "w": 0.39,
@@ -7228,767 +7492,6 @@
        "mirror": false,
        "flat": true,
        "turn": 310.4,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "PuddlePots",
-   "x": 450.0,
-   "length": 22.0,
-   "note": "The puddle and two pots: the last test.",
-   "items": [
-    {
-     "kind": "puddle",
-     "x": 456.0,
-     "width": 1.6,
-     "top": 0.15,
-     "span": 1.6,
-     "visuals": [
-      {
-       "piece": "puddle_water",
-       "x": 456.0,
-       "y": 0.004,
-       "z": 0.0,
-       "w": 1.84,
-       "h": 1.035,
-       "mirror": false,
-       "flat": true,
-       "turn": 0.0,
-       "kind": "decal"
-      },
-      {
-       "piece": "hand_pump",
-       "x": 455.52,
-       "y": 0.0,
-       "z": 1.35,
-       "w": 1.304,
-       "h": 1.2,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 454.6,
-     "length": 2.8,
-     "height": 0.64,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 454.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 454.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 455.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 455.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 456.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 456.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 456.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 456.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 457.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 457.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 463.5,
-     "mirror": true,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 463.5,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": true,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 462.675,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 462.267,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 462.267,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 462.883,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 462.883,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 463.5,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 463.5,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 464.117,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 464.117,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 464.733,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 464.733,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "pots",
-     "x": 470.0,
-     "mirror": false,
-     "hidden": false,
-     "id": "",
-     "top": 0.6,
-     "span": 0.45,
-     "visuals": [
-      {
-       "piece": "pot_stack",
-       "x": 470.0,
-       "y": 0.0,
-       "z": 0.05,
-       "w": 0.47,
-       "h": 0.68,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
-     "kind": "hop",
-     "x": 469.175,
-     "length": 1.65,
-     "height": 0.93,
-     "visuals": []
-    },
-    {
-     "kind": "mango",
-     "x": 468.767,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 468.767,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 469.383,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 469.383,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 470.0,
-     "y": 1.95,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 470.0,
-       "y": 1.95,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 470.617,
-     "y": 1.794,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 470.617,
-       "y": 1.794,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 471.233,
-     "y": 1.328,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 471.233,
-       "y": 1.328,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 460.02,
-     "piece": "hen_prints",
-     "z": -0.334,
-     "w": 0.819,
-     "turn": 174.9,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 460.02,
-       "y": 0.0,
-       "z": -0.334,
-       "w": 0.819,
-       "h": 0.205,
-       "mirror": false,
-       "flat": true,
-       "turn": 174.9,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 467.154,
-     "piece": "tuft_3",
-     "z": 1.384,
-     "w": 0.171,
-     "turn": -11.0,
-     "visuals": [
-      {
-       "piece": "tuft_3",
-       "x": 467.154,
-       "y": 0.0,
-       "z": 1.384,
-       "w": 0.171,
-       "h": 0.209,
-       "mirror": false,
-       "flat": false,
-       "turn": -11.0,
-       "kind": "decal"
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "name": "OpenLane",
-   "x": 472.0,
-   "length": 34.0,
-   "note": "The lane opens out: if he is still ahead, he gets away at 500 m.",
-   "items": [
-    {
-     "kind": "mango",
-     "x": 474.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 474.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 475.4,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 475.4,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 476.8,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 476.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 478.2,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 478.2,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 479.6,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 479.6,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 481.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 481.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 482.4,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 482.4,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 483.8,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 483.8,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 485.2,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 485.2,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 486.6,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 486.6,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 488.0,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 488.0,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "mango",
-     "x": 489.4,
-     "y": 0.6,
-     "visuals": [
-      {
-       "piece": "Mango",
-       "x": 489.4,
-       "y": 0.6,
-       "z": 0.0,
-       "w": 0.28,
-       "h": 0.28,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "pickup"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 491.642,
-     "piece": "twigs",
-     "z": 0.299,
-     "w": 0.423,
-     "turn": 298.4,
-     "visuals": [
-      {
-       "piece": "twigs",
-       "x": 491.642,
-       "y": 0.0,
-       "z": 0.299,
-       "w": 0.423,
-       "h": 0.281,
-       "mirror": false,
-       "flat": true,
-       "turn": 298.4,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 475.445,
-     "piece": "twigs",
-     "z": -0.045,
-     "w": 0.466,
-     "turn": 180.3,
-     "visuals": [
-      {
-       "piece": "twigs",
-       "x": 475.445,
-       "y": 0.0,
-       "z": -0.045,
-       "w": 0.466,
-       "h": 0.309,
-       "mirror": false,
-       "flat": true,
-       "turn": 180.3,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 504.066,
-     "piece": "hen_prints",
-     "z": 0.681,
-     "w": 0.942,
-     "turn": 326.5,
-     "visuals": [
-      {
-       "piece": "hen_prints",
-       "x": 504.066,
-       "y": 0.0,
-       "z": 0.681,
-       "w": 0.942,
-       "h": 0.235,
-       "mirror": false,
-       "flat": true,
-       "turn": 326.5,
-       "kind": "decal"
-      }
-     ]
-    },
-    {
-     "kind": "decal",
-     "x": 474.091,
-     "piece": "tuft_2",
-     "z": -1.371,
-     "w": 0.237,
-     "turn": -7.3,
-     "visuals": [
-      {
-       "piece": "tuft_2",
-       "x": 474.091,
-       "y": 0.0,
-       "z": -1.371,
-       "w": 0.237,
-       "h": 0.265,
-       "mirror": false,
-       "flat": false,
-       "turn": -7.3,
        "kind": "decal"
       }
      ]

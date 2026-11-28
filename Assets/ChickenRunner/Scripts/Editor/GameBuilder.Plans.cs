@@ -141,6 +141,11 @@ namespace ChickenRunner.EditorTools
                     case "cot": kit.Cot(x); break;
                     case "mangotree": kit.MangoTree(x); break;
                     case "hens": kit.Hens(x, Mathf.Max(1, item.count)); break;
+                    case "goats": kit.Goats(x, Mathf.Max(1, item.count)); break;
+                    case "ducks": kit.Ducks(x, Mathf.Max(1, item.count)); break;
+                    case "sand": kit.SandHeap(x); break;
+                    case "lowbranch": kit.LowBranch(x, item.mirror); break;
+                    case "sacks": kit.Sacks(x); break;
                     case "buffalo":
                     {
                         float end = kit.Buffalo(x);

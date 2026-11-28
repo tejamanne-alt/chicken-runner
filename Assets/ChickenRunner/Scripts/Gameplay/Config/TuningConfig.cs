@@ -12,6 +12,12 @@ namespace ChickenRunner
     {
         [SerializeField, Range(1, 3)] internal int zone = 1;
         [SerializeField] internal ChaseTuning values = ChaseTuning.ForZone(1);
+        [Tooltip("The ChaseTuning.DesignVersion these values were set from; Build Game resets an older one.")]
+        // 0, not the current version: a config saved before this field existed reads it as 0, so it counts as outdated.
+        [SerializeField] internal int designVersion;
+
+        /// <summary>Whether these values predate the current design (ChaseTuning.DesignVersion) and need resetting.</summary>
+        public bool IsOutdated => designVersion < ChaseTuning.DesignVersion;
 
         public int Zone => zone;
         public ChaseTuning Values => values ??= ChaseTuning.ForZone(zone);
@@ -24,6 +30,7 @@ namespace ChickenRunner
         {
             if (values == null) values = ChaseTuning.ForZone(zone);
             else values.CopyFrom(ChaseTuning.ForZone(zone));
+            designVersion = ChaseTuning.DesignVersion;
         }
 
         void Reset() => ResetToDesignValues();

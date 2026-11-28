@@ -23,28 +23,28 @@ namespace ChickenRunner.Tests
         public void CleanRunIsTheZoneSpeed()
         {
             var model = new KidSpeedModel(ChaseTuning.ForZone(1));
-            Assert.That(DistanceOver(model, 2f), Is.EqualTo(12f).Within(0.05f));
+            Assert.That(DistanceOver(model, 2f), Is.EqualTo(7f).Within(0.05f));
         }
 
         [Test]
-        public void AStumbleCostsTwoToThreeMetres()
+        public void AStumbleCostsAThirdToHalfASecond()
         {
             var t = ChaseTuning.ForZone(1);
             var model = new KidSpeedModel(t);
             model.ApplyStumble();
             float lost = 2f * t.kidRunSpeed - DistanceOver(model, 2f);
-            Assert.That(lost, Is.InRange(2f, 3f));
+            Assert.That(lost / t.kidRunSpeed, Is.InRange(TuningReport.MinStumbleSeconds, TuningReport.MaxStumbleSeconds));
             Assert.That(lost, Is.EqualTo(KidSpeedModel.DistanceLost(t.kidRunSpeed, t.stumbleSpeedFactor, t.stumbleDuration)).Within(0.05f));
         }
 
         [Test]
-        public void AChilliGainsAboutFiveMetres()
+        public void AChilliGainsAboutEightTenthsOfASecond()
         {
             var t = ChaseTuning.ForZone(1);
             var model = new KidSpeedModel(t);
             model.StartBoost();
             float gained = DistanceOver(model, 3f) - 3f * t.kidRunSpeed;
-            Assert.That(gained, Is.InRange(4f, 5.5f));
+            Assert.That(gained / t.kidRunSpeed, Is.InRange(TuningReport.MinChilliSeconds, TuningReport.MaxChilliSeconds));
         }
 
         [Test]

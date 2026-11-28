@@ -144,10 +144,18 @@ namespace ChickenRunner.EditorTools
         {
             string path = ConfigFolder + "/Tuning_Zone" + zone + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<TuningConfig>(path);
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                if (existing.IsOutdated)
+                {
+                    existing.ResetToDesignValues();   // the design moved on (ChaseTuning.DesignVersion)
+                    EditorUtility.SetDirty(existing);
+                }
+                return existing;
+            }
             var config = ScriptableObject.CreateInstance<TuningConfig>();
             config.zone = zone;
-            config.values = ChaseTuning.ForZone(zone);
+            config.ResetToDesignValues();
             AssetDatabase.CreateAsset(config, path);
             return config;
         }

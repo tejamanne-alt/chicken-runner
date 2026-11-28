@@ -60,7 +60,7 @@ namespace ChickenRunner
         [Tooltip("How fast the basket drops back when the hold is let go, per second.")]
         [SerializeField] internal float dropRate = 2.5f;
         [Tooltip("The rooster's average speed as he bursts out to his head start, m/s (he peaks at about 1.4 times this).")]
-        [SerializeField] internal float burstSpeed = 8f;
+        [SerializeField] internal float burstSpeed = 4.5f;
 
         enum IntroPhase { Walk, Hold, Burst }
 

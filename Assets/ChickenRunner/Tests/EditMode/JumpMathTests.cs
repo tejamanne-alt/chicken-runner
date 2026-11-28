@@ -14,15 +14,16 @@ namespace ChickenRunner.Tests
             float g = JumpMath.Gravity(t);
             float v = JumpMath.JumpVelocity(t);
             Assert.That(v * v / (2f * g), Is.EqualTo(1.4f).Within(1e-3f), "apex height");
-            Assert.That(JumpMath.JumpLengthAt(t, 6f), Is.EqualTo(3.7f).Within(1e-3f), "length at zone 1 speed");
+            Assert.That(JumpMath.JumpLengthAt(t, 3.5f), Is.EqualTo(2.158f).Within(1e-3f), "length at the run speed");
         }
 
         [Test]
-        public void JumpGetsLongerAtFasterZoneSpeeds()
+        public void JumpGetsLongerAtFasterSpeeds()
         {
+            // a chilli's boost or a slower stumble: the same time in the air, more or less ground under it
             var t = Zone1;
-            Assert.That(JumpMath.JumpLengthAt(t, 7f), Is.EqualTo(3.7f * 7f / 6f).Within(1e-3f));
-            Assert.That(JumpMath.JumpLengthAt(t, 8f), Is.GreaterThan(JumpMath.JumpLengthAt(t, 7f)));
+            Assert.That(JumpMath.JumpLengthAt(t, 4.725f), Is.EqualTo(2.158f * 4.725f / 3.5f).Within(1e-3f));
+            Assert.That(JumpMath.JumpLengthAt(t, 4.725f), Is.GreaterThan(JumpMath.JumpLengthAt(t, 3.5f)));
         }
 
         [Test]

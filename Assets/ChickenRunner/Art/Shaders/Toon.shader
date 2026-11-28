@@ -4,6 +4,8 @@
 // the characters sit with the painted cards. Works on skinned meshes.
 // Leaf cards (the scenery models' M_<name>_Leaves): _Cutoff > 0 cuts the texture out by its alpha, _Cull 0 draws both
 // sides (their normals point out of the crown, so both sides light alike), and _OutlineWidth 0 (cards have no hull).
+// The outline pass draws nothing at width 0 and cuts out by alpha like the toon pass: otherwise it drew every card
+// whose back faced the camera (a tuft's turned cards, a crown's leaves) as a solid ink square, with no cut-out.
 Shader "ChickenRunner/Toon"
 {
     Properties
@@ -34,18 +36,31 @@ Shader "ChickenRunner/Toon"
             #pragma vertex vert
             #pragma fragment frag
             #include "UnityCG.cginc"
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
             fixed4 _OutlineColor;
             float _OutlineWidth;
             fixed4 _HazeColor;
             float _Haze;
-            struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; };
-            float4 vert (appdata v) : SV_POSITION
+            float _Cutoff;
+            struct appdata { float4 vertex : POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD0; };
+            struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
+            v2f vert (appdata v)
             {
+                v2f o;
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                // No outline (leaf cards): every vertex outside the clip volume on the same side, so nothing is drawn.
+                if (_OutlineWidth <= 0) { o.pos = float4(2, 2, 2, 1); return o; }
                 float3 world = mul(unity_ObjectToWorld, v.vertex).xyz;
                 float3 n = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
-                return UnityWorldToClipPos(world + n * _OutlineWidth);
+                o.pos = UnityWorldToClipPos(world + n * _OutlineWidth);
+                return o;
             }
-            fixed4 frag () : SV_Target { return fixed4(lerp(_OutlineColor.rgb, _HazeColor.rgb, _Haze), 1); }
+            fixed4 frag (v2f i) : SV_Target
+            {
+                if (_Cutoff > 0) clip(tex2D(_MainTex, i.uv).a - _Cutoff);
+                return fixed4(lerp(_OutlineColor.rgb, _HazeColor.rgb, _Haze), 1);
+            }
             ENDCG
         }
 

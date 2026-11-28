@@ -237,11 +237,12 @@ class Plan:
         self.jump_arc(s, x)
 
     def dog(self, s, x):
-        self.add(s, "dog", x, [visual("dog_sleeping", x, z=0.05, w=0.95)], top=0.36, span=0.9)
+        # its curled body (the painting's 0.95 m takes in the tail and paws): what a held jump must clear at 3.5 m/s
+        self.add(s, "dog", x, [visual("dog_sleeping", x, z=0.05, w=0.95)], top=0.36, span=0.75)
         self.hop_over(s, x, 0.9, 0.36)
         self.jump_arc(s, x)
 
-    def puddle(self, s, x, width=1.6):
+    def puddle(self, s, x, width=0.9):
         self.add(s, "puddle", x, [visual("puddle_water", x, 0.004, 0.0, w=width * 1.15, flat=True, kind="decal"),
                                   visual("hand_pump", x - width * 0.3, z=1.35, h=1.2)],
                  width=width, top=0.15, span=width)
@@ -249,33 +250,71 @@ class Plan:
         self.jump_arc(s, x)
 
     def cart(self, s, x):
-        self.add(s, "cart", x, [visual("bullock_cart", x + 1.8, z=0.05, w=3.6)], bed=0.95, span=3.6 * 0.62)
-        self.hop(s, x - 0.8, 4.0, 1.6)
-        self.mango_line(s, x + 0.8, 3, 0.5, 1.55)      # on the bed, clear of the cart's front rail
-        self.mango_line(s, x + 0.8, 3, 0.7, 2.9)
+        raise ValueError("no bullock carts parked across the road: a village street keeps its carts at the side "
+                         "(use sacks() for something to hop onto)")
+
+    def sacks(self, s, x):
+        """Kit.Sacks: sacks of paddy stacked at the roadside for the cart, 1.15 m long and 0.8 m high from x: a platform
+        to hop onto (or over), as the cart's bed was."""
+        self.add(s, "sacks", x, [visual("jute_sacks", x + 0.575, z=0.05, h=0.8)], bed=0.8, span=1.035)
+        self.hop(s, x - 0.7, 2.6, 1.3)
+        self.mango_line(s, x + 0.25, 2, 0.5, 1.35)     # on top of the sacks
+        return x + 1.15
 
     def tank(self, s, x, y=ROOF):
         """Kit.Tank: the black water tank on its stand, on a roof at y: jump it."""
-        self.add(s, "tank", x, [visual("black_tank", x, y, z=0.05, h=0.75)], y=y, top=0.7, span=0.55)
+        self.add(s, "tank", x, [visual("black_tank", x, y, z=0.05, h=0.75)], y=y, top=0.65, span=0.45)
         self.hop_over(s, x, 0.55, 0.7)
         self.jump_arc(s, x, y)
 
     def hens_basket(self, s, x, hidden=False, ident=""):
         """Kit.HensBasket: the hens' basket on the lane, jumped like a pot stack (or knocked into the lane)."""
-        self.add(s, "hensbasket", x, [visual("hens_basket", x, z=0.05, h=0.6)], hidden=hidden, id=ident, top=0.55,
+        self.add(s, "hensbasket", x, [visual("hens_basket", x, z=0.05, h=0.6)], hidden=hidden, id=ident, top=0.5,
                  span=0.6)
         if not hidden:
             self.hop_over(s, x, 0.6, 0.55)
             self.jump_arc(s, x)
 
     def clothesline(self, s, x, mirror=None):
-        """Kit.Clothesline: sarees from 1.6 m down to 0.7 m across 1.7 m of lane: slide under, or double jump over."""
+        raise ValueError("no washing lines strung across the road: use low_branch() for something to slide under")
+
+    def low_branch(self, s, x, mirror=None):
+        """Kit.LowBranch: a roadside neem's limb across the street, its leaves hanging from 1.6 m down to 0.75 m over
+        1.1 m of the lane (roadside_models.py): slide under, or double jump over. The trunk stands behind the road."""
         if mirror is None:
             mirror = self.rng.random() < 0.5
-        self.add(s, "clothesline", x, [{"piece": "clothesline_line", "x": round(x, 3), "y": 0.0, "z": 0.05, "w": 2.3,
-                                        "h": 1.85, "mirror": mirror, "flat": False, "turn": 0, "kind": "model"}], mirror=mirror,
-                 bottom=0.7, top=1.6, span=1.7)
-        self.mango_line(s, x - 1.2, 4, 0.8, 0.3)      # low mangoes: the slide's line
+        self.add(s, "lowbranch", x, [{"piece": "low_branch", "x": round(x, 3), "y": 0.0, "z": 0.0, "w": 3.4,
+                                      "h": 4.4, "mirror": mirror, "flat": False, "turn": 0, "kind": "model"}], mirror=mirror,
+                 bottom=0.75, top=1.6, span=1.1)
+        self.mango_line(s, x - 0.9, 3, 0.7, 0.3)      # low mangoes: the slide's line
+
+    def goats(self, s, x, count=1):
+        """Kit.Goats: one or two goat kids wandering across the street, 0.55 m high: jump them (or bump into them)."""
+        spacing = 0.34
+        width = 0.1 + count * spacing
+        vis = [visual("goat_kid", x - width / 2 + 0.05 + spacing / 2 + i * spacing, 0.0, 0.05 + 0.08 * i, h=0.55)
+               for i in range(count)]
+        self.add(s, "goats", x, vis, count=count, top=0.45, span=round(width, 3))
+        self.hop_over(s, x, width, 0.55)
+        self.jump_arc(s, x)
+
+    def ducks(self, s, x, count=2):
+        """Kit.Ducks: ducks waddling across the bund road between the canals, 0.5 m high: jump them (or scatter them)."""
+        spacing = 0.28
+        width = 0.1 + count * spacing
+        vis = [visual(f"duck_{1 + i % 2}", x - width / 2 + 0.05 + spacing / 2 + i * spacing, 0.0, 0.05 + 0.08 * i, h=0.5)
+               for i in range(count)]
+        self.add(s, "ducks", x, vis, count=count, top=0.4, span=round(width, 3))
+        self.hop_over(s, x, width, 0.45)
+        self.jump_arc(s, x)
+
+    def sand(self, s, x):
+        """Kit.SandHeap: a heap of river sand tipped at the road's edge for a house being built (roadside_models.py),
+        1.24 m across and 0.45 m high: jump it (or flounder into it)."""
+        self.add(s, "sand", x, [{"piece": "sand_heap", "x": round(x, 3), "y": 0.0, "z": 0.05, "w": 1.24, "h": 0.45,
+                                 "mirror": False, "flat": False, "turn": 0, "kind": "model"}], top=0.4, span=0.7)
+        self.hop_over(s, x, 1.0, 0.45)
+        self.jump_arc(s, x)
 
     def canal(self, s, x, width, bridge=False):
         """Kit.Canal: a canal across the lane from x, `width` wide: jump it, wade it, or (with a bridge) cross the
@@ -377,10 +416,13 @@ class Plan:
         return x + w
 
     def hens(self, s, x, count):
-        """Kit.Hens: a flock of `count` hens across the lane, jumped like a pot stack (or scattered: a stumble)."""
-        width = 0.3 + count * 0.36
-        vis = [visual(f"hen_{1 + i % 3}", x - width / 2 + 0.3 + i * 0.36, 0.0, 0.05 + 0.02 * i, h=0.42) for i in range(count)]
-        self.add(s, "hens", x, vis, count=count, top=0.45, span=round(width, 3))
+        """Kit.Hens: one or two hens pecking across the lane, jumped like a pot stack (or scattered: a stumble). Three
+        abreast is more than a small child clears in one jump."""
+        spacing = 0.3
+        width = 0.1 + count * spacing
+        vis = [visual(f"hen_{1 + i % 3}", x - width / 2 + 0.05 + spacing / 2 + i * spacing, 0.0, 0.05 + 0.08 * i, h=0.42)
+               for i in range(count)]
+        self.add(s, "hens", x, vis, count=count, top=0.4, span=round(width, 3))
         self.hop_over(s, x, width, 0.45)
         self.jump_arc(s, x)
 
@@ -493,7 +535,7 @@ class Plan:
         for _, it in self.items():
             if it["kind"] == "roofs":
                 out.append((it["x"], it["end"], ROOF))
-            elif it["kind"] == "cart":
+            elif it["kind"] in ("cart", "sacks"):
                 out.append((it["x"], it["x"] + it["span"], it["bed"]))
             elif it["kind"] == "haystack":
                 c = it["x"] + it["width"] / 2
@@ -548,10 +590,11 @@ def challenges(p):
     for s, it in p.items():
         k = it["kind"]
         base = it.get("y", 0.0) if k in ("pots", "tank") else 0.0
-        if k in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "clothesline", "hens"):
+        if k in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "clothesline", "hens", "goats", "ducks", "sand",
+                 "lowbranch"):
             # a hidden one (the rooster's mischief) counts too: it can be there when the kid arrives
             out.append((it["x"] - it["span"] / 2, it["x"] + it["span"] / 2, base, k, s["name"], it))
-        elif k == "cart":
+        elif k in ("cart", "sacks"):
             out.append((it["x"], it["x"] + it["span"], 0.0, k, s["name"], it))
         elif k == "canal":
             out.append((it["x"], it["x"] + it["width"], 0.0, "bridge" if it["bridge"] else "canal", s["name"], it))
@@ -606,7 +649,7 @@ def audit(p, course_length, require_feathers=True):
     rows = []
     for x0, x1, base, kind, name, it in challenges(p):
         span, info, latest, land = x1 - x0, "", x0, x1
-        if kind in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "hens"):
+        if kind in ("pots", "dung", "dog", "puddle", "tank", "hensbasket", "hens", "goats", "ducks", "sand"):
             held = r.takeoff_window(span, it["top"], r.HELD)
             tap = r.takeoff_window(span, it["top"], r.TAP)
             if held is None or (held[1] - held[0]) / r.RUN < 0.2:
@@ -615,13 +658,13 @@ def audit(p, course_length, require_feathers=True):
             info = (f"held window {(held[1] - held[0]) / r.RUN * 1000:.0f} ms"
                     + (f", tap {(tap[1] - tap[0]) / r.RUN * 1000:.0f} ms" if tap else ", a tap cannot clear it"))
             latest, land = x0 + held[1], x0 + held[1] + r.JUMP_LEN
-        elif kind == "clothesline":
+        elif kind in ("clothesline", "lowbranch"):
             if SLIDE_HEIGHT >= it["bottom"] - 0.05:
-                problems.append(f"clothesline at {x0:.1f}: the slide ({SLIDE_HEIGHT} m) does not fit under it")
+                problems.append(f"{kind} at {x0:.1f}: the slide ({SLIDE_HEIGHT} m) does not fit under it")
             dbl = r.takeoff_window(span, it["top"], r.DOUBLE)
             slide_len = r.RUN * T["slideDuration"]
-            if slide_len < span + 2 * KID_R + 0.6:
-                problems.append(f"clothesline at {x0:.1f}: a slide ({slide_len:.1f} m) barely spans it")
+            if slide_len < span + 2 * KID_R + 0.6 * r.RUN / 6.0:
+                problems.append(f"{kind} at {x0:.1f}: a slide ({slide_len:.1f} m) barely spans it")
             info = (f"slide window {(slide_len - span - 2 * KID_R) / r.RUN * 1000:.0f} ms"
                     + (f", double jump over {(dbl[1] - dbl[0]) / r.RUN * 1000:.0f} ms" if dbl else ", no double jump over"))
             latest, land = x0 - KID_R, x1 + KID_R
@@ -648,8 +691,8 @@ def audit(p, course_length, require_feathers=True):
                 latest = x0 + best[1]
                 path = r.HELD if best is held else r.DOUBLE
                 land = latest + r.length(path)
-        elif kind == "cart":
-            info = "jump onto the bed and run off the end"
+        elif kind in ("cart", "sacks"):
+            info = "hop onto the sacks and run off the end" if kind == "sacks" else "jump onto the bed and run off the end"
             land = x1
         elif kind == "haystack":
             reach = T["jumpHeight"] if not it["big"] else T["doubleJumpTotalHeight"]
@@ -739,28 +782,32 @@ def audit(p, course_length, require_feathers=True):
     rows.sort(key=lambda row: (row[0], row[1]))
 
     # ---- consecutive challenges: after one at the latest moment, room to react and still clear the next
-    no_input = ("ladder", "drop", "cart", "bridge", "cot", "branch", "awnings", "steps")
+    no_input = ("ladder", "drop", "cart", "sacks", "bridge", "cot", "branch", "awnings", "steps")
+    # things close together: under 0.7 s of running apart (4.5 m at the old 6 m/s)
+    close = 0.7 * r.RUN
     for a, b in zip(rows, rows[1:]):
         slack = b[6] - a[7] - (0.0 if b[3] in no_input else r.REACT)
         if slack < 0.5:
             problems.append(f"{a[3]} at {a[0]:.1f} then {b[3]} at {b[0]:.1f}: {slack:.2f} m to react after the landing")
         # (a step onto a branch, the awnings or the steps is meant to be close: they are routes, not obstacles)
-        if (b[0] - a[1] < 4.5 and a[3] not in ("ladder", "drop", "roofgap", "branch", "awnings", "steps", "cot")
-                and b[3] not in ("cart", "ladder", "drop", "roofgap", "branch", "awnings", "steps", "cot") and a[2] == b[2]):
+        if (b[0] - a[1] < close and a[3] not in ("ladder", "drop", "roofgap", "branch", "awnings", "steps", "cot")
+                and b[3] not in ("cart", "sacks", "ladder", "drop", "roofgap", "branch", "awnings", "steps", "cot")
+                and a[2] == b[2]):
             problems.append(f"{a[3]} at {a[0]:.1f} and {b[3]} at {b[0]:.1f} only {b[0] - a[1]:.1f} m apart")
 
     # ---- the rooster's route: a hop over everything in the lane, high enough, starting before it
     for x0, x1, base, kind, name, it, *_ in rows:
-        if kind in ("bridge", "ladder", "roofgap", "drop", "clothesline", "cot", "branch", "awnings", "steps") or it.get("hidden"):
-            continue                          # he runs under a clothesline; a knocked-in obstacle lands behind him
+        if (kind in ("bridge", "ladder", "roofgap", "drop", "clothesline", "lowbranch", "cot", "branch", "awnings", "steps")
+                or it.get("hidden")):
+            continue                          # he runs under a low branch; a knocked-in obstacle lands behind him
         need = base + (it.get("top", 0.0) if kind not in ("canal",) else 0.0)
-        margin = {"cart": -0.2, "canal": 0.2, "haystack": 0.1}.get(kind, 0.15)
+        margin = {"cart": -0.2, "sacks": -0.2, "canal": 0.2, "haystack": 0.1}.get(kind, 0.15)
         h = next((hp for hp in hops if hp[0] <= x0 - 0.2 and hp[1] >= x1 + 0.1), None)
         if h is None:
             problems.append(f"{kind} at {x0:.1f}: no rooster hop over it")
             continue
         lowest = min(p.rooster_y(h, x) for x in (x0, (x0 + x1) / 2, x1))
-        if kind == "cart":
+        if kind in ("cart", "sacks"):
             need = it["bed"]
         if lowest < need + margin:
             problems.append(f"{kind} at {x0:.1f}: the rooster's hop is only {lowest:.2f} m up over it (needs {need + margin:.2f})")
@@ -819,7 +866,8 @@ def audit(p, course_length, require_feathers=True):
 
 # ------------------------------------------------------------------ writing it out
 NAMES = {"pots": "pot stack", "dung": "cow dung", "dog": "sleeping dog", "puddle": "hand-pump puddle",
-         "cart": "bullock cart", "tank": "water tank", "hensbasket": "hens' basket", "clothesline": "clothesline"}
+         "cart": "bullock cart", "tank": "water tank", "hensbasket": "hens' basket", "clothesline": "clothesline",
+         "sacks": "sacks of paddy", "sand": "heap of building sand", "lowbranch": "low neem branch"}
 
 
 def describe(s):
@@ -847,6 +895,10 @@ def describe(s):
             out.append(f"stall {it['x']:g}")
         elif k == "hens":
             out.append(f"{it['count']} hens {it['x']:g}")
+        elif k == "goats":
+            out.append(f"{it['count']} goat kid{'s' if it['count'] > 1 else ''} {it['x']:g}")
+        elif k == "ducks":
+            out.append(f"{it['count']} ducks {it['x']:g}")
         elif k == "steps":
             out.append(f"temple steps {it['x']:g} to {it['end']:.1f}")
         elif k == "chilli":

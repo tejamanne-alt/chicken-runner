@@ -9,8 +9,8 @@ namespace ChickenRunner.Tests
 
         [TestCase(0.8f, ChaseOutcome.Caught)]
         [TestCase(0.81f, ChaseOutcome.Ongoing)]
-        [TestCase(25f, ChaseOutcome.Ongoing)]
-        [TestCase(25.01f, ChaseOutcome.EscapedTooFar)]
+        [TestCase(14f, ChaseOutcome.Ongoing)]
+        [TestCase(14.01f, ChaseOutcome.EscapedTooFar)]
         public void GapDecidesTheGrabAndTheEscape(float gap, ChaseOutcome expected)
         {
             Assert.That(ChaseRules.Evaluate(T, gap, 100f, 500f), Is.EqualTo(expected));

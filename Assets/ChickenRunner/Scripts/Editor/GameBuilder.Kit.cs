@@ -33,7 +33,7 @@ namespace ChickenRunner.EditorTools
 
         sealed class Obstacles
         {
-            public ObstacleDefinition pots, dung, dog, puddle, clothesline, hens, tank;
+            public ObstacleDefinition pots, dung, dog, puddle, clothesline, hens, tank, goats, ducks, sand, branch;
         }
 
         /// <summary>
@@ -222,7 +222,8 @@ namespace ChickenRunner.EditorTools
 
             public void Dog(float x)
             {
-                var obstacle = MakeObstacle("SleepingDog", x, _z.obstacles.dog, 0.9f, 0.36f);
+                // its curled body (the painting's 0.95 m takes in the tail and paws): what a jump at 3.5 m/s must clear
+                var obstacle = MakeObstacle("SleepingDog", x, _z.obstacles.dog, 0.75f, 0.36f);
                 if (Art(obstacle.visual, "dog_sleeping", 0f, 0f, 0.05f, out _, width: 0.95f) == null)
                     Prim(PrimitiveType.Capsule, "Body", obstacle.visual, new Vector3(0f, 0.17f, 0f), new Vector3(0.32f, 0.38f, 0.32f), Palette.Dog)
                         .transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
@@ -315,22 +316,76 @@ namespace ChickenRunner.EditorTools
             }
 
             /// <summary>A flock of hens on the lane: jump them or scatter them.</summary>
-            public void Hens(float x, int count)
+            public void Hens(float x, int count) =>
+                Flock("Hens", x, count, _z.obstacles.hens, new[] { "hen_1", "hen_2", "hen_3" }, 0.42f, 0.3f, 0.4f, Palette.Hen);
+
+            /// <summary>Goat kids wandering across the street (one or two: a jump for her at most 0.9 m long): jump them or
+            /// bump into them.</summary>
+            public void Goats(float x, int count) =>
+                Flock("Goats", x, count, _z.obstacles.goats ?? _z.obstacles.hens, new[] { "goat_kid" }, 0.55f, 0.34f, 0.45f, Palette.Dog);
+
+            /// <summary>Ducks waddling across the bund road from one canal to the next: jump them or scatter them.</summary>
+            public void Ducks(float x, int count) =>
+                Flock("Ducks", x, count, _z.obstacles.ducks ?? _z.obstacles.hens, new[] { "duck_1", "duck_2" }, 0.5f, 0.28f, 0.4f, Palette.Hen);
+
+            /// <summary>Animals across the lane, each a little behind the last: one trigger over all of them.</summary>
+            void Flock(string name, float x, int count, ObstacleDefinition definition, string[] pieces, float height, float spacing,
+                float top, Color fallback)
             {
-                float width = 0.3f + count * 0.36f;
-                var obstacle = MakeObstacle("Hens", x, _z.obstacles.hens, width, 0.45f);
+                float width = 0.1f + count * spacing;
+                var obstacle = MakeObstacle(name, x, definition, width, top);
                 for (int i = 0; i < count; i++)
                 {
-                    string piece = "hen_" + (1 + (i + _random.Next(3)) % 3);
-                    float hx = -width * 0.5f + 0.3f + i * 0.36f;
-                    if (Art(obstacle.visual, piece, hx, 0f, 0.05f + 0.02f * i, out _, height: 0.42f, mirror: _random.NextDouble() < 0.3) == null)
-                        Prim(PrimitiveType.Sphere, "Hen", obstacle.visual, new Vector3(hx, 0.2f, 0f), new Vector3(0.3f, 0.3f, 0.25f), Palette.Hen);
+                    string piece = pieces[(i + _random.Next(pieces.Length)) % pieces.Length];
+                    float hx = -width * 0.5f + 0.05f + spacing * 0.5f + i * spacing;
+                    if (Art(obstacle.visual, piece, hx, 0f, 0.05f + 0.08f * i, out _, height: height, mirror: _random.NextDouble() < 0.3) == null)
+                        Prim(PrimitiveType.Sphere, name, obstacle.visual, new Vector3(hx, height * 0.45f, 0f), new Vector3(0.3f, height * 0.7f, 0.25f), fallback);
                 }
+            }
+
+            /// <summary>A heap of river sand tipped at the road's edge for a house being built (an iron pan and a few
+            /// bricks beside it): jump it, or flounder into it.</summary>
+            public void SandHeap(float x)
+            {
+                var obstacle = MakeObstacle("SandHeap", x, _z.obstacles.sand ?? _z.obstacles.pots, 0.7f, 0.4f);
+                // ArtSource/tools/models/roadside_models.py: 1.24 m across, 0.45 m high
+                var heap = ArtModels.Stand(obstacle.visual, "lane", "sand_heap", new Vector3(0f, 0f, 0.05f), new Vector3(0f, 1f, 0.05f));
+                if (heap != null) foreach (var renderer in heap.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder;
+                else Prim(PrimitiveType.Sphere, "Sand", obstacle.visual, new Vector3(0f, 0.1f, 0f), new Vector3(1.2f, 0.7f, 1.1f), Palette.Hay);
+            }
+
+            /// <summary>A roadside neem's low limb across the street, its leaves hanging from 1.6 m down to 0.75 m: slide
+            /// under, or double jump over. The trunk stands just behind the road.</summary>
+            public void LowBranch(float x, bool? mirror = null)
+            {
+                const float bottom = 0.75f;
+                const float top = 1.6f;
+                var obstacle = MakeObstacle("LowBranch", x, _z.obstacles.branch ?? _z.obstacles.clothesline, 1.1f, top - bottom, bottom);
+                bool flip = mirror ?? _random.NextDouble() < 0.5;
+                // ArtSource/tools/models/roadside_models.py: the limb 1.6 m up, the lowest leaves at 0.78 m
+                var tree = ArtModels.Stand(obstacle.visual, "lane", "low_branch", Vector3.zero, new Vector3(0f, 1f, 0f));
+                if (tree != null)
+                {
+                    if (flip) tree.transform.localScale = new Vector3(-1f, 1f, 1f);
+                    foreach (var renderer in tree.GetComponentsInChildren<Renderer>()) renderer.sortingOrder = LaneOrder;
+                }
+                else Prim(PrimitiveType.Cube, "Leaves", obstacle.visual, new Vector3(0f, (top + bottom) * 0.5f, 0f), new Vector3(1.1f, top - bottom, 0.6f), Palette.Leaf);
+            }
+
+            /// <summary>Sacks of paddy stacked at the roadside for the cart: a platform to hop onto. Starts at x.</summary>
+            public void Sacks(float x)
+            {
+                const float width = 1.15f, height = 0.8f;
+                var card = Art("jute_sacks", x + width * 0.5f, 0.05f, height: height);
+                FrontAt(card, -0.3f);
+                var solid = Box("Sacks", _root, new Vector3(x + width * 0.45f, height * 0.5f, 0f), new Vector3(width * 0.9f, height, 1.0f), _z.prims, true);
+                solid.GetComponent<Renderer>().enabled = card == null;
+                if (card == null) solid.AddComponent<GreyboxColor>().SetColor(Palette.Rope);
             }
 
             public Obstacle HensBasket(float x, bool hiddenUntilMischief = false)
             {
-                var obstacle = MakeObstacle("HensBasket", x, _z.obstacles.hens, 0.6f, 0.55f, 0f, hiddenUntilMischief);
+                var obstacle = MakeObstacle("HensBasket", x, _z.obstacles.hens, 0.6f, 0.5f, 0f, hiddenUntilMischief);
                 if (Art(obstacle.visual, "hens_basket", 0f, 0f, 0.05f, out _, height: 0.6f) == null)
                     Prim(PrimitiveType.Cylinder, "Basket", obstacle.visual, new Vector3(0f, 0.27f, 0f), new Vector3(0.6f, 0.27f, 0.6f), Palette.Rope);
                 return obstacle;
@@ -339,7 +394,7 @@ namespace ChickenRunner.EditorTools
             /// <summary>A water tank on a roof at height <paramref name="y"/>: jump it.</summary>
             public void Tank(float x, float y)
             {
-                var obstacle = MakeObstacle("WaterTank", x, _z.obstacles.tank, 0.55f, 0.7f, 0f, false, y);
+                var obstacle = MakeObstacle("WaterTank", x, _z.obstacles.tank, 0.45f, 0.65f, 0f, false, y);
                 if (Art(obstacle.visual, "black_tank", 0f, 0f, 0.05f, out _, height: 0.75f) == null)
                     Prim(PrimitiveType.Cylinder, "Tank", obstacle.visual, new Vector3(0f, 0.35f, 0f), new Vector3(0.55f, 0.35f, 0.55f), Palette.Ink);
             }

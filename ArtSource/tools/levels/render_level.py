@@ -173,10 +173,10 @@ PICKUP_TILT = {"Mango": 12.0, "Chilli": -30.0, "Feather": 0.0}                  
 KIT_OBSTACLE = {"pots": ("h", 0.68, "pot_stack"), "dung": ("w", 0.6, "dung"), "dog": ("w", 0.95, "dog_sleeping"),
                 "cart": ("w", 3.6, "bullock_cart")}
 OBSTACLES = ("pots", "dung", "dog", "puddle", "cart", "clothesline", "hens", "hens_basket", "tank", "cot", "haystack",
-             "buffalo", "canal", "steps", "stall")
+             "buffalo", "canal", "steps", "stall", "goats", "ducks", "sand", "lowbranch", "sacks")
 NOT_OBSTACLES = ("prop", "decal", "mango", "chilli", "feather", "hop", "mischief", "basket", "neighbour", "ladder", "hole",
                  "roof", "box", "house", "houses", "bridge", "plank")
-STARTS_AT_X = ("cart", "cot", "haystack", "buffalo", "canal", "steps", "stall")     # Kit calls that start at x
+STARTS_AT_X = ("cart", "sacks", "cot", "haystack", "buffalo", "canal", "steps", "stall")     # Kit calls that start at x
 CANAL_BED = cs_number("Editor/GameBuilder.Kit.cs", "CanalBed", -0.28)
 ROAD = {"front": cs_number("Editor/GameBuilder.cs", "RoadFront", -1.25), "back": cs_number("Editor/GameBuilder.cs", "RoadBack", 2.05),
         "tile": cs_number("Editor/GameBuilder.cs", "RoadTile", 4.0), "soft": 0.32, "wave": 0.2,
@@ -452,7 +452,7 @@ class Level:
                 if it.get("implicitHop"):          # the hop a Kit call adds by itself (Canal, RoofRow, Haystack)
                     hx, hl, hh = it["implicitHop"][:3]
                     self.hops.append((hx, hx + hl, hh))
-                if k == "cart":
+                if k in ("cart", "sacks"):
                     self.beds.append((it["x"], it["x"] + it.get("span", 3.6 * 0.62), it.get("bed", 0.95)))
                 if k == "haystack" and "span" in it:
                     # Kit.Haystack: an invisible solid over the middle 80% of the stack's width, `top` high
@@ -515,13 +515,13 @@ class Level:
                         r.front_at = 0.45
                     elif k == "mangotree" and r.piece == "tree_mango_1":
                         r.front_at = 0.45
-                    elif k == "cart" and r.piece == "bullock_cart":
+                    elif (k == "cart" and r.piece == "bullock_cart") or (k == "sacks" and r.piece == "jute_sacks"):
                         r.front_at = -0.3
                     # Kit.RoofRow: its house fronts placed with roomBehind 1.0 (Place squashes their depth to fit)
                     if k == "roofs" and r.vis_kind == "art" and r.role == "platform_art":
                         r.room = 1.0
                 if is_obstacle(it):
-                    if k == "cart":
+                    if k in ("cart", "sacks"):
                         x0, x1, top = it["x"], it["x"] + it.get("span", 3.6 * 0.62), it.get("bed", 0.95)
                     elif k == "haystack" and "span" in it:
                         mid = it["x"] + it.get("width", it["span"] / 0.8) / 2

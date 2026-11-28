@@ -29,7 +29,7 @@ namespace ChickenRunner
 
         [SerializeField] internal float groundFollowSpeed = 8f;
         [SerializeField] internal float wriggleUpSpeed = 7.5f;
-        [SerializeField] internal float wriggleForwardSpeed = 5f;
+        [SerializeField] internal float wriggleForwardSpeed = 3.5f;   // out of her grasp and away, as fast as she runs
         [SerializeField] internal float fleeSpeedMultiplier = 1.5f;
 
         ChaseTuning _t;
