@@ -554,6 +554,14 @@ body.parent = arm
 mod = body.modifiers.new("Armature", "ARMATURE")
 mod.object = arm
 print("bones without weights:", [b.name for b in arm.data.bones if b.name not in body.vertex_groups])
+# his legs and body as the run's IK sees them, in his side view (forward, up): the planted feet are solved on this model
+_side = {b.name: b for b in arm.data.bones}
+A.RIG.update(pivot=(-_side["Body"].head_local.y, _side["Body"].head_local.z),
+             knee=(-_side["LeftUpperLeg"].head_local.y, _side["LeftUpperLeg"].head_local.z),
+             hock=(-_side["LeftLowerLeg"].head_local.y, _side["LeftLowerLeg"].head_local.z),
+             ankle=(-_side["LeftFoot"].head_local.y, _side["LeftFoot"].head_local.z),
+             toe=(-_side["LeftFoot"].tail_local.y, _side["LeftFoot"].tail_local.z))
+print("legs", {k: tuple(round(c, 3) for c in v) for k, v in A.RIG.items()})
 # Unity skins with 4 bones a vertex: cut to that here, so Blender shows (and the checks measure) what the game plays
 if "--no-limit" not in ARGS:
     print("4-bone limit:", K.limit_weights(body), "points had more than 4 bones")
