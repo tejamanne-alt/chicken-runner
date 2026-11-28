@@ -210,7 +210,7 @@ PROSE = [
     "",
     "## The market street",
     "",
-    "Only what lies in a real one, about 4 m (a second and a bit) apart: a goat kid crossing, cow dung (a cow wanders by),",
+    "Only what lies in a real one, about 4 m (a second and a bit) apart: a goat kid crossing, cow dung,",
     "the hand pump's puddle with two ducks waddling from it, sacks of grain unloaded for a shop (hop onto them and off),",
     "a heap of building sand, a dog asleep, the potter's pots set out in front of his stall, and one tree at the market's",
     "edge whose low limb she slides under. The washing lines strung across the road are gone, and so are the other pots.",

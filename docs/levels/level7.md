@@ -27,8 +27,8 @@ screen; tap to chase). The kid runs 3.5 m/s, a small child's real pace, and the 
 ## The street between the rows
 
 Only what lies in a real street, spaced about 4 m (a second and a bit) apart: a vendor's hens and their basket, a
-goat kid crossing, cow dung, the puddle round the hand pump, a dog asleep, sacks of paddy unloaded outside the
-provisions shop (hop onto them and off), a heap of sand where a house is going up, and one roadside neem whose low
+goat kid crossing, cow dung, the puddle round the hand pump, a dog asleep, sacks of paddy unloaded at the roadside
+for a shop (hop onto them and off), a heap of sand where a house is going up, and one roadside neem whose low
 limb she slides under. The washing lines strung across the street are gone, and so are the pot stacks.
 
 ## The shape of it
@@ -51,7 +51,7 @@ dog, the last long run, the last three things in the street, and the street open
 | 66 | 87 | LongRun | roofs 67.5 to 78.0 (ladder); water tank 71 on the roof; water tank 75 on the roof; roofs 79.304 to 84.9; 25 mangoes | The long run: five houses and two tanks, a gap, three more houses. |
 | 87 | 98 | GoatBasket | 1 goat kid 90.5; hens' basket 94.5; 10 mangoes | A goat kid crossing, then the hens' basket. |
 | 98 | 123 | GapTanks | roofs 99.5 to 106.1 (ladder); water tank 103 on the roof; roofs 107.266 to 115.6; water tank 111.466 on the roof; roofs 116.659 to 119.6; 28 mangoes | Three rows, two gaps, a tank on the first two. |
-| 123 | 136 | ShopSacks | sacks of paddy 126; sleeping dog 132; 7 mangoes | Sacks of paddy unloaded outside the provisions shop: hop on and off. A dog asleep. |
+| 123 | 136 | ShopSacks | sacks of paddy 126; sleeping dog 132; 7 mangoes | Sacks of paddy unloaded at the roadside for a shop: hop on and off. A dog asleep. |
 | 136 | 145 | ChilliLane | chilli 136.5; 9 mangoes | A chilli to win back ground. |
 | 145 | 174 | RoofTrain | roofs 146 to 150.9 (ladder); roofs 152.109 to 157.7; roofs 159.004 to 167.3; water tank 163.004 on the roof; feather 2 at 163.104, 5.25 m up; roofs 168.397 to 171.3; 33 mangoes | Four rows in a train: jump, jump, jump; a feather above the tank. |
 | 174 | 183 | DungHens | cow dung 177; 2 hens 181; 10 mangoes | Cow dung, then two hens pecking in the street. |

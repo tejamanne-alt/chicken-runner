@@ -1631,30 +1631,6 @@
      ]
     },
     {
-     "kind": "prop",
-     "x": 68.5,
-     "piece": "cow",
-     "z": 2.6,
-     "h": 1.45,
-     "w": 0.0,
-     "mirror": false,
-     "y": 0.0,
-     "visuals": [
-      {
-       "piece": "cow",
-       "x": 68.5,
-       "y": 0.0,
-       "z": 2.6,
-       "w": 1.743,
-       "h": 1.45,
-       "mirror": false,
-       "flat": false,
-       "turn": 0.0,
-       "kind": "art"
-      }
-     ]
-    },
-    {
      "kind": "hensbasket",
      "x": 71.5,
      "hidden": false,
@@ -3154,7 +3130,7 @@
    "name": "LongAwnings",
    "x": 122.0,
    "length": 18.0,
-   "note": "A long row of stalls (the potter's among them): bounce along, a feather at the top.",
+   "note": "A long row of stalls, the potter's last: bounce along, a feather at the top.",
    "items": [
     {
      "kind": "stall",
@@ -3180,17 +3156,17 @@
     {
      "kind": "stall",
      "x": 129.052,
-     "piece": "stall_potter",
-     "width": 4.33,
-     "height": 2.977,
+     "piece": "stall_d_2",
+     "width": 3.963,
+     "height": 3.0,
      "visuals": [
       {
-       "piece": "stall_potter",
-       "x": 131.218,
+       "piece": "stall_d_2",
+       "x": 131.034,
        "y": 0.0,
        "z": 0.55,
-       "w": 4.33,
-       "h": 2.977,
+       "w": 3.962,
+       "h": 3.0,
        "mirror": false,
        "flat": false,
        "turn": 0.0,
@@ -3200,18 +3176,18 @@
     },
     {
      "kind": "stall",
-     "x": 133.933,
-     "piece": "stall_d_2",
-     "width": 3.963,
-     "height": 3.0,
+     "x": 133.565,
+     "piece": "stall_potter",
+     "width": 4.33,
+     "height": 2.977,
      "visuals": [
       {
-       "piece": "stall_d_2",
-       "x": 135.914,
+       "piece": "stall_potter",
+       "x": 135.731,
        "y": 0.0,
        "z": 0.55,
-       "w": 3.962,
-       "h": 3.0,
+       "w": 4.33,
+       "h": 2.977,
        "mirror": false,
        "flat": false,
        "turn": 0.0,
@@ -3517,7 +3493,7 @@
    "name": "FakeOut",
    "x": 140.0,
    "length": 12.0,
-   "note": "The potter's pots set out in the road; the rooster knocks a hens' basket in; a goat kid.",
+   "note": "The potter's pots set out in the road by his stall; the rooster knocks a hens' basket in; a goat kid.",
    "items": [
     {
      "kind": "pots",
@@ -3646,9 +3622,9 @@
     },
     {
      "kind": "prop",
-     "x": 141.2,
+     "x": 140.6,
      "piece": "pot_stack",
-     "z": 1.5,
+     "z": 2.3,
      "h": 0.62,
      "w": 0.0,
      "mirror": true,
@@ -3656,9 +3632,9 @@
      "visuals": [
       {
        "piece": "pot_stack",
-       "x": 141.2,
+       "x": 140.6,
        "y": 0.0,
-       "z": 1.5,
+       "z": 2.3,
        "w": 0.428,
        "h": 0.62,
        "mirror": true,
