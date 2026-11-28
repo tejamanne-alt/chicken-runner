@@ -37,12 +37,11 @@ def cot(p, s, x):
     p.arc(s, x - KID_R, flight, h, 5)
 
 
-def pump_life(p, s, x, woman=None, line=None, pots_side=1.0):
+def pump_life(p, s, x, line=None, pots_side=1.0):
     """Washing day round the hand pump Kit.Puddle stands at x - 0.27, z 1.35: the brass vessels set down beside it to
-    be scrubbed, a woman bringing her pot, a line of sarees in the yard behind."""
+    be scrubbed, a line of sarees in the yard behind. (The zone's set already has a woman carrying her pot walking
+    past three of the four pumps, at 18.5, 164.5 and 249.5 m.)"""
     p.prop(s, "brass_pots", x + 1.15 * pots_side, 1.75, h=0.45)
-    if woman is not None:
-        p.prop(s, "woman_carrying_pot", x + woman, 2.0, h=1.95, mirror=woman > 0)
     if line is not None:
         p.prop(s, "clothesline", x + line, 2.7, w=2.4, mirror=line < 0)
 
@@ -68,9 +67,9 @@ def design():
 
     s = p.section("HandPump", 19.0, 9.0, "The hand pump: women wash the clothes there and the water spreads across "
                                          "the road. Hold the jump.")
-    p.puddle(s, 23.5)
-    pump_life(p, s, 23.5, woman=-2.4, line=3.1)
-    p.litter(s, 2, avoid=(23.5,))
+    p.puddle(s, 21.5)
+    pump_life(p, s, 21.5, line=3.4)
+    p.litter(s, 2, avoid=(21.5,))
 
     s = p.section("NeemHens", 28.0, 12.0, "Another neem, then two hens pecking in the road: slide, then jump.")
     p.low_branch(s, 31.5)
@@ -81,7 +80,6 @@ def design():
                                           "above its top for a double jump.")
     cot(p, s, 44.0)
     p.feather(s, 46.1, 4.2, 0)
-    p.prop(s, "old_man_on_chair", 41.6, 2.2, h=1.35)
     p.litter(s, 2, avoid=(45.0,))
 
     s = p.section("Breather", 51.0, 11.0, "A breather: a wave of mangoes and the first chilli.")
@@ -131,10 +129,11 @@ def design():
     p.sand(s, 141.0)
     p.litter(s, 2, avoid=(135.0, 141.0))
 
-    s = p.section("NeemDung", 144.0, 12.0, "A neem, then dung: slide, tap. A feather over the neem for a double jump.")
+    s = p.section("NeemDung", 144.0, 12.0, "A neem, then dung: slide, then tap. A feather above the dung for a double "
+                                           "jump.")
     p.low_branch(s, 148.0)
-    p.feather(s, 148.0, 3.0, 2)
     p.dung(s, 152.5)
+    p.feather(s, 152.6, 2.8, 2)                       # (over the neem it would sit in its leaves)
     p.litter(s, 2, avoid=(148.0, 152.5))
 
     s = p.section("GoatHen", 156.0, 12.0, "A goat kid, then a hen.")
@@ -147,7 +146,7 @@ def design():
     s = p.section("Mischief", 168.0, 13.0, "The third pump's puddle; then the rooster knocks the water pots off their "
                                            "stand by the pump into the road.")
     p.puddle(s, 172.5)
-    pump_life(p, s, 172.5, woman=-2.6, pots_side=-1.6)
+    pump_life(p, s, 172.5, pots_side=-1.6)
     p.prop(s, "water_pot_stand", 178.3, 1.6, h=1.1)
     p.pots(s, 178.0, hidden=True, ident="knocked")
     p.mischief(s, 178.6, "knocked")
@@ -178,19 +177,19 @@ def design():
     p.hens(s, 236.5, 2)
     p.litter(s, 2, avoid=(231.0, 232.2, 236.5))
 
-    s = p.section("FinalChilli", 240.0, 12.0, "The last chilli.")
+    s = p.section("FinalChilli", 240.0, 11.0, "The last chilli.")
     p.chilli(s, 240.6)
-    p.mango_line(s, 242.6, 12, 0.7, 0.6)
-    p.prop(s, "clothesline", 247.0, 2.7, w=2.4, mirror=True)
+    p.mango_line(s, 242.6, 11, 0.7, 0.6)
+    p.prop(s, "clothesline", 241.8, 2.7, w=2.4, mirror=True)
     p.litter(s, 3)
 
-    s = p.section("LastTest", 252.0, 22.0, "The last pump's puddle, a cot, a neem, dung: everything once more.")
-    p.puddle(s, 254.5)
-    pump_life(p, s, 254.5, woman=-2.0, line=3.3)
+    s = p.section("LastTest", 251.0, 23.0, "The last pump's puddle, a cot, a neem, dung: everything once more.")
+    p.puddle(s, 252.6)
+    pump_life(p, s, 252.6, line=3.3)
     cot(p, s, 258.5)
     p.low_branch(s, 265.5)
     p.dung(s, 270.0)
-    p.litter(s, 2, avoid=(254.5, 259.5, 265.5, 270.0))
+    p.litter(s, 2, avoid=(252.6, 259.5, 265.5, 270.0))
 
     s = p.section("OpenLane", 274.0, 22.0, "The lane opens out: if he is still ahead, he gets away at 290 m.")
     p.mango_line(s, 275.0, 12, 1.0, 0.6)
@@ -219,7 +218,7 @@ PROSE = [
     "",
     "* **The neem's low branch** (the slide): seven neems along the street, each with a limb across it, its leaves",
     "  hanging from 1.6 m down to 0.75 m. Swipe down to slide under (2.1 m of slide at 3.5 m/s); the low mangoes show",
-    "  the line. A double jump clears the top too (a feather sits over one).",
+    "  the line. A double jump clears its top too (with 0.1 s to spare: the hard way).",
     "* **The rope cot** (the bounce): run into it for a 2.4 m bounce off its near end, back on the road about 2.9 m on,",
     "  with mangoes along the arc and a feather above its top for a double jump.",
     "",

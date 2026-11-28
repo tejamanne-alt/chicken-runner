@@ -53,7 +53,7 @@ everything once more, the last rows, then the market thins out.
 | 99 | 108 | ChilliLane | chilli 99.5; 9 mangoes | A chilli to win back ground. |
 | 108 | 122 | PumpSacks | hand-pump puddle 111.5; 2 ducks 115.5; sacks of paddy 119; 12 mangoes | The hand-pump puddle, two ducks waddling from it, sacks of grain unloaded for a shop. |
 | 122 | 140 | LongAwnings | stall 123.5; stall 129.052; stall 133.565; feather 2 at 130.698, 4.7 m up; 12 mangoes | A long row of stalls, the potter's last: bounce along, a feather at the top. |
-| 140 | 152 | FakeOut | pot stack 142.5; hens' basket 146.5 (knocked in by the rooster); mischief 147; 1 goat kid 150.5; 15 mangoes | The potter's pots set out in the road by his stall; the rooster knocks a hens' basket in; a goat kid. |
+| 140 | 152 | FakeOut | pot stack 142.5; hens' basket 146.5 (knocked in by the rooster); mischief 147; 1 goat kid 150.5; 15 mangoes | The potter's pots in the road by his stall; the rooster knocks a hens' basket in; a goat kid. |
 | 152 | 172 | FlocksAwnings | 2 hens 154.5; stall 157.5; stall 161.984; cow dung 170.09; 16 mangoes | Hens, a row of stalls, cow dung. |
 | 172 | 181 | ChilliStraight | chilli 172.5; 9 mangoes | A chilli and a straight. |
 | 181 | 198 | CrowdedRoad | 2 hens 184; heap of building sand 188; sleeping dog 192; hens' basket 196; 20 mangoes | Hens, a heap of building sand, a dog asleep, the hens' basket. |

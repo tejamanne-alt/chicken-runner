@@ -33,8 +33,8 @@ limb she slides under. The washing lines strung across the street are gone, and 
 
 ## The shape of it
 
-Teach (to 85 m): the ladder and one row, one gap, one tank, the neem back on the lane, a chilli, then the long run.
-Practise (to 181 m): a goat and the basket, gaps and tanks together, the sacks and the dog, a train of four rows.
+Teach (to 87 m): the ladder and one row, one gap, one tank, the neem back on the lane, a chilli, then the long run.
+Practise (to 183 m): a goat and the basket, gaps and tanks together, the sacks and the dog, a train of four rows.
 Test (to 300 m): the rooster's mischief with the hens' basket, the long run with three tanks, the sand heap and the
 dog, the last long run, the last three things in the street, and the street opens out.
 

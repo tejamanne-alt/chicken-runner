@@ -71,7 +71,7 @@ def design():
 
     # ---- the opening: the street of houses
     s = p.section("Street", -10.0, 18.0, "A street of flat-roofed houses: the rooster struts ahead; tap to chase.")
-    p.prop(s, "kids_rolling_tyre", -5.5, 2.3, h=1.15)
+    p.prop(s, "kids_rolling_tyre", 4.6, 2.2, h=1.15)      # clear of the set's milkman at -4.4
     p.decal(s, "kolam_5", -1.0, 1.0, 1.0)
     p.mango_line(s, 1.0, 5, 1.2, 0.6)
     p.litter(s, 3)

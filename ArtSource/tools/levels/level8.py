@@ -64,7 +64,8 @@ def design():
     p.litter(s, 3)
 
     # ---- teach
-    s = p.section("FirstStalls", 6.0, 13.0, "The first row of stalls: run under, or jump into an awning and bounce along.")
+    s = p.section("FirstStalls", 6.0, 13.0,
+                  "The first row of stalls: run under, or jump into an awning and bounce along.")
     stalls(p, s, 8.0, ROWS[0])
     p.litter(s, 2)
 
@@ -77,7 +78,8 @@ def design():
     p.prop(s, "hen_1", 31.0, 1.4, h=0.42)
     p.litter(s, 2, avoid=(29.5,))
 
-    s = p.section("HighAwnings", 33.0, 14.0, "Three stalls: a feather high over their awnings for a bounce and a double jump.")
+    s = p.section("HighAwnings", 33.0, 14.0,
+                  "Three stalls: a feather high over their awnings for a bounce and a double jump.")
     stalls(p, s, 35.0, ROWS[1], feather=0)
     p.litter(s, 2)
 
@@ -113,19 +115,22 @@ def design():
     p.mango_line(s, 101.0, 9, 0.75, 0.6)
     p.litter(s, 2)
 
-    s = p.section("PumpSacks", 108.0, 14.0, "The hand-pump puddle, two ducks waddling from it, sacks of grain unloaded for a shop.")
+    s = p.section("PumpSacks", 108.0, 14.0,
+                  "The hand-pump puddle, two ducks waddling from it, sacks of grain unloaded for a shop.")
     p.puddle(s, 111.5)
     p.prop(s, "woman_carrying_pot", 112.6, 2.0, h=1.95)   # filling her pot at the pump
     p.ducks(s, 115.5, 2)
     p.sacks(s, 119.0)
     p.litter(s, 2, avoid=(111.5, 115.5, 119.0, 120.2))
 
-    s = p.section("LongAwnings", 122.0, 18.0, "A long row of stalls, the potter's last: bounce along, a feather at the top.")
+    s = p.section("LongAwnings", 122.0, 18.0,
+                  "A long row of stalls, the potter's last: bounce along, a feather at the top.")
     stalls(p, s, 123.5, ROWS[3], feather=1)
     p.litter(s, 2)
 
     # ---- test
-    s = p.section("FakeOut", 140.0, 12.0, "The potter's pots set out in the road by his stall; the rooster knocks a hens' basket in; a goat kid.")
+    s = p.section("FakeOut", 140.0, 12.0,
+                  "The potter's pots in the road by his stall; the rooster knocks a hens' basket in; a goat kid.")
     p.pots(s, 142.5)
     p.prop(s, "pot_stack", 140.6, 2.3, h=0.62, mirror=True)   # more of his pots, at the road's edge
     p.prop(s, "hens_basket", 146.9, 1.4, h=0.55)
@@ -184,7 +189,8 @@ def design():
     stalls(p, s, 272.5, ROWS[2])
     p.litter(s, 2)
 
-    s = p.section("MarketEnd", 285.0, 21.0, "The market thins out: a last hens' basket; if he is still ahead, he gets away at 300 m.")
+    s = p.section("MarketEnd", 285.0, 21.0,
+                  "The market thins out: a last hens' basket; if he is still ahead, he gets away at 300 m.")
     p.hens_basket(s, 288.0)
     p.mango_line(s, 290.5, 10, 1.0, 0.6)
     p.prop(s, "brass_vessels", 299.0, 1.6, h=0.9)

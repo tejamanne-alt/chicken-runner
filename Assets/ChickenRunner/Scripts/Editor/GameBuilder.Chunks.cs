@@ -55,7 +55,7 @@ namespace ChickenRunner.EditorTools
                 chunks = new[] { "RoofRun", "MarketPots", "RoofTanks", "MarketClotheslines" }, plan = "level7" },
             new LevelDesign { title = "Market day", subtitle = "Bounce across the awnings.", zone = 3, seed = 32,
                 chunks = new[] { "Awnings", "Hens", "AwningsLong", "HensBaskets", "MarketMischief" }, plan = "level8" },
-            new LevelDesign { title = "The temple steps", subtitle = "Everything at once. Catch him for good!", zone = 3, seed = 33, courseLength = 800f,
+            new LevelDesign { title = "The temple steps", subtitle = "Everything at once. Catch him for good!", zone = 3, seed = 33, courseLength = 340f,
                 chunks = new[] { "TempleSteps", "Awnings", "RoofRun", "Hens", "MarketClotheslines", "MarketPots", "MarketMischief" }, plan = "level9" },
         };
 

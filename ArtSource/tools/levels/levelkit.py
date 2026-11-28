@@ -412,12 +412,15 @@ class Plan:
         rooster bounces off it too, and mangoes trace the bounce; with `onto_roof` (a roof row starting about 1 m after
         it), they rise onto the roof instead of coming back down into its wall."""
         self.add(s, "cot", x, [visual("rope_cot", x + 0.95, 0.0, 0.05, w=1.9)], span=1.9)
-        self.hop(s, x, 4.8, 2.2)
+        # she runs in, bounces off its near end and comes back down to the road this far on (2.9 m at 3.5 m/s)
+        h = self.r.T["cotBounceHeight"]
+        flight = self.r.RUN * 2 * math.sqrt(2 * self.r.G * h) / self.r.G
+        self.hop(s, x - 0.4, max(3.2, flight + 0.4), 2.0)      # the rooster bounces off it too, clear of its frame
         if onto_roof:
-            for dx, y in ((0.5, 1.5), (1.3, 2.5), (2.1, 3.1)):
+            for dx, y in ((0.4, 1.5), (1.0, 2.5), (1.6, 3.0)):
                 self.mango(s, x + dx, y)
         else:
-            self.arc(s, x - 0.1, 4.8, 2.4, 6)
+            self.arc(s, x - KID_R, flight, h, 5)
 
     def mango_tree(self, s, x):
         """Kit.MangoTree: a mango tree behind the lane, its branch over it from x+1 to x+5, 2.3 m up: jump at it to
@@ -737,6 +740,14 @@ def audit(p, course_length, require_feathers=True):
         elif kind == "cot":
             land = x0 + 0.95 + r.bounce_length(T["cotBounceHeight"], 0.5)
             info = f"a trampoline: run into it (no input) for a {T['cotBounceHeight']:g} m bounce, landing about {land - x0:.1f} m on"
+            # a roof row starting just after it: she comes down on the roof instead, sooner
+            row = next((rw for _, rw in p.items("roofs") if x1 <= rw["x"] <= x1 + 1.0), None)
+            if row is not None:
+                v = math.sqrt(2 * r.G * T["cotBounceHeight"])
+                down = (v + math.sqrt(max(0.0, v * v - 2 * r.G * ROOF))) / r.G      # feet back down to the roof
+                land = max(row["x"] + 0.3, x0 + r.RUN * down)
+                info = (f"a trampoline: run into it (no input) for a {T['cotBounceHeight']:g} m bounce up onto the roofs, "
+                        f"landing about {land - x0:.1f} m on")
         elif kind == "buffalo":
             # onto its back: take-offs whose feet clear its face (above top - step) and come down over the back
             win = r.onto_window(span, it["top"], r.HELD)
@@ -770,7 +781,8 @@ def audit(p, course_length, require_feathers=True):
         name = next(s["name"] for s, i2 in p.items("roofs") if i2 is it)
         prev = roofs[i - 1] if i > 0 else None
         nxt = roofs[i + 1] if i + 1 < len(roofs) else None
-        from_gap = prev is not None and x0 - prev["end"] < 6.0
+        joined = r.length(r.DOUBLE) + 0.5           # rows nearer than a double jump carries are joined by a gap
+        from_gap = prev is not None and x0 - prev["end"] < joined
         # or bounced up onto from a rope cot just before it (the bounce tops 2.9 m)
         from_gap = from_gap or any(x0 - 6.0 <= c["x"] + c["span"] <= x0 for _, c in p.items("cot"))
         if it["ladder"]:
@@ -780,11 +792,26 @@ def audit(p, course_length, require_feathers=True):
                          f"up the ladder (no input: she climbs in {T['ladderClimbDuration']:g} s), onto the roof at {head:.1f}"])
         elif not from_gap:
             problems.append(f"roofs at {x0:.1f}: no ladder and no row before it to jump across from")
+        cots = [c for _, c in p.items("cot") if x0 - 6.0 <= c["x"] + c["span"] <= x0]
+        if cots and not it["ladder"] and not (prev is not None and x0 - prev["end"] < joined):
+            # the way up is the cot's bounce: she runs in, bounces off its near end and must meet this row's wall with
+            # her feet above the roof less a step (lower, it is a wall to vault, slowly)
+            c = max(cots, key=lambda c: c["x"])
+            v = math.sqrt(2 * r.G * T["cotBounceHeight"])
+            t = (x0 - c["x"]) / r.RUN                  # from her front at the cot's near end to her front at the wall
+            feet = v * t - 0.5 * r.G * t * t
+            need = ROOF - STEP
+            if feet < need:
+                problems.append(f"roofs at {x0:.1f}: the cot's bounce meets the wall {feet:.2f} m up, under the {need:.2f} m "
+                                f"it can step onto (move the row nearer the cot)")
+            elif feet < need + 0.1:
+                notes.append(f"roofs at {x0:.1f}: the cot's bounce meets the wall {feet:.2f} m up, {(feet - need) * 100:.0f} cm "
+                             f"over what it can step onto: a double jump in the bounce makes it sure")
         for o in rows:
             if o[3] in ("tank", "pots") and o[2] == ROOF and x0 <= o[0] <= x1:
                 if o[0] - x0 < (3.0 if it["ladder"] else 2.5) or x1 - o[1] < 1.5:
                     problems.append(f"{o[3]} at {o[0]:.1f}: too near the end of its roof row [{x0:.1f}, {x1:.1f}]")
-        if nxt is not None and nxt["x"] - x1 < 6.0:
+        if nxt is not None and nxt["x"] - x1 < joined:
             gap = nxt["x"] - x1
             held = r.gap_window(gap, r.HELD)
             tap = r.gap_window(gap, r.TAP)
@@ -911,7 +938,8 @@ def describe(s):
             mangoes += 1
         elif k in NAMES:
             out.append(f"{NAMES[k]} {it['x']:g}" + (" (knocked in by the rooster)" if it.get("hidden") else "")
-                       + (" on the roof" if it.get("y") else ""))
+                       + ((" on the roof" if abs(it["y"] - ROOF) < 0.01 else f" {it['y']:g} m up (on the steps' landing)")
+                          if it.get("y") else ""))
         elif k == "canal":
             out.append(f"{it['width']:g} m canal {it['x']:g}" + (" with the plank" if it["bridge"] else ""))
         elif k == "roofs":
@@ -960,7 +988,8 @@ def report(p, meta, notes, problems, rows):
         "and tuning, and fails on a violation. `GameBuilder` (Chicken Runner > Build Game) then lays one chunk per section.",
         "",
         f"Zone {p.zone}: the kid runs at {p.r.RUN:g} m/s, the rooster at {p.r.T['roosterRunSpeed']:g} m/s; a held jump is "
-        f"{p.r.JUMP_LEN:.2f} m long and {p.r.T['jumpHeight']:g} m high; the course is {p.r.T['courseLength']:g} m.",
+        f"{p.r.JUMP_LEN:.2f} m long and {p.r.T['jumpHeight']:g} m high; the course is "
+        f"{meta.get('courseLength', p.r.T['courseLength']):g} m.",
         "",
     ]
     lines += meta["prose"]

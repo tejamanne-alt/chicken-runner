@@ -21,7 +21,7 @@ water tanks on the roofs.
     a shop (hop onto them), a heap of sand where a house is going up, and one roadside neem whose low limb she slides
     under. (The washing lines strung across the street and the pot stacks are gone.)
 
-Every distance is the old design's timing at the new pace (about 3.5 m between things to jump is the old 8 m), with
+Every distance is the old design's timing at the new pace (about 4 m between things to jump, a second and a bit), with
 the rows cut to fewer houses, since a house front keeps its size. The rooster flutters up onto each row ahead of her
 (Kit.RoofRow's hop), across every gap and over every tank (this plan's hops), and down off each row's end. Three
 feathers sit on the harder routes: above the first gap, at the top of a double jump over a tank, and over the neem's
@@ -88,7 +88,8 @@ def design():
     p.hop_down(s, end2)
     p.litter(s, 2, holes=[(20.6, end2)])
 
-    s = p.section("FirstTank", 33.0, 16.0, "A water tank on the roofs: jump it. Down, and a vendor's hen in the street.")
+    s = p.section("FirstTank", 33.0, 16.0,
+                  "A water tank on the roofs: jump it. Down, and a vendor's hen in the street.")
     end = row(p, s, 35.7, [IND, PINK], ladder=True, crows=37.2)
     p.tank(s, 39.1, ROOF)
     roof_mangoes(p, s, 37.3, end - 0.4, avoid=(39.1,))
@@ -141,7 +142,8 @@ def design():
     p.hop_down(s, end3)
     p.litter(s, 2, holes=[(99.5, end3)])
 
-    s = p.section("ShopSacks", 123.0, 13.0, "Sacks of paddy unloaded at the roadside for a shop: hop on and off. A dog asleep.")
+    s = p.section("ShopSacks", 123.0, 13.0,
+                  "Sacks of paddy unloaded at the roadside for a shop: hop on and off. A dog asleep.")
     p.sacks(s, 126.0)
     p.dog(s, 132.0)
     p.litter(s, 2, avoid=(126.0, 127.2, 132.0))
@@ -173,7 +175,8 @@ def design():
     p.litter(s, 2, avoid=(177.0, 181.0))
 
     # ---- test
-    s = p.section("Mischief", 183.0, 13.0, "The hand-pump puddle; the rooster knocks the hens' basket into the street; a goat kid.")
+    s = p.section("Mischief", 183.0, 13.0,
+                  "The hand-pump puddle; the rooster knocks the hens' basket into the street; a goat kid.")
     p.puddle(s, 186.5)
     p.prop(s, "hens_basket", 190.9, 1.4, h=0.55)
     p.hens_basket(s, 190.5, hidden=True, ident="knocked")
@@ -261,8 +264,8 @@ PROSE = [
     "",
     "## The shape of it",
     "",
-    "Teach (to 85 m): the ladder and one row, one gap, one tank, the neem back on the lane, a chilli, then the long run.",
-    "Practise (to 181 m): a goat and the basket, gaps and tanks together, the sacks and the dog, a train of four rows.",
+    "Teach (to 87 m): the ladder and one row, one gap, one tank, the neem back on the lane, a chilli, then the long run.",
+    "Practise (to 183 m): a goat and the basket, gaps and tanks together, the sacks and the dog, a train of four rows.",
     "Test (to 300 m): the rooster's mischief with the hens' basket, the long run with three tanks, the sand heap and the",
     "dog, the last long run, the last three things in the street, and the street opens out.",
 ]

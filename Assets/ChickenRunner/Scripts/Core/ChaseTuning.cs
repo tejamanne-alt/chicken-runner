@@ -59,7 +59,7 @@ namespace ChickenRunner.Core
         public float fastDropSpeed = 16f;
         public float jumpBuffer = 0.1f;
         public float coyoteTime = 0.08f;
-        public float cotBounceHeight = 2.4f;
+        public float cotBounceHeight = 2.6f;   // off a cot straight onto a roof (2.35 m) at 3.5 m/s, with room to spare
 
         // Slide
         public float slideDuration = 0.6f;

@@ -9,8 +9,8 @@ him at about 62 m. From the doc's level table: everything, and the catch that st
 
 The temple street at festival time, on its cement road. Five flights of temple steps (six steps of 0.25 m, walked up,
 a landing 1.5 m up with its lamps, six steps down: 14.4 m, the hand-built granite flight), new clay pots stacked on
-two landings for the festival's pongal (jump them up there), and on the way the whole game once more: two rooftop
-stretches with a ladder, a tank and a 1.2 m gap, rows of flower and brass-vessel stalls to bounce along, and only
+two landings for the festival's pongal (jump them up there), and on the way the whole game once more: three rooftop
+stretches with a ladder, a tank and a 1.2 m gap, three rows of stalls to bounce along, and only
 what lies in a real temple street: the vendors' hens and their baskets, a goat kid, cow dung, the puddle round the
 hand pump, a dog asleep, sacks of paddy unloaded for a shop, a heap of building sand, two neems by the temple whose
 low limbs she slides under, and the rooster's mischief. (The washing lines across the street and the pot stacks in
@@ -26,6 +26,9 @@ STALL_GAP = 0.55
 
 IND, PINK, LIME = "house_indigo_veranda", "house_pink", "house_limewash"
 
+# The longest course: this level's own length, past zone 3's 300 m (the JSON's courseLength, which the game applies).
+COURSE = 340.0
+
 
 def stalls(p, s, x, pieces, feather=None):
     start = x
@@ -38,9 +41,10 @@ def stalls(p, s, x, pieces, feather=None):
     return end
 
 
-def steps(p, s, x, feather=None, pots=False):
+def steps(p, s, x, feather=None, pots=False, hall=True):
     """A flight of temple steps (six up, a 6 m landing, six down: the hand-built granite flight) with mangoes along its
-    landing; optionally the festival's new clay pots stacked on the landing, to jump up there."""
+    landing; optionally the festival's new clay pots stacked on the landing, to jump up there. `hall`: a mandapam
+    behind it (not where the zone's own scenery stands one)."""
     end = p.steps(s, x, 6, 6.0)
     top = 6 * 0.25
     land0 = x + 6 * 0.7
@@ -51,7 +55,8 @@ def steps(p, s, x, feather=None, pots=False):
         p.mango_line(s, land0 + 0.4, 7, 0.75, top + 0.55)
     if feather is not None:
         p.feather(s, land0 + 3.0, top + 2.1, feather)
-    p.prop(s, "mandapam", land0 + 3.0, 3.2, h=2.9)
+    if hall:
+        p.prop(s, "mandapam", land0 + 3.0, 3.2, h=2.9)
     return end
 
 
@@ -78,6 +83,7 @@ def roofs(p, s, x):
 
 def design():
     p = Plan(zone=3, seed=9)
+    p.r.T["courseLength"] = COURSE          # so the beat sheet's header states this level's length, not the zone's
 
     # ---- the opening: the temple street
     s = p.section("TempleStreet", -10.0, 16.0, "The temple street at festival time: the rooster struts ahead; tap to chase.")
@@ -88,13 +94,14 @@ def design():
     p.litter(s, 3)
 
     # ---- the way to the temple: everything once more
-    s = p.section("FirstSteps", 6.0, 20.0, "The first temple steps: up (walked), along the landing, and down. A feather.")
+    s = p.section("FirstSteps", 6.0, 20.0,
+                  "The first temple steps: up (walked), along the landing, and down. A feather.")
     end = steps(p, s, 9.0, feather=0)
     p.litter(s, 2, holes=[(9.0, end)])
 
-    s = p.section("HensDog", 26.0, 9.0, "Two of a vendor's hens, then a dog asleep in the street.")
+    s = p.section("HensDung", 26.0, 9.0, "Two of a vendor's hens, then cow dung.")
     p.hens(s, 28.5, 2)
-    p.dog(s, 32.5)
+    p.dung(s, 32.5)
     p.litter(s, 2, avoid=(28.5, 32.5))
 
     s = p.section("Rooftops", 35.0, 18.0, "Up a ladder onto the terraces, a tank, a gap, and down.")
@@ -115,7 +122,8 @@ def design():
     stalls(p, s, 71.5, ["stall_flowers", "stall_vessels"], feather=1)
     p.litter(s, 2)
 
-    s = p.section("Mischief", 83.0, 14.0, "The hand-pump puddle; the rooster knocks a hens' basket into the road; a goat kid.")
+    s = p.section("Mischief", 83.0, 14.0,
+                  "The hand-pump puddle; the rooster knocks a hens' basket into the road; a goat kid.")
     p.puddle(s, 87.5)
     p.prop(s, "hens_basket", 91.9, 1.4, h=0.55)
     p.hens_basket(s, 91.5, hidden=True, ident="knocked")
@@ -124,7 +132,8 @@ def design():
     p.goats(s, 95.5, 1)
     p.litter(s, 2, avoid=(87.5, 91.5, 95.5))
 
-    s = p.section("StepsWithPots", 97.0, 19.0, "Temple steps with the festival's new pots stacked on the landing: jump them up there.")
+    s = p.section("StepsWithPots", 97.0, 19.0,
+                  "Temple steps with the festival's new pots stacked on the landing: jump them up there.")
     end = steps(p, s, 99.0, pots=True)
     p.litter(s, 2, holes=[(99.0, end)])
 
@@ -144,11 +153,12 @@ def design():
     end = roofs(p, s, 139.5)
     p.litter(s, 2, holes=[(139.5, end)])
 
-    s = p.section("SacksDungNeem", 156.0, 14.0, "Sacks of paddy unloaded for a shop, cow dung, the second neem's low limb.")
-    p.sacks(s, 158.5)
-    p.dung(s, 163.5)
-    p.low_branch(s, 168.0)
-    p.litter(s, 2, avoid=(158.5, 159.7, 163.5, 168.0))
+    s = p.section("NeemDungSacks", 156.0, 14.0,
+                  "The second neem's low limb, cow dung, sacks of paddy unloaded for a shop: hop on and off.")
+    p.low_branch(s, 158.5)
+    p.dung(s, 162.5)
+    p.sacks(s, 166.0)
+    p.litter(s, 2, avoid=(158.5, 162.5, 166.0, 167.2))
 
     s = p.section("ChilliStraight", 170.0, 9.0, "A chilli and a straight.")
     p.chilli(s, 170.5)
@@ -193,14 +203,13 @@ def design():
     p.litter(s, 2, avoid=(285.0, 289.0, 293.0, 297.0, 301.0))
 
     s = p.section("TempleApproach", 303.0, 20.0, "The temple's own steps, the last flight.")
-    end = steps(p, s, 305.0)
+    end = steps(p, s, 305.0, hall=False)      # the zone's own mandapam stands just behind this flight
     p.prop(s, "lamp_step", end + 1.5, 2.0, h=1.9)
     p.litter(s, 2, holes=[(305.0, end)])
 
     s = p.section("TempleCourt", 323.0, 22.0, "The temple court: if he is still ahead, he gets away at 340 m.")
     p.mango_line(s, 324.0, 12, 1.0, 0.6)
     p.prop(s, "brass_vessels", 333.0, 1.6, h=0.9)
-    p.prop(s, "lamp_step", 338.0, 2.0, h=1.9, mirror=True)
     p.litter(s, 3)
     return p
 
@@ -210,7 +219,7 @@ PROSE = [
     "",
     "No basket: the chase starts in the temple street at festival time with the rooster 7 m ahead (the Ready screen;",
     "tap to chase). The kid runs 3.5 m/s, a small child's real pace, and the rooster 3.15: a clean run catches him at",
-    "about 62 m. The course runs 340 m, the longest, about a minute and a half and a bit.",
+    "about 62 m. The course runs 340 m, the longest: about a minute and forty seconds.",
     "",
     "## The temple steps",
     "",
@@ -229,8 +238,8 @@ PROSE = [
     "",
     "## The shape of it",
     "",
-    "The whole game once more on the way to the temple: steps, hens and a dog, a rooftop stretch, a neem, the awnings,",
-    "the mischief, steps with pots, hens, a goat and a basket, the roofs again, sacks, dung and a neem, steps then",
+    "The whole game once more on the way to the temple: steps, hens and dung, a rooftop stretch, a neem, the awnings,",
+    "the mischief, steps with pots, hens, a goat and a basket, the roofs again, a neem, dung and sacks, steps then",
     "stalls, a crowded street, the last rooftops, steps with pots again, the last awnings, everything once more, the",
     "temple's own steps, and the temple court.",
 ]
@@ -239,7 +248,7 @@ PROSE = [
 def main():
     p = design()
     run(p, {"level": 9, "title": "The temple steps", "subtitle": "Everything at once. Catch him for good!",
-            "courseLength": 340.0, "prose": PROSE})
+            "courseLength": COURSE, "prose": PROSE})
 
 
 if __name__ == "__main__":
