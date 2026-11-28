@@ -104,6 +104,36 @@ class Rules:
             return None
         return a1 - hi, a0 - lo
 
+    def onto_window(self, span, top, path, dt=1 / 240):
+        """Take-off x (relative to the near face of a body `span` long and `top` high: the buffalo) from which a jump
+        on `path` lands on its top, as KidController does it: her front must meet the face with the feet already above
+        top - STEP (lower, the face is a wall), and her feet come down to `top` over the body, before its far end.
+        Returns (earliest, latest), or None; the take-offs between them all work."""
+        ok = []
+        d = -4.0
+        while d <= 0.0:
+            # does her front reach the face while her feet are too low?
+            blocked = False
+            for t, h in path:
+                front = d + self.RUN * t + KID_R
+                if front >= 0.0:
+                    blocked = h < top - STEP
+                    break
+            lands = None
+            if not blocked:
+                prev = path[0]
+                for t, h in path[1:]:
+                    if h < prev[1] and prev[1] >= top > h:          # coming down through the top
+                        lands = d + self.RUN * t
+                        break
+                    prev = (t, h)
+            if not blocked and lands is not None and 0.0 <= lands <= span:
+                ok.append(d)
+            d += 0.005
+        if not ok:
+            return None
+        return ok[0], ok[-1]
+
     def gap_window(self, width, path):
         """Take-off x (relative to the near edge) that lands on the far side of a gap `width` wide: the kid stays up
         until her back ground ray leaves the near edge, and lands once her front ray is over the far one."""
@@ -253,11 +283,13 @@ class Plan:
         raise ValueError("no bullock carts parked across the road: a village street keeps its carts at the side "
                          "(use sacks() for something to hop onto)")
 
-    def sacks(self, s, x):
+    def sacks(self, s, x, rooster_hop=True):
         """Kit.Sacks: sacks of paddy stacked at the roadside for the cart, 1.15 m long and 0.8 m high from x: a platform
-        to hop onto (or over), as the cart's bed was."""
+        to hop onto (or over), as the cart's bed was. Without `rooster_hop` the level lays the rooster's own route over
+        them (as the step to a mango branch, his flutter goes straight on up)."""
         self.add(s, "sacks", x, [visual("jute_sacks", x + 0.575, z=0.05, h=0.8)], bed=0.8, span=1.035)
-        self.hop(s, x - 0.7, 2.6, 1.3)
+        if rooster_hop:
+            self.hop(s, x - 0.7, 2.6, 1.3)
         self.mango_line(s, x + 0.25, 2, 0.5, 1.35)     # on top of the sacks
         return x + 1.15
 
@@ -706,7 +738,8 @@ def audit(p, course_length, require_feathers=True):
             land = x0 + 0.95 + r.bounce_length(T["cotBounceHeight"], 0.5)
             info = f"a trampoline: run into it (no input) for a {T['cotBounceHeight']:g} m bounce, landing about {land - x0:.1f} m on"
         elif kind == "buffalo":
-            win = r.takeoff_window(0.05, it["top"], r.HELD)
+            # onto its back: take-offs whose feet clear its face (above top - step) and come down over the back
+            win = r.onto_window(span, it["top"], r.HELD)
             if win is None or (win[1] - win[0]) / r.RUN < 0.2:
                 problems.append(f"buffalo at {x0:.1f}: a held jump has under 0.2 s to get onto its back")
                 win = win or (0.0, 0.0)
