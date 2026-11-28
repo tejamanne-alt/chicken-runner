@@ -3,22 +3,29 @@
     python3 ArtSource/tools/levels/level7.py            # writes the plan and prints the audit (fails on a violation)
     python3 ArtSource/tools/levels/level7.py --report   # also writes docs/levels/level7.md
 
-The first level of zone 3 (levelkit.py has the shared pieces and the audit). The kid runs at 8 m/s against the
-rooster's 7.4, the course is 700 m and the chase starts 12 m behind him (no basket). The new thing is the long rooftop
-run: rows of flat-roofed houses side by side, 2.35 m up, with the gaps between houses to jump and the black water
-tanks on the roofs.
+The first level of zone 3 (levelkit.py has the shared pieces and the audit), on the cement road of the market and
+temple street. The kid runs at a small child's real pace, 3.5 m/s, against the rooster's 3.15; the course is 300 m
+and the chase starts 7 m behind him (no basket), so a clean run catches him at about 62 m. The new thing is the long
+rooftop run: rows of flat-roofed houses side by side, 2.35 m up, with the gaps between houses to jump and the black
+water tanks on the roofs.
 
   * Up: every row that does not follow a gap has the bamboo ladder on its first house: run into it and she climbs in
     0.45 s. (Without the ladder a double jump reaches the roof, or she vaults it slowly.)
-  * Across: the gaps between rows are 1.8 to 2.2 m; a held jump clears them with 370 to 420 ms to spare, a tap too.
-    Missing one drops her to the lane and the next house's wall is a slow vault.
-  * On top: water tanks (jump them, as pot stacks), chilli and papad mats drying (harmless), crows on the parapet.
-  * Down: off the end of the last row she drops to the lane, landing about 3.2 m on.
-  * Between the rows, the lane: clotheslines (slide, learnt in level 2), pot stacks, the hens' basket.
+  * Across: the gaps between rows are 1.1 to 1.3 m (a real gap between two houses); a held jump clears them with
+    310 to 370 ms to take off, a tap with 140 to 200 ms. Missing one drops her to the lane and the next house's wall is
+    a slow vault.
+  * On top: water tanks (jump them), chilli and papad mats drying (harmless), crows on the parapet.
+  * Down: off the end of a row she drops to the lane, landing about 1.4 m on.
+  * Between the rows, the street itself, with only what lies in a real one: a vendor's hens and their basket, a goat
+    kid crossing, cow dung, the puddle round the hand pump, a dog asleep, sacks of paddy unloaded at the roadside for
+    a shop (hop onto them), a heap of sand where a house is going up, and one roadside neem whose low limb she slides
+    under. (The washing lines strung across the street and the pot stacks are gone.)
 
-The rooster flutters up onto each row ahead of her (Kit.RoofRow's hop), across every gap and over every tank (this
-plan's hops), and down off each row's end. Three feathers sit on the harder routes: above the first gap, at the top of
-a double jump over a tank, and over a clothesline (a double jump instead of the slide).
+Every distance is the old design's timing at the new pace (about 3.5 m between things to jump is the old 8 m), with
+the rows cut to fewer houses, since a house front keeps its size. The rooster flutters up onto each row ahead of her
+(Kit.RoofRow's hop), across every gap and over every tank (this plan's hops), and down off each row's end. Three
+feathers sit on the harder routes: above the first gap, at the top of a double jump over a tank, and over the neem's
+limb (a double jump instead of the slide).
 """
 from levelkit import Plan, ROOF, run
 
@@ -26,7 +33,7 @@ IND, PINK, LIME = "house_indigo_veranda", "house_pink", "house_limewash"
 
 
 def row(p, s, x, fronts, ladder=False, mats=(), crows=None):
-    """A roof row with mangoes along its top; `mats` are x positions of drying mats on it."""
+    """A roof row with `fronts` (after the ladder house when `ladder`); `mats` are x positions of drying mats on it."""
     end = p.roofs(s, x, ([""] if ladder else []) + list(fronts), ladder=ladder)
     for i, mx in enumerate(mats):
         p.prop(s, "chilli_mat" if i % 2 == 0 else "papad_mat", mx, 0.95, h=0.25, y=ROOF)    # behind her line
@@ -39,264 +46,225 @@ def roof_mangoes(p, s, x0, x1, avoid=()):
     """A line of mangoes along a roof, at chest height, stopping short of anything to jump on it."""
     x = x0
     while x < x1:
-        if not any(abs(x - a) < 2.4 for a in avoid):
+        if not any(abs(x - a) < 1.6 for a in avoid):
             p.mango(s, x, ROOF + 0.55)
-        x += 0.8
+        x += 0.7
 
 
-def gap(p, s, end, nxt):
-    """The gap between two rows: the rooster's hop across, and an arc of mangoes on the jump."""
+def gap(p, s, end, width):
+    """The gap between two rows: the rooster's hop across, and an arc of mangoes on the jump. Returns where the next
+    row starts."""
+    nxt = end + width
     p.hop_gap(s, end, nxt)
-    p.arc(s, end - 1.2, nxt - end + 2.4, 1.1, 3, ROOF)
-
-
-def tank(p, s, x):
-    p.tank(s, x, ROOF)
+    p.arc(s, end - 0.6, width + 1.2, 0.9, 3, ROOF)
+    return nxt
 
 
 def design():
     p = Plan(zone=3, seed=7)
 
     # ---- the opening: the street below the terraces
-    s = p.section("Street", -10.0, 24.0, "The street under the terraces: the rooster struts ahead; tap to chase.")
+    s = p.section("Street", -10.0, 16.0, "The street under the terraces: the rooster struts ahead; tap to chase.")
     p.prop(s, "brass_vessels", -6.5, 1.5, h=0.9)
     p.prop(s, "veg_basket", -3.0, 1.3, h=0.6)
-    p.prop(s, "coconut_cart", 4.0, 2.8, h=2.7)
-    p.prop(s, "hen_2", 11.0, 1.4, h=0.42)
+    p.prop(s, "hen_2", 3.5, 1.4, h=0.42)
     p.decal(s, "kolam_4", -1.5, -1.3, 1.2)
-    p.mango_line(s, 2.0, 5, 2.0, 0.6)
+    p.mango_line(s, 1.0, 4, 1.0, 0.6)
     p.litter(s, 3)
 
-    # ---- teach
-    s = p.section("FirstRoofs", 14.0, 26.0, "Up the ladder onto the roofs, a run along them, and off the end.")
-    end = row(p, s, 20.0, [IND, PINK, LIME, IND, PINK], ladder=True, mats=(27.0,), crows=30.5)
-    roof_mangoes(p, s, 23.0, end - 0.5)
+    # ---- teach: one new thing at a time
+    s = p.section("FirstRoofs", 6.0, 13.0, "Up the ladder onto the roofs, a run along them, and off the end.")
+    end = row(p, s, 8.0, [IND, PINK], ladder=True, mats=(11.5,), crows=13.0)
+    roof_mangoes(p, s, 9.6, end - 0.4)
     p.hop_down(s, end)
-    p.litter(s, 2, holes=[(20.0, end)])
+    p.litter(s, 2, holes=[(8.0, end)])
 
-    s = p.section("FirstGap", 40.0, 26.0, "Two rows with a 2 m gap between: jump it. A feather above the gap.")
-    end = row(p, s, 42.0, [IND, LIME], ladder=True)
-    nxt = end + 2.0
-    gap(p, s, end, nxt)
-    p.feather(s, end + 1.0, ROOF + 1.9, 0)
-    end2 = row(p, s, nxt, [PINK, IND, LIME, PINK], mats=(nxt + 3.0,))
-    roof_mangoes(p, s, nxt + 1.0, end2 - 0.5)
+    s = p.section("FirstGap", 19.0, 14.0, "Two rows with a 1.2 m gap between: jump it. A feather above the gap.")
+    end = row(p, s, 20.6, [LIME], ladder=True)
+    nxt = gap(p, s, end, 1.2)
+    p.feather(s, end + 0.6, ROOF + 1.9, 0)
+    end2 = row(p, s, nxt, [PINK, IND], mats=(nxt + 2.4,))
+    roof_mangoes(p, s, nxt + 1.0, end2 - 0.4)
     p.hop_down(s, end2)
-    p.litter(s, 2, holes=[(42.0, end2)])
+    p.litter(s, 2, holes=[(20.6, end2)])
 
-    s = p.section("FirstTank", 66.0, 28.0, "A water tank on the roofs: jump it like a pot stack.")
-    end = row(p, s, 68.0, [IND, PINK, IND, LIME], ladder=True, crows=69.5)
-    tank(p, s, 74.0)
-    roof_mangoes(p, s, 71.0, end - 0.5, avoid=(74.0,))
+    s = p.section("FirstTank", 33.0, 16.0, "A water tank on the roofs: jump it. Down, and a vendor's hen in the street.")
+    end = row(p, s, 35.7, [IND, PINK], ladder=True, crows=37.2)
+    p.tank(s, 39.1, ROOF)
+    roof_mangoes(p, s, 37.3, end - 0.4, avoid=(39.1,))
     p.hop_down(s, end)
-    p.pots(s, 88.5)
-    p.litter(s, 2, avoid=(88.5,), holes=[(68.0, end)])
+    p.hens(s, 47.0, 1)
+    p.prop(s, "hens_basket", 48.1, 1.5, h=0.55)        # the hen's own basket at the road's edge
+    p.litter(s, 2, avoid=(47.0,), holes=[(35.7, end)])
 
-    s = p.section("Clothesline", 94.0, 18.0, "Back on the lane: a clothesline across it. Slide under.")
-    p.clothesline(s, 102.0)
-    p.prop(s, "brass_vessels", 106.5, 1.6, h=0.9)
-    p.litter(s, 2, avoid=(102.0,))
+    s = p.section("Neem", 49.0, 8.0, "A roadside neem's low limb across the street: slide under. A feather above it.")
+    p.low_branch(s, 53.0)
+    p.feather(s, 53.0, 2.9, 2)
+    p.litter(s, 2, avoid=(53.0,))
 
-    s = p.section("Breather", 112.0, 18.0, "A breather: mangoes and a chilli.")
-    p.chilli(s, 113.0)
-    p.mango_line(s, 115.5, 10, 1.3, 0.6)
-    p.prop(s, "kite", 122.0, 2.0, h=0.9, y=4.2)
-    p.litter(s, 3)
+    s = p.section("Breather", 57.0, 9.0, "A breather: mangoes and a chilli.")
+    p.chilli(s, 57.5)
+    p.mango_line(s, 59.0, 9, 0.75, 0.6)
+    p.prop(s, "kite", 62.0, 2.0, h=0.9, y=4.2)
+    p.litter(s, 2)
 
-    s = p.section("LongRun", 130.0, 40.0, "The long run: eleven houses and two tanks, a gap, four more houses.")
-    end = row(p, s, 133.0, [IND, PINK, LIME, IND, PINK, LIME, IND, PINK, LIME, IND], ladder=True, mats=(143.0, 151.0),
-              crows=144.0)
-    tank(p, s, 138.5)
-    tank(p, s, 146.5)
-    roof_mangoes(p, s, 136.0, end - 0.5, avoid=(138.5, 146.5))
-    nxt = end + 2.2
-    gap(p, s, end, nxt)
-    end2 = row(p, s, nxt, [PINK, IND, LIME, PINK])
-    roof_mangoes(p, s, nxt + 1.0, end2 - 0.5)
+    s = p.section("LongRun", 66.0, 21.0, "The long run: five houses and two tanks, a gap, three more houses.")
+    end = row(p, s, 67.5, [IND, PINK, LIME, IND], ladder=True, mats=(73.0,), crows=76.5)
+    p.tank(s, 71.0, ROOF)
+    p.tank(s, 75.0, ROOF)
+    roof_mangoes(p, s, 69.1, end - 0.4, avoid=(71.0, 75.0))
+    nxt = gap(p, s, end, 1.3)
+    end2 = row(p, s, nxt, [PINK, LIME, IND])
+    roof_mangoes(p, s, nxt + 0.8, end2 - 0.4)
     p.hop_down(s, end2)
-    p.litter(s, 2, holes=[(133.0, end2)])
+    p.litter(s, 2, holes=[(67.5, end2)])
 
     # ---- practise
-    s = p.section("PotsHens", 170.0, 20.0, "A pot stack, then the hens' basket.")
-    p.pots(s, 175.5)
-    p.hens_basket(s, 184.0)
-    p.prop(s, "hen_1", 185.5, 1.3, h=0.42)
-    p.litter(s, 2, avoid=(175.5, 184.0))
+    s = p.section("GoatBasket", 87.0, 11.0, "A goat kid crossing, then the hens' basket.")
+    p.goats(s, 90.5, 1)
+    p.prop(s, "goat_eating", 88.4, 2.0, h=0.95)        # its mother, nosing at the roadside
+    p.hens_basket(s, 94.5)
+    p.prop(s, "hen_1", 95.6, 1.3, h=0.42)
+    p.litter(s, 2, avoid=(90.5, 94.5))
 
-    s = p.section("GapTanks", 190.0, 48.0, "Three rows, two gaps, a tank on the first two.")
-    end = row(p, s, 193.0, [PINK, IND, LIME, IND, PINK], ladder=True)
-    tank(p, s, 198.0)
-    roof_mangoes(p, s, 196.0, end - 0.5, avoid=(198.0,))
-    nxt = end + 1.8
-    gap(p, s, end, nxt)
-    end2 = row(p, s, nxt, [IND, PINK, LIME, IND, PINK, LIME, IND, PINK], mats=(nxt + 3.0, nxt + 12.0))
-    tank(p, s, nxt + 7.5)
-    roof_mangoes(p, s, nxt + 1.0, end2 - 0.5, avoid=(nxt + 7.5,))
-    nxt2 = end2 + 2.0
-    gap(p, s, end2, nxt2)
-    end3 = row(p, s, nxt2, [PINK, LIME, IND])
-    roof_mangoes(p, s, nxt2 + 0.8, end3 - 0.5)
+    s = p.section("GapTanks", 98.0, 25.0, "Three rows, two gaps, a tank on the first two.")
+    end = row(p, s, 99.5, [PINK, IND], ladder=True)
+    p.tank(s, 103.0, ROOF)
+    roof_mangoes(p, s, 101.1, end - 0.4, avoid=(103.0,))
+    nxt = gap(p, s, end, 1.2)
+    end2 = row(p, s, nxt, [IND, LIME, PINK, IND], mats=(nxt + 2.0, nxt + 6.5))
+    p.tank(s, nxt + 4.2, ROOF)
+    roof_mangoes(p, s, nxt + 0.8, end2 - 0.4, avoid=(nxt + 4.2,))
+    nxt2 = gap(p, s, end2, 1.1)
+    end3 = row(p, s, nxt2, [PINK, LIME])
+    roof_mangoes(p, s, nxt2 + 0.7, end3 - 0.4)
     p.hop_down(s, end3)
-    p.litter(s, 2, holes=[(193.0, end3)])
+    p.litter(s, 2, holes=[(99.5, end3)])
 
-    s = p.section("Clotheslines", 238.0, 24.0, "Two clotheslines: slide, slide. A feather over the second.")
-    p.clothesline(s, 243.0)
-    p.clothesline(s, 252.0)
-    p.feather(s, 252.0, 2.9, 2)
-    p.litter(s, 2, avoid=(243.0, 252.0))
+    s = p.section("ShopSacks", 123.0, 13.0, "Sacks of paddy unloaded at the roadside for a shop: hop on and off. A dog asleep.")
+    p.sacks(s, 126.0)
+    p.dog(s, 132.0)
+    p.litter(s, 2, avoid=(126.0, 127.2, 132.0))
 
-    s = p.section("ChilliLane", 262.0, 18.0, "A chilli to win back ground.")
-    p.chilli(s, 263.0)
-    p.mango_line(s, 265.5, 10, 1.3, 0.6)
-    p.prop(s, "stall_veg", 272.0, 3.2)
-    p.litter(s, 3)
+    s = p.section("ChilliLane", 136.0, 9.0, "A chilli to win back ground.")
+    p.chilli(s, 136.5)
+    p.mango_line(s, 138.0, 9, 0.75, 0.6)
+    p.litter(s, 2)
 
-    s = p.section("RoofTrain", 280.0, 52.0, "Four rows in a train: jump, jump, jump; a feather above the tank.")
-    end = row(p, s, 284.0, [IND, PINK], ladder=True, crows=286.0)
-    roof_mangoes(p, s, 287.0, end - 0.5)
-    nxt = end + 2.0
-    gap(p, s, end, nxt)
-    end2 = row(p, s, nxt, [LIME, IND, PINK, LIME])
-    roof_mangoes(p, s, nxt + 0.8, end2 - 0.5)
-    nxt2 = end2 + 2.2
-    gap(p, s, end2, nxt2)
-    end3 = row(p, s, nxt2, [IND, LIME, PINK, IND, LIME, PINK, IND, LIME], mats=(nxt2 + 3.0,))
-    tank(p, s, nxt2 + 7.1)
-    p.feather(s, nxt2 + 7.2, ROOF + 2.9, 1)
-    roof_mangoes(p, s, nxt2 + 1.0, end3 - 0.5, avoid=(nxt2 + 7.1,))
-    nxt3 = end3 + 1.8
-    gap(p, s, end3, nxt3)
-    end4 = row(p, s, nxt3, [PINK, LIME, IND])
+    s = p.section("RoofTrain", 145.0, 29.0, "Four rows in a train: jump, jump, jump; a feather above the tank.")
+    end = row(p, s, 146.0, [IND], ladder=True, crows=148.0)
+    roof_mangoes(p, s, 147.6, end - 0.4)
+    nxt = gap(p, s, end, 1.2)
+    end2 = row(p, s, nxt, [LIME, IND, PINK])
+    roof_mangoes(p, s, nxt + 0.8, end2 - 0.4)
+    nxt2 = gap(p, s, end2, 1.3)
+    end3 = row(p, s, nxt2, [IND, LIME, PINK, IND], mats=(nxt2 + 6.0,))
+    p.tank(s, nxt2 + 4.0, ROOF)
+    p.feather(s, nxt2 + 4.1, ROOF + 2.9, 1)
+    roof_mangoes(p, s, nxt2 + 0.8, end3 - 0.4, avoid=(nxt2 + 4.0,))
+    nxt3 = gap(p, s, end3, 1.1)
+    end4 = row(p, s, nxt3, [PINK, LIME])
     p.hop_down(s, end4)
-    p.litter(s, 2, holes=[(284.0, end4)])
+    p.litter(s, 2, holes=[(146.0, end4)])
 
-    s = p.section("PotsPair", 332.0, 20.0, "Two pot stacks.")
-    p.pots(s, 336.0)
-    p.pots(s, 344.0)
-    p.litter(s, 2, avoid=(336.0, 344.0))
+    s = p.section("DungHens", 174.0, 9.0, "Cow dung, then two hens pecking in the street.")
+    p.dung(s, 177.0)
+    p.hens(s, 181.0, 2)
+    p.litter(s, 2, avoid=(177.0, 181.0))
 
     # ---- test
-    s = p.section("Mischief", 352.0, 26.0, "A pot stack; the rooster knocks the hens' basket into the lane; a clothesline.")
-    p.pots(s, 357.0)
-    p.prop(s, "hens_basket", 365.4, 1.4, h=0.55)
-    p.hens_basket(s, 365.0, hidden=True, ident="knocked")
-    p.mischief(s, 366.0, "knocked")
-    p.jump_arc(s, 365.0)
-    p.clothesline(s, 374.0)
-    p.litter(s, 2, avoid=(357.0, 365.0, 374.0))
+    s = p.section("Mischief", 183.0, 13.0, "The hand-pump puddle; the rooster knocks the hens' basket into the street; a goat kid.")
+    p.puddle(s, 186.5)
+    p.prop(s, "hens_basket", 190.9, 1.4, h=0.55)
+    p.hens_basket(s, 190.5, hidden=True, ident="knocked")
+    p.mischief(s, 191.0, "knocked")
+    p.jump_arc(s, 190.5)
+    p.goats(s, 194.5, 1)
+    p.litter(s, 2, avoid=(186.5, 190.5, 194.5))
 
-    s = p.section("LongTanks", 378.0, 54.0, "The long run again, three tanks, a gap; down, and pots.")
-    end = row(p, s, 382.0, [IND, PINK, LIME, IND, PINK, LIME, IND, PINK, LIME, IND], ladder=True, mats=(391.5, 399.5),
-              crows=392.5)
-    tank(p, s, 387.5)
-    tank(p, s, 395.5)
-    roof_mangoes(p, s, 385.0, end - 0.5, avoid=(387.5, 395.5))
-    nxt = end + 2.2
-    gap(p, s, end, nxt)
-    end2 = row(p, s, nxt, [IND, PINK, LIME, IND, PINK, LIME, IND])
-    tank(p, s, nxt + 7.1)
-    roof_mangoes(p, s, nxt + 1.0, end2 - 0.5, avoid=(nxt + 7.1,))
+    s = p.section("LongTanks", 196.0, 26.0, "The long run again: three tanks and a gap, then down.")
+    end = row(p, s, 197.5, [IND, PINK, LIME, IND], ladder=True, mats=(203.0,), crows=206.5)
+    p.tank(s, 201.0, ROOF)
+    p.tank(s, 205.0, ROOF)
+    roof_mangoes(p, s, 199.1, end - 0.4, avoid=(201.0, 205.0))
+    nxt = gap(p, s, end, 1.2)
+    end2 = row(p, s, nxt, [PINK, IND, LIME, PINK])
+    p.tank(s, nxt + 3.8, ROOF)
+    roof_mangoes(p, s, nxt + 0.8, end2 - 0.4, avoid=(nxt + 3.8,))
     p.hop_down(s, end2)
-    p.pots(s, 428.0)
-    p.litter(s, 2, avoid=(428.0,), holes=[(382.0, end2)])
+    p.litter(s, 2, holes=[(197.5, end2)])
 
-    s = p.section("ChilliStraight", 432.0, 20.0, "A chilli and a long straight.")
-    p.chilli(s, 433.0)
-    p.mango_line(s, 435.5, 10, 1.3, 0.6)
-    p.prop(s, "coconut_cart", 442.0, 3.0, h=2.7, mirror=True)
-    p.litter(s, 3)
+    s = p.section("SandDogBasket", 222.0, 13.0, "A house going up (its sand heap), the dog, the hens' basket.")
+    p.sand(s, 225.0)
+    p.dog(s, 229.0)
+    p.hens_basket(s, 233.0)
+    p.litter(s, 2, avoid=(225.0, 229.0, 233.0))
 
-    s = p.section("ClothesPotsHens", 452.0, 28.0, "Clothesline, pots, the hens' basket.")
-    p.clothesline(s, 456.0)
-    p.pots(s, 462.5)
-    p.hens_basket(s, 471.0)
-    p.litter(s, 2, avoid=(456.0, 462.5, 471.0))
+    s = p.section("FinalChilli", 235.0, 9.0, "The last chilli.")
+    p.chilli(s, 235.5)
+    p.mango_line(s, 237.0, 9, 0.75, 0.6)
+    p.litter(s, 2)
 
-    s = p.section("GapRun", 480.0, 50.0, "Four rows, three gaps, a tank in the third row.")
-    end = row(p, s, 482.0, [PINK, IND, LIME], ladder=True)
-    roof_mangoes(p, s, 485.0, end - 0.5)
-    nxt = end + 2.0
-    gap(p, s, end, nxt)
-    end2 = row(p, s, nxt, [IND, LIME, PINK, LIME])
-    roof_mangoes(p, s, nxt + 0.8, end2 - 0.5)
-    nxt2 = end2 + 2.2
-    gap(p, s, end2, nxt2)
-    end3 = row(p, s, nxt2, [PINK, IND, LIME, IND, PINK, LIME, IND, PINK], crows=nxt2 + 11.0)
-    tank(p, s, nxt2 + 7.2)
-    roof_mangoes(p, s, nxt2 + 1.0, end3 - 0.5, avoid=(nxt2 + 7.2,))
-    nxt3 = end3 + 1.8
-    gap(p, s, end3, nxt3)
-    end4 = row(p, s, nxt3, [LIME, PINK, IND])
-    p.hop_down(s, end4)
-    p.litter(s, 2, holes=[(482.0, end4)])
-
-    s = p.section("HensPots", 530.0, 22.0, "The hens' basket, then pots.")
-    p.hens_basket(s, 535.0)
-    p.pots(s, 543.5)
-    p.litter(s, 2, avoid=(535.0, 543.5))
-
-    s = p.section("FinalChilli", 552.0, 20.0, "The last chilli.")
-    p.chilli(s, 553.0)
-    p.mango_line(s, 555.5, 10, 1.3, 0.6)
-    p.litter(s, 3)
-
-    s = p.section("LastRoofs", 572.0, 64.0, "The last long run: two tanks, a gap, a tank, a gap; down, a clothesline.")
-    end = row(p, s, 575.0, [IND, PINK, LIME, IND, PINK, LIME, IND, PINK, LIME, IND], ladder=True, mats=(584.5,),
-              crows=592.0)
-    tank(p, s, 580.5)
-    tank(p, s, 588.5)
-    roof_mangoes(p, s, 578.0, end - 0.5, avoid=(580.5, 588.5))
-    nxt = end + 2.0
-    gap(p, s, end, nxt)
-    end2 = row(p, s, nxt, [IND, PINK, LIME, IND, PINK, LIME, IND, PINK])
-    tank(p, s, nxt + 7.3)
-    roof_mangoes(p, s, nxt + 1.0, end2 - 0.5, avoid=(nxt + 7.3,))
-    nxt2 = end2 + 2.2
-    gap(p, s, end2, nxt2)
-    end3 = row(p, s, nxt2, [PINK, IND, LIME])
-    roof_mangoes(p, s, nxt2 + 0.8, end3 - 0.5)
+    s = p.section("LastRoofs", 244.0, 33.0, "The last long run: two tanks, a gap, a tank, a gap; down.")
+    end = row(p, s, 245.5, [IND, PINK, LIME, IND], ladder=True, mats=(251.0,), crows=254.5)
+    p.tank(s, 249.0, ROOF)
+    p.tank(s, 253.0, ROOF)
+    roof_mangoes(p, s, 247.1, end - 0.4, avoid=(249.0, 253.0))
+    nxt = gap(p, s, end, 1.2)
+    end2 = row(p, s, nxt, [IND, PINK, LIME, IND])
+    p.tank(s, nxt + 4.2, ROOF)
+    roof_mangoes(p, s, nxt + 0.8, end2 - 0.4, avoid=(nxt + 4.2,))
+    nxt2 = gap(p, s, end2, 1.3)
+    end3 = row(p, s, nxt2, [PINK, LIME, IND])
+    roof_mangoes(p, s, nxt2 + 0.7, end3 - 0.4)
     p.hop_down(s, end3)
-    p.clothesline(s, 631.0)
-    p.litter(s, 2, avoid=(631.0,), holes=[(575.0, end3)])
+    p.litter(s, 2, holes=[(245.5, end3)])
 
-    s = p.section("LastTest", 636.0, 32.0, "Pots, a clothesline, the hens' basket, pots.")
-    p.pots(s, 639.0)
-    p.clothesline(s, 648.0)
-    p.hens_basket(s, 654.0)
-    p.pots(s, 662.0)
-    p.mango_line(s, 665.0, 2, 1.3, 0.6)
-    p.litter(s, 3, avoid=(639.0, 648.0, 654.0, 662.0))
+    s = p.section("LastTest", 277.0, 13.0, "The hens' basket, a goat kid, cow dung: the last test.")
+    p.hens_basket(s, 280.0)
+    p.goats(s, 284.0, 1)
+    p.dung(s, 288.0)
+    p.litter(s, 2, avoid=(280.0, 284.0, 288.0))
 
-    s = p.section("OpenStreet", 668.0, 38.0, "The street opens out: if he is still ahead, he gets away at 700 m.")
-    p.mango_line(s, 670.0, 14, 1.4, 0.6)
-    p.prop(s, "brass_vessels", 690.0, 1.6, h=0.9)
-    p.prop(s, "veg_basket", 692.0, 1.3, h=0.6, mirror=True)
-    p.prop(s, "stall_sweets", 699.0, 3.2)
-    p.litter(s, 4)
+    s = p.section("OpenStreet", 290.0, 18.0, "The street opens out: if he is still ahead, he gets away at 300 m.")
+    p.mango_line(s, 291.0, 10, 1.0, 0.6)
+    p.prop(s, "brass_vessels", 299.0, 1.6, h=0.9)
+    p.prop(s, "veg_basket", 301.0, 1.3, h=0.6, mirror=True)
+    p.litter(s, 3)
     return p
 
 
 PROSE = [
     "## The opening: the street",
     "",
-    "No basket here: the chase starts in the street under the terraces with the rooster 12 m ahead (the level's Ready",
-    "screen; tap to chase). A clean run closes 0.6 m a second and catches him at about 149 m.",
+    "No basket here: the chase starts in the street under the terraces with the rooster 7 m ahead (the level's Ready",
+    "screen; tap to chase). The kid runs 3.5 m/s, a small child's real pace, and the rooster 3.15: a clean run closes",
+    "0.35 m a second and catches him at about 62 m. The course is 300 m, about a minute and a half.",
     "",
     "## The roofs",
     "",
     "* **Up:** every row that does not follow a gap has the bamboo ladder on its first house: run into it and she",
     "  climbs in 0.45 s. Without one, a double jump reaches the 2.35 m roof, or she vaults it slowly.",
-    "* **Across:** the gaps are 1.8 to 2.2 m; a held jump clears them with 370 to 420 ms to take off, a tap too. Missing",
-    "  one drops her to the lane, and the next house's wall is a slow vault.",
-    "* **On top:** black water tanks to jump like pot stacks; chilli and papad mats drying, crows on the parapets.",
-    "* **Down:** off the last row's end she drops to the lane, about 3.2 m on.",
-    "* **Between the rows:** clotheslines to slide under (learnt in level 2), pot stacks, the hens' basket.",
+    "* **Across:** the gaps are 1.1 to 1.3 m, a real gap between two houses; a held jump clears them with 310 to 370 ms",
+    "  to take off, a tap with 140 to 200 ms. Missing one drops her to the lane, and the next house's wall is a slow vault.",
+    "* **On top:** black water tanks to jump; chilli and papad mats drying, crows on the parapets.",
+    "* **Down:** off a row's end she drops to the lane, about 1.4 m on.",
+    "* **Rows:** two to five houses (a house front keeps its size, so the rows are shorter than at the old pace, and",
+    "  take about as long to run).",
+    "",
+    "## The street between the rows",
+    "",
+    "Only what lies in a real street, spaced about 4 m (a second and a bit) apart: a vendor's hens and their basket, a",
+    "goat kid crossing, cow dung, the puddle round the hand pump, a dog asleep, sacks of paddy unloaded at the roadside",
+    "for a shop (hop onto them and off), a heap of sand where a house is going up, and one roadside neem whose low",
+    "limb she slides under. The washing lines strung across the street are gone, and so are the pot stacks.",
     "",
     "## The shape of it",
     "",
-    "Teach (to 170 m): the ladder and one row, one gap, one tank, a clothesline back on the lane, then the long run.",
-    "Practise (to 328 m): gaps and tanks together, two clotheslines, a train of four rows. Test (to 700 m): the",
-    "rooster's mischief with the hens' basket, the long run with three tanks, rows of gaps, the last ladder.",
+    "Teach (to 85 m): the ladder and one row, one gap, one tank, the neem back on the lane, a chilli, then the long run.",
+    "Practise (to 181 m): a goat and the basket, gaps and tanks together, the sacks and the dog, a train of four rows.",
+    "Test (to 300 m): the rooster's mischief with the hens' basket, the long run with three tanks, the sand heap and the",
+    "dog, the last long run, the last three things in the street, and the street opens out.",
 ]
 
 

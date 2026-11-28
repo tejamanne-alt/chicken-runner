@@ -1019,10 +1019,13 @@ def audit_parts():
                 ("bloomersL", "bloomerL", "thighL", 0.012), ("bloomersR", "bloomerR", "thighR", 0.012)]
     return part, sets, pairs, attached
 
-# the run's IK works on this model's legs
+# the run's IK works on this model's legs; the foot rolls over the front of its sole (the toes are folded into it)
 for side in ("Left",):
     hip_, knee_, ankle_ = J[f"{side}UpperLeg"], J[f"{side}LowerLeg"], J[f"{side}Foot"]
+    _fg = body.vertex_groups[f"{side}Foot"].index
+    _sole = [v.co.y for v in body.data.vertices if v.co.z < 0.03 and any(g.group == _fg and g.weight > 0.5 for g in v.groups)]
     A.LEGS.update(thigh=(knee_ - hip_).length, shank=(ankle_ - knee_).length, hip=hip_.z, ankle=ankle_.z,
+                  toe=ankle_.y - min(_sole),
                   thigh_rest=math.atan2(-(knee_.y - hip_.y), hip_.z - knee_.z),
                   shank_rest=math.atan2(-(ankle_.y - knee_.y), knee_.z - ankle_.z),
                   ball=abs(J[f"{side}Toes"].y - ankle_.y), ankle_fwd=-ankle_.y, hip_fwd=-hip_.y, x=abs(hip_.x),
