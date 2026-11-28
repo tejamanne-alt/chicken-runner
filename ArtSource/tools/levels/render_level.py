@@ -2242,6 +2242,7 @@ def blender_main():
             mask = state_mask(st)
             cand = np.nonzero(mask)[0]
             pts = []
+            own_items = {getattr(r_, "item_id", None) for r_ in ob["recs"]} - {None}
             for tr in target_recs:
                 lo, hi = tr.aabb
                 if tr.mode == "card" and tr.info is not None:
@@ -2251,7 +2252,10 @@ def blender_main():
                         if tr.info.alpha_at(u, v) >= 0.5:
                             pts.append(tr.M @ Vector((u - 0.5, 0, v - 0.5)))
                 elif tr.mode == "water":
-                    pts += [Vector((tr.x + fx * tr.w / 2, tr.z, 0.008)) for fx in (-0.6, 0.0, 0.6)]
+                    # on the running line (its z is the middle of its 44.5 m depth, behind the camera) and inside the
+                    # stone banks (0.24 m each side), which are the canal's own
+                    inner = max(0.05, tr.w / 2 - 0.24)
+                    pts += [Vector((tr.x + fx * inner, 0.0, 0.008)) for fx in (-0.4, 0.0, 0.4)]
                 else:
                     cx_, cz_ = (lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2
                     hgt = hi[2] - lo[2]
@@ -2265,8 +2269,8 @@ def blender_main():
                 t, hit = cast(pos_b, dvec, cand, tmax=tt + 2.0)
                 if hit is None or hit == "ground":
                     continue
-                if hit in target_recs:
-                    vis += 1
+                if hit in target_recs or (getattr(hit, "item_id", None) is not None and hit.item_id in own_items):
+                    vis += 1                      # the obstacle itself, or another part of it (a canal's own banks)
                 elif hit.role == "pickup":
                     cov += 1
                     by[hit.piece] = by.get(hit.piece, 0) + 1
