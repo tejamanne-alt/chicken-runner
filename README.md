@@ -6,8 +6,11 @@ A side-scrolling chase runner: a village kid chases a smug rooster through an In
 
 ## Open it
 
-1. In Unity Hub, choose **Add project from disk** and pick this folder. Open it with **Unity 6.3 LTS** (6000.3.x). If Hub offers a different 6000.3 patch, accept it.
-2. On first open Unity installs the Input System package. If it asks whether to enable the new input backends, choose **Yes** and let the editor restart. Choosing No also works, because the game falls back to the old Input Manager.
+1. In Unity Hub, choose **Add project from disk** and pick this folder. Open it with **Unity 6000.3.28f1** (6.3 LTS).
+2. On first open Unity installs the Input System package, and `ProjectDefaults` (an editor script) applies the Player Settings and offers to restart the editor; choose **Restart**. If the Input System package asks whether to enable the new input backends, choose **Yes**. The settings, kept in code because `ProjectSettings/` is not in git and applied whenever the editor loads (or from **Chicken Runner > Apply Project Settings**):
+   - Bundle identifier / package name `com.astradite.chickendinner` on iOS, Android and desktop.
+   - iOS signing automatic with Apple team `JYC5MKYDS7`, also written into the exported Xcode project's targets, so Xcode opens with the right team.
+   - Active Input Handling: **Input System Package (New)**. Change these in `Assets/ChickenRunner/Scripts/Editor/ProjectDefaults.cs`, not in Player Settings, which it resets on load.
 3. Choose **Chicken Runner > Build Game** from the menu bar. This copies the art it needs from `ArtSource` into `Assets/ChickenRunner/Art/Textures`, generates the tuning and obstacle assets, every zone's chunk prefabs, the nine levels and each zone's scenery, and saves `Assets/ChickenRunner/Game/Game.unity` (first in the build settings). Then **Chicken Runner > Open Game Scene**.
 4. Press **Play**: the title, then the story strip the first time, then level 1. Tap, click or press Space to start each chase. Each zone's first level (1, 4 and 7) is open on the village map from the start; the others open with stars, as the doc says. To go straight into any level, use **Chicken Runner > Play Level > 1 to 9**.
 
