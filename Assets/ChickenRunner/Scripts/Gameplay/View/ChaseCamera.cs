@@ -7,8 +7,9 @@ namespace ChickenRunner
     /// perspective camera looking along +z at the lane, tilted 4 degrees down, the kid 24.1% of the screen tall with her
     /// feet 16.9% up it and 40% of the way across, the road under her and the village close behind (a house's base about
     /// 35% up the screen, its eaves about 70%), the sky above. Kick Off's kid is 1.3 m tall in a 5.4 m view; this kid is
-    /// 1.08 m, so the view is 4.48 m tall, about 7.3 m back, and on the screen she is the same size. A faster zone pulls
-    /// back just enough to keep three quarters of a second of lane ahead in view.
+    /// 1.08 m, so the view is 4.48 m tall, about 7.3 m back, and on the screen she is the same size. A screen narrower
+    /// than a phone's (or a faster run, if a zone's tuning asks for one) pulls back just enough to keep three quarters of
+    /// a second of lane ahead in view.
     ///
     /// Unlike Kick Off's camera it follows the ground the kid runs on rather than the kid, so jumps do not bob the
     /// view: it rises when she lands on a roof and drops when she drops. The rooster: a close one is brought into the

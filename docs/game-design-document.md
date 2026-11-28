@@ -45,7 +45,7 @@ Losing the rooster costs only a retry, and the story moves on each time the kid 
 
 - **The gap is the score.** A bar at the top shows kid, rooster and the distance between them in metres. Clean running closes it; every mistake opens it.
 - **Mistakes cost distance.** Hitting a pot stack, slipping on dung, wading a canal or climbing a wall the slow way each lose 2 to 3 metres. Nothing kills the kid.
-- **Skill routes save distance.** A double jump onto a roof, a slide under a clothesline or a hop across a haystack keeps full speed.
+- **Skill routes save distance.** A double jump onto a roof, a slide under a low branch or a hop across a haystack keeps full speed.
 - **Chilli boost.** Red chillies give a 2-second sprint, the main way to recover from a mistake.
 - **The grab.** Inside 0.8 m the kid dives automatically. In levels 1 to 8 the rooster wriggles free in a short gag and the level is won. In the last level the catch sticks.
 - **Losing.** The rooster escapes if the gap passes 25 m or the course ends before the grab. The player retries the level; there are no lives.
@@ -120,17 +120,25 @@ The chase crosses three zones, each with three levels, and each zone teaches one
 
 ### Obstacles and climbables
 
+Everything in the road is something a child running down a 1980s Tamil village street would really meet: animals
+asleep or wandering, puddles, dung, things set down at the roadside. Nothing is parked or strung across the road
+(no bullock carts, no washing lines), and nothing is wider than a small child can clear in one jump at her pace.
+
 | Object | Zones | If you hit it | Clean way past |
 | --- | --- | --- | --- |
-| Clay pot stack | 1, 3 | Pots smash, stumble | Jump |
-| Cow dung | 1, 2 | Slip and skid | Jump |
+| The potter's clay pots, drying | 1, 3 | Pots smash, stumble | Jump |
+| Cow dung | 1, 2, 3 | Slip and skid | Jump |
 | Sleeping street dog | 1 | Dog barks, stumble | Jump |
-| Hand pump and puddle | 1 | Stumble | Jump |
-| Clothesline of sarees | 1, 3 | Tangled, stumble | Slide |
+| Hand pump and its puddle | 1, 3 | Stumble | Jump |
+| Hens pecking (one or two) | 1, 3 | They scatter, stumble | Jump |
+| A goat kid crossing | 1, 2, 3 | It bleats, stumble | Jump |
+| Ducks crossing between canals | 2 | They scatter, stumble | Jump |
+| Heap of building sand | 1, 3 | Flounder, stumble | Jump |
+| A neem's low branch | 1, 3 | Brushed by the leaves, stumble | Slide |
 | Rope cot | 1 | Nothing: it is a trampoline | Land on it for a high bounce |
 | Flat-roofed house | 1, 3 | Slow wall vault | Double jump, or ladder |
 | Bamboo ladder | 1, 3 | None | Swipe up to reach the roof |
-| Bullock cart | 1, 2 | Slow vault | Jump onto the bed, use it as a step |
+| Sacks of paddy waiting for the cart | 1, 2, 3 | None: a platform | Hop onto them, use them as a step |
 | Haystack | 2 | Slow vault | Hop over the top |
 | Irrigation canal | 2 | Wade across slowly | Jump, or take the plank bridge |
 | Buffalo in a mud patch | 2 | Blocked, slow climb | Bounce off its back |
@@ -151,7 +159,7 @@ Story mode is nine levels; each is a course of hand-built chunks 12 to 20 m long
 | Level | Zone | New element |
 | --- | --- | --- |
 | 1 | Lane | Jump: pots, dung, dog |
-| 2 | Lane | Slide: clotheslines; rope-cot bounce |
+| 2 | Lane | Slide: low branches; rope-cot bounce |
 | 3 | Lane | Houses, ladders, first rooftop stretch |
 | 4 | Fields | Canals and plank bridges |
 | 5 | Fields | Mango trees and branch routes |
@@ -160,24 +168,25 @@ Story mode is nine levels; each is a course of hand-built chunks 12 to 20 m long
 | 8 | Market | Awnings, crowds of hens, the basket fake-out |
 | 9 | Temple steps | Everything, longest course, the catch that sticks |
 
-Starting values, all to be tuned in the grey-box prototype:
+Starting values. The kid runs at a small child's real pace, the pace of Kick Off's kid on screen (its 1.3 m kid runs
+4.2 m/s; at the same framing this 1.08 m kid's is 3.5 m/s). The zones differ in what is in the road, not in speed.
 
 | Parameter | Zone 1 | Zone 2 | Zone 3 |
 | --- | --- | --- | --- |
-| Kid run speed (m/s) | 6.0 | 7.0 | 8.0 |
-| Rooster run speed (m/s) | 5.5 | 6.4 | 7.4 |
-| Course length (m) | 500 | 600 | 700 |
+| Kid run speed (m/s) | 3.5 | 3.5 | 3.5 |
+| Rooster run speed (m/s) | 3.2 | 3.15 | 3.15 |
+| Course length (m) | 290 | 295 | 300 (340 for level 9) |
 
 | Parameter | Value |
 | --- | --- |
-| Starting gap | 10 m after a smooth basket lift, 14 m after a clumsy one; 12 m in levels that skip the basket |
-| Single jump | 1.4 m high, about 3.7 m long at zone 1 speed |
-| Double jump | 2.6 m total height |
+| Starting gap | 6 m after a smooth basket lift, 8 m after a clumsy one; 7 m in levels that skip the basket |
+| Single jump | 1.4 m high, 0.62 s in the air: about 2.2 m long at 3.5 m/s |
+| Double jump | 2.6 m total height, about 3.5 m long |
 | House roof height | 2.2 to 2.6 m, so a roof needs a double jump, a ladder or a vault |
-| Canal widths | 2.5, 3.5 and 4.5 m; the widest needs a double jump |
-| Stumble | 0.7 s at 45% speed, about 2.5 m lost |
-| Chilli boost | +35% speed for 2.2 s, about 5 m gained |
-| Taunt and escape | Rooster slows beyond 18 m; level lost beyond 25 m |
+| Canal widths | 1.2, 1.8 and 2.6 m; the widest needs a double jump |
+| Stumble | 0.7 s at 45% speed, about 1.4 m (0.4 s of running) lost |
+| Chilli boost | +35% speed for 2.2 s, about 2.7 m (0.8 s of running) gained |
+| Taunt and escape | Rooster slows beyond 10.5 m; level lost beyond 14 m |
 
 An endless mode, built from the same chunks with rising speed and a distance score, follows after launch.
 
@@ -202,7 +211,7 @@ hand-built models gain the decorations as real parts.
 - **Readability rule:** anything that hurts has a dark outline and a warm colour; anything helpful (mangoes, chillies, ladders, cots) glints.
 - **UI:** hand-painted signboard style, chunky rounded type. The Baloo 2 family is a good fit: it has a matching font for each of nine Indian scripts if text is localised later.
 
-Village detail list for the art pass: bamboo chicken baskets, thatched and flat-roofed houses, doorstep kolam, tulsi planter, brass pots, cots, bullock cart, hand pump, hanging sarees, haystacks, scarecrow with a painted pot head, palm and mango trees, canal sluice, black water tanks, chillies and papad drying on terraces, market stalls with marigold garlands, festival bunting, kites; and for Pongal: thoranams, coloured kolams, sugarcane, Pongal pots on brick hearths and cattle with painted horns.
+Village detail list for the art pass: bamboo chicken baskets, thatched and flat-roofed houses, doorstep kolam, tulsi planter, brass pots, cots, bullock cart (at the roadside, never across it), hand pump, sarees drying in the yards, haystacks, scarecrow with a painted pot head, palm and mango trees, canal sluice, black water tanks, chillies and papad drying on terraces, market stalls with marigold garlands, festival bunting, kites; and for Pongal: thoranams, coloured kolams, sugarcane, Pongal pots on brick hearths and cattle with painted horns.
 
 ## Audio
 
@@ -282,7 +291,7 @@ The game is free; progress comes from stars and outfits, and ads are opt-in rewa
 
 - **Stars** open the next zone: 5 of 9 stars for the fields, 12 of 18 for the terraces.
 - **Mangoes and feathers** buy outfits for the kid: school uniform, festival clothes, raincoat, cricket whites. Outfits are cosmetic only.
-- **Rewarded ads:** a second chance once per level (the rooster stops to taunt and the gap resets to 12 m), and double mangoes on the result screen.
+- **Rewarded ads:** a second chance once per level (the rooster stops to taunt and the gap resets to 7 m), and double mangoes on the result screen.
 - **Interstitial ads:** at most one after every third level result, never between a loss and a retry.
 - **One purchase:** remove interstitials and get a golden-rooster outfit.
 
@@ -293,7 +302,7 @@ The ad plan depends on the audience decision in the risks section; it changes if
 The first shippable version is one zone and three levels; the plan below is sized in weekend sessions and each milestone has a gate that must pass before the next starts.
 
 1. **Grey-box chase, 1 weekend.** Capsule kid, capsule rooster, gap bar, jump and slide, six chunks. Gate: the chase is fun with no art at all.
-2. **Kid in the game, 2 weekends.** Supplied model, animation states, vault, ladder, canal wade, basket intro. Gate: the run, jump and dive feel right at 6 m/s.
+2. **Kid in the game, 2 weekends.** Supplied model, animation states, vault, ladder, canal wade, basket intro. Gate: the run, jump and dive feel right at 3.5 m/s.
 3. **Zone 1 complete, 2 weekends.** Lane art set, rooster model and behaviours, HUD, audio pass, levels 1 to 3. Gate: five outside players finish level 1 without help.
 4. **Store-ready slice, 1 to 2 weekends.** Save data, results, ads behind a flag, analytics, Android internal test and TestFlight builds. Gate: no crash in 50 sessions.
 5. **Zones 2 and 3, 3 to 4 weekends.** Fields, terraces, market, levels 4 to 9, outfits, final catch scene. Gate: level funnel data shows where players stop.

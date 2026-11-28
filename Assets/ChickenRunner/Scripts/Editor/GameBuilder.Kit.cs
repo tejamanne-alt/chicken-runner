@@ -679,12 +679,12 @@ namespace ChickenRunner.EditorTools
             public void Chilli(float x, float y)
             {
                 var pickup = PickupRoot("Chilli", x, y, PickupKind.Chilli, 0.3f);
-                pickup.spinSpeed = 300f;
+                pickup.spinSpeed = 120f;
                 if (PickupModel(pickup.visual, "Chilli", Quaternion.Euler(0f, 0f, -30f))) return;
                 Prim(PrimitiveType.Capsule, "Pod", pickup.visual, Vector3.zero, new Vector3(0.12f, 0.2f, 0.12f), Palette.Chilli)
                     .transform.localRotation = Quaternion.Euler(0f, 0f, 55f);
                 Prim(PrimitiveType.Cube, "Stalk", pickup.visual, new Vector3(-0.15f, 0.12f, 0f), new Vector3(0.04f, 0.1f, 0.04f), Palette.Leaf);
-                pickup.spinSpeed = 300f;
+                pickup.spinSpeed = 120f;
             }
 
             /// <summary>One of the level's three hidden tail feathers, <paramref name="index"/> 0 to 2, on a harder route.</summary>
@@ -692,7 +692,7 @@ namespace ChickenRunner.EditorTools
             {
                 var pickup = PickupRoot("Feather" + index, x, y, PickupKind.Feather, 0.3f);
                 pickup.featherIndex = index;
-                pickup.spinSpeed = 120f;
+                pickup.spinSpeed = 60f;
                 if (PickupModel(pickup.visual, "Feather", Quaternion.identity)) return;
                 Prim(PrimitiveType.Capsule, "Vane", pickup.visual, Vector3.zero, new Vector3(0.12f, 0.3f, 0.04f), Palette.Feather)
                     .transform.localRotation = Quaternion.Euler(0f, 0f, -30f);

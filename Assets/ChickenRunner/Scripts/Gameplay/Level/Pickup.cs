@@ -19,7 +19,7 @@ namespace ChickenRunner
 
         [SerializeField] internal PickupKind kind = PickupKind.Mango;
         [SerializeField] internal Transform visual;
-        [SerializeField] internal float spinSpeed = 180f;
+        [SerializeField] internal float spinSpeed = 90f;     // a slow turn, a quarter a second: nothing in the street whirls
         [Tooltip("Feathers only: which of the level's three hidden feathers this is, 0 to 2.")]
         [SerializeField, Range(0, 2)] internal int featherIndex;
 
