@@ -5,116 +5,122 @@ the same plan the game is built from (`Assets/ChickenRunner/Art/Levels/level4.js
 it. Edit the plan script, not this page, and run it again; it audits the course with the game's own jump maths
 and tuning, and fails on a violation. `GameBuilder` (Chicken Runner > Build Game) then lays one chunk per section.
 
-Zone 2: the kid runs at 7 m/s, the rooster at 6.4 m/s; a held jump is 4.32 m long and 1.4 m high; the course is 600 m.
+Zone 2: the kid runs at 3.5 m/s, the rooster at 3.15 m/s; a held jump is 2.16 m long and 1.4 m high; the course is 295 m.
 
 ## The opening: the bund
 
-No basket here: the chase starts on the bund between the paddies with the rooster 12 m ahead (the level's Ready
-screen; tap to chase). A clean run closes 0.6 m a second and catches him at about 131 m.
+No basket here: the chase starts on the bund between the paddies with the rooster 7 m ahead (the level's Ready
+screen; tap to chase). The kid runs at a small child's real pace, 3.5 m/s, and closes on him at 0.35 m a second:
+a clean run catches him at about 62 m, some 18 s in. A level still takes about a minute and a half.
 
 ## The canal
 
-* **2.5 m:** a held jump clears it (290 ms to take off); a tap lands in the water.
-* **3.5 m:** a held jump is a gamble (147 ms), so the 3.5 m canals all have the plank bridge: run across.
-* **4.5 m:** only a double jump clears it (405 ms); the mangoes trace the double jump's line.
-* **In the water:** never a fail. She wades at 45% speed (5.5 m lost on the widest) and steps out of the 0.28 m bed.
+Irrigation channels cut across the bund road at the widths they really are:
+
+* **1.2 m:** a held jump clears it (340 ms to take off); a tap lands in the water.
+* **1.8 m:** a full held jump only just clears it (168 ms), so where it is first met it has the plank bridge: run
+  across. Near the end one has no plank: a full jump, or a double jump to be sure (570 ms).
+* **2.6 m:** only a double jump clears it (340 ms); the mangoes trace the double jump's line.
+* **In the water:** never a fail. She wades at 45% speed (3.2 m lost on the widest) and steps out of the 0.28 m bed.
+
+## What is on the road
+
+Only what lies on a bund road between the paddies: the canals, ducks waddling up from them (at most two), cow dung,
+small straw heaps at the roadside (hop onto or over), sacks of paddy waiting for the cart (a 0.8 m platform to hop
+onto), and the water pots by the well, which the rooster knocks into the road. No carts stand across it any more.
+Things to jump are about 4 m (a second and a bit) apart, and each chilli has 11 m or more of clear road after it.
 
 ## The shape of it
 
-Teach (to 150 m): one new thing at a time. Practise (to 316 m): canals in rhythm with dung and haystacks, the plank
-then a jump, the cart into a canal. Test (to 600 m): the rooster's mischief by the well, every combination, all
-three widths in a row, then the bund opens out.
+Teach (to 75 m): one new thing at a time. Practise (to 162 m): canals in rhythm with dung, ducks and haystacks, the
+plank then a jump, off the sacks over a canal, three canals in a row. Test (to 295 m): the rooster's mischief by
+the well, every combination, all three widths in a row, a 1.8 m canal without its plank, then the bund opens out.
 
 ## The course
 
 | From | To | Section | What is there | Why |
 |---:|---:|---|---|---|
-| -10 | 14 | Bund | 5 mangoes | The bund path between the paddies: the rooster struts ahead; tap to chase. |
-| 14 | 32 | FirstCanal | 2.5 m canal 22; 8 mangoes | The first canal, 2.5 m: a held jump clears it; the rooster flutters across first. |
-| 32 | 50 | Plank | 3.5 m canal 40 with the plank; 5 mangoes | A 3.5 m canal, too wide for a sure jump: the plank bridge is the way across. |
-| 50 | 66 | Dung | cow dung 58; 5 mangoes | Cow dung on the bund, as in the lane: a tap clears it. |
-| 66 | 86 | Haystack | small haystack 74; 6 mangoes | A small haystack: hop onto it (mangoes along its top) or over it. |
-| 86 | 108 | WideCanal | 4.5 m canal 95; feather 1 at 97.25, 3.4 m up; 7 mangoes | The widest canal, 4.5 m: double jump (the mangoes show where), or wade. |
-| 108 | 124 | Breather | chilli 109; 10 mangoes | Room to breathe: a wave of mangoes and the first chilli. |
-| 124 | 146 | Cart | bullock cart 128; feather 2 at 132.4, 3.4 m up; cow dung 140.5; 11 mangoes | The bullock cart on the bund: onto its bed; a feather above it for a double jump. |
-| 146 | 166 | CanalDung | 2.5 m canal 151; cow dung 160.5; 10 mangoes | A canal, then dung: jump, land, tap. |
-| 166 | 192 | Haystacks | small haystack 170; small haystack 177.5; small haystack 185; feather 3 at 185.6, 3.2 m up; 9 mangoes | Three small haystacks: hop, hop, hop; a feather above the last. |
-| 192 | 214 | PlankThenJump | 3.5 m canal 195 with the plank; 2.5 m canal 205.5; 10 mangoes | The plank, then a canal with no plank: walk, then jump. |
-| 214 | 232 | ChilliStraight | chilli 215; 10 mangoes | A long straight and a chilli to win back ground. |
-| 232 | 254 | CartCanal | bullock cart 235; 2.5 m canal 245; 11 mangoes | Off the cart's bed and straight on over a canal. |
-| 254 | 274 | WideAgain | 4.5 m canal 261; 7 mangoes | The wide canal again: double jump. |
-| 274 | 292 | DungHaystack | cow dung 278.5; small haystack 285.5; 8 mangoes | Dung, then a small haystack. |
-| 292 | 318 | CanalTrio | 2.5 m canal 295; 2.5 m canal 303.5; 2.5 m canal 312; 15 mangoes | Three 2.5 m canals in a rhythm: jump, jump, jump. |
-| 318 | 342 | Mischief | cow dung 322; pot stack 330 (knocked in by the rooster); mischief 331; 2.5 m canal 336.5; 15 mangoes | Dung; then the rooster knocks the pots by the well into the lane; a canal after. |
-| 342 | 364 | PlankHaystack | 3.5 m canal 345 with the plank; small haystack 356; 8 mangoes | The plank, then a haystack. |
-| 364 | 382 | ChilliRun | chilli 365; 10 mangoes | A chilli and a run of mangoes. |
-| 382 | 410 | CanalCartCanal | 2.5 m canal 385; bullock cart 393; 2.5 m canal 403; 16 mangoes | Canal, cart, canal. |
-| 410 | 432 | WideHaystack | 4.5 m canal 413; small haystack 425.5; 10 mangoes | The wide canal, then a haystack straight after it. |
-| 432 | 450 | DungPair | cow dung 436.5; cow dung 444; 10 mangoes | Two cow pats: tap, tap. |
-| 450 | 468 | FinalChilli | chilli 451; 10 mangoes | The last chilli. |
-| 468 | 500 | ThreeWidths | 2.5 m canal 471; 3.5 m canal 479.5 with the plank; 4.5 m canal 489.5; 17 mangoes | All three canals in a row: jump the 2.5 m, walk the plank, double jump the 4.5 m. |
-| 500 | 522 | HaystackDung | small haystack 503.5; cow dung 510; small haystack 517.5; 11 mangoes | Two haystacks and dung between them. |
-| 522 | 544 | Sugarcane | 2.5 m canal 529; cow dung 538.5; 10 mangoes | Past the sugarcane: a canal, then dung. |
-| 544 | 574 | LastWide | 4.5 m canal 549; small haystack 562; 10 mangoes | The last wide canal, and a haystack after it. |
-| 574 | 606 | OpenBund | 12 mangoes | The bund opens out: if he is still ahead, he gets away at 600 m. |
+| -10 | 8 | Bund | 4 mangoes | The bund road between the paddies: the rooster struts ahead; tap to chase. |
+| 8 | 17 | FirstCanal | 1.2 m canal 12; 8 mangoes | The first canal, 1.2 m: a held jump clears it; the rooster flutters across first. |
+| 17 | 27 | Plank | 1.8 m canal 21 with the plank; 4 mangoes | A 1.8 m canal, too wide for a sure jump: the plank bridge is the way across. |
+| 27 | 35 | Ducks | 2 ducks 31; 5 mangoes | Two ducks waddling up from the canal across the bund: jump them. |
+| 35 | 45 | Haystack | small haystack 38.5; 6 mangoes | A small haystack at the roadside: hop onto it (mangoes along its top) or over it. |
+| 45 | 56 | WideCanal | 2.6 m canal 48.5; feather 1 at 49.9, 3.1 m up; 7 mangoes | The widest canal, 2.6 m: double jump (the mangoes show where), or wade. |
+| 56 | 64 | Breather | chilli 56.5; 8 mangoes | Room to breathe: a wave of mangoes and the first chilli. |
+| 64 | 75 | Sacks | sacks of paddy 68; feather 2 at 68.9, 3.4 m up; cow dung 72.5; 7 mangoes | Sacks of paddy waiting for the cart: hop onto them; a feather above for a double jump. Then dung. |
+| 75 | 85 | CanalDung | 1.2 m canal 77; cow dung 82; 10 mangoes | A canal, then dung: jump, land, tap. |
+| 85 | 98 | Haystacks | small haystack 86.5; small haystack 90.5; small haystack 94.5; feather 3 at 95.1, 3.3 m up; 9 mangoes | Three small haystacks: hop, hop, hop; a feather above the last. |
+| 98 | 109 | PlankThenJump | 1.8 m canal 100 with the plank; 1.2 m canal 104.5; 9 mangoes | The plank, then a canal with no plank: walk, then jump. |
+| 109 | 118 | ChilliStraight | chilli 109.5; 8 mangoes | A long straight and a chilli to win back ground. |
+| 118 | 129 | SacksCanal | sacks of paddy 121; 1.2 m canal 125; 7 mangoes | Onto the sacks and off their end straight over a canal. |
+| 129 | 139 | WideAgain | 2.6 m canal 131.5; 7 mangoes | The wide canal again: double jump. |
+| 139 | 148 | DucksHaystack | 2 ducks 141.5; small haystack 145; 8 mangoes | Ducks crossing, then a small haystack. |
+| 148 | 162 | CanalTrio | 1.2 m canal 150; 1.2 m canal 154.25; 1.2 m canal 158.5; 15 mangoes | Three 1.2 m canals in a rhythm: jump, jump, jump. |
+| 162 | 175 | Mischief | cow dung 164; pot stack 168.5 (knocked in by the rooster); mischief 169; 1.2 m canal 171.8; 15 mangoes | Dung; then the rooster knocks the water pots by the well into the road; a canal after. |
+| 175 | 185 | PlankHaystack | 1.8 m canal 176.5 with the plank; small haystack 181.5; 7 mangoes | The plank, then a haystack. |
+| 185 | 194 | ChilliRun | chilli 185.5; 8 mangoes | A chilli and a run of mangoes. |
+| 194 | 209 | CanalSacksCanal | 1.2 m canal 197; sacks of paddy 201.5; 1.2 m canal 205.5; 12 mangoes | Canal, sacks, canal. |
+| 209 | 220 | WideHaystack | 2.6 m canal 210.5; small haystack 216.5; 10 mangoes | The wide canal, then a haystack straight after it. |
+| 220 | 229 | DungDucks | cow dung 221.5; 2 ducks 226; 10 mangoes | Dung, then ducks: tap, jump. |
+| 229 | 238 | FinalChilli | chilli 229.5; 8 mangoes | The last chilli. |
+| 238 | 254 | ThreeWidths | 1.2 m canal 241; 1.8 m canal 245 with the plank; 2.6 m canal 249.5; 16 mangoes | All three canals in a row: jump the 1.2 m, walk the plank over the 1.8 m, double jump the 2.6 m. |
+| 254 | 266 | HaystackDung | small haystack 255.5; cow dung 260.5; small haystack 264; 11 mangoes | Two haystacks and dung between them. |
+| 266 | 276 | Sugarcane | 1.8 m canal 268.5; 2 ducks 273.5; 10 mangoes | Past the sugarcane: a 1.8 m canal with no plank (a full jump, or a double), then ducks. |
+| 276 | 288 | LastWide | 2.6 m canal 278; small haystack 284; 10 mangoes | The last wide canal, and a haystack after it. |
+| 288 | 305 | OpenBund | 10 mangoes | The bund opens out: if he is still ahead, he gets away at 295 m. |
 
 ## The audit
 
-* canal at 95.0 (4.5 m): a held jump is a gamble (5 ms); the double jump is the way
-* canal at 261.0 (4.5 m): a held jump is a gamble (5 ms); the double jump is the way
-* canal at 413.0 (4.5 m): a held jump is a gamble (5 ms); the double jump is the way
-* canal at 489.5 (4.5 m): a held jump is a gamble (5 ms); the double jump is the way
-* canal at 549.0 (4.5 m): a held jump is a gamble (5 ms); the double jump is the way
-* a clean run from a 12 m start catches him after about 19 s, at about 131 m (without chillies)
-* first of each: canal 22 m, bridge 40 m, dung 58 m, haystack 74 m, cart 128 m, pots 330 m
+* a clean run from a 7 m start catches him after about 18 s, at about 62 m (without chillies)
+* first of each: canal 12 m, bridge 21 m, ducks 31 m, haystack 39 m, sacks 68 m, dung 72 m, pots 168 m
 
 How each challenge is cleared, and the take-off windows (how long the player has to start the move):
 
 ```
-canal         22.0 m (FirstCanal): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-bridge        40.0 m (Plank): a 3.5 m canal with the plank: run across (a held jump clears it)
-dung          57.7 m (Dung): held window 434 ms, tap 255 ms
-haystack      74.1 m (Haystack): small: hop onto it or over it (over: 112 ms)
-canal         95.0 m (WideCanal): 4.5 m: held jump 5 ms, double jump 405 ms; wading loses 5.5 m
-cart         128.0 m (Cart): jump onto the bed and run off the end
-dung         140.2 m (Cart): held window 434 ms, tap 255 ms
-canal        151.0 m (CanalDung): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-dung         160.2 m (CanalDung): held window 434 ms, tap 255 ms
-haystack     170.1 m (Haystacks): small: hop onto it or over it (over: 112 ms)
-haystack     177.6 m (Haystacks): small: hop onto it or over it (over: 112 ms)
-haystack     185.1 m (Haystacks): small: hop onto it or over it (over: 112 ms)
-bridge       195.0 m (PlankThenJump): a 3.5 m canal with the plank: run across (a held jump clears it)
-canal        205.5 m (PlankThenJump): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-cart         235.0 m (CartCanal): jump onto the bed and run off the end
-canal        245.0 m (CartCanal): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-canal        261.0 m (WideAgain): 4.5 m: held jump 5 ms, double jump 405 ms; wading loses 5.5 m
-dung         278.2 m (DungHaystack): held window 434 ms, tap 255 ms
-haystack     285.6 m (DungHaystack): small: hop onto it or over it (over: 112 ms)
-canal        295.0 m (CanalTrio): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-canal        303.5 m (CanalTrio): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-canal        312.0 m (CanalTrio): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-dung         321.7 m (Mischief): held window 434 ms, tap 255 ms
-pots         329.8 m (Mischief): held window 340 ms, tap 127 ms
-canal        336.5 m (Mischief): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-bridge       345.0 m (PlankHaystack): a 3.5 m canal with the plank: run across (a held jump clears it)
-haystack     356.1 m (PlankHaystack): small: hop onto it or over it (over: 112 ms)
-canal        385.0 m (CanalCartCanal): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-cart         393.0 m (CanalCartCanal): jump onto the bed and run off the end
-canal        403.0 m (CanalCartCanal): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-canal        413.0 m (WideHaystack): 4.5 m: held jump 5 ms, double jump 405 ms; wading loses 5.5 m
-haystack     425.6 m (WideHaystack): small: hop onto it or over it (over: 112 ms)
-dung         436.2 m (DungPair): held window 434 ms, tap 255 ms
-dung         443.7 m (DungPair): held window 434 ms, tap 255 ms
-canal        471.0 m (ThreeWidths): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-bridge       479.5 m (ThreeWidths): a 3.5 m canal with the plank: run across (a held jump clears it)
-canal        489.5 m (ThreeWidths): 4.5 m: held jump 5 ms, double jump 405 ms; wading loses 5.5 m
-haystack     503.6 m (HaystackDung): small: hop onto it or over it (over: 112 ms)
-dung         509.7 m (HaystackDung): held window 434 ms, tap 255 ms
-haystack     517.6 m (HaystackDung): small: hop onto it or over it (over: 112 ms)
-canal        529.0 m (Sugarcane): 2.5 m: held jump 290 ms, double jump 690 ms; wading loses 3.1 m
-dung         538.2 m (Sugarcane): held window 434 ms, tap 255 ms
-canal        549.0 m (LastWide): 4.5 m: held jump 5 ms, double jump 405 ms; wading loses 5.5 m
-haystack     562.1 m (LastWide): small: hop onto it or over it (over: 112 ms)
+canal         12.0 m (FirstCanal): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+bridge        21.0 m (Plank): a 1.8 m canal with the plank: run across (a held jump clears it)
+ducks         30.7 m (Ducks): held window 224 ms, tap 32 ms
+haystack      38.6 m (Haystack): small: hop onto it or over it
+canal         48.5 m (WideCanal): 2.6 m: needs a double jump, double jump 340 ms; wading loses 3.2 m
+sacks         68.0 m (Sacks): hop onto the sacks and run off the end
+dung          72.2 m (Sacks): held window 305 ms, tap 126 ms
+canal         77.0 m (CanalDung): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+dung          81.7 m (CanalDung): held window 305 ms, tap 126 ms
+haystack      86.6 m (Haystacks): small: hop onto it or over it
+haystack      90.6 m (Haystacks): small: hop onto it or over it
+haystack      94.6 m (Haystacks): small: hop onto it or over it
+bridge       100.0 m (PlankThenJump): a 1.8 m canal with the plank: run across (a held jump clears it)
+canal        104.5 m (PlankThenJump): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+sacks        121.0 m (SacksCanal): hop onto the sacks and run off the end
+canal        125.0 m (SacksCanal): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+canal        131.5 m (WideAgain): 2.6 m: needs a double jump, double jump 340 ms; wading loses 3.2 m
+ducks        141.2 m (DucksHaystack): held window 224 ms, tap 32 ms
+haystack     145.1 m (DucksHaystack): small: hop onto it or over it
+canal        150.0 m (CanalTrio): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+canal        154.2 m (CanalTrio): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+canal        158.5 m (CanalTrio): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+dung         163.7 m (Mischief): held window 305 ms, tap 126 ms
+pots         168.3 m (Mischief): held window 226 ms, tap 13 ms
+canal        171.8 m (Mischief): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+bridge       176.5 m (PlankHaystack): a 1.8 m canal with the plank: run across (a held jump clears it)
+haystack     181.6 m (PlankHaystack): small: hop onto it or over it
+canal        197.0 m (CanalSacksCanal): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+sacks        201.5 m (CanalSacksCanal): hop onto the sacks and run off the end
+canal        205.5 m (CanalSacksCanal): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+canal        210.5 m (WideHaystack): 2.6 m: needs a double jump, double jump 340 ms; wading loses 3.2 m
+haystack     216.6 m (WideHaystack): small: hop onto it or over it
+dung         221.2 m (DungDucks): held window 305 ms, tap 126 ms
+ducks        225.7 m (DungDucks): held window 224 ms, tap 32 ms
+canal        241.0 m (ThreeWidths): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
+bridge       245.0 m (ThreeWidths): a 1.8 m canal with the plank: run across (a held jump clears it)
+canal        249.5 m (ThreeWidths): 2.6 m: needs a double jump, double jump 340 ms; wading loses 3.2 m
+haystack     255.6 m (HaystackDung): small: hop onto it or over it
+dung         260.2 m (HaystackDung): held window 305 ms, tap 126 ms
+haystack     264.1 m (HaystackDung): small: hop onto it or over it
+canal        268.5 m (Sugarcane): 1.8 m: held jump 168 ms, double jump 568 ms; wading loses 2.2 m
+ducks        273.2 m (Sugarcane): held window 224 ms, tap 32 ms
+canal        278.0 m (LastWide): 2.6 m: needs a double jump, double jump 340 ms; wading loses 3.2 m
+haystack     284.1 m (LastWide): small: hop onto it or over it
 ```
 
 Problems: none.

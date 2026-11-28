@@ -518,32 +518,37 @@ def double_jump(t):
 
 
 # ------------------------------------------------------------------ ground moves
-SLIDE_LEAN = 58.0               # Kick Off's slideLean: how far the body leans back from upright
+SLIDE_LEAN = 56.0               # Kick Off's slideLean (58): how far the body leans back from upright
+SLIDE_PELVIS = 22.0             # how much of it is the hips' (more tips the frock up off her legs; the rest is the spine)
 
 
 def slide(t):
-    """Kick Off's feet-first slide, held while she skids: the whole body leaning far back (from the hips, so the frock
-    lies along her thighs), the near leg stretched out just off the ground, the far leg tucked with its knee up and its
-    foot planted ahead of it, the far hand planted on the ground by the hip and the near arm reaching forward toward the
-    feet for balance, chin down so the eyes look on ahead. Each limb is (its direction in the world from straight
-    down, forward positive) minus the lean, as in KidAnimator.SlidePose; held still (a scuff that moved the legs read as
-    a vibrating leg in Kick Off), only the hair stirring."""
-    lean = SLIDE_LEAN
+    """Kick Off's feet-first slide, held while she skids: leaning far back, her seat just off the ground, the near leg
+    stretched out with its heel skimming the ground, the far leg tucked with its knee up and its foot down, the far hand
+    reaching down to the ground by the hip and the near arm reaching forward toward the feet for balance, chin down so
+    the eyes look on ahead. Each limb is (its direction in the world from straight down, forward positive) minus the
+    lean, as in KidAnimator.SlidePose, the hips taking SLIDE_PELVIS of the lean (the frock lies over her legs; its back
+    swings out along the ground) and the spine the rest. Her limbs are a toddler's, shorter than Kick Off's kid's, so the
+    tucked leg's knee is a little lower and the far arm points nearly straight down to reach the ground. Held still (a
+    scuff that moved the legs read as a vibrating leg in Kick Off), only the hair stirring."""
+    lean, pelvis = SLIDE_LEAN, SLIDE_PELVIS
     w = math.sin(2 * math.pi * t / (10 / 30))
     P = pose()
-    P["Hips"] = [-lean, 0, 0]
-    P["Spine"] = [4, 0, 0]
-    P["Chest"] = [2, 0, 0]
-    P["Neck"] = [16, 0, 0]
+    P["Hips"] = [-pelvis, 0, 0]
+    P["Spine"] = [-(lean - pelvis) * 0.7, 0, 0]
+    P["Chest"] = [-(lean - pelvis) * 0.3, 0, 0]
+    P["Neck"] = [14, 0, 0]
     P["Head"] = [26, 0, 0]
-    leg(P, "Left", thigh=82 - lean, knee=-6, foot=-12)                  # nearly level, the heel skimming the ground
-    # the far leg: the thigh 45 degrees above level, the shin slanting forward down to the foot, flat on the ground
-    leg(P, "Right", thigh=135 - lean, knee=-80, foot=-(135 - 80 - math.degrees(LEGS["shank_rest"])))
-    arm(P, "Right", forward=24 - lean, out=22, elbow=10, hand=20)       # down by her side to the hand on the ground
-    arm(P, "Left", forward=95 - lean, out=14, elbow=30, hand=-6)        # reaching forward toward her feet
+    leg(P, "Left", thigh=90 - pelvis, knee=-4, foot=-14)                # level, the heel skimming the ground
+    thigh_w, shin_w = 120.0, 40.0                                       # the far leg's thigh and shin, in the world
+    leg(P, "Right", thigh=thigh_w - pelvis, knee=shin_w - thigh_w, foot=-(shin_w - math.degrees(LEGS["shank_rest"])))
+    arm(P, "Right", forward=12 - lean, out=18, elbow=8, hand=30)        # down by her side to the hand on the ground
+    arm(P, "Left", forward=80 - lean, out=12, elbow=30, hand=-6)        # reaching forward toward her feet, kept low
     hair(P, back=-30 + 2 * w, sides=-16, out=8)
-    skirt(P, front=6, back=14, left=(4, 8), right=(10, 8))
-    return out(P, (0, -0.40, 0.0))
+    skirt(P, front=8, back=88, left=(14, 38), right=(14, 38))          # spread out round her on the ground
+    hip_y = 0.10                                                        # the hip joints above the ground
+    drop = LEGS.get("pelvis", 0.074)
+    return out(P, (0, hip_y + drop * math.cos(math.radians(pelvis)) - (LEGS["hip"] + drop), 0.0))
 
 
 def vault(t):
@@ -604,14 +609,14 @@ def stumble(t):
     jolt = math.sin(math.pi * min(1.0, t / 0.3)) if t < 0.3 else 0.0
     st = min(1.0, t / 0.6)
     wob = math.sin(st * math.pi * 4) * (1 - st)
-    P["Spine"][0] += 14 * jolt - 6 * wob
-    P["Chest"][0] += 6 * jolt - 2 * wob
-    P["Head"][0] += -10 * jolt - 12 * wob
+    P["Spine"][0] += 18 * jolt - 8 * wob
+    P["Chest"][0] += 8 * jolt - 2 * wob
+    P["Head"][0] += -14 * jolt - 15 * wob
     P["Chest"][1] += 8 * wob
     for side, s_ in (("Left", 1), ("Right", -1)):
-        P[f"{side}UpperArm"][0] += 45 * jolt + 40 * wob * s_
-        P[f"{side}UpperArm"][2] += (28 * jolt + 10 * abs(wob)) * s_
-        P[f"{side}LowerArm"][0] -= 30 * jolt
+        P[f"{side}UpperArm"][0] += 60 * jolt + 40 * wob * s_
+        P[f"{side}UpperArm"][2] += (34 * jolt + 12 * abs(wob)) * s_
+        P[f"{side}LowerArm"][0] -= 40 * jolt
     P["HairBack"][0] += 16 * jolt + 6 * wob
     P["SkirtFront"][0] += 6 * jolt
     blend = smooth((t - (STUMBLE_T - 0.12)) / 0.12)                     # back to Run's first frame at the end
