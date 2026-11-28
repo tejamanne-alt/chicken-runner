@@ -141,7 +141,7 @@ def design():
     s = p.section("Mischief", 133.0, 13.0, "Dung; the rooster knocks the hens' basket by the farmer's hut into the road; "
                                          "a canal after.")
     p.dung(s, 134.0)
-    p.prop(s, "hut_with_pen", 139.0, 5.5, h=3.8)
+    p.prop(s, "hut_with_pen", 139.0, 4.2, h=3.8)
     p.prop(s, "hen_2", 137.2, 1.9, h=0.42)
     p.hens_basket(s, 138.5, hidden=True, ident="knocked")
     p.mischief(s, 139.0, "knocked")
@@ -150,9 +150,9 @@ def design():
     p.litter(s, 2, avoid=(134.0, 138.5, 142.6), holes=p.holes())
 
     s = p.section("TwoBuffaloes", 146.0, 11.0, "Two buffaloes: bounce, land, bounce.")
-    buffalo(p, s, 147.0)
-    buffalo(p, s, 153.0)
-    p.litter(s, 2, avoid=(148.3, 154.3))
+    buffalo(p, s, 146.3)
+    buffalo(p, s, 152.0)
+    p.litter(s, 2, avoid=(147.6, 153.3))
 
     s = p.section("BigChain", 157.0, 14.0, "Big, small, big: a feather above the last.")
     end = big(p, s, 158.5)
@@ -210,7 +210,6 @@ def design():
 
     s = p.section("OpenFields", 274.0, 31.0, "The fields open out: if he is still ahead, he gets away at 295 m.")
     p.mango_line(s, 275.5, 14, 1.2, 0.6)
-    p.prop(s, "haystack", 282.0, 4.2, h=2.6)
     p.prop(s, "buffalo_mud", 293.0, 3.6, h=1.5, mirror=True)
     p.litter(s, 4)
     return p

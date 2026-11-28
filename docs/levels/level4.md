@@ -45,7 +45,7 @@ the well, every combination, all three widths in a row, a 1.8 m canal without it
 | 17 | 27 | Plank | 1.8 m canal 21 with the plank; 4 mangoes | A 1.8 m canal, too wide for a sure jump: the plank bridge is the way across. |
 | 27 | 35 | Ducks | 2 ducks 31; 5 mangoes | Two ducks waddling up from the canal across the bund: jump them. |
 | 35 | 45 | Haystack | small haystack 38.5; 6 mangoes | A small haystack at the roadside: hop onto it (mangoes along its top) or over it. |
-| 45 | 56 | WideCanal | 2.6 m canal 48.5; feather 1 at 49.9, 3.1 m up; 7 mangoes | The widest canal, 2.6 m: double jump (the mangoes show where), or wade. |
+| 45 | 56 | WideCanal | 2.6 m canal 48.5; feather 1 at 49.9, 3.4 m up; 7 mangoes | The widest canal, 2.6 m: double jump (the mangoes show where), or wade. |
 | 56 | 64 | Breather | chilli 56.5; 8 mangoes | Room to breathe: a wave of mangoes and the first chilli. |
 | 64 | 75 | Sacks | sacks of paddy 68; feather 2 at 68.9, 3.4 m up; cow dung 72.5; 7 mangoes | Sacks of paddy waiting for the cart: hop onto them; a feather above for a double jump. Then dung. |
 | 75 | 85 | CanalDung | 1.2 m canal 77; cow dung 82; 10 mangoes | A canal, then dung: jump, land, tap. |
@@ -56,7 +56,7 @@ the well, every combination, all three widths in a row, a 1.8 m canal without it
 | 129 | 139 | WideAgain | 2.6 m canal 131.5; 7 mangoes | The wide canal again: double jump. |
 | 139 | 148 | DucksHaystack | 2 ducks 141.5; small haystack 145; 8 mangoes | Ducks crossing, then a small haystack. |
 | 148 | 162 | CanalTrio | 1.2 m canal 150; 1.2 m canal 154.25; 1.2 m canal 158.5; 15 mangoes | Three 1.2 m canals in a rhythm: jump, jump, jump. |
-| 162 | 175 | Mischief | cow dung 164; pot stack 168.5 (knocked in by the rooster); mischief 169; 1.2 m canal 171.8; 15 mangoes | Dung; then the rooster knocks the water pots by the well into the road; a canal after. |
+| 162 | 175 | Mischief | cow dung 164; pot stack 168.5 (knocked in by the rooster); mischief 169; 1.2 m canal 171.8; 15 mangoes | Dung; then the rooster knocks the water pots off their stand by the well into the road; a canal after. |
 | 175 | 185 | PlankHaystack | 1.8 m canal 176.5 with the plank; small haystack 181.5; 7 mangoes | The plank, then a haystack. |
 | 185 | 194 | ChilliRun | chilli 185.5; 8 mangoes | A chilli and a run of mangoes. |
 | 194 | 209 | CanalSacksCanal | 1.2 m canal 197; sacks of paddy 201.5; 1.2 m canal 205.5; 12 mangoes | Canal, sacks, canal. |

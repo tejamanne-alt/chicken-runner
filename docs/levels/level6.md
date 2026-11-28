@@ -54,7 +54,7 @@ last buffalo, then the fields open out.
 | 107 | 121 | BuffaloStacks | buffalo 108.5; small haystack 114; big haystack 117.5; 13 mangoes | A buffalo, then a small and a big haystack. |
 | 121 | 133 | Branch | small haystack 122.5; mango tree and branch 124.3; 4 mangoes | A mango tree, a haystack as the step up to its branch. |
 | 133 | 146 | Mischief | cow dung 134; hens' basket 138.5 (knocked in by the rooster); mischief 139; 1.2 m canal 142; 15 mangoes | Dung; the rooster knocks the hens' basket by the farmer's hut into the road; a canal after. |
-| 146 | 157 | TwoBuffaloes | buffalo 147; buffalo 153; 10 mangoes | Two buffaloes: bounce, land, bounce. |
+| 146 | 157 | TwoBuffaloes | buffalo 146.3; buffalo 152; 10 mangoes | Two buffaloes: bounce, land, bounce. |
 | 157 | 171 | BigChain | big haystack 158.5; small haystack 163.445; big haystack 167.363; feather 3 at 168.758, 3.7 m up; 13 mangoes | Big, small, big: a feather above the last. |
 | 171 | 180 | ChilliLane | chilli 171.5; 7 mangoes | A chilli to win back ground. |
 | 180 | 191 | SacksCanal | sacks of paddy 182.5; 1.2 m canal 186.5; 7 mangoes | The harvest's sacks of paddy waiting for the cart: onto them, then a canal. |
@@ -95,8 +95,8 @@ branch       125.3 m (Branch): optional: jump at the branch to pull up onto it (
 dung         133.7 m (Mischief): held window 305 ms, tap 126 ms
 hensbasket   138.2 m (Mischief): held window 216 ms, tap 12 ms
 canal        142.0 m (Mischief): 1.2 m: held jump 340 ms, double jump 740 ms; wading loses 1.5 m
-buffalo      147.4 m (TwoBuffaloes): jump onto its back (291 ms) for a 2.6 m bounce, landing about 3.5 m on; or a slow climb over
-buffalo      153.4 m (TwoBuffaloes): jump onto its back (291 ms) for a 2.6 m bounce, landing about 3.5 m on; or a slow climb over
+buffalo      146.7 m (TwoBuffaloes): jump onto its back (291 ms) for a 2.6 m bounce, landing about 3.5 m on; or a slow climb over
+buffalo      152.4 m (TwoBuffaloes): jump onto its back (291 ms) for a 2.6 m bounce, landing about 3.5 m on; or a slow climb over
 haystack     158.7 m (BigChain): big: hop onto it or over it
 haystack     163.6 m (BigChain): small: hop onto it or over it
 haystack     167.6 m (BigChain): big: hop onto it or over it

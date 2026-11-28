@@ -57,8 +57,8 @@ tree, ducks and a canal, trees and steps, the last trees and canals, then the ro
 | 108 | 122 | TreeCanal | mango tree and branch 110; 1.2 m canal 118.5; 5 mangoes | A tree, then a canal after its branch. |
 | 122 | 131 | ChilliStraight | chilli 122.5; 7 mangoes | A chilli and a long straight. |
 | 131 | 153 | Orchard | mango tree and branch 133; mango tree and branch 139; mango tree and branch 145; feather 2 at 143.3, 3.2 m up; 6 mangoes | Three trees in a row, 2 m between their branches: branch to branch, a feather above the middle one. |
-| 153 | 166 | Mischief | cow dung 156; pot stack 160.5 (knocked in by the rooster); mischief 161; 1.2 m canal 164; 15 mangoes | Dung; the rooster knocks the water pots by the well into the road; a canal after. |
-| 166 | 183 | WideTree | 2.6 m canal 168; feather 3 at 169.4, 3.1 m up; small haystack 174; mango tree and branch 175.8; 11 mangoes | The wide canal (double jump, a feather at its top), then a tree with a haystack step. |
+| 153 | 166 | Mischief | cow dung 156; pot stack 160.5 (knocked in by the rooster); mischief 161; 1.2 m canal 164; 15 mangoes | Dung; the rooster knocks the water pots off their stand by the well into the road; a canal after. |
+| 166 | 183 | WideTree | 2.6 m canal 168; feather 3 at 169.4, 3.4 m up; small haystack 174; mango tree and branch 175.8; 11 mangoes | The wide canal (double jump, a feather at its top), then a tree with a haystack step. |
 | 183 | 192 | ChilliRun | chilli 183.5; 7 mangoes | A chilli and a run of mangoes. |
 | 192 | 204 | DucksCanal | 2 ducks 195; 1.2 m canal 198.5; 10 mangoes | Ducks waddling up from the canal: jump them, then the canal. |
 | 204 | 226 | TreesAndStacks | mango tree and branch 205; small haystack 213.5; sacks of paddy 217.5; mango tree and branch 218.7; 6 mangoes | A tree, a haystack, then sacks as the step up to another tree. |

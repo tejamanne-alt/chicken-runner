@@ -87,8 +87,8 @@ def design():
 
     # ---- the opening: the grove's edge
     s = p.section("Grove", -10.0, 18.0, "The bund road into the mango grove: the rooster struts ahead; tap to chase.")
-    p.prop(s, "tree_mango_2", -6.0, 5.0, h=5.6)
-    p.prop(s, "palmyra_3", -3.0, 6.5, h=9.0)
+    p.prop(s, "tree_mango_2", -7.5, 5.0, h=5.6)
+    p.prop(s, "palmyra_3", -2.3, 6.5, h=9.0)
     p.prop(s, "cow", 5.5, 2.8, h=1.45, mirror=True)
     p.prop(s, "goat_eating", -1.5, 2.2, h=0.9)
     p.mango_line(s, 1.5, 4, 1.4, 0.6)
